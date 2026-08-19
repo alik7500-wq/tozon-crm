@@ -128,7 +128,7 @@ export const SmsTemplatesPage = () => {
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
           <h1 className="text-2xl font-extrabold text-slate-900 tracking-tight flex items-center gap-2.5">
-            <MessageSquare className="h-7 w-7 text-amber-500" />
+            <MessageSquare className="h-7 w-7 text-blue-600" />
             <span>Быстрые сообщения и SMS шаблоны</span>
           </h1>
           <p className="mt-1 text-xs sm:text-sm text-slate-500">
@@ -138,7 +138,7 @@ export const SmsTemplatesPage = () => {
 
         <button
           onClick={handleOpenCreate}
-          className="flex items-center gap-2 rounded-xl bg-amber-500 hover:bg-amber-600 text-slate-950 font-bold px-5 py-2.5 text-xs shadow-md transition cursor-pointer"
+          className="flex items-center gap-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold px-5 py-2.5 text-xs shadow-md transition cursor-pointer"
         >
           <Plus className="h-4 w-4" />
           <span>Создать</span>
@@ -253,7 +253,7 @@ export const SmsTemplatesPage = () => {
                 </button>
                 <button
                   type="submit"
-                  className="rounded-xl bg-amber-500 hover:bg-amber-600 px-5 py-2 text-xs font-bold text-slate-950 shadow-md transition cursor-pointer"
+                  className="rounded-xl bg-blue-600 hover:bg-blue-700 px-5 py-2 text-xs font-bold text-white shadow-md transition cursor-pointer"
                 >
                   Сохранить
                 </button>

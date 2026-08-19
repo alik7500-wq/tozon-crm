@@ -378,7 +378,7 @@ export const LeadDrawer = ({ isOpen, onClose, leadId, onLeadUpdated, onEditLead 
                       <button
                         type="submit"
                         disabled={isAddingNote || !newNote.trim()}
-                        className="flex items-center gap-1.5 rounded-xl bg-gradient-to-r from-purple-600 to-indigo-600 px-5 py-2.5 text-xs font-bold text-white shadow-md hover:from-purple-700 hover:to-indigo-700 transition disabled:opacity-50 cursor-pointer"
+                        className="flex items-center gap-1.5 rounded-xl bg-blue-600 px-5 py-2.5 text-xs font-bold text-white shadow-md hover:bg-blue-700 transition disabled:opacity-50 cursor-pointer"
                       >
                         <Send className="h-3.5 w-3.5" />
                         <span>{isAddingNote ? 'Сохранение...' : 'Добавить заметку'}</span>

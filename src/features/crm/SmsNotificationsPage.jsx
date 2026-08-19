@@ -92,7 +92,7 @@ export const SmsNotificationsPage = () => {
 
         <button
           onClick={() => setIsSendModalOpen(true)}
-          className="flex items-center gap-2 rounded-xl bg-purple-600 hover:bg-purple-700 text-white px-4 py-2.5 text-xs font-bold transition shadow-md cursor-pointer"
+          className="flex items-center gap-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white px-4 py-2.5 text-xs font-bold transition shadow-md cursor-pointer"
         >
           <Send className="h-4 w-4" />
           <span>Отправить SMS</span>
@@ -216,7 +216,7 @@ export const SmsNotificationsPage = () => {
                 <button
                   type="submit"
                   disabled={isSending}
-                  className="flex items-center gap-2 rounded-xl bg-purple-600 px-5 py-2 text-xs font-bold text-white shadow-md hover:bg-purple-700 transition disabled:opacity-50"
+                  className="flex items-center gap-2 rounded-xl bg-blue-600 px-5 py-2 text-xs font-bold text-white shadow-md hover:bg-blue-700 transition disabled:opacity-50"
                 >
                   <Send className="h-3.5 w-3.5" />
                   <span>{isSending ? 'Отправка...' : 'Отправить'}</span>

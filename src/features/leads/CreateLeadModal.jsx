@@ -419,7 +419,7 @@ export const CreateLeadModal = ({ isOpen, onClose, onCreated, leadToEdit = null,
             <button
               type="submit"
               disabled={isSubmitting}
-              className="rounded-xl bg-gradient-to-r from-purple-600 to-indigo-600 px-5 py-2 text-sm font-bold text-white shadow-md hover:from-purple-700 hover:to-indigo-700 transition disabled:opacity-60 cursor-pointer"
+              className="rounded-xl bg-blue-600 hover:bg-blue-700 px-5 py-2 text-sm font-bold text-white shadow-md transition disabled:opacity-60 cursor-pointer"
             >
               {isSubmitting ? 'Сохранение...' : leadToEdit ? 'Сохранить изменения' : 'Создать лида'}
             </button>

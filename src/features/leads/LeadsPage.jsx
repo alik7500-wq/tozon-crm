@@ -119,7 +119,7 @@ export const LeadsPage = () => {
             setLeadToEdit(null);
             setIsCreateModalOpen(true);
           }}
-          className="flex items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-purple-600 to-indigo-600 px-4 py-2.5 text-xs font-bold text-white shadow-md hover:from-purple-700 hover:to-indigo-700 transition cursor-pointer"
+          className="flex items-center justify-center gap-2 rounded-xl bg-blue-600 hover:bg-blue-700 px-4 py-2.5 text-xs font-bold text-white shadow-md transition cursor-pointer"
         >
           <Plus className="h-4 w-4" />
           <span>Добавить лида</span>
