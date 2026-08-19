@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { api } from '../../api/client';
+import { FinanceTabs } from '../../components/FinanceTabs';
 import {
   Calendar as CalendarIcon,
   Search,
@@ -61,6 +62,8 @@ export const PaymentCalendarPage = () => {
           Запланировано к получению: {(totalPlanSum / 100).toLocaleString()} USD/TJS
         </div>
       </div>
+
+      <FinanceTabs />
 
       {/* Filter Bar */}
       <div className="flex items-center justify-between gap-4 rounded-2xl bg-white p-4 border border-slate-200 shadow-2xs">

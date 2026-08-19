@@ -3,6 +3,7 @@ import { api } from '../../api/client';
 import { PaymentRecordModal } from '../deals/PaymentRecordModal';
 import { DealDrawer } from '../deals/DealDrawer';
 import { ContractPrintView } from '../deals/ContractPrintView';
+import { FinanceTabs } from '../../components/FinanceTabs';
 import {
   CreditCard,
   Plus,
@@ -68,6 +69,8 @@ export const PaymentsPage = () => {
           </p>
         </div>
       </div>
+
+      <FinanceTabs />
 
       {/* Metrics Bar */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">

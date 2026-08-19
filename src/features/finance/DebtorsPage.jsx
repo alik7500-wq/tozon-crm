@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { api } from '../../api/client';
 import { DealDrawer } from '../deals/DealDrawer';
 import { ContractPrintView } from '../deals/ContractPrintView';
+import { FinanceTabs } from '../../components/FinanceTabs';
 import {
   AlertCircle,
   Search,
@@ -76,6 +77,8 @@ export const DebtorsPage = () => {
           Общая задолженность: {(totalOutstanding / 100).toLocaleString()} TJS/USD
         </div>
       </div>
+
+      <FinanceTabs />
 
       {/* Filter Bar */}
       <div className="flex items-center justify-between gap-4 rounded-2xl bg-white p-4 border border-slate-200 shadow-2xs">

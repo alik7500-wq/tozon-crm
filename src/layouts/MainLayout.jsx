@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { NavLink, Outlet, useNavigate } from 'react-router-dom';
+import React, { useState, useEffect } from 'react';
+import { NavLink, Outlet, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../features/auth/AuthContext';
 import {
   LayoutDashboard,
@@ -11,6 +11,7 @@ import {
   LogOut,
   Search,
   ChevronRight,
+  ChevronDown,
   ShieldCheck,
   UserCheck,
   Bell,
@@ -31,33 +32,86 @@ import {
 export const MainLayout = () => {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
+
+  // Expand state for nested menus
+  const [expandedMenus, setExpandedMenus] = useState({
+    inventory: true,
+    deals: true,
+    finance: true,
+  });
+
+  const toggleMenu = (key) => {
+    setExpandedMenus((prev) => ({ ...prev, [key]: !prev[key] }));
+  };
+
+  // Auto-expand menu when on its sub-route
+  useEffect(() => {
+    const path = location.pathname;
+    if (path.startsWith('/finance') || path === '/payments') {
+      setExpandedMenus((prev) => ({ ...prev, finance: true }));
+    }
+    if (path.startsWith('/projects') || path === '/apartments') {
+      setExpandedMenus((prev) => ({ ...prev, inventory: true }));
+    }
+    if (path === '/deals' || path === '/contracts') {
+      setExpandedMenus((prev) => ({ ...prev, deals: true }));
+    }
+  }, [location.pathname]);
 
   const handleLogout = async () => {
     await logout();
     navigate('/login');
   };
 
-  const navItems = [
-    { label: 'Обзор', path: '/', icon: LayoutDashboard },
-    { label: 'Объекты', path: '/projects', icon: Building2 },
-    { label: 'Квартиры', path: '/apartments', icon: Home },
-    { label: 'Лиды', path: '/leads', icon: UserPlus },
-    { label: 'Задачи', path: '/tasks', icon: CheckSquare },
-    { label: 'Сделки', path: '/deals', icon: FileCheck },
-    { label: 'Договоры', path: '/contracts', icon: FileText },
-    { label: 'Платежи', path: '/payments', icon: CreditCard },
-    { label: 'Календарь платежей', path: '/finance/calendar', icon: Calendar },
-    { label: 'Должники', path: '/finance/debtors', icon: AlertCircle },
-    { label: 'Отчеты', path: '/reports', icon: BarChart3 },
-    { label: 'Автоматизация', path: '/automation', icon: Zap },
-    { label: 'Уведомления', path: '/notifications', icon: Bell },
+  const navGroups = [
+    { type: 'link', label: 'Обзор', path: '/', icon: LayoutDashboard },
+    {
+      type: 'group',
+      id: 'inventory',
+      label: 'Недвижимость',
+      icon: Building2,
+      basePath: '/projects',
+      children: [
+        { label: 'Объекты ЖК', path: '/projects', icon: Building2 },
+        { label: 'Квартиры', path: '/apartments', icon: Home },
+      ],
+    },
+    { type: 'link', label: 'Лиды', path: '/leads', icon: UserPlus },
+    { type: 'link', label: 'Задачи', path: '/tasks', icon: CheckSquare },
+    {
+      type: 'group',
+      id: 'deals',
+      label: 'Сделки и договоры',
+      icon: FileCheck,
+      basePath: '/deals',
+      children: [
+        { label: 'Сделки', path: '/deals', icon: FileCheck },
+        { label: 'Договоры', path: '/contracts', icon: FileText },
+      ],
+    },
+    {
+      type: 'group',
+      id: 'finance',
+      label: 'Платежи и финансы',
+      icon: CreditCard,
+      basePath: '/payments',
+      children: [
+        { label: 'Реестр платежей', path: '/payments', icon: CreditCard },
+        { label: 'Календарь платежей', path: '/finance/calendar', icon: Calendar },
+        { label: 'Должники', path: '/finance/debtors', icon: AlertCircle },
+      ],
+    },
+    { type: 'link', label: 'Отчеты', path: '/reports', icon: BarChart3 },
+    { type: 'link', label: 'Автоматизация', path: '/automation', icon: Zap },
+    { type: 'link', label: 'Уведомления', path: '/notifications', icon: Bell },
   ];
 
   if (user?.role === 'ADMIN') {
-    navItems.push({ label: 'Пользователи', path: '/users', icon: Users });
-    navItems.push({ label: 'Настройки', path: '/settings', icon: Settings });
+    navGroups.push({ type: 'link', label: 'Пользователи', path: '/users', icon: Users });
+    navGroups.push({ type: 'link', label: 'Настройки', path: '/settings', icon: Settings });
   }
 
   return (
@@ -91,24 +145,85 @@ export const MainLayout = () => {
 
         {/* Navigation links */}
         <nav className="flex-1 space-y-1 p-3 overflow-y-auto">
-          {navItems.map((item) => {
+          {navGroups.map((item) => {
+            if (item.type === 'link') {
+              const Icon = item.icon;
+              return (
+                <NavLink
+                  key={item.path}
+                  to={item.path}
+                  end={item.path === '/'}
+                  className={({ isActive }) =>
+                    `flex items-center gap-3 rounded-xl px-3 py-2 text-xs font-semibold transition duration-150 group ${
+                      isActive
+                        ? 'bg-blue-50 text-blue-700 font-bold border border-blue-200/80 shadow-2xs'
+                        : 'text-slate-600 hover:bg-slate-100/80 hover:text-slate-900'
+                    }`
+                  }
+                >
+                  <Icon className="h-4.5 w-4.5 shrink-0 transition-colors group-hover:text-blue-600" />
+                  {isSidebarOpen && <span className="truncate">{item.label}</span>}
+                </NavLink>
+              );
+            }
+
+            // Group with Submenu
             const Icon = item.icon;
+            const isGroupActive = item.children.some((c) => location.pathname === c.path);
+            const isExpanded = expandedMenus[item.id];
+
             return (
-              <NavLink
-                key={item.path}
-                to={item.path}
-                end={item.path === '/'}
-                className={({ isActive }) =>
-                  `flex items-center gap-3 rounded-xl px-3.5 py-2.5 text-sm font-medium transition duration-150 group ${
-                    isActive
-                      ? 'bg-blue-50 text-blue-700 font-semibold border border-blue-200/80 shadow-2xs'
+              <div key={item.id} className="space-y-0.5">
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (!isSidebarOpen) {
+                      setIsSidebarOpen(true);
+                    }
+                    toggleMenu(item.id);
+                  }}
+                  className={`w-full flex items-center justify-between rounded-xl px-3 py-2 text-xs font-semibold transition duration-150 group cursor-pointer ${
+                    isGroupActive
+                      ? 'text-blue-700 bg-blue-50/50 font-bold'
                       : 'text-slate-600 hover:bg-slate-100/80 hover:text-slate-900'
-                  }`
-                }
-              >
-                <Icon className="h-5 w-5 shrink-0 transition-colors group-hover:text-blue-600" />
-                {isSidebarOpen && <span className="truncate">{item.label}</span>}
-              </NavLink>
+                  }`}
+                >
+                  <div className="flex items-center gap-3 min-w-0">
+                    <Icon className={`h-4.5 w-4.5 shrink-0 ${isGroupActive ? 'text-blue-600' : 'text-slate-500'}`} />
+                    {isSidebarOpen && <span className="truncate">{item.label}</span>}
+                  </div>
+                  {isSidebarOpen && (
+                    <div className="text-slate-400 group-hover:text-slate-600">
+                      {isExpanded ? <ChevronDown className="h-3.5 w-3.5" /> : <ChevronRight className="h-3.5 w-3.5" />}
+                    </div>
+                  )}
+                </button>
+
+                {/* Submenu Items */}
+                {isSidebarOpen && isExpanded && (
+                  <div className="pl-6 pr-1 space-y-0.5 animate-in fade-in duration-150">
+                    {item.children.map((sub) => {
+                      const SubIcon = sub.icon;
+                      return (
+                        <NavLink
+                          key={sub.path}
+                          to={sub.path}
+                          className={({ isActive }) =>
+                            `flex items-center gap-2.5 rounded-lg px-2.5 py-1.5 text-[11px] transition ${
+                              isActive
+                                ? 'bg-blue-600 text-white font-bold shadow-2xs'
+                                : 'text-slate-500 hover:bg-slate-100 hover:text-slate-900 font-medium'
+                            }`
+                          }
+                        >
+                          <SubIcon className="h-3.5 w-3.5 shrink-0 opacity-80" />
+                          <span className="truncate">{sub.label}</span>
+                        </NavLink>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
             );
           })}
         </nav>
@@ -173,13 +288,14 @@ export const MainLayout = () => {
               <span>База данных: <strong className="text-slate-800">SQLite WAL</strong></span>
             </div>
 
-            <button
+            <NavLink
+              to="/notifications"
               title="Уведомления"
               className="relative rounded-xl border border-slate-200 bg-white p-2 text-slate-500 hover:bg-slate-100 hover:text-slate-800 transition cursor-pointer"
             >
               <Bell className="h-4 w-4" />
               <span className="absolute top-1.5 right-1.5 h-2 w-2 rounded-full bg-blue-600 ring-2 ring-white"></span>
-            </button>
+            </NavLink>
           </div>
         </header>
 
