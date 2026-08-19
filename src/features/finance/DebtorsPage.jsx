@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { api } from '../../api/client';
+import { DealDrawer } from '../deals/DealDrawer';
+import { ContractPrintView } from '../deals/ContractPrintView';
 import {
   AlertCircle,
   Search,
@@ -8,33 +10,36 @@ import {
   Building2,
   TrendingDown,
   Clock,
-  User
+  User,
+  Eye
 } from 'lucide-react';
 
 export const DebtorsPage = () => {
   const [deals, setDeals] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [search, setSearch] = useState('');
+  const [selectedDealIdForDrawer, setSelectedDealIdForDrawer] = useState(null);
+  const [contractToPrint, setContractToPrint] = useState(null);
+
+  const fetchDebtors = async () => {
+    try {
+      setIsLoading(true);
+      const res = await api.get('/deals');
+      const list = res.data?.deals || res.deals || [];
+      const debtorDeals = list.filter((d) => {
+        const total = d.final_price_minor || 0;
+        const paid = d.paid_amount_minor || 0;
+        return total > paid && d.payment_type === 'INSTALLMENT';
+      });
+      setDeals(debtorDeals);
+    } catch (err) {
+      console.error('Error fetching debtors:', err);
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   useEffect(() => {
-    const fetchDebtors = async () => {
-      try {
-        setIsLoading(true);
-        const res = await api.get('/deals');
-        const list = res.data?.deals || res.deals || [];
-        // Filter deals where there is outstanding debt
-        const debtorDeals = list.filter((d) => {
-          const total = d.final_price_minor || 0;
-          const paid = d.paid_amount_minor || 0;
-          return total > paid && d.payment_type === 'INSTALLMENT';
-        });
-        setDeals(debtorDeals);
-      } catch (err) {
-        console.error('Error fetching debtors:', err);
-      } finally {
-        setIsLoading(false);
-      }
-    };
     fetchDebtors();
   }, []);
 
@@ -42,7 +47,8 @@ export const DebtorsPage = () => {
     return (
       !search ||
       (d.contract_number && d.contract_number.toLowerCase().includes(search.toLowerCase())) ||
-      (d.lead_name && d.lead_name.toLowerCase().includes(search.toLowerCase()))
+      (d.lead_name && d.lead_name.toLowerCase().includes(search.toLowerCase())) ||
+      (d.project_name && d.project_name.toLowerCase().includes(search.toLowerCase()))
     );
   });
 
@@ -62,7 +68,7 @@ export const DebtorsPage = () => {
             <span>Реестр задолженностей и должников</span>
           </h1>
           <p className="mt-1 text-xs sm:text-sm text-slate-500">
-            Контроль просроченных взносов по рассрочкам и остатков оплат по договорам
+            Контроль остатков оплат по договорам и графикам рассрочки (кликните на строку для детализации платежей)
           </p>
         </div>
 
@@ -77,7 +83,7 @@ export const DebtorsPage = () => {
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
           <input
             type="text"
-            placeholder="Поиск должника по ФИО или договору..."
+            placeholder="Поиск должника по ФИО, договору или ЖК..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             className="w-full rounded-xl border border-slate-200 bg-slate-50 pl-9 pr-3.5 py-1.5 text-xs text-slate-900 outline-none focus:border-rose-500 focus:bg-white transition"
@@ -117,7 +123,7 @@ export const DebtorsPage = () => {
                   <th className="p-3.5">Сумма договора</th>
                   <th className="p-3.5">Оплачено</th>
                   <th className="p-3.5">Остаток долга</th>
-                  <th className="p-3.5 text-right pr-5">Связаться</th>
+                  <th className="p-3.5 text-right pr-5">Действия</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">
@@ -127,9 +133,13 @@ export const DebtorsPage = () => {
                   const debt = total - paid;
 
                   return (
-                    <tr key={d.id} className="hover:bg-slate-50 transition">
+                    <tr
+                      key={d.id}
+                      onClick={() => setSelectedDealIdForDrawer(d.id)}
+                      className="hover:bg-rose-50/40 transition cursor-pointer group"
+                    >
                       <td className="p-3.5 pl-5">
-                        <div className="font-bold text-slate-900">{d.lead_name}</div>
+                        <div className="font-bold text-slate-900 group-hover:text-rose-700">{d.lead_name}</div>
                         <div className="text-[11px] text-slate-400">{d.lead_phone}</div>
                       </td>
                       <td className="p-3.5 font-bold text-blue-700">{d.contract_number}</td>
@@ -146,17 +156,24 @@ export const DebtorsPage = () => {
                         {(debt / 100).toLocaleString()} {d.currency || 'TJS'}
                       </td>
                       <td className="p-3.5 text-right pr-5">
-                        {d.lead_phone ? (
-                          <a
-                            href={`tel:${d.lead_phone}`}
-                            className="inline-flex items-center gap-1 rounded-xl bg-blue-50 text-blue-700 px-3 py-1.5 text-xs font-bold hover:bg-blue-100 transition cursor-pointer"
+                        <div className="flex items-center justify-end gap-2" onClick={(e) => e.stopPropagation()}>
+                          {d.lead_phone && (
+                            <a
+                              href={`tel:${d.lead_phone}`}
+                              className="inline-flex items-center gap-1 rounded-xl bg-blue-50 text-blue-700 px-2.5 py-1.5 text-xs font-bold hover:bg-blue-100 transition cursor-pointer"
+                            >
+                              <Phone className="h-3.5 w-3.5" />
+                              <span>Звонок</span>
+                            </a>
+                          )}
+                          <button
+                            onClick={() => setSelectedDealIdForDrawer(d.id)}
+                            className="inline-flex items-center gap-1 rounded-xl border border-slate-200 bg-white hover:bg-slate-100 text-slate-700 px-2.5 py-1.5 text-xs font-bold transition shadow-2xs cursor-pointer"
                           >
-                            <Phone className="h-3.5 w-3.5" />
-                            <span>Позвонить</span>
-                          </a>
-                        ) : (
-                          <span className="text-slate-400 text-[11px]">Нет телефона</span>
-                        )}
+                            <Eye className="h-3.5 w-3.5 text-slate-400" />
+                            <span>Детали</span>
+                          </button>
+                        </div>
                       </td>
                     </tr>
                   );
@@ -165,6 +182,23 @@ export const DebtorsPage = () => {
             </table>
           </div>
         </div>
+      )}
+
+      {/* Deal Full Details Drawer */}
+      <DealDrawer
+        isOpen={Boolean(selectedDealIdForDrawer)}
+        onClose={() => setSelectedDealIdForDrawer(null)}
+        dealId={selectedDealIdForDrawer}
+        onDealUpdated={fetchDebtors}
+        onOpenContractPrint={(deal) => setContractToPrint(deal)}
+      />
+
+      {/* Printable Contract Modal */}
+      {contractToPrint && (
+        <ContractPrintView
+          deal={contractToPrint}
+          onClose={() => setContractToPrint(null)}
+        />
       )}
     </div>
   );

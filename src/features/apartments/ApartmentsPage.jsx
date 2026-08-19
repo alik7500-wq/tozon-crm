@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { api } from '../../api/client';
+import { ApartmentDetailModal } from './ApartmentDetailModal';
 import {
   Home,
   Building2,
@@ -14,6 +15,7 @@ import {
   Clock,
   XCircle,
   Lock,
+  Eye,
   ArrowUpDown
 } from 'lucide-react';
 
@@ -26,6 +28,7 @@ export const ApartmentsPage = () => {
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('');
   const [roomsFilter, setRoomsFilter] = useState('');
+  const [selectedUnitId, setSelectedUnitId] = useState(null);
 
   useEffect(() => {
     const fetchInitialData = async () => {
@@ -46,19 +49,20 @@ export const ApartmentsPage = () => {
     fetchInitialData();
   }, []);
 
-  useEffect(() => {
+  const fetchChessboardData = async () => {
     if (!selectedProjectId) return;
-    const fetchChessboardData = async () => {
-      try {
-        setIsLoading(true);
-        const res = await api.get(`/inventory/projects/${selectedProjectId}/chessboard`);
-        setChessboard(res.data?.chessboard || res.chessboard || []);
-      } catch (err) {
-        console.error('Error loading apartments:', err);
-      } finally {
-        setIsLoading(false);
-      }
-    };
+    try {
+      setIsLoading(true);
+      const res = await api.get(`/inventory/projects/${selectedProjectId}/chessboard`);
+      setChessboard(res.data?.chessboard || res.chessboard || []);
+    } catch (err) {
+      console.error('Error loading apartments:', err);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  useEffect(() => {
     fetchChessboardData();
   }, [selectedProjectId]);
 
@@ -98,6 +102,8 @@ export const ApartmentsPage = () => {
     }
   };
 
+  const selectedProject = projects.find((p) => String(p.id) === String(selectedProjectId));
+
   return (
     <div className="space-y-6 max-w-7xl mx-auto pb-12">
       {/* Page Header */}
@@ -108,7 +114,7 @@ export const ApartmentsPage = () => {
             <span>Реестр квартир</span>
           </h1>
           <p className="mt-1 text-xs sm:text-sm text-slate-500">
-            Каталог всех помещений, статусы бронирования, метражи и поэтажные шахматки
+            Каталог помещений, карточки истории, статус сделки, покупатель, сумма и детализация платежей
           </p>
         </div>
 
@@ -183,7 +189,7 @@ export const ApartmentsPage = () => {
         </div>
 
         <div className="text-xs text-slate-500">
-          Найдено: <strong className="text-slate-900">{filteredUnits.length}</strong> кв.
+          Найдено: <strong className="text-slate-900">{filteredUnits.length}</strong> кв. (кликните на любую строку)
         </div>
       </div>
 
@@ -219,15 +225,19 @@ export const ApartmentsPage = () => {
                   <th className="p-3.5">Комнат</th>
                   <th className="p-3.5">Площадь</th>
                   <th className="p-3.5">Статус</th>
-                  <th className="p-3.5 text-right pr-5">Действие</th>
+                  <th className="p-3.5 text-right pr-5">Детали и история</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">
                 {filteredUnits.map((u) => {
                   const badge = getStatusBadge(u.status);
                   return (
-                    <tr key={u.id} className="hover:bg-slate-50 transition">
-                      <td className="p-3.5 pl-5 font-bold text-slate-900 flex items-center gap-2">
+                    <tr
+                      key={u.id}
+                      onClick={() => setSelectedUnitId(u.id)}
+                      className="hover:bg-blue-50/50 transition cursor-pointer group"
+                    >
+                      <td className="p-3.5 pl-5 font-bold text-slate-900 flex items-center gap-2 group-hover:text-blue-600">
                         <span className="h-2 w-2 rounded-full bg-blue-600"></span>
                         <span>Кв. №{u.unit_number}</span>
                       </td>
@@ -247,12 +257,10 @@ export const ApartmentsPage = () => {
                         </span>
                       </td>
                       <td className="p-3.5 text-right pr-5">
-                        <button
-                          onClick={() => navigate(`/projects/${selectedProjectId}`)}
-                          className="text-xs font-bold text-blue-600 hover:text-blue-800 transition"
-                        >
-                          В шахматку →
-                        </button>
+                        <span className="inline-flex items-center gap-1 text-xs font-bold text-blue-600 group-hover:translate-x-1 transition">
+                          <Eye className="h-3.5 w-3.5" />
+                          <span>Открыть карточку →</span>
+                        </span>
                       </td>
                     </tr>
                   );
@@ -261,6 +269,17 @@ export const ApartmentsPage = () => {
             </table>
           </div>
         </div>
+      )}
+
+      {/* Apartment Detail Modal */}
+      {selectedUnitId && (
+        <ApartmentDetailModal
+          unitId={selectedUnitId}
+          isOpen={Boolean(selectedUnitId)}
+          onClose={() => setSelectedUnitId(null)}
+          onUnitUpdated={fetchChessboardData}
+          currency={selectedProject?.currency || 'TJS'}
+        />
       )}
     </div>
   );

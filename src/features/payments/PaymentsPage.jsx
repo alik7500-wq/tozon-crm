@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { api } from '../../api/client';
 import { PaymentRecordModal } from '../deals/PaymentRecordModal';
+import { DealDrawer } from '../deals/DealDrawer';
+import { ContractPrintView } from '../deals/ContractPrintView';
 import {
   CreditCard,
   Plus,
@@ -11,6 +13,7 @@ import {
   AlertCircle,
   TrendingUp,
   Wallet,
+  Eye,
   ArrowUpRight
 } from 'lucide-react';
 
@@ -19,6 +22,8 @@ export const PaymentsPage = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [selectedDealForPayment, setSelectedDealForPayment] = useState(null);
+  const [selectedDealIdForDrawer, setSelectedDealIdForDrawer] = useState(null);
+  const [contractToPrint, setContractToPrint] = useState(null);
 
   const fetchDeals = async () => {
     try {
@@ -40,7 +45,8 @@ export const PaymentsPage = () => {
     return (
       !search ||
       (d.contract_number && d.contract_number.toLowerCase().includes(search.toLowerCase())) ||
-      (d.lead_name && d.lead_name.toLowerCase().includes(search.toLowerCase()))
+      (d.lead_name && d.lead_name.toLowerCase().includes(search.toLowerCase())) ||
+      (d.project_name && d.project_name.toLowerCase().includes(search.toLowerCase()))
     );
   });
 
@@ -58,7 +64,7 @@ export const PaymentsPage = () => {
             <span>Финансовый учет и платежи</span>
           </h1>
           <p className="mt-1 text-xs sm:text-sm text-slate-500">
-            Регистрация оплат по договорам рассрочки, учет поступлений и контроль остатков
+            Регистрация оплат по договорам рассрочки, учет поступлений и контроль остатков (кликните на строку для детализации)
           </p>
         </div>
       </div>
@@ -114,11 +120,15 @@ export const PaymentsPage = () => {
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
           <input
             type="text"
-            placeholder="Поиск по договору или покупателю..."
+            placeholder="Поиск по договору, покупателю или объекту..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             className="w-full rounded-xl border border-slate-200 bg-slate-50 pl-9 pr-3.5 py-1.5 text-xs text-slate-900 outline-none focus:border-emerald-500 focus:bg-white transition"
           />
+        </div>
+
+        <div className="text-xs text-slate-500 font-semibold">
+          Всего договоров: <strong className="text-slate-900">{filteredDeals.length}</strong>
         </div>
       </div>
 
@@ -161,8 +171,14 @@ export const PaymentsPage = () => {
                   const percent = total > 0 ? Math.min(100, Math.round((paid / total) * 100)) : 0;
 
                   return (
-                    <tr key={d.id} className="hover:bg-slate-50 transition">
-                      <td className="p-3.5 pl-5 font-bold text-blue-700">{d.contract_number || `СД-${d.id}`}</td>
+                    <tr
+                      key={d.id}
+                      onClick={() => setSelectedDealIdForDrawer(d.id)}
+                      className="hover:bg-slate-50 transition cursor-pointer group"
+                    >
+                      <td className="p-3.5 pl-5 font-bold text-blue-700 group-hover:text-blue-900">
+                        {d.contract_number || `СД-${d.id}`}
+                      </td>
                       <td className="p-3.5">
                         <div className="font-bold text-slate-900">{d.lead_name}</div>
                         <div className="text-[11px] text-slate-400">{d.lead_phone}</div>
@@ -188,13 +204,23 @@ export const PaymentsPage = () => {
                         {(balance / 100).toLocaleString()} {d.currency || 'TJS'}
                       </td>
                       <td className="p-3.5 text-right pr-5">
-                        <button
-                          onClick={() => setSelectedDealForPayment(d)}
-                          className="inline-flex items-center gap-1 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white px-3 py-1.5 text-xs font-bold transition shadow-xs cursor-pointer"
-                        >
-                          <Plus className="h-3.5 w-3.5" />
-                          <span>Принять платеж</span>
-                        </button>
+                        <div className="flex items-center justify-end gap-2" onClick={(e) => e.stopPropagation()}>
+                          <button
+                            onClick={() => setSelectedDealForPayment(d)}
+                            className="inline-flex items-center gap-1 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white px-3 py-1.5 text-xs font-bold transition shadow-xs cursor-pointer"
+                          >
+                            <Plus className="h-3.5 w-3.5" />
+                            <span>Оплата</span>
+                          </button>
+
+                          <button
+                            onClick={() => setSelectedDealIdForDrawer(d.id)}
+                            className="inline-flex items-center gap-1 rounded-xl border border-slate-200 bg-white hover:bg-slate-100 text-slate-700 px-3 py-1.5 text-xs font-bold transition shadow-2xs cursor-pointer"
+                          >
+                            <Eye className="h-3.5 w-3.5 text-slate-400" />
+                            <span>Детали</span>
+                          </button>
+                        </div>
                       </td>
                     </tr>
                   );
@@ -215,6 +241,23 @@ export const PaymentsPage = () => {
             fetchDeals();
             setSelectedDealForPayment(null);
           }}
+        />
+      )}
+
+      {/* Deal Full Details Drawer */}
+      <DealDrawer
+        isOpen={Boolean(selectedDealIdForDrawer)}
+        onClose={() => setSelectedDealIdForDrawer(null)}
+        dealId={selectedDealIdForDrawer}
+        onDealUpdated={fetchDeals}
+        onOpenContractPrint={(deal) => setContractToPrint(deal)}
+      />
+
+      {/* Printable Contract Modal */}
+      {contractToPrint && (
+        <ContractPrintView
+          deal={contractToPrint}
+          onClose={() => setContractToPrint(null)}
         />
       )}
     </div>

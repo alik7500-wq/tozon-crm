@@ -2,8 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { api } from '../../../api/client';
 import { useAuth } from '../../auth/AuthContext';
-import { DealWizardModal } from '../../deals/DealWizardModal';
-import { ContractPrintView } from '../../deals/ContractPrintView';
+import { ApartmentDetailModal } from '../../apartments/ApartmentDetailModal';
 import {
   Layers,
   Filter,
@@ -33,13 +32,8 @@ export const ChessboardTab = ({ projectId, currency = 'TJS', onOpenGenerator }) 
   const [statusFilter, setStatusFilter] = useState('');
   const [roomsFilter, setRoomsFilter] = useState('');
 
-  // Selected Unit for Drawer
-  const [selectedUnit, setSelectedUnit] = useState(null);
-  const [isUpdatingStatus, setIsUpdatingStatus] = useState(false);
-
-  // Deal Wizard State
-  const [isDealWizardOpen, setIsDealWizardOpen] = useState(false);
-  const [createdDeal, setCreatedDeal] = useState(null);
+  // Selected Unit for Modal
+  const [selectedUnitId, setSelectedUnitId] = useState(null);
 
   const fetchChessboard = async () => {
     setIsLoading(true);
@@ -62,13 +56,8 @@ export const ChessboardTab = ({ projectId, currency = 'TJS', onOpenGenerator }) 
     fetchChessboard();
   }, [projectId, statusFilter, roomsFilter]);
 
-  const handleUnitClick = async (unit) => {
-    try {
-      const res = await api.get(`/inventory/units/${unit.id}`);
-      setSelectedUnit(res.data.unit);
-    } catch (err) {
-      setSelectedUnit(unit);
-    }
+  const handleUnitClick = (unit) => {
+    setSelectedUnitId(unit.id);
   };
 
   const handleToggleBlock = async () => {
@@ -284,167 +273,14 @@ export const ChessboardTab = ({ projectId, currency = 'TJS', onOpenGenerator }) 
         </div>
       )}
 
-      {/* Unit Details Drawer / Modal */}
-      {selectedUnit && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-xs animate-in fade-in">
-          <div className="relative w-full max-w-lg max-h-[90vh] overflow-y-auto rounded-2xl border border-slate-200 bg-white p-6 shadow-2xl">
-            {/* Drawer Header */}
-            <div className="flex items-center justify-between border-b border-slate-100 pb-4">
-              <div>
-                <div className="flex items-center gap-2">
-                  <h3 className="text-xl font-extrabold text-slate-900">
-                    Квартира №{selectedUnit.unit_number}
-                  </h3>
-                  <span className={`text-xs font-bold px-2.5 py-0.5 rounded-full border ${getStatusBadge(selectedUnit.status).bg}`}>
-                    {getStatusBadge(selectedUnit.status).label}
-                  </span>
-                </div>
-                <p className="text-xs text-slate-500 mt-0.5">
-                  {selectedUnit.building_name || 'Корпус 1'} • {selectedUnit.section_name || 'Секция 1'} • {selectedUnit.floor_number} этаж
-                </p>
-              </div>
-
-              <button
-                onClick={() => setSelectedUnit(null)}
-                className="rounded-lg p-1.5 text-slate-400 hover:bg-slate-100 hover:text-slate-700 transition cursor-pointer"
-              >
-                <X className="h-5 w-5" />
-              </button>
-            </div>
-
-            {/* Blueprint / Layout Image View */}
-            {selectedUnit.layout_image_path ? (
-              <div className="mt-4 overflow-hidden rounded-xl bg-slate-50 border border-slate-200 h-44 flex items-center justify-center p-2">
-                <img
-                  src={selectedUnit.layout_image_path}
-                  alt={selectedUnit.layout_name || 'Планировка'}
-                  className="h-full w-full object-contain"
-                />
-              </div>
-            ) : (
-              <div className="mt-4 flex h-24 items-center justify-center rounded-xl bg-slate-50 border border-dashed border-slate-200 text-slate-400 gap-2">
-                <ImageIcon className="h-5 w-5" />
-                <span className="text-xs">Чертеж типовой планировки</span>
-              </div>
-            )}
-
-            {/* Body Specs */}
-            <div className="mt-4 space-y-4">
-              <div className="grid grid-cols-2 gap-3">
-                <div className="rounded-xl bg-slate-50 p-3 border border-slate-200">
-                  <span className="text-[10px] font-semibold uppercase text-slate-400">Комнатность</span>
-                  <div className="text-base font-bold text-slate-900">
-                    {selectedUnit.rooms === 0 ? 'Студия' : `${selectedUnit.rooms}-комнатная`}
-                  </div>
-                </div>
-
-                <div className="rounded-xl bg-slate-50 p-3 border border-slate-200">
-                  <span className="text-[10px] font-semibold uppercase text-slate-400">Общая площадь</span>
-                  <div className="text-base font-bold text-slate-900">
-                    {(selectedUnit.area_m2_x100 / 100).toFixed(2)} м²
-                  </div>
-                </div>
-
-                <div className="rounded-xl bg-slate-50 p-3 border border-slate-200">
-                  <span className="text-[10px] font-semibold uppercase text-slate-400">
-                    {selectedUnit.status === 'SOLD' ? 'Цена за м² (по договору)' : 'Цена за м²'}
-                  </span>
-                  <div className="text-base font-bold text-slate-900">
-                    {selectedUnit.status === 'SOLD'
-                      ? `${(selectedUnit.deal_final_price_minor ? Math.round(selectedUnit.deal_final_price_minor / (selectedUnit.area_m2_x100 / 100) / 100) : (selectedUnit.price_per_m2_minor / 100)).toLocaleString()} ${selectedUnit.currency || currency}`
-                      : `0 ${selectedUnit.currency || currency}`}
-                  </div>
-                </div>
-
-                <div className={`rounded-xl p-3 border ${selectedUnit.status === 'SOLD' ? 'bg-emerald-50 border-emerald-200' : 'bg-slate-50 border-slate-200'}`}>
-                  <span className={`text-[10px] font-semibold uppercase ${selectedUnit.status === 'SOLD' ? 'text-emerald-700' : 'text-slate-400'}`}>
-                    {selectedUnit.status === 'SOLD' ? 'Сумма договора' : 'Итоговая стоимость'}
-                  </span>
-                  <div className={`text-base font-extrabold ${selectedUnit.status === 'SOLD' ? 'text-emerald-700' : 'text-slate-900'}`}>
-                    {selectedUnit.status === 'SOLD'
-                      ? `${(selectedUnit.deal_final_price_minor ? selectedUnit.deal_final_price_minor / 100 : (selectedUnit.area_m2_x100 / 100) * (selectedUnit.price_per_m2_minor / 100)).toLocaleString()} ${selectedUnit.currency || currency}`
-                      : `0 ${selectedUnit.currency || currency}`}
-                  </div>
-                </div>
-              </div>
-
-              {selectedUnit.status === 'SOLD' && selectedUnit.contract_number && (
-                <div className="rounded-xl border border-emerald-200 bg-emerald-50 p-3 text-xs text-emerald-900 space-y-1 shadow-2xs">
-                  <div className="font-bold flex items-center gap-1.5">
-                    <CheckCircle2 className="h-4 w-4 text-emerald-600 shrink-0" />
-                    <span>Договор №{selectedUnit.contract_number}</span>
-                  </div>
-                  {selectedUnit.client_name && (
-                    <div className="text-[11px] text-emerald-700">
-                      Покупатель: <strong>{selectedUnit.client_name}</strong> {selectedUnit.client_phone && `(${selectedUnit.client_phone})`}
-                    </div>
-                  )}
-                </div>
-              )}
-
-              {selectedUnit.layout_name && (
-                <div className="rounded-xl border border-slate-200 bg-slate-50 p-3 text-xs text-slate-700">
-                  <span className="font-semibold text-slate-500">Типовая планировка:</span> {selectedUnit.layout_name} ({selectedUnit.layout_code})
-                </div>
-              )}
-
-              {selectedUnit.block_reason && (
-                <div className="rounded-xl border border-slate-300 bg-slate-100 p-3 text-xs text-slate-700">
-                  <span className="font-semibold">Причина блокировки:</span> {selectedUnit.block_reason}
-                </div>
-              )}
-
-              {/* Actions inside Drawer */}
-              <div className="pt-2 space-y-2">
-                {selectedUnit.status === 'AVAILABLE' && (
-                  <button
-                    onClick={() => setIsDealWizardOpen(true)}
-                    className="flex w-full items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-blue-600 to-cyan-600 px-4 py-3 text-xs font-bold text-white shadow-md hover:from-blue-700 hover:to-cyan-700 transition cursor-pointer"
-                  >
-                    <FileCheck className="h-4 w-4" />
-                    <span>Оформить сделку / Рассрочку</span>
-                  </button>
-                )}
-
-                {user?.role === 'ADMIN' && (
-                  <button
-                    onClick={handleToggleBlock}
-                    disabled={isUpdatingStatus}
-                    className="flex w-full items-center justify-center gap-2 rounded-xl border border-slate-300 bg-slate-100 px-4 py-2 text-xs font-bold text-slate-700 hover:bg-slate-200 transition cursor-pointer"
-                  >
-                    {selectedUnit.status === 'BLOCKED' ? (
-                      <>
-                        <Unlock className="h-4 w-4 text-emerald-600" />
-                        <span>Разблокировать для продажи</span>
-                      </>
-                    ) : (
-                      <>
-                        <Lock className="h-4 w-4 text-slate-500" />
-                        <span>Временно заблокировать</span>
-                      </>
-                    )}
-                  </button>
-                )}
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Deal Wizard Modal */}
-      <DealWizardModal
-        isOpen={isDealWizardOpen}
-        onClose={() => setIsDealWizardOpen(false)}
-        unit={selectedUnit}
-        currency={currency}
-        onDealCreated={handleDealCreated}
-      />
-
-      {/* Contract Printable View */}
-      {createdDeal && (
-        <ContractPrintView
-          deal={createdDeal}
-          onClose={() => setCreatedDeal(null)}
+      {/* Apartment Detail Modal */}
+      {selectedUnitId && (
+        <ApartmentDetailModal
+          unitId={selectedUnitId}
+          isOpen={Boolean(selectedUnitId)}
+          onClose={() => setSelectedUnitId(null)}
+          onUnitUpdated={fetchChessboard}
+          currency={currency}
         />
       )}
     </div>

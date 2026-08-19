@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { api } from '../../api/client';
 import { ContractPrintView } from '../deals/ContractPrintView';
+import { DealDrawer } from '../deals/DealDrawer';
 import {
   FileText,
   Search,
@@ -11,6 +12,7 @@ import {
   CheckCircle2,
   Coins,
   ArrowUpRight,
+  Eye,
   ExternalLink
 } from 'lucide-react';
 
@@ -19,20 +21,22 @@ export const ContractsPage = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [contractToPrint, setContractToPrint] = useState(null);
+  const [selectedDealIdForDrawer, setSelectedDealIdForDrawer] = useState(null);
+
+  const fetchContracts = async () => {
+    try {
+      setIsLoading(true);
+      const res = await api.get('/deals');
+      const list = res.data?.deals || res.deals || [];
+      setDeals(list);
+    } catch (err) {
+      console.error('Error fetching contracts:', err);
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   useEffect(() => {
-    const fetchContracts = async () => {
-      try {
-        setIsLoading(true);
-        const res = await api.get('/deals');
-        const list = res.data?.deals || res.deals || [];
-        setDeals(list);
-      } catch (err) {
-        console.error('Error fetching contracts:', err);
-      } finally {
-        setIsLoading(false);
-      }
-    };
     fetchContracts();
   }, []);
 
@@ -55,7 +59,7 @@ export const ContractsPage = () => {
             <span>Реестр договоров купли-продажи</span>
           </h1>
           <p className="mt-1 text-xs sm:text-sm text-slate-500">
-            Официальные договоры, сгенерированные графики рассрочек и печать юридических документов
+            Официальные договоры, сгенерированные графики рассрочек и печать юридических документов (кликните для просмотра)
           </p>
         </div>
       </div>
@@ -106,13 +110,17 @@ export const ContractsPage = () => {
                   <th className="p-3.5">Форма оплаты</th>
                   <th className="p-3.5">Сумма договора</th>
                   <th className="p-3.5">Статус</th>
-                  <th className="p-3.5 text-right pr-5">Печать</th>
+                  <th className="p-3.5 text-right pr-5">Действия</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">
                 {filteredDeals.map((d) => (
-                  <tr key={d.id} className="hover:bg-slate-50 transition">
-                    <td className="p-3.5 pl-5 font-bold text-blue-700">
+                  <tr
+                    key={d.id}
+                    onClick={() => setSelectedDealIdForDrawer(d.id)}
+                    className="hover:bg-blue-50/40 transition cursor-pointer group"
+                  >
+                    <td className="p-3.5 pl-5 font-bold text-blue-700 group-hover:text-blue-950">
                       {d.contract_number || `СД-${d.id}`}
                     </td>
                     <td className="p-3.5">
@@ -151,13 +159,23 @@ export const ContractsPage = () => {
                       </span>
                     </td>
                     <td className="p-3.5 text-right pr-5">
-                      <button
-                        onClick={() => setContractToPrint(d)}
-                        className="inline-flex items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3 py-1.5 text-xs font-bold text-slate-700 hover:bg-slate-100 shadow-2xs transition cursor-pointer"
-                      >
-                        <Printer className="h-3.5 w-3.5 text-blue-600" />
-                        <span>Печать</span>
-                      </button>
+                      <div className="flex items-center justify-end gap-2" onClick={(e) => e.stopPropagation()}>
+                        <button
+                          onClick={() => setContractToPrint(d)}
+                          className="inline-flex items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3 py-1.5 text-xs font-bold text-slate-700 hover:bg-slate-100 shadow-2xs transition cursor-pointer"
+                        >
+                          <Printer className="h-3.5 w-3.5 text-blue-600" />
+                          <span>Печать</span>
+                        </button>
+
+                        <button
+                          onClick={() => setSelectedDealIdForDrawer(d.id)}
+                          className="inline-flex items-center gap-1.5 rounded-xl border border-blue-200 bg-blue-50 px-3 py-1.5 text-xs font-bold text-blue-700 hover:bg-blue-100 shadow-2xs transition cursor-pointer"
+                        >
+                          <Eye className="h-3.5 w-3.5 text-blue-600" />
+                          <span>Детали</span>
+                        </button>
+                      </div>
                     </td>
                   </tr>
                 ))}
@@ -174,6 +192,15 @@ export const ContractsPage = () => {
           onClose={() => setContractToPrint(null)}
         />
       )}
+
+      {/* Deal Details Drawer */}
+      <DealDrawer
+        isOpen={Boolean(selectedDealIdForDrawer)}
+        onClose={() => setSelectedDealIdForDrawer(null)}
+        dealId={selectedDealIdForDrawer}
+        onDealUpdated={fetchContracts}
+        onOpenContractPrint={(deal) => setContractToPrint(deal)}
+      />
     </div>
   );
 };
