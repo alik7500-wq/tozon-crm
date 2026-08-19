@@ -43,7 +43,6 @@ export const MainLayout = () => {
     { label: 'Объекты', path: '/projects', icon: Building2 },
     { label: 'Квартиры', path: '/apartments', icon: Home },
     { label: 'Лиды', path: '/leads', icon: UserPlus },
-    { label: 'Воронка', path: '/pipeline', icon: Kanban },
     { label: 'Задачи', path: '/tasks', icon: CheckSquare },
     { label: 'Сделки', path: '/deals', icon: FileCheck },
     { label: 'Договоры', path: '/contracts', icon: FileText },

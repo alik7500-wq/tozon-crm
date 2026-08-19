@@ -13,7 +13,6 @@ import { DealsPage } from './features/deals/DealsPage';
 import { PaymentsPage } from './features/payments/PaymentsPage';
 import { SettingsPage } from './features/settings/SettingsPage';
 import { ApartmentsPage } from './features/apartments/ApartmentsPage';
-import { PipelinePage } from './features/pipeline/PipelinePage';
 import { TasksPage } from './features/tasks/TasksPage';
 import { ContractsPage } from './features/contracts/ContractsPage';
 import { PaymentCalendarPage } from './features/finance/PaymentCalendarPage';
@@ -48,7 +47,7 @@ function App() {
                 <Route path="/projects/:id" element={<ProjectDetailPage />} />
                 <Route path="/apartments" element={<ApartmentsPage />} />
                 <Route path="/leads" element={<LeadsPage />} />
-                <Route path="/pipeline" element={<PipelinePage />} />
+                <Route path="/pipeline" element={<Navigate to="/leads" replace />} />
                 <Route path="/tasks" element={<TasksPage />} />
                 <Route path="/deals" element={<DealsPage />} />
                 <Route path="/contracts" element={<ContractsPage />} />
