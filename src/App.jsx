@@ -24,6 +24,9 @@ import { AutomationPage } from './features/automation/AutomationPage';
 import { ClientsPage } from './features/crm/ClientsPage';
 import { SmsNotificationsPage } from './features/crm/SmsNotificationsPage';
 import { SmsTemplatesPage } from './features/crm/SmsTemplatesPage';
+import { AnalyticsOnePage } from './features/analytics/AnalyticsOnePage';
+import { AnalyticsTwoPage } from './features/analytics/AnalyticsTwoPage';
+import { AnalyticsThreePage } from './features/analytics/AnalyticsThreePage';
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -62,6 +65,9 @@ function App() {
                 <Route path="/finance/calendar" element={<PaymentCalendarPage />} />
                 <Route path="/finance/debtors" element={<DebtorsPage />} />
                 <Route path="/reports" element={<ReportsPage />} />
+                <Route path="/analytics/1" element={<AnalyticsOnePage />} />
+                <Route path="/analytics/2" element={<AnalyticsTwoPage />} />
+                <Route path="/analytics/3" element={<AnalyticsThreePage />} />
                 <Route path="/automation" element={<AutomationPage />} />
                 <Route path="/notifications" element={<NotificationsPage />} />
                 <Route path="/users" element={<UsersPage />} />

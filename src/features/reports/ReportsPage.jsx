@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { api } from '../../api/client';
+import { AnalyticsTabs } from '../../components/AnalyticsTabs';
 import {
   BarChart3,
   TrendingUp,
@@ -59,6 +60,8 @@ export const ReportsPage = () => {
           Сводка по продажам, конверсии воронки, выручке и финансовым показателям застройщика
         </p>
       </div>
+
+      <AnalyticsTabs />
 
       {/* KPI Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">

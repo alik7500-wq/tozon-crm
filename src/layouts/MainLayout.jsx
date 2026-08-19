@@ -28,7 +28,10 @@ import {
   UserPlus,
   Zap,
   Smartphone,
-  MessageSquare
+  MessageSquare,
+  PieChart,
+  TrendingUp,
+  Target
 } from 'lucide-react';
 
 export const MainLayout = () => {
@@ -42,6 +45,7 @@ export const MainLayout = () => {
   const [expandedMenus, setExpandedMenus] = useState({
     crm: true,
     inventory: true,
+    analytics: true,
     finance: true,
     settings: false,
   });
@@ -66,6 +70,9 @@ export const MainLayout = () => {
     }
     if (path.startsWith('/projects') || path === '/apartments') {
       setExpandedMenus((prev) => ({ ...prev, inventory: true }));
+    }
+    if (path.startsWith('/analytics') || path === '/reports') {
+      setExpandedMenus((prev) => ({ ...prev, analytics: true }));
     }
   }, [location.pathname]);
 
@@ -100,7 +107,18 @@ export const MainLayout = () => {
         { label: 'Квартиры', path: '/apartments', icon: Home },
       ],
     },
-    { type: 'link', label: 'Аналитика', path: '/reports', icon: BarChart3 },
+    {
+      type: 'group',
+      id: 'analytics',
+      label: 'Аналитика',
+      icon: BarChart3,
+      children: [
+        { label: 'Сводные отчеты', path: '/reports', icon: BarChart3 },
+        { label: 'Аналитика 1.0', path: '/analytics/1', icon: PieChart },
+        { label: 'Аналитика 2.0', path: '/analytics/2', icon: TrendingUp },
+        { label: 'Аналитика 3.0', path: '/analytics/3', icon: Target },
+      ],
+    },
     {
       type: 'group',
       id: 'finance',
