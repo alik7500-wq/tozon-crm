@@ -38,17 +38,28 @@ export const ProjectDetailPage = () => {
   const fetchProjectData = async () => {
     setIsLoading(true);
     try {
-      const [projRes, statsRes, layoutsRes] = await Promise.all([
-        api.get(`/projects/${id}`),
-        api.get(`/inventory/projects/${id}/stats`),
-        api.get(`/inventory/projects/${id}/layouts`),
-      ]);
+      // 1. Fetch Project details
+      const projRes = await api.get(`/projects/${id}`);
+      const projectData = projRes.data?.project || projRes.project || projRes;
+      setProject(projectData);
 
-      setProject(projRes.data.project);
-      setStats(statsRes.data.stats);
-      setLayouts(layoutsRes.data.layouts || []);
+      // 2. Fetch stats safely
+      try {
+        const statsRes = await api.get(`/inventory/projects/${id}/stats`);
+        setStats(statsRes.data?.stats || statsRes.stats || null);
+      } catch (err) {
+        console.warn('Failed to load project stats:', err);
+      }
+
+      // 3. Fetch layouts safely
+      try {
+        const layoutsRes = await api.get(`/inventory/projects/${id}/layouts`);
+        setLayouts(layoutsRes.data?.layouts || layoutsRes.data?.layoutTypes || layoutsRes.layouts || []);
+      } catch (err) {
+        console.warn('Failed to load project layouts:', err);
+      }
     } catch (err) {
-      console.error(err);
+      console.error('Failed to load project:', err);
     } finally {
       setIsLoading(false);
     }
