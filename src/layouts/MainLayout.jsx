@@ -24,7 +24,8 @@ import {
   Calendar,
   AlertCircle,
   BarChart3,
-  UserPlus
+  UserPlus,
+  Zap
 } from 'lucide-react';
 
 export const MainLayout = () => {
@@ -50,6 +51,7 @@ export const MainLayout = () => {
     { label: 'Календарь платежей', path: '/finance/calendar', icon: Calendar },
     { label: 'Должники', path: '/finance/debtors', icon: AlertCircle },
     { label: 'Отчеты', path: '/reports', icon: BarChart3 },
+    { label: 'Автоматизация', path: '/automation', icon: Zap },
     { label: 'Уведомления', path: '/notifications', icon: Bell },
   ];
 

@@ -20,6 +20,7 @@ import { DebtorsPage } from './features/finance/DebtorsPage';
 import { ReportsPage } from './features/reports/ReportsPage';
 import { NotificationsPage } from './features/notifications/NotificationsPage';
 import { UsersPage } from './features/users/UsersPage';
+import { AutomationPage } from './features/automation/AutomationPage';
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -55,6 +56,7 @@ function App() {
                 <Route path="/finance/calendar" element={<PaymentCalendarPage />} />
                 <Route path="/finance/debtors" element={<DebtorsPage />} />
                 <Route path="/reports" element={<ReportsPage />} />
+                <Route path="/automation" element={<AutomationPage />} />
                 <Route path="/notifications" element={<NotificationsPage />} />
                 <Route path="/users" element={<UsersPage />} />
                 <Route path="/settings" element={<SettingsPage />} />
