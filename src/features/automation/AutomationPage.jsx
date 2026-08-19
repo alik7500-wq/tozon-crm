@@ -1,5 +1,4 @@
 import React, { useState, useEffect } from 'react';
-import { useSearchParams } from 'react-router-dom';
 import { api } from '../../api/client';
 import {
   Zap,
@@ -21,22 +20,13 @@ import {
 } from 'lucide-react';
 
 export const AutomationPage = () => {
-  const [searchParams, setSearchParams] = useSearchParams();
-  const initialTab = searchParams.get('tab')?.toUpperCase() || 'CHANNELS';
-  const [activeTab, setActiveTab] = useState(initialTab); // 'CHANNELS', 'RULES', 'TEMPLATES', 'LOGS'
+  const [activeTab, setActiveTab] = useState('CHANNELS'); // 'CHANNELS', 'RULES', 'TEMPLATES', 'LOGS'
   const [settings, setSettings] = useState(null);
   const [rules, setRules] = useState([]);
   const [logs, setLogs] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [feedbackMsg, setFeedbackMsg] = useState('');
-
-  useEffect(() => {
-    const tab = searchParams.get('tab');
-    if (tab) {
-      setActiveTab(tab.toUpperCase());
-    }
-  }, [searchParams]);
 
   // Test Modal / Form state
   const [testModalChannel, setTestModalChannel] = useState(null);

@@ -21,6 +21,9 @@ import { ReportsPage } from './features/reports/ReportsPage';
 import { NotificationsPage } from './features/notifications/NotificationsPage';
 import { UsersPage } from './features/users/UsersPage';
 import { AutomationPage } from './features/automation/AutomationPage';
+import { ClientsPage } from './features/crm/ClientsPage';
+import { SmsNotificationsPage } from './features/crm/SmsNotificationsPage';
+import { SmsTemplatesPage } from './features/crm/SmsTemplatesPage';
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -49,6 +52,9 @@ function App() {
                 <Route path="/apartments" element={<ApartmentsPage />} />
                 <Route path="/leads" element={<LeadsPage />} />
                 <Route path="/pipeline" element={<Navigate to="/leads" replace />} />
+                <Route path="/clients" element={<ClientsPage />} />
+                <Route path="/crm/sms-notifications" element={<SmsNotificationsPage />} />
+                <Route path="/crm/sms-templates" element={<SmsTemplatesPage />} />
                 <Route path="/tasks" element={<TasksPage />} />
                 <Route path="/deals" element={<DealsPage />} />
                 <Route path="/contracts" element={<ContractsPage />} />
