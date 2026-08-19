@@ -173,40 +173,48 @@ export const ApartmentDetailModal = ({
                 </div>
               </div>
 
-              <div className="rounded-2xl bg-slate-50 p-3.5 border border-slate-200/80">
-                <span className="text-[10px] font-bold uppercase text-slate-400 block">
-                  {activeDeal ? 'Сумма по договору' : 'Базовая стоимость'}
-                </span>
-                <div className="text-base font-black text-blue-700 mt-0.5">
-                  {activeDeal
-                    ? `${(activeDeal.final_price_minor / 100).toLocaleString()} ${projectCurrency}`
-                    : unit.price_per_m2_minor > 0
-                    ? `${((unit.area_m2_x100 / 100) * (unit.price_per_m2_minor / 100)).toLocaleString()} ${projectCurrency}`
-                    : 'По запросу'}
-                </div>
-              </div>
+              {activeDeal ? (
+                <>
+                  <div className="rounded-2xl bg-slate-50 p-3.5 border border-slate-200/80">
+                    <span className="text-[10px] font-bold uppercase text-slate-400 block">
+                      Сумма по договору
+                    </span>
+                    <div className="text-base font-black text-blue-700 mt-0.5">
+                      {(activeDeal.final_price_minor / 100).toLocaleString()} {projectCurrency}
+                    </div>
+                  </div>
 
-              <div className="rounded-2xl bg-slate-50 p-3.5 border border-slate-200/80">
-                <span className="text-[10px] font-bold uppercase text-slate-400 block">
-                  {activeDeal ? 'Оплачено / Остаток' : 'Цена за м²'}
-                </span>
-                <div className="text-sm font-black text-emerald-700 mt-1">
-                  {activeDeal ? (
-                    <span className="flex flex-col">
-                      <span>{(activeDeal.total_paid_minor / 100).toLocaleString()} {projectCurrency}</span>
-                      <span className="text-[10px] text-rose-600 font-semibold">
-                        Ост: {(activeDeal.remaining_debt_minor / 100).toLocaleString()} {projectCurrency}
+                  <div className="rounded-2xl bg-slate-50 p-3.5 border border-slate-200/80">
+                    <span className="text-[10px] font-bold uppercase text-slate-400 block">
+                      Оплачено / Остаток
+                    </span>
+                    <div className="text-sm font-black text-emerald-700 mt-1">
+                      <span className="flex flex-col">
+                        <span>{(activeDeal.total_paid_minor / 100).toLocaleString()} {projectCurrency}</span>
+                        <span className="text-[10px] text-rose-600 font-semibold">
+                          Ост: {(activeDeal.remaining_debt_minor / 100).toLocaleString()} {projectCurrency}
+                        </span>
                       </span>
-                    </span>
-                  ) : (
-                    <span>
-                      {unit.price_per_m2_minor > 0
-                        ? `${(unit.price_per_m2_minor / 100).toLocaleString()} ${projectCurrency}/м²`
-                        : 'Не задана'}
-                    </span>
-                  )}
-                </div>
-              </div>
+                    </div>
+                  </div>
+                </>
+              ) : (
+                <>
+                  <div className="rounded-2xl bg-slate-50 p-3.5 border border-slate-200/80">
+                    <span className="text-[10px] font-bold uppercase text-slate-400 block">Этаж</span>
+                    <div className="text-base font-black text-slate-900 mt-0.5">
+                      {floorNumber} этаж
+                    </div>
+                  </div>
+
+                  <div className="rounded-2xl bg-slate-50 p-3.5 border border-slate-200/80">
+                    <span className="text-[10px] font-bold uppercase text-slate-400 block">Расположение</span>
+                    <div className="text-xs font-black text-slate-800 mt-1 truncate" title={`${buildingName}, ${sectionName}`}>
+                      {buildingName} • {sectionName}
+                    </div>
+                  </div>
+                </>
+              )}
             </div>
 
             {/* Layout blueprint image if available */}
