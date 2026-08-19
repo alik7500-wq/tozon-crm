@@ -12,6 +12,15 @@ import { LeadsPage } from './features/leads/LeadsPage';
 import { DealsPage } from './features/deals/DealsPage';
 import { PaymentsPage } from './features/payments/PaymentsPage';
 import { SettingsPage } from './features/settings/SettingsPage';
+import { ApartmentsPage } from './features/apartments/ApartmentsPage';
+import { PipelinePage } from './features/pipeline/PipelinePage';
+import { TasksPage } from './features/tasks/TasksPage';
+import { ContractsPage } from './features/contracts/ContractsPage';
+import { PaymentCalendarPage } from './features/finance/PaymentCalendarPage';
+import { DebtorsPage } from './features/finance/DebtorsPage';
+import { ReportsPage } from './features/reports/ReportsPage';
+import { NotificationsPage } from './features/notifications/NotificationsPage';
+import { UsersPage } from './features/users/UsersPage';
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -37,9 +46,18 @@ function App() {
                 <Route path="/" element={<DashboardPage />} />
                 <Route path="/projects" element={<ProjectsPage />} />
                 <Route path="/projects/:id" element={<ProjectDetailPage />} />
+                <Route path="/apartments" element={<ApartmentsPage />} />
                 <Route path="/leads" element={<LeadsPage />} />
+                <Route path="/pipeline" element={<PipelinePage />} />
+                <Route path="/tasks" element={<TasksPage />} />
                 <Route path="/deals" element={<DealsPage />} />
+                <Route path="/contracts" element={<ContractsPage />} />
                 <Route path="/payments" element={<PaymentsPage />} />
+                <Route path="/finance/calendar" element={<PaymentCalendarPage />} />
+                <Route path="/finance/debtors" element={<DebtorsPage />} />
+                <Route path="/reports" element={<ReportsPage />} />
+                <Route path="/notifications" element={<NotificationsPage />} />
+                <Route path="/users" element={<UsersPage />} />
                 <Route path="/settings" element={<SettingsPage />} />
               </Route>
             </Route>

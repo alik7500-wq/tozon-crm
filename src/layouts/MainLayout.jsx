@@ -16,7 +16,15 @@ import {
   Bell,
   Menu,
   X,
-  Plus
+  Plus,
+  Home,
+  Kanban,
+  CheckSquare,
+  FileText,
+  Calendar,
+  AlertCircle,
+  BarChart3,
+  UserPlus
 } from 'lucide-react';
 
 export const MainLayout = () => {
@@ -33,12 +41,21 @@ export const MainLayout = () => {
   const navItems = [
     { label: 'Обзор', path: '/', icon: LayoutDashboard },
     { label: 'Объекты', path: '/projects', icon: Building2 },
-    { label: 'Лиды', path: '/leads', icon: Users },
+    { label: 'Квартиры', path: '/apartments', icon: Home },
+    { label: 'Лиды', path: '/leads', icon: UserPlus },
+    { label: 'Воронка', path: '/pipeline', icon: Kanban },
+    { label: 'Задачи', path: '/tasks', icon: CheckSquare },
     { label: 'Сделки', path: '/deals', icon: FileCheck },
+    { label: 'Договоры', path: '/contracts', icon: FileText },
     { label: 'Платежи', path: '/payments', icon: CreditCard },
+    { label: 'Календарь платежей', path: '/finance/calendar', icon: Calendar },
+    { label: 'Должники', path: '/finance/debtors', icon: AlertCircle },
+    { label: 'Отчеты', path: '/reports', icon: BarChart3 },
+    { label: 'Уведомления', path: '/notifications', icon: Bell },
   ];
 
   if (user?.role === 'ADMIN') {
+    navItems.push({ label: 'Пользователи', path: '/users', icon: Users });
     navItems.push({ label: 'Настройки', path: '/settings', icon: Settings });
   }
 
