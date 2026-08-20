@@ -236,14 +236,18 @@ export const CreateLeadModal = ({ isOpen, onClose, onCreated, leadToEdit = null,
                     name="source"
                     value={formData.source}
                     onChange={handleChange}
-                    className="w-full rounded-xl border border-slate-300 bg-slate-50 px-3.5 py-2 text-sm outline-none focus:border-purple-500 focus:bg-white"
+                    className="w-full rounded-xl border border-slate-300 bg-slate-50 px-3.5 py-2 text-sm outline-none focus:border-blue-500 focus:bg-white"
                   >
                     <option value="DIRECT">Прямой визит в офис</option>
                     <option value="PHONE">Телефонный звонок</option>
                     <option value="WEBSITE">Заявка с сайта</option>
-                    <option value="INSTAGRAM">Instagram / Соцсети</option>
+                    <option value="INSTAGRAM">Instagram</option>
+                    <option value="TELEGRAM">Telegram</option>
+                    <option value="WHATSAPP">WhatsApp</option>
+                    <option value="FACEBOOK">Facebook Lead Ads</option>
                     <option value="RECOMMENDATION">Рекомендация</option>
-                    <option value="OUTDOOR">Наружная реклама</option>
+                    <option value="OUTDOOR">Наружная реклама / Баннер</option>
+                    <option value="OTHER">Другой источник</option>
                   </select>
                 </div>
 
@@ -253,7 +257,7 @@ export const CreateLeadModal = ({ isOpen, onClose, onCreated, leadToEdit = null,
                     name="status"
                     value={formData.status}
                     onChange={handleChange}
-                    className="w-full rounded-xl border border-slate-300 bg-slate-50 px-3.5 py-2 text-sm font-semibold outline-none focus:border-purple-500 focus:bg-white"
+                    className="w-full rounded-xl border border-slate-300 bg-slate-50 px-3.5 py-2 text-sm font-semibold outline-none focus:border-blue-500 focus:bg-white"
                   >
                     <option value="NEW">Новый (NEW)</option>
                     <option value="IN_PROGRESS">В работе (IN_PROGRESS)</option>
