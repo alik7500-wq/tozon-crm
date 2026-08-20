@@ -105,6 +105,7 @@ export const CreateLeadModal = ({ isOpen, onClose, onCreated, leadToEdit = null,
         desired_rooms: formData.desired_rooms !== '' ? parseInt(formData.desired_rooms, 10) : null,
         budget_max_minor: formData.budget_max ? Math.round(parseFloat(formData.budget_max) * 100) : null,
       };
+      delete payload.budget_max;
 
       let resultLead;
       if (leadToEdit) {
