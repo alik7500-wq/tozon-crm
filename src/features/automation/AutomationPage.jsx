@@ -16,17 +16,35 @@ import {
   Eye,
   Plus,
   Radio,
-  FileCode
+  FileCode,
+  Globe,
+  Copy,
+  Code2,
+  Share2,
+  ExternalLink,
+  ShieldCheck,
+  Play
 } from 'lucide-react';
 
 export const AutomationPage = () => {
-  const [activeTab, setActiveTab] = useState('CHANNELS'); // 'CHANNELS', 'RULES', 'TEMPLATES', 'LOGS'
+  const [activeTab, setActiveTab] = useState('CHANNELS'); // 'CHANNELS', 'RULES', 'TEMPLATES', 'LOGS', 'WEBHOOKS'
   const [settings, setSettings] = useState(null);
   const [rules, setRules] = useState([]);
   const [logs, setLogs] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [feedbackMsg, setFeedbackMsg] = useState('');
+  const [copiedUrl, setCopiedUrl] = useState(false);
+
+  // Webhook Test Form state
+  const [webhookTestForm, setWebhookTestForm] = useState({
+    full_name: 'Шохин Рахмонов',
+    phone: '+992927771234',
+    source: 'INSTAGRAM',
+    notes: 'Интересуется 3-комнатной квартирой в ЖК TOZON PLAZA',
+  });
+  const [isTestingWebhook, setIsTestingWebhook] = useState(false);
+  const [webhookTestResult, setWebhookTestResult] = useState(null);
 
   // Test Modal / Form state
   const [testModalChannel, setTestModalChannel] = useState(null);
@@ -114,6 +132,36 @@ export const AutomationPage = () => {
     }
   };
 
+  const handleTestWebhook = async (e) => {
+    e.preventDefault();
+    try {
+      setIsTestingWebhook(true);
+      setWebhookTestResult(null);
+      const res = await api.post('/leads/webhook', webhookTestForm);
+      setWebhookTestResult({
+        success: true,
+        message: 'Лид успешно принят и сохранен в базу CRM!',
+        data: res.data || res,
+      });
+      setFeedbackMsg('Тестовый лид из соцсети успешно принят в CRM!');
+      setTimeout(() => setFeedbackMsg(''), 4000);
+    } catch (err) {
+      setWebhookTestResult({
+        success: false,
+        message: err.message || 'Ошибка обработки вебхука',
+      });
+    } finally {
+      setIsTestingWebhook(false);
+    }
+  };
+
+  const copyWebhookUrl = () => {
+    const url = 'https://tozon-backend.onrender.com/api/leads/webhook';
+    navigator.clipboard.writeText(url);
+    setCopiedUrl(true);
+    setTimeout(() => setCopiedUrl(false), 3000);
+  };
+
   return (
     <div className="space-y-6 max-w-7xl mx-auto pb-16">
       {/* Header */}
@@ -124,7 +172,7 @@ export const AutomationPage = () => {
             <span>Автоматизация и Каналы связи</span>
           </h1>
           <p className="mt-1 text-xs sm:text-sm text-slate-500">
-            Настройка интеграций Telegram, WhatsApp, SMS-шлюзов, сценариев авто-напоминаний и шаблонов сообщений
+            Настройка интеграций Telegram, WhatsApp, SMS-шлюзов, Webhook для сайта и соцсетей
           </p>
         </div>
 
@@ -150,7 +198,8 @@ export const AutomationPage = () => {
       {/* Tabs Switcher */}
       <div className="flex flex-wrap items-center gap-2 border-b border-slate-200 pb-2">
         {[
-          { id: 'CHANNELS', label: 'Каналы интеграций (Telegram / WhatsApp / SMS)', icon: Send },
+          { id: 'CHANNELS', label: 'Каналы связи (Telegram / WhatsApp / SMS)', icon: Send },
+          { id: 'WEBHOOKS', label: 'Интеграция с сайтом и соцсетями (Webhook)', icon: Globe },
           { id: 'RULES', label: 'Сценарии и Авто-правила', icon: Zap },
           { id: 'TEMPLATES', label: 'Шаблоны сообщений', icon: FileCode },
           { id: 'LOGS', label: 'Очередь и Логи отправки', icon: Clock },
@@ -514,6 +563,212 @@ export const AutomationPage = () => {
                 ))}
               </tbody>
             </table>
+          </div>
+        </div>
+      )}
+
+      {/* TAB 5: WEBHOOKS & SOCIAL INTEGRATION */}
+      {activeTab === 'WEBHOOKS' && (
+        <div className="space-y-6">
+          {/* Main Webhook URL Card */}
+          <div className="rounded-3xl border border-blue-200 bg-gradient-to-br from-blue-50/60 to-white p-6 shadow-2xs space-y-4">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+              <div>
+                <span className="inline-flex items-center gap-1.5 rounded-lg bg-blue-100 px-2.5 py-1 text-[11px] font-extrabold text-blue-700 uppercase tracking-wider mb-2">
+                  <Globe className="h-3.5 w-3.5" />
+                  Публичный API шлюз для заявок
+                </span>
+                <h3 className="text-lg font-extrabold text-slate-900">
+                  Webhook URL для сайта и соцсетей
+                </h3>
+                <p className="text-xs text-slate-600 mt-1 max-w-2xl">
+                  Укажите этот URL в формах на сайте (Tilda, WordPress), в интеграциях Facebook / Instagram Lead Ads, или Telegram-боте для автоматического приема новых лидов.
+                </p>
+              </div>
+
+              <button
+                onClick={copyWebhookUrl}
+                className="flex items-center gap-2 rounded-2xl bg-blue-600 hover:bg-blue-700 text-white px-5 py-2.5 text-xs font-bold transition shadow-md cursor-pointer shrink-0"
+              >
+                {copiedUrl ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
+                <span>{copiedUrl ? 'Скопировано!' : 'Копировать Webhook URL'}</span>
+              </button>
+            </div>
+
+            <div className="flex items-center gap-3 rounded-2xl bg-slate-900 p-3.5 text-white font-mono text-xs overflow-x-auto">
+              <span className="text-emerald-400 font-bold select-none">POST</span>
+              <span className="text-slate-200 select-all">https://tozon-backend.onrender.com/api/leads/webhook</span>
+            </div>
+          </div>
+
+          {/* 4 Social & Site Integration Cards */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {/* Card 1: Instagram & Facebook */}
+            <div className="rounded-3xl border border-slate-200 bg-white p-5 shadow-2xs space-y-3">
+              <div className="flex items-center gap-3">
+                <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-gradient-to-tr from-amber-500 via-rose-500 to-purple-600 text-white shadow-xs">
+                  <Share2 className="h-5 w-5" />
+                </div>
+                <div>
+                  <h4 className="text-sm font-bold text-slate-900">Instagram & Facebook Lead Ads</h4>
+                  <p className="text-[11px] text-slate-500">Заявки из рекламных лид-форм Meta</p>
+                </div>
+              </div>
+              <p className="text-xs text-slate-600 leading-relaxed">
+                Подключите через коннектор <strong>Albato</strong> или <strong>Make.com</strong>. При заполнении клиентом формы в Instagram данные моментально отправляются в CRM с меткой <code className="bg-slate-100 px-1.5 py-0.5 rounded text-blue-600 font-mono">source: "INSTAGRAM"</code>.
+              </p>
+              <div className="rounded-xl bg-slate-50 p-3 text-[11px] text-slate-500 space-y-1 font-medium">
+                <div>✓ Авто-создание Лида со статусом NEW</div>
+                <div>✓ Авто-задача менеджеру: «Первичный звонок»</div>
+              </div>
+            </div>
+
+            {/* Card 2: Telegram Bot */}
+            <div className="rounded-3xl border border-slate-200 bg-white p-5 shadow-2xs space-y-3">
+              <div className="flex items-center gap-3">
+                <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-sky-500 text-white shadow-xs">
+                  <Send className="h-5 w-5" />
+                </div>
+                <div>
+                  <h4 className="text-sm font-bold text-slate-900">Telegram Bot застройщика</h4>
+                  <p className="text-[11px] text-slate-500">Заявки и каталог планировок в Telegram</p>
+                </div>
+              </div>
+              <p className="text-xs text-slate-600 leading-relaxed">
+                Клиент нажимает «Оставить заявку» или делится номером телефона в боте. Бот отправляет данные в CRM с источником <code className="bg-slate-100 px-1.5 py-0.5 rounded text-sky-600 font-mono">source: "TELEGRAM"</code>.
+              </p>
+              <div className="rounded-xl bg-slate-50 p-3 text-[11px] text-slate-500 space-y-1 font-medium">
+                <div>✓ Мгновенное оповещение в рабочий Telegram-чат</div>
+                <div>✓ Автоматическая фиксация номера телефона</div>
+              </div>
+            </div>
+
+            {/* Card 3: WhatsApp Business */}
+            <div className="rounded-3xl border border-slate-200 bg-white p-5 shadow-2xs space-y-3">
+              <div className="flex items-center gap-3">
+                <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-emerald-600 text-white shadow-xs">
+                  <MessageSquare className="h-5 w-5" />
+                </div>
+                <div>
+                  <h4 className="text-sm font-bold text-slate-900">WhatsApp Business</h4>
+                  <p className="text-[11px] text-slate-500">Чат-боты и лиды по рекламе в WhatsApp</p>
+                </div>
+              </div>
+              <p className="text-xs text-slate-600 leading-relaxed">
+                Через Green API или Meta Cloud API новое входящее обращение регистрируется как лид с источником <code className="bg-slate-100 px-1.5 py-0.5 rounded text-emerald-600 font-mono">source: "WHATSAPP"</code>.
+              </p>
+              <div className="rounded-xl bg-slate-50 p-3 text-[11px] text-slate-500 space-y-1 font-medium">
+                <div>✓ Прямая ссылка для звонка и переписки из CRM</div>
+                <div>✓ Привязка истории сообщений</div>
+              </div>
+            </div>
+
+            {/* Card 4: Сайт / Tilda / WordPress */}
+            <div className="rounded-3xl border border-slate-200 bg-white p-5 shadow-2xs space-y-3">
+              <div className="flex items-center gap-3">
+                <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-indigo-600 text-white shadow-xs">
+                  <Globe className="h-5 w-5" />
+                </div>
+                <div>
+                  <h4 className="text-sm font-bold text-slate-900">Сайт застройщика (Tilda / Landing)</h4>
+                  <p className="text-[11px] text-slate-500">Формы обратной связи и бронирования</p>
+                </div>
+              </div>
+              <p className="text-xs text-slate-600 leading-relaxed">
+                В настройках форм на Tilda выберите «Webhook» и вставьте URL выше. Заявки с выбором комнатности и этажа попадают в CRM моментально.
+              </p>
+              <div className="rounded-xl bg-slate-50 p-3 text-[11px] text-slate-500 space-y-1 font-medium">
+                <div>✓ Фиксация выбранного ЖК и бюджета</div>
+                <div>✓ Передача UTM-меток маркетинга</div>
+              </div>
+            </div>
+          </div>
+
+          {/* Interactive Webhook Simulator / Tester */}
+          <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-2xs space-y-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <h4 className="text-base font-extrabold text-slate-900 flex items-center gap-2">
+                  <Play className="h-4 w-4 text-blue-600 fill-blue-600" />
+                  <span>Симулятор входящей заявки (Онлайн-тест)</span>
+                </h4>
+                <p className="text-xs text-slate-500 mt-0.5">
+                  Отправьте тестовый запрос, чтобы проверить, как лид из соцсети создается в БД и ставится в задачи
+                </p>
+              </div>
+            </div>
+
+            <form onSubmit={handleTestWebhook} className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+              <div>
+                <label className="block text-[11px] font-bold text-slate-700 mb-1">ФИО клиента</label>
+                <input
+                  type="text"
+                  required
+                  value={webhookTestForm.full_name}
+                  onChange={(e) => setWebhookTestForm({ ...webhookTestForm, full_name: e.target.value })}
+                  className="w-full rounded-xl border border-slate-300 bg-slate-50 px-3 py-2 text-xs outline-none focus:border-blue-500 focus:bg-white"
+                />
+              </div>
+
+              <div>
+                <label className="block text-[11px] font-bold text-slate-700 mb-1">Телефон</label>
+                <input
+                  type="text"
+                  required
+                  value={webhookTestForm.phone}
+                  onChange={(e) => setWebhookTestForm({ ...webhookTestForm, phone: e.target.value })}
+                  className="w-full rounded-xl border border-slate-300 bg-slate-50 px-3 py-2 text-xs outline-none focus:border-blue-500 focus:bg-white"
+                />
+              </div>
+
+              <div>
+                <label className="block text-[11px] font-bold text-slate-700 mb-1">Источник</label>
+                <select
+                  value={webhookTestForm.source}
+                  onChange={(e) => setWebhookTestForm({ ...webhookTestForm, source: e.target.value })}
+                  className="w-full rounded-xl border border-slate-300 bg-slate-50 px-3 py-2 text-xs outline-none focus:border-blue-500 focus:bg-white font-semibold text-blue-700"
+                >
+                  <option value="INSTAGRAM">Instagram</option>
+                  <option value="TELEGRAM">Telegram</option>
+                  <option value="WHATSAPP">WhatsApp</option>
+                  <option value="FACEBOOK">Facebook Lead Ads</option>
+                  <option value="WEBSITE">Заявка с сайта</option>
+                </select>
+              </div>
+
+              <div className="flex items-end">
+                <button
+                  type="submit"
+                  disabled={isTestingWebhook}
+                  className="w-full flex items-center justify-center gap-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white px-4 py-2.5 text-xs font-bold transition shadow-md cursor-pointer disabled:opacity-50"
+                >
+                  <Play className="h-3.5 w-3.5 fill-white" />
+                  <span>{isTestingWebhook ? 'Отправка...' : 'Отправить в CRM'}</span>
+                </button>
+              </div>
+            </form>
+
+            {webhookTestResult && (
+              <div
+                className={`p-4 rounded-2xl border text-xs animate-in fade-in ${
+                  webhookTestResult.success
+                    ? 'bg-emerald-50 border-emerald-200 text-emerald-900'
+                    : 'bg-rose-50 border-rose-200 text-rose-900'
+                }`}
+              >
+                <div className="flex items-center gap-2 font-bold mb-1">
+                  {webhookTestResult.success ? (
+                    <CheckCircle2 className="h-4 w-4 text-emerald-600" />
+                  ) : (
+                    <AlertCircle className="h-4 w-4 text-rose-600" />
+                  )}
+                  <span>{webhookTestResult.message}</span>
+                </div>
+                <p className="text-[11px] text-slate-600">
+                  Лид автоматически появился в <strong>«Лиды»</strong> со статусом <code>NEW</code>, а в <strong>«Задачи»</strong> поступило задание ответственному менеджеру.
+                </p>
+              </div>
+            )}
           </div>
         </div>
       )}
