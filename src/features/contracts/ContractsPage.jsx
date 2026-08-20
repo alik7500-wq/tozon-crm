@@ -50,14 +50,16 @@ export const ContractsPage = () => {
   });
 
   return (
-    <div className="space-y-6 max-w-7xl mx-auto pb-12">
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-extrabold text-slate-900 tracking-tight flex items-center gap-2.5">
-            <FileText className="h-7 w-7 text-blue-600" />
-            <span>Реестр договоров купли-продажи</span>
-          </h1>
+    <div className="max-w-7xl mx-auto pb-12">
+      {/* EVERYTHING EXCEPT MODALS IS HIDDEN DURING PRINTING */}
+      <div className="print:hidden space-y-6">
+        {/* Header */}
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+          <div>
+            <h1 className="text-2xl font-extrabold text-slate-900 tracking-tight flex items-center gap-2.5">
+              <FileText className="h-7 w-7 text-blue-600" />
+              <span>Реестр договоров купли-продажи</span>
+            </h1>
           <p className="mt-1 text-xs sm:text-sm text-slate-500">
             Официальные договоры, сгенерированные графики рассрочек и печать юридических документов (кликните для просмотра)
           </p>
@@ -184,6 +186,7 @@ export const ContractsPage = () => {
           </div>
         </div>
       )}
+      </div>
 
       {/* Contract Printable View Modal */}
       {contractToPrint && (

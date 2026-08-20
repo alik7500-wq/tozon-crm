@@ -208,7 +208,7 @@ export const DealDrawer = ({
   };
 
   return (
-    <div className="fixed inset-0 z-50 overflow-hidden bg-slate-900/50 backdrop-blur-xs flex justify-end animate-in fade-in">
+    <div className="print:hidden fixed inset-0 z-50 overflow-hidden bg-slate-900/50 backdrop-blur-xs flex justify-end animate-in fade-in">
       <div className="relative w-full max-w-3xl bg-white shadow-2xl flex flex-col h-full overflow-y-auto">
         {/* Top Sticky Header */}
         <div className="sticky top-0 z-10 border-b border-slate-200 bg-white/95 backdrop-blur-md px-6 py-4 flex items-center justify-between shadow-xs">

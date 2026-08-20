@@ -1,8 +1,16 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { Printer, ArrowLeft, Globe, FileSpreadsheet } from 'lucide-react';
 
 export const PaymentSchedulePrintView = ({ deal, onClose, initialLang = 'TJ' }) => {
   const [lang, setLang] = useState(initialLang); // 'TJ' or 'RU'
+
+  useEffect(() => {
+    document.body.classList.add('has-print-modal');
+    return () => {
+      document.body.classList.remove('has-print-modal');
+    };
+  }, []);
 
   if (!deal) return null;
 
@@ -104,8 +112,8 @@ export const PaymentSchedulePrintView = ({ deal, onClose, initialLang = 'TJ' }) 
     });
   });
 
-  return (
-    <div className="fixed inset-0 z-50 overflow-y-auto bg-slate-900/60 backdrop-blur-xs p-2 sm:p-6 flex justify-center animate-in fade-in print:static print:p-0 print:m-0 print:bg-white print:overflow-visible print:block print:h-auto">
+  return createPortal(
+    <div className="print-portal-root fixed inset-0 z-50 overflow-y-auto bg-slate-900/60 backdrop-blur-xs p-2 sm:p-6 flex justify-center animate-in fade-in print:static print:p-0 print:m-0 print:bg-white print:overflow-visible print:block print:h-auto">
       <div className="print-document-root relative w-full max-w-4xl bg-white rounded-2xl shadow-2xl overflow-hidden flex flex-col my-auto border border-slate-200 print:border-none print:shadow-none print:rounded-none print:max-w-none print:w-full print:overflow-visible print:m-0 print:p-0 print:static print:block print:h-auto">
         {/* Controls bar (hidden during print) */}
         <div className="print:hidden flex items-center justify-between bg-slate-900 text-white px-4 sm:px-6 py-3.5 border-b border-slate-800 flex-wrap gap-3">
@@ -350,6 +358,7 @@ export const PaymentSchedulePrintView = ({ deal, onClose, initialLang = 'TJ' }) 
           </div>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 };
