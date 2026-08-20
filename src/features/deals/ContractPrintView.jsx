@@ -212,7 +212,7 @@ export const ContractPrintView = ({ deal, onClose, initialLang = 'TJ' }) => {
 
         {/* ================= TAB 1: ҶАДВАЛИ ПАРДОХТ / ГРАФИК ПЛАТЕЖЕЙ (EXACT FORM) ================= */}
         {activeTab === 'SCHEDULE' && (
-          <div className="p-6 sm:p-10 text-slate-900 text-xs sm:text-sm font-sans select-text bg-white">
+          <div id="print-section" className="p-6 sm:p-10 text-slate-900 text-xs sm:text-sm font-sans select-text bg-white">
             {/* Title Header */}
             <div className="text-center pb-3 border-b-2 border-slate-900 mb-4">
               <h1 className="text-base sm:text-lg font-black tracking-tight uppercase text-slate-900">
@@ -398,7 +398,7 @@ export const ContractPrintView = ({ deal, onClose, initialLang = 'TJ' }) => {
 
         {/* ================= TAB 2: МАТНИ ШАРТНОМА / ТЕКСТ ДОГОВОРА ================= */}
         {activeTab === 'CONTRACT' && (
-          <div className="p-8 sm:p-12 text-slate-900 text-sm leading-relaxed space-y-6 font-serif select-text">
+          <div id="print-section" className="p-8 sm:p-12 text-slate-900 text-sm leading-relaxed space-y-6 font-serif select-text">
             {/* Header */}
             <div className="border-b-2 border-slate-900 pb-4 text-center">
               <div className="flex justify-between items-start mb-2">

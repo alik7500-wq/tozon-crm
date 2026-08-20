@@ -167,7 +167,7 @@ export const PaymentSchedulePrintView = ({ deal, onClose, initialLang = 'TJ' }) 
         </div>
 
         {/* PRINTABLE DOCUMENT */}
-        <div className="p-6 sm:p-10 text-slate-900 text-xs sm:text-sm font-sans select-text bg-white">
+        <div id="print-section" className="p-6 sm:p-10 text-slate-900 text-xs sm:text-sm font-sans select-text bg-white">
           {/* Header Title */}
           <div className="text-center pb-3 border-b-2 border-slate-900 mb-4">
             <h1 className="text-base sm:text-lg font-black tracking-tight uppercase text-slate-900">

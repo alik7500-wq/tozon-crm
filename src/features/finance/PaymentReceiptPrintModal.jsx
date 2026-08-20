@@ -97,7 +97,7 @@ export const PaymentReceiptPrintModal = ({ payment, deal, onClose, initialLang =
         </div>
 
         {/* PRINTABLE RECEIPT */}
-        <div className="p-8 sm:p-12 text-slate-900 font-sans select-text bg-white space-y-6">
+        <div id="print-section" className="p-8 sm:p-12 text-slate-900 font-sans select-text bg-white space-y-6">
           {/* Header */}
           <div className="border-b-2 border-slate-900 pb-4 flex justify-between items-start">
             <div>
