@@ -75,7 +75,7 @@ export const DebtorsPage = () => {
         </div>
 
         <div className="rounded-xl bg-rose-50 border border-rose-200 px-4 py-2 text-xs text-rose-900 font-bold">
-          Общая задолженность: {(totalOutstanding / 100).toLocaleString()} TJS/USD
+          Общая задолженность: {(totalOutstanding / 100).toLocaleString()} USD
         </div>
       </div>
 
@@ -151,13 +151,13 @@ export const DebtorsPage = () => {
                         {d.project_name} (кв. №{d.unit_number})
                       </td>
                       <td className="p-3.5 font-bold text-slate-900">
-                        {(total / 100).toLocaleString()} {d.currency || 'TJS'}
+                        {(total / 100).toLocaleString()} {d.currency || 'USD'}
                       </td>
                       <td className="p-3.5 font-semibold text-emerald-700">
-                        {(paid / 100).toLocaleString()} {d.currency || 'TJS'}
+                        {(paid / 100).toLocaleString()} {d.currency || 'USD'}
                       </td>
                       <td className="p-3.5 font-extrabold text-rose-600">
-                        {(debt / 100).toLocaleString()} {d.currency || 'TJS'}
+                        {(debt / 100).toLocaleString()} {d.currency || 'USD'}
                       </td>
                       <td className="p-3.5 text-right pr-5">
                         <div className="flex items-center justify-end gap-2" onClick={(e) => e.stopPropagation()}>

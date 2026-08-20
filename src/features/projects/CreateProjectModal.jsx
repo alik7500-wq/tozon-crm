@@ -9,7 +9,8 @@ export const CreateProjectModal = ({ isOpen, onClose, onCreated }) => {
     developer_name: '',
     address: '',
     description: '',
-    currency: 'TJS',
+    status: 'ACTIVE',
+    currency: 'USD',
   });
   const [error, setError] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);

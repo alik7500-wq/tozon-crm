@@ -77,7 +77,7 @@ export const LeadTableView = ({ leads, onSelectLead, onEditLead, onStatusChange 
                     {lead.passport_number ? `${lead.passport_series || ''} ${lead.passport_number}` : <span className="text-slate-400">—</span>}
                   </td>
                   <td className="p-3.5 font-bold text-slate-800">
-                    {lead.budget_max_minor ? `${(lead.budget_max_minor / 100).toLocaleString()} TJS` : <span className="text-slate-400">—</span>}
+                    {lead.budget_max_minor ? `${(lead.budget_max_minor / 100).toLocaleString()} USD` : <span className="text-slate-400">—</span>}
                   </td>
                   <td className="p-3.5 text-slate-500">
                     {lead.notes_count > 0 ? (

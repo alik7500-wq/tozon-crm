@@ -454,7 +454,7 @@ export const LeadDrawer = ({ isOpen, onClose, leadId, onLeadUpdated, onEditLead 
                       <div>
                         <span className="text-slate-400 block">Бюджет:</span>
                         <strong className="text-slate-900">
-                          {lead.budget_max_minor ? `${(lead.budget_max_minor / 100).toLocaleString()} TJS` : 'Не указан'}
+                          {lead.budget_max_minor ? `${(lead.budget_max_minor / 100).toLocaleString()} USD` : 'Не указан'}
                         </strong>
                       </div>
                       <div>

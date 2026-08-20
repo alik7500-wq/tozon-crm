@@ -60,7 +60,7 @@ export const PaymentCalendarPage = () => {
         </div>
 
         <div className="rounded-xl bg-blue-50 border border-blue-200 px-4 py-2 text-xs text-blue-900 font-bold">
-          Запланировано к получению: {(totalPlanSum / 100).toLocaleString()} USD/TJS
+          Запланировано к получению: {(totalPlanSum / 100).toLocaleString()} USD
         </div>
       </div>
 

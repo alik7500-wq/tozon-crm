@@ -68,7 +68,7 @@ export const ReportsPage = () => {
         <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-2xs">
           <span className="text-xs font-semibold text-slate-500 uppercase">Общая выручка (договоры)</span>
           <div className="text-2xl font-black text-slate-900 mt-1">
-            {(totalVolume / 100).toLocaleString()} <span className="text-xs font-normal">TJS</span>
+            {(totalVolume / 100).toLocaleString()} <span className="text-xs font-normal">USD</span>
           </div>
           <p className="text-xs text-slate-400 mt-1">Подписано договоров: {dealStats?.signed_count || 0}</p>
         </div>
@@ -76,7 +76,7 @@ export const ReportsPage = () => {
         <div className="rounded-2xl border border-emerald-200 bg-emerald-50/50 p-5 shadow-2xs">
           <span className="text-xs font-bold text-emerald-700 uppercase">Собрано денежных средств</span>
           <div className="text-2xl font-black text-emerald-800 mt-1">
-            {(collected / 100).toLocaleString()} <span className="text-xs font-normal">TJS</span>
+            {(collected / 100).toLocaleString()} <span className="text-xs font-normal">USD</span>
           </div>
           <p className="text-xs text-emerald-600 mt-1">Фактические поступления в кассу/банк</p>
         </div>
@@ -84,7 +84,7 @@ export const ReportsPage = () => {
         <div className="rounded-2xl border border-rose-200 bg-rose-50/50 p-5 shadow-2xs">
           <span className="text-xs font-bold text-rose-700 uppercase">Дебиторская задолженность</span>
           <div className="text-2xl font-black text-rose-800 mt-1">
-            {(debt / 100).toLocaleString()} <span className="text-xs font-normal">TJS</span>
+            {(debt / 100).toLocaleString()} <span className="text-xs font-normal">USD</span>
           </div>
           <p className="text-xs text-rose-600 mt-1">Остаток платежей по рассрочке</p>
         </div>

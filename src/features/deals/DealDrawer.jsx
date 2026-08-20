@@ -138,7 +138,7 @@ export const DealDrawer = ({
     if (onDealUpdated) onDealUpdated(updatedDeal);
   };
 
-  const currency = deal?.currency || deal?.project_currency || 'TJS';
+  const currency = deal?.currency || deal?.project_currency || 'USD';
   const finalPrice = deal ? (deal.final_price_minor / 100) : 0;
   const totalPaid = deal ? (deal.total_paid_minor / 100) : 0;
   const remainingDebt = deal ? (deal.remaining_debt_minor / 100) : 0;

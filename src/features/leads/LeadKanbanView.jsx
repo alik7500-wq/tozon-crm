@@ -72,7 +72,7 @@ export const LeadKanbanView = ({ leads, onSelectLead, onStatusChange, onAddNewLe
 
                   <div className="flex items-center justify-between border-t border-slate-100 pt-2 text-[10px] text-slate-400">
                     <span className="font-semibold text-slate-700">
-                      {lead.budget_max_minor ? `${(lead.budget_max_minor / 100).toLocaleString()} TJS` : lead.source}
+                      {lead.budget_max_minor ? `${(lead.budget_max_minor / 100).toLocaleString()} USD` : lead.source}
                     </span>
 
                     <div className="flex items-center gap-2">

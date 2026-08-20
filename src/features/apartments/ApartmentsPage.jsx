@@ -278,7 +278,7 @@ export const ApartmentsPage = () => {
           isOpen={Boolean(selectedUnitId)}
           onClose={() => setSelectedUnitId(null)}
           onUnitUpdated={fetchChessboardData}
-          currency={selectedProject?.currency || 'TJS'}
+          currency={selectedProject?.currency || 'USD'}
         />
       )}
     </div>

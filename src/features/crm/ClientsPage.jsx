@@ -280,11 +280,11 @@ export const ClientsPage = () => {
                     </td>
 
                     <td className="p-3.5 font-black text-slate-900">
-                      {(c.totalPurchasesMinor / 100).toLocaleString('ru-RU')} USD/TJS
+                      {(c.totalPurchasesMinor / 100).toLocaleString('ru-RU')} USD
                     </td>
 
                     <td className="p-3.5 font-black text-emerald-700">
-                      {(c.totalPaidMinor / 100).toLocaleString('ru-RU')} USD/TJS
+                      {(c.totalPaidMinor / 100).toLocaleString('ru-RU')} USD
                     </td>
 
                     <td className="p-3.5 text-right pr-6">

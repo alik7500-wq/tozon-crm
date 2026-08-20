@@ -3,7 +3,7 @@ import { api } from '../../../api/client';
 import { useAuth } from '../../auth/AuthContext';
 import { Plus, X, Maximize2, Coins, Trash2, Image as ImageIcon, Sparkles, AlertCircle } from 'lucide-react';
 
-export const LayoutsTab = ({ projectId, currency = 'TJS', onLayoutCreated }) => {
+export const LayoutsTab = ({ projectId, currency = 'USD', onLayoutCreated }) => {
   const { user } = useAuth();
   const [layouts, setLayouts] = useState([]);
   const [isLoading, setIsLoading] = useState(true);

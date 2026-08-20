@@ -322,7 +322,7 @@ export const CreateLeadModal = ({ isOpen, onClose, onCreated, leadToEdit = null,
                 </div>
 
                 <div>
-                  <label className="block text-xs font-semibold text-slate-700 mb-1">Максимальный бюджет (TJS)</label>
+                  <label className="block text-xs font-semibold text-slate-700 mb-1">Максимальный бюджет (USD)</label>
                   <input
                     type="number"
                     name="budget_max"

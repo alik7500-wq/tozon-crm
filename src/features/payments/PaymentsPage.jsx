@@ -83,7 +83,7 @@ export const PaymentsPage = () => {
             <div>
               <span className="text-[11px] font-semibold text-slate-500 block">Общая сумма договоров</span>
               <div className="text-xl font-black text-slate-900 mt-0.5">
-                {(totalContractAmount / 100).toLocaleString()} <span className="text-xs font-normal">TJS</span>
+                {(totalContractAmount / 100).toLocaleString()} <span className="text-xs font-normal">USD</span>
               </div>
             </div>
           </div>
@@ -97,7 +97,7 @@ export const PaymentsPage = () => {
             <div>
               <span className="text-[11px] font-bold text-emerald-700 block">Фактически получено</span>
               <div className="text-xl font-black text-emerald-800 mt-0.5">
-                {(totalCollected / 100).toLocaleString()} <span className="text-xs font-normal">TJS</span>
+                {(totalCollected / 100).toLocaleString()} <span className="text-xs font-normal">USD</span>
               </div>
             </div>
           </div>
@@ -111,7 +111,7 @@ export const PaymentsPage = () => {
             <div>
               <span className="text-[11px] font-bold text-rose-700 block">Остаток к получению</span>
               <div className="text-xl font-black text-rose-800 mt-0.5">
-                {(totalDebt / 100).toLocaleString()} <span className="text-xs font-normal">TJS</span>
+                {(totalDebt / 100).toLocaleString()} <span className="text-xs font-normal">USD</span>
               </div>
             </div>
           </div>
@@ -191,11 +191,11 @@ export const PaymentsPage = () => {
                         {d.project_name} (кв. №{d.unit_number})
                       </td>
                       <td className="p-3.5 font-bold text-slate-900">
-                        {(total / 100).toLocaleString()} {d.currency || 'TJS'}
+                        {(total / 100).toLocaleString()} {d.currency || 'USD'}
                       </td>
                       <td className="p-3.5">
                         <div className="font-bold text-emerald-700">
-                          {(paid / 100).toLocaleString()} {d.currency || 'TJS'}
+                          {(paid / 100).toLocaleString()} {d.currency || 'USD'}
                         </div>
                         <div className="w-20 bg-slate-200 rounded-full h-1.5 mt-1 overflow-hidden">
                           <div
@@ -205,7 +205,7 @@ export const PaymentsPage = () => {
                         </div>
                       </td>
                       <td className="p-3.5 font-bold text-rose-600">
-                        {(balance / 100).toLocaleString()} {d.currency || 'TJS'}
+                        {(balance / 100).toLocaleString()} {d.currency || 'USD'}
                       </td>
                       <td className="p-3.5 text-right pr-5">
                         <div className="flex items-center justify-end gap-2" onClick={(e) => e.stopPropagation()}>

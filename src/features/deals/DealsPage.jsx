@@ -186,7 +186,7 @@ export const DealsPage = () => {
                 {stats ? stats.signed_count : 0}
               </span>
               <span className="text-[11px] font-bold text-emerald-700">
-                ({stats ? ((stats.total_signed_revenue_minor || 0) / 100).toLocaleString() : 0} TJS)
+                ({stats ? ((stats.total_signed_revenue_minor || 0) / 100).toLocaleString() : 0} USD)
               </span>
             </div>
           </div>
@@ -206,7 +206,7 @@ export const DealsPage = () => {
                 {stats ? stats.reserved_count : 0}
               </span>
               <span className="text-[11px] font-bold text-amber-700">
-                ({stats ? ((stats.total_reserved_volume_minor || 0) / 100).toLocaleString() : 0} TJS)
+                ({stats ? ((stats.total_reserved_volume_minor || 0) / 100).toLocaleString() : 0} USD)
               </span>
             </div>
           </div>
@@ -243,7 +243,7 @@ export const DealsPage = () => {
               <span className="text-base font-extrabold text-teal-900">
                 {stats ? ((stats.total_collected_minor || 0) / 100).toLocaleString() : 0}
               </span>
-              <span className="text-[10px] text-slate-500">TJS</span>
+              <span className="text-[10px] text-slate-500">USD</span>
             </div>
           </div>
         </div>
@@ -261,7 +261,7 @@ export const DealsPage = () => {
               <span className="text-base font-extrabold text-rose-700">
                 {stats ? ((stats.outstanding_debt_minor || 0) / 100).toLocaleString() : 0}
               </span>
-              <span className="text-[10px] text-slate-500">TJS</span>
+              <span className="text-[10px] text-slate-500">USD</span>
             </div>
           </div>
         </div>

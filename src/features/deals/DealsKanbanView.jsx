@@ -83,7 +83,7 @@ export const DealsKanbanView = ({
                 </span>
               </div>
               <span className="text-[11px] font-bold text-slate-500">
-                {totalVolume.toLocaleString()} TJS
+                {totalVolume.toLocaleString()} USD
               </span>
             </div>
 
@@ -95,7 +95,7 @@ export const DealsKanbanView = ({
                 </div>
               ) : (
                 col.deals.map((deal) => {
-                  const currency = deal.currency || deal.project_currency || 'TJS';
+                  const currency = deal.currency || deal.project_currency || 'USD';
                   const finalPrice = (deal.final_price_minor || 0) / 100;
                   const totalPaid = (deal.total_paid_minor || 0) / 100;
                   const remaining = (deal.remaining_debt_minor || 0) / 100;

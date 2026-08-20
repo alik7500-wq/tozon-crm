@@ -360,21 +360,21 @@ export const ClientDetailModal = ({ isOpen, onClose, client, onClientUpdated }) 
                 <div className="rounded-2xl border border-slate-200 bg-slate-50/70 p-3.5">
                   <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider block">Объем договоров</span>
                   <strong className="text-base sm:text-lg font-black text-slate-900 mt-0.5 block">
-                    {formatMoney(totalPurchases)} <span className="text-xs font-semibold text-slate-500">USD/TJS</span>
+                    {formatMoney(totalPurchases)} <span className="text-xs font-semibold text-slate-500">USD</span>
                   </strong>
                 </div>
 
                 <div className="rounded-2xl border border-emerald-200 bg-emerald-50/50 p-3.5">
                   <span className="text-[11px] font-bold text-emerald-700 uppercase tracking-wider block">Оплачено</span>
                   <strong className="text-base sm:text-lg font-black text-emerald-700 mt-0.5 block">
-                    {formatMoney(totalPaid)} <span className="text-xs font-semibold text-emerald-600">USD/TJS</span>
+                    {formatMoney(totalPaid)} <span className="text-xs font-semibold text-emerald-600">USD</span>
                   </strong>
                 </div>
 
                 <div className="rounded-2xl border border-rose-200 bg-rose-50/50 p-3.5">
                   <span className="text-[11px] font-bold text-rose-700 uppercase tracking-wider block">Остаток долга</span>
                   <strong className="text-base sm:text-lg font-black text-rose-700 mt-0.5 block">
-                    {formatMoney(remainingDebt)} <span className="text-xs font-semibold text-rose-600">USD/TJS</span>
+                    {formatMoney(remainingDebt)} <span className="text-xs font-semibold text-rose-600">USD</span>
                   </strong>
                 </div>
 
@@ -452,7 +452,7 @@ export const ClientDetailModal = ({ isOpen, onClose, client, onClientUpdated }) 
                         {client.projectName || 'ЖК'} (кв. №{client.unitNumber || '—'})
                       </span>
                     </div>
-                    <span className="font-bold text-slate-900">{formatMoney(client.totalPurchasesMinor)} USD/TJS</span>
+                    <span className="font-bold text-slate-900">{formatMoney(client.totalPurchasesMinor)} USD</span>
                   </div>
                 ) : (
                   <div className="space-y-3">

@@ -47,7 +47,7 @@ export const PaymentReceiptPrintModal = ({ payment, deal, onClose, initialLang =
   });
 
   const currency = payment.currency || deal?.currency || 'USD';
-  const currencyShort = currency === 'USD' ? 'USD' : 'TJS';
+  const currencyShort = currency === 'USD' ? 'USD' : 'USD';
 
   return createPortal(
     <div className="print-portal-root fixed inset-0 z-50 overflow-y-auto bg-slate-900/60 backdrop-blur-xs p-2 sm:p-6 flex justify-center animate-in fade-in print:static print:p-0 print:m-0 print:bg-white print:overflow-visible print:block print:h-auto">

@@ -27,7 +27,7 @@ export const DealWizardModal = ({
   isOpen,
   onClose,
   unit: initialUnit = null,
-  currency: initialCurrency = 'TJS',
+  currency: initialCurrency = 'USD',
   onDealCreated,
 }) => {
   // If unit is passed from outside, start from step 1 (Client). If not, start from step 0 (Unit Selection)
@@ -314,7 +314,7 @@ export const DealWizardModal = ({
     l.phone?.toLowerCase().includes(searchLead.toLowerCase())
   );
 
-  const currency = selectedUnit?.project_currency || initialCurrency || 'TJS';
+  const currency = selectedUnit?.project_currency || initialCurrency || 'USD';
 
   const stepLabels = initialUnit
     ? ['1. Покупатель', '2. Условия & Цена', '3. Рассрочка/График', '4. Подтверждение']

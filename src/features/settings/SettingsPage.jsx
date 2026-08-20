@@ -170,7 +170,7 @@ export const SettingsPage = () => {
                 <span className="text-xs font-bold uppercase text-blue-700 tracking-wider">Создание объекта</span>
                 <h3 className="text-base font-extrabold text-slate-900">Добавить новый ЖК</h3>
                 <p className="text-xs text-slate-500 max-w-sm">
-                  Зарегистрируйте строительный комплекс, адрес, застройщика и базовую валюту (TJS, USD, RUB).
+                  Зарегистрируйте строительный комплекс, адрес, застройщика и базовую валюту (USD, TJS, RUB).
                 </p>
               </div>
               <button

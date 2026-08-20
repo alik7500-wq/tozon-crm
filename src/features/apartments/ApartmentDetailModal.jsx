@@ -35,7 +35,7 @@ export const ApartmentDetailModal = ({
   isOpen,
   onClose,
   onUnitUpdated,
-  currency = 'TJS'
+  currency = 'USD'
 }) => {
   const { user } = useAuth();
   const [unit, setUnit] = useState(null);

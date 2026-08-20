@@ -22,7 +22,7 @@ import {
   Image as ImageIcon
 } from 'lucide-react';
 
-export const ChessboardTab = ({ projectId, currency = 'TJS', onOpenGenerator }) => {
+export const ChessboardTab = ({ projectId, currency = 'USD', onOpenGenerator }) => {
   const { user } = useAuth();
   const [chessboardData, setChessboardData] = useState([]);
   const [isLoading, setIsLoading] = useState(true);

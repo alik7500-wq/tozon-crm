@@ -119,7 +119,7 @@ export const DealsTableView = ({
           </thead>
           <tbody className="divide-y divide-slate-100">
             {deals.map((deal) => {
-              const currency = deal.currency || deal.project_currency || 'TJS';
+              const currency = deal.currency || deal.project_currency || 'USD';
               const finalPrice = (deal.final_price_minor || 0) / 100;
               const totalPaid = (deal.total_paid_minor || 0) / 100;
               const remaining = (deal.remaining_debt_minor || 0) / 100;
