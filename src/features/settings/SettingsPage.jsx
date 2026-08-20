@@ -18,7 +18,8 @@ import {
   CheckCircle2,
   ExternalLink,
   MapPin,
-  Briefcase
+  Briefcase,
+  Trash2
 } from 'lucide-react';
 
 export const SettingsPage = () => {
@@ -58,6 +59,19 @@ export const SettingsPage = () => {
       setLayouts(res.data?.layouts || res.layouts || []);
     } catch (err) {
       console.error(err);
+    }
+  };
+
+  const handleDeleteProject = async (id, name) => {
+    if (!window.confirm(`Вы уверены, что хотите безвозвратно удалить ЖК "${name}"?\nЭто действие может удалить связанные корпуса, этажи и квартиры.\n(Если есть привязанные сделки, удаление будет отменено)`)) {
+      return;
+    }
+    
+    try {
+      await api.delete(`/projects/${id}`);
+      fetchProjects();
+    } catch (err) {
+      alert(err.response?.data?.message || err.message || 'Ошибка при удалении ЖК');
     }
   };
 
@@ -252,6 +266,13 @@ export const SettingsPage = () => {
                           className="px-3 py-1 rounded-lg bg-slate-100 text-slate-700 text-[11px] font-bold hover:bg-slate-200 transition cursor-pointer"
                         >
                           Открыть объект →
+                        </button>
+                        <button
+                          onClick={() => handleDeleteProject(proj.id, proj.name)}
+                          className="px-2 py-1 rounded-lg bg-rose-50 text-rose-600 text-[11px] font-bold hover:bg-rose-100 transition cursor-pointer"
+                          title="Удалить ЖК"
+                        >
+                          <Trash2 className="h-3.5 w-3.5" />
                         </button>
                       </td>
                     </tr>
