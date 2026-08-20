@@ -18,7 +18,7 @@ export const SmsNotificationsPage = () => {
       id: 1,
       recipient: '+992 911 01 06 66',
       client_name: 'Алиев Рахим',
-      text: 'TOZON CRM: По договору 25601-2026-0004 принята оплата 10,000 USD. Спасибо!',
+      text: 'TOZON CRM: По договору 0004 принята оплата 10,000 USD. Спасибо!',
       status: 'DELIVERED',
       sent_at: new Date(Date.now() - 30 * 60000).toLocaleString('ru-RU'),
     },

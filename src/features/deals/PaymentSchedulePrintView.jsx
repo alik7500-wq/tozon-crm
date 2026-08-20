@@ -1,6 +1,25 @@
 import React, { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
-import { Printer, ArrowLeft, Globe, FileSpreadsheet } from 'lucide-react';
+import {
+  Printer,
+  ArrowLeft,
+  Calendar,
+  DollarSign,
+  Languages,
+  CheckCircle2,
+  Building,
+  User,
+  Phone,
+  FileText,
+  CreditCard,
+  Percent,
+  Layers,
+  MapPin,
+  Clock,
+  Sparkles,
+  Globe
+} from 'lucide-react';
+import { formatContractNumber } from '../../utils/formatters';
 
 export const PaymentSchedulePrintView = ({ deal, onClose, initialLang = 'TJ' }) => {
   const [lang, setLang] = useState(initialLang); // 'TJ' or 'RU'
@@ -189,7 +208,7 @@ export const PaymentSchedulePrintView = ({ deal, onClose, initialLang = 'TJ' }) 
           <div className="space-y-1.5 font-medium text-xs sm:text-sm pb-4">
             <div className="flex justify-between items-baseline border-b border-dotted border-slate-300 pb-0.5">
               <span className="font-bold text-slate-900">{isTJ ? 'Рақами Шартнома' : 'Номер Договора'}</span>
-              <span className="font-black text-slate-900 text-sm sm:text-base">{deal.contract_number || '026'}</span>
+              <span className="font-black text-slate-900 text-sm sm:text-base">{formatContractNumber(deal.contract_number)}</span>
             </div>
 
             <div className="flex justify-between items-baseline border-b border-dotted border-slate-300 pb-0.5">

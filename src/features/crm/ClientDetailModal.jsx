@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { api } from '../../api/client';
+import { formatContractNumber } from '../../utils/formatters';
 import {
   X,
   User,
@@ -188,7 +189,7 @@ export const ClientDetailModal = ({ isOpen, onClose, client, onClientUpdated }) 
       events.push({
         id: `event-deal-${deal.id}`,
         type: 'DEAL',
-        title: deal.status === 'SIGNED' ? `Подписание Договора №${deal.contract_number || deal.id}` : `Оформление брони на квартиру №${deal.unit_number || ''}`,
+        title: deal.status === 'SIGNED' ? `Подписание Договора №${formatContractNumber(deal.contract_number) || deal.id}` : `Оформление брони на квартиру №${deal.unit_number || ''}`,
         description: `Объект: ${deal.project_name || 'ЖК'}, кв. №${deal.unit_number || '—'} (${deal.unit_rooms || '—'} комн., ${deal.unit_area || (deal.area_m2_x100 ? deal.area_m2_x100 / 100 : '—')} м²). Сумма договора: ${formatMoney(deal.final_price_minor)} ${deal.currency || 'USD'}. Форма оплаты: ${deal.payment_type === 'INSTALLMENT' ? 'Рассрочка' : deal.payment_type === 'BARTER' ? 'Бартер' : '100% оплата'}.`,
         date: deal.deal_date || deal.created_at,
         icon: FileCheck,
@@ -201,7 +202,7 @@ export const ClientDetailModal = ({ isOpen, onClose, client, onClientUpdated }) 
           id: `event-pay-${deal.id}-${p.id || pIdx}`,
           type: 'PAYMENT',
           title: `Поступила оплата: ${formatMoney(p.amount_minor || p.amount * 100)} ${deal.currency || 'USD'}`,
-          description: `Способ оплаты: ${p.method === 'BANK_TRANSFER' ? 'Безналичный перевод' : 'Наличные в кассу'}. Договор №${deal.contract_number || deal.id}. ${p.comment ? `Комментарий: "${p.comment}"` : ''}`,
+          description: `Способ оплаты: ${p.method === 'BANK_TRANSFER' ? 'Безналичный перевод' : 'Наличные в кассу'}. Договор №${formatContractNumber(deal.contract_number) || deal.id}. ${p.comment ? `Комментарий: "${p.comment}"` : ''}`,
           date: p.payment_date || p.created_at,
           icon: CreditCard,
           color: 'green',
@@ -472,7 +473,7 @@ export const ClientDetailModal = ({ isOpen, onClose, client, onClientUpdated }) 
 
                           <div className="flex items-center gap-2">
                             <span className="font-mono text-xs font-bold text-blue-700 bg-blue-50 border border-blue-200 px-2 py-0.5 rounded-md">
-                              Договор № {d.contract_number || d.id}
+                              Договор № {formatContractNumber(d.contract_number) || d.id}
                             </span>
                             <span
                               className={`text-[10px] font-bold px-2 py-0.5 rounded-md ${

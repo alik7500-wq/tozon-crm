@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { api } from '../../api/client';
 import { useAuth } from '../auth/AuthContext';
+import { formatContractNumber } from '../../utils/formatters';
 import {
   Building2,
   Users,
@@ -197,7 +198,7 @@ export const DashboardPage = () => {
                   <tbody className="divide-y divide-slate-100">
                     {upcomingPayments.map((p) => (
                       <tr key={p.id} className="hover:bg-slate-50 transition">
-                        <td className="p-3 pl-4 font-bold text-blue-700">{p.contract_number}</td>
+                        <td className="p-3 pl-4 font-bold text-blue-700 font-mono">{formatContractNumber(p.contract_number)}</td>
                         <td className="p-3 font-semibold text-slate-900">{p.lead_name}</td>
                         <td className="p-3 text-slate-600">Кв. №{p.unit_number} ({p.project_name})</td>
                         <td className="p-3 text-slate-700 font-medium">
@@ -243,7 +244,7 @@ export const DashboardPage = () => {
                   <div key={d.id} className="py-3 flex items-center justify-between hover:bg-slate-50 px-2 rounded-xl transition">
                     <div className="space-y-0.5">
                       <div className="flex items-center gap-2">
-                        <span className="font-extrabold text-blue-700 text-xs">{d.contract_number}</span>
+                        <span className="font-extrabold text-blue-700 text-xs font-mono">{formatContractNumber(d.contract_number)}</span>
                         <span className="text-xs font-bold text-slate-900">• {d.lead_name}</span>
                         <span className="text-[11px] text-slate-400">({d.lead_phone})</span>
                       </div>

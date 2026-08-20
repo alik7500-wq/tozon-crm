@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { api } from '../../api/client';
+import { formatContractNumber } from '../../utils/formatters';
 import { PaymentRecordModal } from './PaymentRecordModal';
 import {
   X,
@@ -219,7 +220,7 @@ export const DealDrawer = ({
             <div>
               <div className="flex items-center gap-2">
                 <h2 className="text-base font-bold text-slate-900">
-                  {deal ? `Договор № ${deal.contract_number}` : 'Карточка сделки'}
+                  {deal ? `Договор № ${formatContractNumber(deal.contract_number)}` : 'Карточка сделки'}
                 </h2>
                 {deal && getStatusBadge(deal.status)}
               </div>

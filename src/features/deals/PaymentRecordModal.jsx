@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { api } from '../../api/client';
+import { formatContractNumber } from '../../utils/formatters';
 import {
   X,
   CreditCard,
@@ -194,7 +195,7 @@ export const PaymentRecordModal = ({
             <div>
               <h3 className="text-base font-bold">Принять оплату в кассу</h3>
               <p className="text-xs text-slate-300">
-                Договор № {deal.contract_number} • {deal.lead_name}
+                Договор № {formatContractNumber(deal.contract_number)} • {deal.lead_name}
               </p>
             </div>
           </div>

@@ -4,6 +4,7 @@ import { useAuth } from '../auth/AuthContext';
 import { DealWizardModal } from '../deals/DealWizardModal';
 import { ContractPrintView } from '../deals/ContractPrintView';
 import { PaymentRecordModal } from '../deals/PaymentRecordModal';
+import { formatContractNumber } from '../../utils/formatters';
 import {
   X,
   Building2,
@@ -238,8 +239,8 @@ export const ApartmentDetailModal = ({
                   <div className="flex flex-wrap items-center justify-between gap-3 border-b border-blue-100 pb-3">
                     <div className="flex items-center gap-2">
                       <FileText className="h-5 w-5 text-blue-600" />
-                      <span className="text-sm font-black text-blue-950">
-                        Договор №{activeDeal.contract_number}
+                      <span className="text-sm font-black text-blue-950 font-mono">
+                        Договор №{formatContractNumber(activeDeal.contract_number)}
                       </span>
                       <span className="text-[10px] font-extrabold uppercase px-2 py-0.5 rounded-md bg-white border border-blue-200 text-blue-700">
                         {activeDeal.payment_type === 'INSTALLMENT'

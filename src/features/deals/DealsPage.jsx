@@ -6,6 +6,7 @@ import { DealDrawer } from './DealDrawer';
 import { DealWizardModal } from './DealWizardModal';
 import { ContractPrintView } from './ContractPrintView';
 import { PaymentRecordModal } from './PaymentRecordModal';
+import { formatContractNumber } from '../../utils/formatters';
 import {
   FileCheck,
   Plus,
@@ -102,7 +103,7 @@ export const DealsPage = () => {
   };
 
   const handleSignDeal = async (deal) => {
-    if (!window.confirm(`Подписать договор № ${deal.contract_number}?`)) return;
+    if (!window.confirm(`Подписать договор № ${formatContractNumber(deal.contract_number)}?`)) return;
     try {
       await api.post(`/deals/${deal.id}/sign`);
       fetchDeals();

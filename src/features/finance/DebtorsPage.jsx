@@ -3,6 +3,7 @@ import { api } from '../../api/client';
 import { DealDrawer } from '../deals/DealDrawer';
 import { ContractPrintView } from '../deals/ContractPrintView';
 import { FinanceTabs } from '../../components/FinanceTabs';
+import { formatContractNumber } from '../../utils/formatters';
 import {
   AlertCircle,
   Search,
@@ -145,7 +146,7 @@ export const DebtorsPage = () => {
                         <div className="font-bold text-slate-900 group-hover:text-rose-700">{d.lead_name}</div>
                         <div className="text-[11px] text-slate-400">{d.lead_phone}</div>
                       </td>
-                      <td className="p-3.5 font-bold text-blue-700">{d.contract_number}</td>
+                      <td className="p-3.5 font-bold text-blue-700 font-mono">{formatContractNumber(d.contract_number)}</td>
                       <td className="p-3.5 text-slate-600">
                         {d.project_name} (кв. №{d.unit_number})
                       </td>

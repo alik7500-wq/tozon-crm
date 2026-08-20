@@ -48,6 +48,18 @@ export const ContractPrintView = ({ deal, onClose, initialLang = 'TJ' }) => {
     });
   };
 
+  // Format and shorten contract number (e.g. 25601-2026-0003 -> 0003)
+  const displayContractNumber = (raw) => {
+    if (!raw && raw !== 0) return '____';
+    const str = String(raw).trim();
+    const parts = str.split('-');
+    if (parts.length >= 2) {
+      const lastPart = parts[parts.length - 1];
+      if (/^\d+$/.test(lastPart)) return lastPart;
+    }
+    return str;
+  };
+
   // Clean company name formatter
   const cleanCompanyName = (rawName) => {
     let name = (rawName || 'Тозон')
@@ -330,11 +342,11 @@ export const ContractPrintView = ({ deal, onClose, initialLang = 'TJ' }) => {
               <h1 className="text-base sm:text-lg font-black tracking-tight uppercase text-slate-950 leading-snug">
                 {isTJ ? (
                   <>
-                    ШАРТНОМАИ ИШТИРОКИ ҲИССАГУЗОРӢ ДАР СОХТМОНИ БИНОИ ИСТИҚОМАТӢ № <u className="font-mono">{deal.contract_number || '____'}</u>
+                    ШАРТНОМАИ ИШТИРОКИ ҲИССАГУЗОРӢ ДАР СОХТМОНИ БИНОИ ИСТИҚОМАТӢ № <u className="font-mono">{displayContractNumber(deal.contract_number)}</u>
                   </>
                 ) : (
                   <>
-                    ДОГОВОР ДОЛЕВОГО УЧАСТИЯ В СТРОИТЕЛЬСТВЕ ЖИЛОГО ДОМА № <u className="font-mono">{deal.contract_number || '____'}</u>
+                    ДОГОВОР ДОЛЕВОГО УЧАСТИЯ В СТРОИТЕЛЬСТВЕ ЖИЛОГО ДОМА № <u className="font-mono">{displayContractNumber(deal.contract_number)}</u>
                   </>
                 )}
               </h1>
@@ -679,7 +691,7 @@ export const ContractPrintView = ({ deal, onClose, initialLang = 'TJ' }) => {
             <div className="space-y-1.5 font-medium text-xs sm:text-sm pb-4">
               <div className="flex justify-between items-baseline border-b border-dotted border-slate-300 pb-0.5">
                 <span className="font-bold text-slate-900">{isTJ ? 'Рақами Шартнома' : 'Номер Договора'}</span>
-                <span className="font-black text-slate-900 text-sm sm:text-base">{deal.contract_number || '026'}</span>
+                <span className="font-black text-slate-900 text-sm sm:text-base">{displayContractNumber(deal.contract_number)}</span>
               </div>
 
               <div className="flex justify-between items-baseline border-b border-dotted border-slate-300 pb-0.5">

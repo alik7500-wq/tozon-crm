@@ -14,6 +14,7 @@ import {
   ShieldCheck,
   ChevronRight
 } from 'lucide-react';
+import { formatContractNumber } from '../../utils/formatters';
 
 export const DealsKanbanView = ({
   deals = [],
@@ -109,8 +110,8 @@ export const DealsKanbanView = ({
                     >
                       {/* Card Header */}
                       <div className="flex items-center justify-between">
-                        <span className="font-extrabold text-xs text-slate-900 group-hover:text-blue-600 transition">
-                          {deal.contract_number}
+                        <span className="font-extrabold text-xs text-slate-900 group-hover:text-blue-600 transition font-mono">
+                          {formatContractNumber(deal.contract_number)}
                         </span>
                         <span className="text-[10px] text-slate-400 font-medium">
                           {deal.deal_date || deal.created_at?.split('T')[0]}

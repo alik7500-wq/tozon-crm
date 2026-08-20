@@ -15,6 +15,7 @@ import {
   ShieldCheck,
   ChevronRight
 } from 'lucide-react';
+import { formatContractNumber } from '../../utils/formatters';
 
 export const DealsTableView = ({
   deals = [],
@@ -133,8 +134,8 @@ export const DealsTableView = ({
                 >
                   {/* Contract & Date */}
                   <td className="py-3.5 px-4">
-                    <div className="font-bold text-slate-900 group-hover:text-blue-600 transition text-xs">
-                      {deal.contract_number}
+                    <div className="font-bold text-slate-900 group-hover:text-blue-600 transition text-xs font-mono">
+                      {formatContractNumber(deal.contract_number)}
                     </div>
                     <div className="text-[11px] text-slate-400 mt-0.5 flex items-center gap-1">
                       <Calendar className="h-3 w-3" />

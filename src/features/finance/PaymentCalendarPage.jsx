@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { api } from '../../api/client';
+import { formatContractNumber } from '../../utils/formatters';
 import { FinanceTabs } from '../../components/FinanceTabs';
 import {
   Calendar as CalendarIcon,
@@ -119,7 +120,7 @@ export const PaymentCalendarPage = () => {
                       <CalendarIcon className="h-4 w-4 text-blue-600" />
                       <span>{new Date(p.due_date).toLocaleDateString('ru-RU')}</span>
                     </td>
-                    <td className="p-3.5 font-bold text-blue-700">{p.contract_number}</td>
+                    <td className="p-3.5 font-bold text-blue-700 font-mono">{formatContractNumber(p.contract_number)}</td>
                     <td className="p-3.5 font-semibold text-slate-800">{p.lead_name}</td>
                     <td className="p-3.5 text-slate-600">
                       {p.project_name} (кв. №{p.unit_number})

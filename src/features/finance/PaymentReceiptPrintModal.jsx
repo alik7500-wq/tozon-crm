@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { Printer, ArrowLeft, Globe, Receipt, CheckCircle2 } from 'lucide-react';
+import { formatContractNumber } from '../../utils/formatters';
 
 export const PaymentReceiptPrintModal = ({ payment, deal, onClose, initialLang = 'TJ' }) => {
   const [lang, setLang] = useState(initialLang);
@@ -139,7 +140,7 @@ export const PaymentReceiptPrintModal = ({ payment, deal, onClose, initialLang =
             <div className="flex justify-between border-b border-dotted border-slate-300 pb-1">
               <span className="text-slate-600">{isTJ ? 'Асос (Шартнома):' : 'Основание (Договор):'}</span>
               <strong className="text-slate-900">
-                {deal?.contract_number ? `${isTJ ? 'Шартномаи №' : 'Договор №'} ${deal.contract_number}` : 'Пардохт тибқи шартнома'}
+                {deal?.contract_number ? `${isTJ ? 'Шартномаи №' : 'Договор №'} ${formatContractNumber(deal.contract_number)}` : 'Пардохт тибқи шартнома'}
               </strong>
             </div>
 

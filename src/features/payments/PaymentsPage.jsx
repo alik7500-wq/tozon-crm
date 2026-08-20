@@ -4,6 +4,7 @@ import { PaymentRecordModal } from '../deals/PaymentRecordModal';
 import { DealDrawer } from '../deals/DealDrawer';
 import { ContractPrintView } from '../deals/ContractPrintView';
 import { FinanceTabs } from '../../components/FinanceTabs';
+import { formatContractNumber } from '../../utils/formatters';
 import {
   CreditCard,
   Plus,
@@ -179,8 +180,8 @@ export const PaymentsPage = () => {
                       onClick={() => setSelectedDealIdForDrawer(d.id)}
                       className="hover:bg-slate-50 transition cursor-pointer group"
                     >
-                      <td className="p-3.5 pl-5 font-bold text-blue-700 group-hover:text-blue-900">
-                        {d.contract_number || `СД-${d.id}`}
+                      <td className="p-3.5 pl-5 font-bold text-blue-700 group-hover:text-blue-900 font-mono">
+                        {formatContractNumber(d.contract_number) || `СД-${d.id}`}
                       </td>
                       <td className="p-3.5">
                         <div className="font-bold text-slate-900">{d.lead_name}</div>

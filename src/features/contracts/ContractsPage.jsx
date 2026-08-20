@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { api } from '../../api/client';
 import { ContractPrintView } from '../deals/ContractPrintView';
 import { DealDrawer } from '../deals/DealDrawer';
+import { formatContractNumber } from '../../utils/formatters';
 import {
   FileText,
   Search,
@@ -122,8 +123,8 @@ export const ContractsPage = () => {
                     onClick={() => setSelectedDealIdForDrawer(d.id)}
                     className="hover:bg-blue-50/40 transition cursor-pointer group"
                   >
-                    <td className="p-3.5 pl-5 font-bold text-blue-700 group-hover:text-blue-950">
-                      {d.contract_number || `СД-${d.id}`}
+                    <td className="p-3.5 pl-5 font-bold text-blue-700 group-hover:text-blue-950 font-mono">
+                      {formatContractNumber(d.contract_number) || `СД-${d.id}`}
                     </td>
                     <td className="p-3.5">
                       <div className="font-bold text-slate-900">{d.lead_name}</div>

@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { api } from '../../api/client';
+import { formatContractNumber } from '../../utils/formatters';
 import {
   X,
   User,
@@ -506,8 +507,8 @@ export const LeadDrawer = ({ isOpen, onClose, leadId, onLeadUpdated, onEditLead 
                       {lead.deals_list.map((d) => (
                         <div key={d.id} className="p-4 rounded-xl border border-emerald-200 bg-emerald-50/40 space-y-2">
                           <div className="flex items-center justify-between">
-                            <span className="text-xs font-bold text-slate-900">
-                              Договор №{d.contract_number}
+                            <span className="text-xs font-bold text-slate-900 font-mono">
+                              Договор №{formatContractNumber(d.contract_number)}
                             </span>
                             <span className="text-xs font-bold text-emerald-700 bg-white px-2 py-0.5 rounded-md border border-emerald-200">
                               {d.status}
