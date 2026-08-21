@@ -23,7 +23,7 @@ const ImageUpload = ({ value, onChange, folder = 'general' }) => {
       formData.append('image', file);
       // You can also pass folder if backend supports it
       
-      const response = await api.post('/api/upload', formData, {
+      const response = await api.post('/upload', formData, {
         headers: {
           'Content-Type': 'multipart/form-data',
         },
