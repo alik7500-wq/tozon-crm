@@ -15,6 +15,7 @@ import {
   X,
   Sparkles
 } from 'lucide-react';
+import ImageUpload from '../../../components/ImageUpload';
 
 export const VisualMapsTab = ({ projectId, onSelectUnit }) => {
   const { user } = useAuth();
@@ -32,7 +33,7 @@ export const VisualMapsTab = ({ projectId, onSelectUnit }) => {
   const [isUploadModalOpen, setIsUploadModalOpen] = useState(false);
   const [newMapTitle, setNewMapTitle] = useState('');
   const [newMapKind, setNewMapKind] = useState('GENPLAN');
-  const [selectedImageFile, setSelectedImageFile] = useState(null);
+  const [newMapImagePath, setNewMapImagePath] = useState('');
   const [isUploading, setIsUploading] = useState(false);
 
   const imageContainerRef = useRef(null);
@@ -67,21 +68,21 @@ export const VisualMapsTab = ({ projectId, onSelectUnit }) => {
 
   const handleUploadMap = async (e) => {
     e.preventDefault();
-    if (!selectedImageFile) return;
+    if (!newMapImagePath) return;
     setIsUploading(true);
 
     try {
-      const formData = new FormData();
-      formData.append('image', selectedImageFile);
-      formData.append('title', newMapTitle || 'Генплан');
-      formData.append('kind', newMapKind);
+      const payload = {
+        title: newMapTitle || 'Генплан',
+        kind: newMapKind,
+        image_path: newMapImagePath,
+        project_id: projectId
+      };
 
-      const res = await api.post(`/visual-maps/projects/${projectId}/maps`, formData, {
-        headers: { 'Content-Type': 'multipart/form-data' },
-      });
+      const res = await api.post(`/visual-maps`, payload);
 
       setIsUploadModalOpen(false);
-      setSelectedImageFile(null);
+      setNewMapImagePath('');
       setNewMapTitle('');
       fetchMaps();
       setActiveMap(res.data.map);
@@ -410,14 +411,13 @@ export const VisualMapsTab = ({ projectId, onSelectUnit }) => {
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-slate-700 mb-1">Файл изображения (PNG, JPG, WebP) *</label>
-                <input
-                  type="file"
-                  required
-                  accept="image/*"
-                  onChange={(e) => setSelectedImageFile(e.target.files[0])}
-                  className="w-full text-xs text-slate-500 file:mr-3 file:rounded-xl file:border-0 file:bg-blue-50 file:px-3 file:py-2 file:text-xs file:font-semibold file:text-blue-700 hover:file:bg-blue-100"
-                />
+                <label className="block text-xs font-semibold text-slate-700 mb-1">Изображение (план или фото) *</label>
+                <div style={{ width: '100%', height: '200px' }}>
+                  <ImageUpload 
+                    value={newMapImagePath}
+                    onChange={(url) => setNewMapImagePath(url)}
+                  />
+                </div>
               </div>
 
               <div className="flex justify-end gap-3 pt-4 border-t border-slate-100">
@@ -430,7 +430,7 @@ export const VisualMapsTab = ({ projectId, onSelectUnit }) => {
                 </button>
                 <button
                   type="submit"
-                  disabled={isUploading || !selectedImageFile}
+                  disabled={isUploading || !newMapImagePath}
                   className="rounded-xl bg-blue-600 px-5 py-2 text-sm font-bold text-white shadow-md hover:bg-blue-700 transition"
                 >
                   {isUploading ? 'Загрузка...' : 'Загрузить'}

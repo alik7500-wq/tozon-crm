@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { api } from '../../../api/client';
 import { useAuth } from '../../auth/AuthContext';
 import { Plus, X, Maximize2, Coins, Trash2, Image as ImageIcon, Sparkles, AlertCircle } from 'lucide-react';
+import ImageUpload from '../../../components/ImageUpload';
 
 export const LayoutsTab = ({ projectId, currency = 'USD', onLayoutCreated }) => {
   const { user } = useAuth();
@@ -18,8 +19,8 @@ export const LayoutsTab = ({ projectId, currency = 'USD', onLayoutCreated }) => 
     area_m2: 45,
     default_price_per_m2: 8500,
     description: '',
+    image_path: '',
   });
-  const [selectedFile, setSelectedFile] = useState(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const fetchLayouts = async () => {
@@ -52,16 +53,6 @@ export const LayoutsTab = ({ projectId, currency = 'USD', onLayoutCreated }) => 
     setError('');
 
     try {
-      let image_path = null;
-      if (selectedFile) {
-        const fileForm = new FormData();
-        fileForm.append('image', selectedFile);
-        const uploadRes = await api.post('/visual-maps/upload', fileForm, {
-          headers: { 'Content-Type': 'multipart/form-data' },
-        });
-        image_path = uploadRes.data.image_path;
-      }
-
       await api.post(`/inventory/projects/${projectId}/layouts`, {
         name: formData.name,
         code: formData.code,
@@ -69,7 +60,7 @@ export const LayoutsTab = ({ projectId, currency = 'USD', onLayoutCreated }) => 
         area_m2_x100: Math.round(parseFloat(formData.area_m2) * 100),
         default_price_per_m2_minor: Math.round(parseFloat(formData.default_price_per_m2) * 100),
         description: formData.description,
-        image_path,
+        image_path: formData.image_path,
       });
 
       setIsModalOpen(false);
@@ -80,8 +71,8 @@ export const LayoutsTab = ({ projectId, currency = 'USD', onLayoutCreated }) => 
         area_m2: 45,
         default_price_per_m2: 8500,
         description: '',
+        image_path: '',
       });
-      setSelectedFile(null);
       fetchLayouts();
       if (onLayoutCreated) onLayoutCreated();
     } catch (err) {
@@ -274,12 +265,12 @@ export const LayoutsTab = ({ projectId, currency = 'USD', onLayoutCreated }) => 
 
               <div>
                 <label className="block text-xs font-semibold text-slate-700 mb-1">Чертеж / Изображение планировки</label>
-                <input
-                  type="file"
-                  accept="image/*"
-                  onChange={(e) => setSelectedFile(e.target.files[0])}
-                  className="w-full text-xs text-slate-500 file:mr-3 file:rounded-xl file:border-0 file:bg-blue-50 file:px-3 file:py-2 file:text-xs file:font-semibold file:text-blue-700 hover:file:bg-blue-100"
-                />
+                <div style={{ width: '120px', height: '120px' }}>
+                  <ImageUpload 
+                    value={formData.image_path}
+                    onChange={(url) => setFormData({ ...formData, image_path: url })}
+                  />
+                </div>
               </div>
 
               <div className="flex justify-end gap-3 pt-4 border-t border-slate-100">
