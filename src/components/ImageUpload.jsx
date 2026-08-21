@@ -29,12 +29,12 @@ const ImageUpload = ({ value, onChange, folder = 'general' }) => {
         },
       });
 
-      if (response.data?.success) {
-        onChange(response.data.data.url);
-        onSuccess(response.data.data);
+      if (response?.success) {
+        onChange(response.data.url);
+        onSuccess(response.data);
         message.success('Изображение успешно загружено');
       } else {
-        throw new Error(response.data?.error?.message || 'Upload failed');
+        throw new Error(response?.error?.message || 'Upload failed');
       }
     } catch (error) {
       console.error('Upload Error:', error);
