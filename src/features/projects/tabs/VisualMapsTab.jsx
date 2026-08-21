@@ -41,7 +41,7 @@ export const VisualMapsTab = ({ projectId, onSelectUnit }) => {
   const fetchMaps = async () => {
     setIsLoading(true);
     try {
-      const res = await api.get(`/visual-maps/projects/${projectId}/maps`);
+      const res = await api.get(`/visual-maps/projects/${projectId}`);
       const mapList = res.data.maps || [];
       setMaps(mapList);
       if (mapList.length > 0 && !activeMap) {
@@ -122,7 +122,7 @@ export const VisualMapsTab = ({ projectId, onSelectUnit }) => {
     if (!activeMap) return;
     setIsSavingHotspots(true);
     try {
-      await api.post(`/visual-maps/maps/${activeMap.id}/hotspots`, { hotspots });
+      await api.post(`/visual-maps/${activeMap.id}/hotspots`, { hotspots });
       alert('Области успешно сохранены!');
       fetchMaps();
     } catch (err) {
@@ -135,7 +135,7 @@ export const VisualMapsTab = ({ projectId, onSelectUnit }) => {
   const handleDeleteMap = async (id) => {
     if (!confirm('Удалить эту карту?')) return;
     try {
-      await api.delete(`/visual-maps/maps/${id}`);
+      await api.delete(`/visual-maps/${id}`);
       setActiveMap(null);
       fetchMaps();
     } catch (err) {
