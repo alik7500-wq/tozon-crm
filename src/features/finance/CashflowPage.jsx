@@ -122,12 +122,12 @@ export const CashflowPage = () => {
       <FinanceTabs />
 
       {/* Consolidated Equivalent Banner */}
-      <div className="rounded-3xl border border-indigo-100 bg-gradient-to-r from-slate-900 via-indigo-950 to-slate-900 text-white p-6 shadow-md relative overflow-hidden">
+      <div className="rounded-3xl border border-indigo-100 bg-gradient-to-r from-slate-900 via-indigo-950 to-slate-900 text-white p-6 shadow-md relative overflow-hidden space-y-6">
         <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6 relative z-10">
           <div>
             <div className="flex items-center gap-2">
               <span className="px-2.5 py-1 rounded-lg text-[10px] font-black uppercase tracking-wider bg-indigo-500/30 text-indigo-200 border border-indigo-400/30">
-                Сводный капитал компании
+                Сводный капитал компании (Фактический остаток средств)
               </span>
               <div className="flex items-center gap-1 text-xs text-indigo-200">
                 <span>Курс пересчета: 1 USD =</span>
@@ -152,19 +152,8 @@ export const CashflowPage = () => {
               </span>
             </div>
             <p className="text-xs text-indigo-300/80 mt-1">
-              Фактический общий остаток средств во всех кассах с учетом пересчета валют
+              Фактический общий остаток денежных средств во всех кассах компании
             </p>
-
-            {/* Converted sums display */}
-            <div className="mt-4 pt-3 border-t border-indigo-500/30 flex items-center gap-4 flex-wrap text-xs">
-              <div className="flex items-center gap-2 bg-white/10 px-3 py-1.5 rounded-xl border border-white/10">
-                <span className="text-indigo-300">🔄 Сконвертировано ({year} г.):</span>
-                <span className="font-bold text-rose-300">-${(cashflowData.conversionsSummary?.totalConvertedFromUsd || 0).toLocaleString()} USD</span>
-                <span className="text-indigo-400">→</span>
-                <span className="font-bold text-emerald-300">+{(cashflowData.conversionsSummary?.totalConvertedToTjs || 0).toLocaleString()} TJS</span>
-                <span className="text-[10px] text-indigo-300/70 font-normal">({cashflowData.conversionsSummary?.conversionOperationsCount || 0} операций)</span>
-              </div>
-            </div>
           </div>
 
           <div className="flex items-center gap-3">
@@ -175,6 +164,77 @@ export const CashflowPage = () => {
               <Coins className="h-4 w-4 text-amber-300" />
               <span>Сконвертировать USD в TJS</span>
             </button>
+          </div>
+        </div>
+
+        {/* Sales, Area, Discounts & Receivables metrics grid inside Banner */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 pt-4 border-t border-indigo-500/20 text-xs">
+          {/* 1. Реализовано м² */}
+          <div className="rounded-2xl bg-white/10 p-3.5 border border-white/10 backdrop-blur-xs flex flex-col justify-between">
+            <div className="flex items-center justify-between text-indigo-200 text-[11px] font-semibold">
+              <span>📐 Продано площади</span>
+              <span className="text-indigo-300">Договоры</span>
+            </div>
+            <div className="my-1.5">
+              <span className="text-xl font-black text-white">
+                {(cashflowData.salesSummary?.totalSoldAreaM2 || 0).toLocaleString('ru-RU')} <span className="text-xs font-bold text-indigo-300">м²</span>
+              </span>
+            </div>
+            <p className="text-[10px] text-indigo-300/80 truncate">
+              Сумма: ${(cashflowData.salesSummary?.totalContractSumUsd || 0).toLocaleString()} USD
+            </p>
+          </div>
+
+          {/* 2. Сумма скидки */}
+          <div className="rounded-2xl bg-white/10 p-3.5 border border-white/10 backdrop-blur-xs flex flex-col justify-between">
+            <div className="flex items-center justify-between text-indigo-200 text-[11px] font-semibold">
+              <span>🏷️ Предоставлено скидок</span>
+              <span className="text-amber-300 text-[10px] font-bold">Скидка</span>
+            </div>
+            <div className="my-1.5">
+              <span className="text-xl font-black text-amber-300">
+                ${(cashflowData.salesSummary?.totalDiscountSumUsd || 0).toLocaleString('ru-RU', { minimumFractionDigits: 0 })} <span className="text-xs font-bold text-indigo-200">USD</span>
+              </span>
+            </div>
+            <p className="text-[10px] text-indigo-300/80 truncate">
+              ≈ {((cashflowData.salesSummary?.totalDiscountSumUsd || 0) * rateNum).toLocaleString('ru-RU', { maximumFractionDigits: 0 })} сомони
+            </p>
+          </div>
+
+          {/* 3. Ожидаемый остаток (сумма рассрочки) */}
+          <div className="rounded-2xl bg-white/10 p-3.5 border border-white/10 backdrop-blur-xs flex flex-col justify-between">
+            <div className="flex items-center justify-between text-indigo-200 text-[11px] font-semibold">
+              <span>⏳ Ожидаемый остаток (Рассрочка)</span>
+              <span className="text-emerald-300 text-[10px] font-bold">К оплате</span>
+            </div>
+            <div className="my-1.5">
+              <span className="text-xl font-black text-emerald-300">
+                ${(cashflowData.salesSummary?.totalReceivableSumUsd || 0).toLocaleString('ru-RU', { minimumFractionDigits: 0 })} <span className="text-xs font-bold text-indigo-200">USD</span>
+              </span>
+            </div>
+            <p className="text-[10px] text-indigo-300/80 truncate">
+              ≈ {((cashflowData.salesSummary?.totalReceivableSumUsd || 0) * rateNum).toLocaleString('ru-RU', { maximumFractionDigits: 0 })} сомони к внесению
+            </p>
+          </div>
+
+          {/* 4. Сконвертировано */}
+          <div className="rounded-2xl bg-white/10 p-3.5 border border-white/10 backdrop-blur-xs flex flex-col justify-between">
+            <div className="flex items-center justify-between text-indigo-200 text-[11px] font-semibold">
+              <span>🔄 Сконвертировано ({year} г.)</span>
+              <span className="text-indigo-300 text-[10px]">Касса</span>
+            </div>
+            <div className="my-1.5 flex items-center gap-1.5 flex-wrap">
+              <span className="text-sm font-black text-rose-300">
+                -${(cashflowData.conversionsSummary?.totalConvertedFromUsd || 0).toLocaleString()} USD
+              </span>
+              <span className="text-indigo-400">→</span>
+              <span className="text-sm font-black text-emerald-300">
+                +{(cashflowData.conversionsSummary?.totalConvertedToTjs || 0).toLocaleString()} TJS
+              </span>
+            </div>
+            <p className="text-[10px] text-indigo-300/80">
+              {cashflowData.conversionsSummary?.conversionOperationsCount || 0} операций обмена
+            </p>
           </div>
         </div>
       </div>
