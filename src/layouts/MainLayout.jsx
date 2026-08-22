@@ -50,7 +50,6 @@ export const MainLayout = () => {
     inventory: true,
     analytics: true,
     finance: true,
-    payments: true,
     settings: false,
   });
 
@@ -69,11 +68,8 @@ export const MainLayout = () => {
     ) {
       setExpandedMenus((prev) => ({ ...prev, crm: true }));
     }
-    if (path.startsWith('/finance')) {
+    if (path.startsWith('/finance') || path.startsWith('/payments')) {
       setExpandedMenus((prev) => ({ ...prev, finance: true }));
-    }
-    if (path.startsWith('/payments')) {
-      setExpandedMenus((prev) => ({ ...prev, payments: true }));
     }
     if (path.startsWith('/projects') || path === '/apartments') {
       setExpandedMenus((prev) => ({ ...prev, inventory: true }));
@@ -132,24 +128,13 @@ export const MainLayout = () => {
       label: 'Финансы',
       icon: CreditCard,
       children: [
-        { label: 'Календарь платежей', path: '/finance/calendar', icon: Calendar },
-        { label: 'Должники', path: '/finance/debtors', icon: AlertCircle },
-        { label: 'Доходы', path: '/finance/income', icon: TrendingUp },
-        { label: 'Расходы', path: '/finance/expenses', icon: TrendingDown },
-        { label: 'ДДС', path: '/finance/cashflow', icon: Wallet },
-      ],
-    },
-    {
-      type: 'group',
-      id: 'payments',
-      label: 'Платежи',
-      icon: CreditCard,
-      children: [
         { label: 'Приём платежей', path: '/payments', icon: CreditCard },
         { label: 'План-Факт по клиентам', path: '/payments/plan-fact', icon: Table },
-        { label: 'Реестр приходов (ПКО)', path: '/finance/income', icon: TrendingUp },
-        { label: 'Реестр расходов (РКО)', path: '/finance/expenses', icon: TrendingDown },
-        { label: 'График план', path: '/finance/calendar', icon: Calendar },
+        { label: 'Календарь платежей', path: '/finance/calendar', icon: Calendar },
+        { label: 'Реестр должников', path: '/finance/debtors', icon: AlertCircle },
+        { label: 'Доходы (ПКО)', path: '/finance/income', icon: TrendingUp },
+        { label: 'Расходы (РКО)', path: '/finance/expenses', icon: TrendingDown },
+        { label: 'ДДС (Движение средств)', path: '/finance/cashflow', icon: Wallet },
       ],
     },
     { type: 'link', label: 'Автоматизация', path: '/automation', icon: Zap },
