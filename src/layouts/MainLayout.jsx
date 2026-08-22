@@ -33,7 +33,8 @@ import {
   TrendingUp,
   TrendingDown,
   Wallet,
-  Target
+  Target,
+  Table
 } from 'lucide-react';
 
 export const MainLayout = () => {
@@ -49,6 +50,7 @@ export const MainLayout = () => {
     inventory: true,
     analytics: true,
     finance: true,
+    payments: true,
     settings: false,
   });
 
@@ -69,6 +71,9 @@ export const MainLayout = () => {
     }
     if (path.startsWith('/finance')) {
       setExpandedMenus((prev) => ({ ...prev, finance: true }));
+    }
+    if (path.startsWith('/payments')) {
+      setExpandedMenus((prev) => ({ ...prev, payments: true }));
     }
     if (path.startsWith('/projects') || path === '/apartments') {
       setExpandedMenus((prev) => ({ ...prev, inventory: true }));
@@ -134,7 +139,19 @@ export const MainLayout = () => {
         { label: 'ДДС', path: '/finance/cashflow', icon: Wallet },
       ],
     },
-    { type: 'link', label: 'Платежи', path: '/payments', icon: CreditCard },
+    {
+      type: 'group',
+      id: 'payments',
+      label: 'Платежи',
+      icon: CreditCard,
+      children: [
+        { label: 'Приём платежей', path: '/payments', icon: CreditCard },
+        { label: 'План-Факт по клиентам', path: '/payments/plan-fact', icon: Table },
+        { label: 'Реестр приходов (ПКО)', path: '/finance/income', icon: TrendingUp },
+        { label: 'Реестр расходов (РКО)', path: '/finance/expenses', icon: TrendingDown },
+        { label: 'График план', path: '/finance/calendar', icon: Calendar },
+      ],
+    },
     { type: 'link', label: 'Автоматизация', path: '/automation', icon: Zap },
     { type: 'link', label: 'Уведомления', path: '/notifications', icon: Bell },
   ];

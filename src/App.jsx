@@ -20,6 +20,7 @@ import { DebtorsPage } from './features/finance/DebtorsPage';
 import { IncomePage } from './features/finance/IncomePage';
 import { ExpensesPage } from './features/finance/ExpensesPage';
 import { CashflowPage } from './features/finance/CashflowPage';
+import { PlanFactPage } from './features/finance/PlanFactPage';
 import { ReportsPage } from './features/reports/ReportsPage';
 import { NotificationsPage } from './features/notifications/NotificationsPage';
 import { UsersPage } from './features/users/UsersPage';
@@ -65,6 +66,10 @@ function App() {
                 <Route path="/deals" element={<DealsPage />} />
                 <Route path="/contracts" element={<ContractsPage />} />
                 <Route path="/payments" element={<PaymentsPage />} />
+                <Route path="/payments/plan-fact" element={<PlanFactPage />} />
+                <Route path="/payments/fact" element={<PlanFactPage />} />
+                <Route path="/payments/income-orders" element={<IncomePage />} />
+                <Route path="/payments/expense-orders" element={<ExpensesPage />} />
                 <Route path="/finance/calendar" element={<PaymentCalendarPage />} />
                 <Route path="/finance/debtors" element={<DebtorsPage />} />
                 <Route path="/finance/income" element={<IncomePage />} />

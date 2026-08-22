@@ -26,9 +26,20 @@ export const financeApi = {
     return res?.data || res;
   },
 
+  getPlanFactReport: async (filters = {}) => {
+    const res = await api.get('/finance/plan-fact', { params: filters });
+    return res?.data || res;
+  },
+
   getDealsForSelect: async () => {
     const res = await api.get('/deals');
     const deals = res?.data?.deals || res?.deals || res || [];
     return deals;
+  },
+
+  getProjectsForSelect: async () => {
+    const res = await api.get('/projects');
+    const projects = res?.data?.projects || res?.projects || res || [];
+    return projects;
   }
 };

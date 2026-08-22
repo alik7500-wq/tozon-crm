@@ -1,14 +1,15 @@
 import React from 'react';
 import { NavLink } from 'react-router-dom';
-import { CreditCard, Calendar, AlertCircle, TrendingUp, TrendingDown, Wallet } from 'lucide-react';
+import { CreditCard, Calendar, AlertCircle, TrendingUp, TrendingDown, Wallet, Table } from 'lucide-react';
 
 export const FinanceTabs = () => {
   const tabs = [
-    { label: 'Реестр договоров и оплат', path: '/payments', icon: CreditCard },
+    { label: 'Приём платежей', path: '/payments', icon: CreditCard },
+    { label: 'План-Факт по клиентам', path: '/payments/plan-fact', icon: Table },
     { label: 'Календарь поступлений', path: '/finance/calendar', icon: Calendar },
     { label: 'Реестр должников', path: '/finance/debtors', icon: AlertCircle },
-    { label: 'Доходы (ПКО)', path: '/finance/income', icon: TrendingUp },
-    { label: 'Расходы (РКО)', path: '/finance/expenses', icon: TrendingDown },
+    { label: 'Реестр приходов (ПКО)', path: '/finance/income', icon: TrendingUp },
+    { label: 'Реестр расходов (РКО)', path: '/finance/expenses', icon: TrendingDown },
     { label: 'ДДС (Движение средств)', path: '/finance/cashflow', icon: Wallet },
   ];
 
