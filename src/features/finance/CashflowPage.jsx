@@ -154,6 +154,17 @@ export const CashflowPage = () => {
             <p className="text-xs text-indigo-300/80 mt-1">
               Фактический общий остаток средств во всех кассах с учетом пересчета валют
             </p>
+
+            {/* Converted sums display */}
+            <div className="mt-4 pt-3 border-t border-indigo-500/30 flex items-center gap-4 flex-wrap text-xs">
+              <div className="flex items-center gap-2 bg-white/10 px-3 py-1.5 rounded-xl border border-white/10">
+                <span className="text-indigo-300">🔄 Сконвертировано ({year} г.):</span>
+                <span className="font-bold text-rose-300">-${(cashflowData.conversionsSummary?.totalConvertedFromUsd || 0).toLocaleString()} USD</span>
+                <span className="text-indigo-400">→</span>
+                <span className="font-bold text-emerald-300">+{(cashflowData.conversionsSummary?.totalConvertedToTjs || 0).toLocaleString()} TJS</span>
+                <span className="text-[10px] text-indigo-300/70 font-normal">({cashflowData.conversionsSummary?.conversionOperationsCount || 0} операций)</span>
+              </div>
+            </div>
           </div>
 
           <div className="flex items-center gap-3">
