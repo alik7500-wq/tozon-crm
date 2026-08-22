@@ -21,17 +21,32 @@ export const CashflowPage = () => {
   const [currency, setCurrency] = useState('ALL');
   const [typeFilter, setTypeFilter] = useState('ALL'); // ALL, INCOME, EXPENSE
   const [search, setSearch] = useState('');
-  const [globalRate, setGlobalRate] = useState('10.90');
+  const [globalRate, setGlobalRate] = useState('9.27');
   const [showConvertModal, setShowConvertModal] = useState(false);
   const [editingItem, setEditingItem] = useState(null);
 
   const queryClient = useQueryClient();
 
+  const { data: eskhataRateData } = useQuery({
+    queryKey: ['eskhata-rate'],
+    queryFn: financeApi.getEskhataRate,
+    staleTime: 10 * 60 * 1000
+  });
+
+  const liveEskhataRate = eskhataRateData?.sellRate ? String(eskhataRateData.sellRate) : '9.27';
+
+  useEffect(() => {
+    if (eskhataRateData?.sellRate) {
+      setGlobalRate(String(eskhataRateData.sellRate));
+      setConvertForm(prev => ({ ...prev, exchange_rate: String(eskhataRateData.sellRate) }));
+    }
+  }, [eskhataRateData]);
+
   const [convertForm, setConvertForm] = useState({
     from_currency: 'USD',
     to_currency: 'TJS',
     from_amount: '',
-    exchange_rate: '10.90',
+    exchange_rate: '9.27',
     date: dayjs().format('YYYY-MM-DD'),
     method: 'CASH',
     reference: '',
@@ -54,7 +69,7 @@ export const CashflowPage = () => {
         from_currency: 'USD',
         to_currency: 'TJS',
         from_amount: '',
-        exchange_rate: '10.90',
+        exchange_rate: liveEskhataRate,
         date: dayjs().format('YYYY-MM-DD'),
         method: 'CASH',
         reference: '',
@@ -218,16 +233,16 @@ export const CashflowPage = () => {
               <span className="px-2.5 py-1 rounded-lg text-[10px] font-black uppercase tracking-wider bg-indigo-500/30 text-indigo-200 border border-indigo-400/30">
                 Сводный капитал компании (Фактический остаток средств)
               </span>
-              <div className="flex items-center gap-1 text-xs text-indigo-200">
-                <span>Курс пересчета: 1 USD =</span>
+              <div className="flex items-center gap-1.5 text-xs text-indigo-200">
+                <span className="font-semibold text-indigo-300">🏦 Курс Эсхата (Продажа): 1 USD =</span>
                 <input
                   type="number"
                   step="0.01"
                   value={globalRate}
                   onChange={e => setGlobalRate(e.target.value)}
-                  className="w-16 rounded-md border border-indigo-400/40 bg-white/10 px-1.5 py-0.5 text-xs font-bold text-white outline-none text-center"
+                  className="w-16 rounded-md border border-indigo-400/40 bg-white/10 px-1.5 py-0.5 text-xs font-black text-white outline-none text-center"
                 />
-                <span>TJS</span>
+                <span className="font-bold">TJS</span>
               </div>
             </div>
 

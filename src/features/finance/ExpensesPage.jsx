@@ -27,6 +27,14 @@ export const ExpensesPage = () => {
 
   const queryClient = useQueryClient();
 
+  const { data: eskhataRateData } = useQuery({
+    queryKey: ['eskhata-rate'],
+    queryFn: financeApi.getEskhataRate,
+    staleTime: 10 * 60 * 1000
+  });
+
+  const liveEskhataRate = eskhataRateData?.sellRate ? String(eskhataRateData.sellRate) : '9.27';
+
   const [formData, setFormData] = useState({
     amount: '',
     currency: 'TJS',
@@ -37,9 +45,15 @@ export const ExpensesPage = () => {
     recipient: '',
     description: '',
     auto_convert: true,
-    exchange_rate: '10.90',
+    exchange_rate: '9.27',
     source_currency: 'USD'
   });
+
+  useEffect(() => {
+    if (eskhataRateData?.sellRate) {
+      setFormData(prev => ({ ...prev, exchange_rate: String(eskhataRateData.sellRate) }));
+    }
+  }, [eskhataRateData]);
 
   const { data: response, isLoading, refetch } = useQuery({
     queryKey: ['finance-expenses', year, currency, categoryFilter, search],
@@ -63,7 +77,7 @@ export const ExpensesPage = () => {
         recipient: '',
         description: '',
         auto_convert: true,
-        exchange_rate: '10.90',
+        exchange_rate: liveEskhataRate,
         source_currency: 'USD'
       });
     }
@@ -717,16 +731,19 @@ export const ExpensesPage = () => {
                       </label>
 
                       {formData.auto_convert && (
-                        <div className="flex items-center gap-1 text-[11px]">
-                          <span className="text-amber-800 font-semibold">Курс: 1 USD =</span>
+                        <div className="flex items-center gap-1.5 text-[11px]">
+                          <span className="inline-flex items-center gap-1 font-bold text-amber-900 bg-amber-200/80 px-2 py-0.5 rounded-md border border-amber-300">
+                            🏦 Эсхата (Продажа):
+                          </span>
+                          <span className="text-amber-800 font-semibold">1 USD =</span>
                           <input
                             type="number"
                             step="0.01"
                             value={formData.exchange_rate}
                             onChange={e => setFormData({ ...formData, exchange_rate: e.target.value })}
-                            className="w-16 rounded-md border border-amber-300 bg-white px-1.5 py-0.5 text-xs font-bold text-amber-950 outline-none text-center"
+                            className="w-16 rounded-md border border-amber-300 bg-white px-1.5 py-0.5 text-xs font-black text-amber-950 outline-none text-center shadow-xs"
                           />
-                          <span className="text-amber-800 font-semibold">{formData.currency}</span>
+                          <span className="text-amber-800 font-bold">{formData.currency}</span>
                         </div>
                       )}
                     </div>

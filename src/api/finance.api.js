@@ -66,5 +66,10 @@ export const financeApi = {
     const res = await api.get('/projects');
     const projects = res?.data?.projects || res?.projects || res || [];
     return projects;
+  },
+
+  getEskhataRate: async () => {
+    const res = await api.get('/finance/rates/eskhata');
+    return res?.data || res;
   }
 };
