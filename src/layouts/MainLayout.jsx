@@ -31,6 +31,8 @@ import {
   MessageSquare,
   PieChart,
   TrendingUp,
+  TrendingDown,
+  Wallet,
   Target
 } from 'lucide-react';
 
@@ -127,6 +129,9 @@ export const MainLayout = () => {
       children: [
         { label: 'Календарь платежей', path: '/finance/calendar', icon: Calendar },
         { label: 'Должники', path: '/finance/debtors', icon: AlertCircle },
+        { label: 'Доходы', path: '/finance/income', icon: TrendingUp },
+        { label: 'Расходы', path: '/finance/expenses', icon: TrendingDown },
+        { label: 'ДДС', path: '/finance/cashflow', icon: Wallet },
       ],
     },
     { type: 'link', label: 'Платежи', path: '/payments', icon: CreditCard },

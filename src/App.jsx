@@ -17,6 +17,9 @@ import { TasksPage } from './features/tasks/TasksPage';
 import { ContractsPage } from './features/contracts/ContractsPage';
 import { PaymentCalendarPage } from './features/finance/PaymentCalendarPage';
 import { DebtorsPage } from './features/finance/DebtorsPage';
+import { IncomePage } from './features/finance/IncomePage';
+import { ExpensesPage } from './features/finance/ExpensesPage';
+import { CashflowPage } from './features/finance/CashflowPage';
 import { ReportsPage } from './features/reports/ReportsPage';
 import { NotificationsPage } from './features/notifications/NotificationsPage';
 import { UsersPage } from './features/users/UsersPage';
@@ -64,6 +67,9 @@ function App() {
                 <Route path="/payments" element={<PaymentsPage />} />
                 <Route path="/finance/calendar" element={<PaymentCalendarPage />} />
                 <Route path="/finance/debtors" element={<DebtorsPage />} />
+                <Route path="/finance/income" element={<IncomePage />} />
+                <Route path="/finance/expenses" element={<ExpensesPage />} />
+                <Route path="/finance/cashflow" element={<CashflowPage />} />
                 <Route path="/reports" element={<ReportsPage />} />
                 <Route path="/analytics/1" element={<AnalyticsOnePage />} />
                 <Route path="/analytics/2" element={<AnalyticsTwoPage />} />
