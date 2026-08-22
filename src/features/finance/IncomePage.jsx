@@ -514,115 +514,71 @@ export const IncomePage = () => {
 
       {/* Modal: New Income Order (ПКО) */}
       {showAddModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs animate-in fade-in">
-          <div className="relative w-full max-w-lg overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-2xl">
-            <div className="flex items-center justify-between border-b border-slate-100 bg-gradient-to-r from-slate-900 via-slate-800 to-slate-900 px-6 py-4 text-white">
-              <div className="flex items-center gap-3">
-                <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">
-                  <TrendingUp className="h-5 w-5" />
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-slate-900/60 backdrop-blur-xs animate-in fade-in">
+          <div className="relative w-full max-w-2xl overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-2xl">
+            {/* Header */}
+            <div className="flex items-center justify-between border-b border-slate-100 bg-gradient-to-r from-slate-900 via-slate-800 to-slate-900 px-5 py-3 text-white">
+              <div className="flex items-center gap-2.5">
+                <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">
+                  <TrendingUp className="h-4 w-4" />
                 </div>
                 <div>
-                  <h3 className="text-base font-bold">Оформить приходный кассовый ордер (ПКО)</h3>
-                  <p className="text-xs text-slate-300">Регистрация поступления денежных средств</p>
+                  <h3 className="text-sm font-bold">Оформить приходный кассовый ордер (ПКО)</h3>
+                  <p className="text-[11px] text-slate-300">Регистрация поступления денежных средств</p>
                 </div>
               </div>
               <button
                 onClick={() => setShowAddModal(false)}
-                className="rounded-lg p-1.5 text-slate-400 hover:bg-slate-700 hover:text-white transition cursor-pointer"
+                className="rounded-lg p-1 text-slate-400 hover:bg-slate-700 hover:text-white transition cursor-pointer"
               >
-                <X className="h-5 w-5" />
+                <X className="h-4 w-4" />
               </button>
             </div>
 
-            <form onSubmit={handleSubmit} className="p-6 space-y-4 max-h-[80vh] overflow-y-auto">
-              {/* Optional deal link */}
-              <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1">
-                  Привязать к сделке / договору (необязательно):
-                </label>
-                <select
-                  value={formData.deal_id}
-                  onChange={handleDealSelect}
-                  className="w-full rounded-xl border border-slate-300 bg-slate-50 px-3 py-2 text-xs font-medium outline-none focus:border-emerald-500 focus:bg-white"
-                >
-                  <option value="">-- Прямое поступление (без привязки к сделке) --</option>
-                  {dealsList.map(d => (
-                    <option key={d.id} value={d.id}>
-                      Договор {d.contract_number || `СД-${d.id}`} • {d.lead_name} ({d.project_name})
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              {/* Payer Name */}
-              <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1">
-                  ФИО Плательщика / Клиент *
-                </label>
-                <input
-                  type="text"
-                  required
-                  value={formData.payer_name}
-                  onChange={e => setFormData({ ...formData, payer_name: e.target.value })}
-                  placeholder="ФИО клиента или контрагента"
-                  className="w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-xs outline-none focus:border-emerald-500"
-                />
-              </div>
-
-              {/* Amount and Currency */}
-              <div className="grid grid-cols-3 gap-3">
-                <div className="col-span-2">
-                  <label className="block text-xs font-bold text-slate-700 mb-1">
-                    Сумма поступления *
-                  </label>
-                  <input
-                    type="number"
-                    step="0.01"
-                    min="0.01"
-                    required
-                    value={formData.amount}
-                    onChange={e => setFormData({ ...formData, amount: e.target.value })}
-                    placeholder="0.00"
-                    className="w-full rounded-xl border border-slate-300 bg-white px-3.5 py-2 text-sm font-black text-slate-900 outline-none focus:border-emerald-500"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1">
-                    Валюта *
+            {/* Form */}
+            <form onSubmit={handleSubmit} className="p-4 sm:p-5 space-y-3 text-xs">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                {/* Optional deal link (Full width) */}
+                <div className="sm:col-span-2">
+                  <label className="block text-[11px] font-bold text-slate-700 mb-1">
+                    Привязать к сделке / договору (необязательно):
                   </label>
                   <select
-                    value={formData.currency}
-                    onChange={e => setFormData({ ...formData, currency: e.target.value })}
-                    className="w-full rounded-xl border border-slate-300 bg-slate-50 px-3 py-2.5 text-xs font-bold text-slate-800 outline-none focus:border-emerald-500"
+                    value={formData.deal_id}
+                    onChange={handleDealSelect}
+                    className="w-full rounded-xl border border-slate-300 bg-slate-50 px-3 py-1.5 text-xs font-medium outline-none focus:border-emerald-500 focus:bg-white"
                   >
-                    <option value="USD">USD ($)</option>
-                    <option value="TJS">TJS (Сомони)</option>
-                    <option value="RUB">RUB (Рубль)</option>
-                    <option value="EUR">EUR (€)</option>
+                    <option value="">-- Прямое поступление (без привязки к сделке) --</option>
+                    {dealsList.map(d => (
+                      <option key={d.id} value={d.id}>
+                        Договор {d.contract_number || `СД-${d.id}`} • {d.lead_name} ({d.project_name})
+                      </option>
+                    ))}
                   </select>
                 </div>
-              </div>
 
-              {/* Date & Payment Method */}
-              <div className="grid grid-cols-2 gap-3">
+                {/* Payer Name */}
                 <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1">Дата платежа *</label>
+                  <label className="block text-[11px] font-bold text-slate-700 mb-1">
+                    ФИО Плательщика / Клиент *
+                  </label>
                   <input
-                    type="date"
+                    type="text"
                     required
-                    value={formData.date}
-                    onChange={e => setFormData({ ...formData, date: e.target.value })}
-                    className="w-full rounded-xl border border-slate-300 bg-slate-50 px-3 py-2 text-xs outline-none focus:border-emerald-500"
+                    value={formData.payer_name}
+                    onChange={e => setFormData({ ...formData, payer_name: e.target.value })}
+                    placeholder="ФИО клиента или контрагента"
+                    className="w-full rounded-xl border border-slate-300 bg-white px-3 py-1.5 text-xs outline-none focus:border-emerald-500"
                   />
                 </div>
 
+                {/* Method */}
                 <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1">Способ оплаты *</label>
+                  <label className="block text-[11px] font-bold text-slate-700 mb-1">Способ оплаты *</label>
                   <select
                     value={formData.method}
                     onChange={e => setFormData({ ...formData, method: e.target.value })}
-                    className="w-full rounded-xl border border-slate-300 bg-slate-50 px-3 py-2 text-xs font-medium outline-none focus:border-emerald-500 cursor-pointer"
+                    className="w-full rounded-xl border border-slate-300 bg-slate-50 px-2.5 py-1.5 text-xs font-medium outline-none focus:border-emerald-500 cursor-pointer"
                   >
                     <option value="CASH">💵 Наличные в кассу</option>
                     <option value="BANK_TRANSFER">🏦 Банковский перевод</option>
@@ -630,47 +586,97 @@ export const IncomePage = () => {
                     <option value="OTHER">📁 Прочее / Эл. кошелек</option>
                   </select>
                 </div>
-              </div>
 
-              {/* Reference */}
-              <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1">
-                  Номер чека / ПКО / Референс
-                </label>
-                <input
-                  type="text"
-                  value={formData.reference}
-                  onChange={e => setFormData({ ...formData, reference: e.target.value })}
-                  placeholder="Например: ПКО-10449 / Банк Эсхата"
-                  className="w-full rounded-xl border border-slate-300 bg-slate-50 px-3 py-2 text-xs outline-none focus:border-emerald-500"
-                />
-              </div>
+                {/* Amount and Currency */}
+                <div>
+                  <div className="grid grid-cols-5 gap-2">
+                    <div className="col-span-3">
+                      <label className="block text-[11px] font-bold text-slate-700 mb-1">
+                        Сумма поступления *
+                      </label>
+                      <input
+                        type="number"
+                        step="0.01"
+                        min="0.01"
+                        required
+                        value={formData.amount}
+                        onChange={e => setFormData({ ...formData, amount: e.target.value })}
+                        placeholder="0.00"
+                        className="w-full rounded-xl border border-slate-300 bg-white px-3 py-1.5 text-sm font-black text-slate-900 outline-none focus:border-emerald-500"
+                      />
+                    </div>
+                    <div className="col-span-2">
+                      <label className="block text-[11px] font-bold text-slate-700 mb-1">
+                        Валюта *
+                      </label>
+                      <select
+                        value={formData.currency}
+                        onChange={e => setFormData({ ...formData, currency: e.target.value })}
+                        className="w-full rounded-xl border border-slate-300 bg-slate-50 px-2 py-1.5 text-xs font-bold text-slate-800 outline-none focus:border-emerald-500"
+                      >
+                        <option value="USD">USD ($)</option>
+                        <option value="TJS">TJS (Сомони)</option>
+                        <option value="RUB">RUB (Рубль)</option>
+                        <option value="EUR">EUR (€)</option>
+                      </select>
+                    </div>
+                  </div>
+                </div>
 
-              {/* Comment */}
-              <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1">Примечание / Назначение</label>
-                <textarea
-                  rows="2"
-                  value={formData.comment}
-                  onChange={e => setFormData({ ...formData, comment: e.target.value })}
-                  placeholder="Детали или назначение платежа..."
-                  className="w-full rounded-xl border border-slate-300 bg-slate-50 px-3 py-2 text-xs outline-none focus:border-emerald-500 resize-none"
-                />
+                {/* Date & Reference */}
+                <div>
+                  <div className="grid grid-cols-2 gap-2">
+                    <div>
+                      <label className="block text-[11px] font-bold text-slate-700 mb-1">Дата платежа *</label>
+                      <input
+                        type="date"
+                        required
+                        value={formData.date}
+                        onChange={e => setFormData({ ...formData, date: e.target.value })}
+                        className="w-full rounded-xl border border-slate-300 bg-slate-50 px-2.5 py-1.5 text-xs outline-none focus:border-emerald-500"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-[11px] font-bold text-slate-700 mb-1">
+                        Номер чека / ПКО
+                      </label>
+                      <input
+                        type="text"
+                        value={formData.reference}
+                        onChange={e => setFormData({ ...formData, reference: e.target.value })}
+                        placeholder="ПКО-10449..."
+                        className="w-full rounded-xl border border-slate-300 bg-slate-50 px-2.5 py-1.5 text-xs outline-none focus:border-emerald-500"
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                {/* Comment (Full width) */}
+                <div className="sm:col-span-2">
+                  <label className="block text-[11px] font-bold text-slate-700 mb-1">Примечание / Назначение</label>
+                  <input
+                    type="text"
+                    value={formData.comment}
+                    onChange={e => setFormData({ ...formData, comment: e.target.value })}
+                    placeholder="Детали или назначение платежа..."
+                    className="w-full rounded-xl border border-slate-300 bg-slate-50 px-3 py-1.5 text-xs outline-none focus:border-emerald-500"
+                  />
+                </div>
               </div>
 
               {/* Buttons */}
-              <div className="flex items-center justify-end gap-3 pt-3 border-t border-slate-100">
+              <div className="flex items-center justify-end gap-3 pt-2.5 border-t border-slate-100">
                 <button
                   type="button"
                   onClick={() => setShowAddModal(false)}
-                  className="rounded-xl border border-slate-300 px-4 py-2 text-xs font-bold text-slate-600 hover:bg-slate-50 transition cursor-pointer"
+                  className="rounded-xl border border-slate-300 px-4 py-1.5 text-xs font-bold text-slate-600 hover:bg-slate-50 transition cursor-pointer"
                 >
                   Отмена
                 </button>
                 <button
                   type="submit"
                   disabled={addMutation.isPending}
-                  className="flex items-center gap-2 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 px-5 py-2 text-xs font-bold text-white shadow-md hover:from-emerald-700 hover:to-teal-700 transition cursor-pointer disabled:opacity-50"
+                  className="flex items-center gap-1.5 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 px-5 py-1.5 text-xs font-bold text-white shadow-md hover:from-emerald-700 hover:to-teal-700 transition cursor-pointer disabled:opacity-50"
                 >
                   <CheckCircle2 className="h-4 w-4" />
                   <span>{addMutation.isPending ? 'Сохранение...' : 'Зафиксировать приход'}</span>
