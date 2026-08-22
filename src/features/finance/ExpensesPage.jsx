@@ -24,13 +24,16 @@ export const ExpensesPage = () => {
 
   const [formData, setFormData] = useState({
     amount: '',
-    currency: 'USD',
+    currency: 'TJS',
     date: dayjs().format('YYYY-MM-DD'),
     category: 'Строительные материалы',
     method: 'CASH',
     reference: '',
     recipient: '',
-    description: ''
+    description: '',
+    auto_convert: true,
+    exchange_rate: '10.90',
+    source_currency: 'USD'
   });
 
   const { data: response, isLoading, refetch } = useQuery({
@@ -43,16 +46,20 @@ export const ExpensesPage = () => {
     onSuccess: () => {
       queryClient.invalidateQueries(['finance-expenses']);
       queryClient.invalidateQueries(['finance-cashflow']);
+      queryClient.invalidateQueries(['finance-income']);
       setShowAddModal(false);
       setFormData({
         amount: '',
-        currency: 'USD',
+        currency: 'TJS',
         date: dayjs().format('YYYY-MM-DD'),
         category: 'Строительные материалы',
         method: 'CASH',
         reference: '',
         recipient: '',
-        description: ''
+        description: '',
+        auto_convert: true,
+        exchange_rate: '10.90',
+        source_currency: 'USD'
       });
     }
   });
@@ -453,13 +460,64 @@ export const ExpensesPage = () => {
                     onChange={e => setFormData({ ...formData, currency: e.target.value })}
                     className="w-full rounded-xl border border-slate-300 bg-slate-50 px-3 py-2.5 text-xs font-bold text-slate-800 outline-none focus:border-rose-500"
                   >
-                    <option value="USD">USD ($)</option>
                     <option value="TJS">TJS (Сомони)</option>
+                    <option value="USD">USD ($)</option>
                     <option value="RUB">RUB (Рубль)</option>
                     <option value="EUR">EUR (€)</option>
                   </select>
                 </div>
               </div>
+
+              {/* Auto-conversion block */}
+              {formData.currency !== 'USD' && (
+                <div className="rounded-2xl border border-amber-300 bg-amber-50/70 p-3.5 space-y-2.5 text-xs">
+                  <div className="flex items-center justify-between">
+                    <label className="flex items-center gap-2 cursor-pointer font-bold text-amber-950 select-none">
+                      <input
+                        type="checkbox"
+                        checked={formData.auto_convert}
+                        onChange={e => setFormData({ ...formData, auto_convert: e.target.checked })}
+                        className="h-4 w-4 rounded text-amber-600 focus:ring-amber-500 cursor-pointer"
+                      />
+                      <span>Автоконвертация из кассы USD ($)</span>
+                    </label>
+
+                    {formData.auto_convert && (
+                      <div className="flex items-center gap-1.5">
+                        <span className="text-[11px] text-amber-800 font-semibold">Курс: 1 USD =</span>
+                        <input
+                          type="number"
+                          step="0.01"
+                          value={formData.exchange_rate}
+                          onChange={e => setFormData({ ...formData, exchange_rate: e.target.value })}
+                          className="w-16 rounded-lg border border-amber-300 bg-white px-2 py-0.5 text-xs font-bold text-amber-950 outline-none text-center"
+                        />
+                        <span className="text-[11px] text-amber-800 font-semibold">{formData.currency}</span>
+                      </div>
+                    )}
+                  </div>
+
+                  {formData.auto_convert && (
+                    <div className="pt-2 border-t border-amber-200/80 space-y-1 text-[11px] text-amber-900">
+                      <div className="flex justify-between items-center">
+                        <span>Будет списано с долларовой кассы:</span>
+                        <strong className="text-xs font-black text-amber-950">
+                          ${(parseFloat(formData.amount) / (parseFloat(formData.exchange_rate) || 10.9) || 0).toFixed(2)} USD
+                        </strong>
+                      </div>
+                      <div className="flex justify-between items-center text-slate-600">
+                        <span>Поступит в кассу {formData.currency} и сразу спишется:</span>
+                        <strong className="text-emerald-700 font-bold">
+                          +{formData.amount || 0} {formData.currency} → 0
+                        </strong>
+                      </div>
+                      <p className="text-[10px] text-amber-800/80 italic pt-0.5">
+                        * Баланс кассы {formData.currency} не уйдет в минус, списание произойдет из остатка USD по курсу.
+                      </p>
+                    </div>
+                  )}
+                </div>
+              )}
 
               {/* Date & Payment Method */}
               <div className="grid grid-cols-2 gap-3">

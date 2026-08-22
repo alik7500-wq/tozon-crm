@@ -1,10 +1,11 @@
 import React, { useState } from 'react';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { financeApi } from '../../api/finance.api';
 import { FinanceTabs } from '../../components/FinanceTabs';
 import { 
   Wallet, TrendingUp, TrendingDown, RefreshCw, Calendar, ArrowUpRight, 
-  ArrowDownRight, FileText, Search, CreditCard, Filter
+  ArrowDownRight, FileText, Search, CreditCard, Filter, ArrowRightLeft,
+  DollarSign, CheckCircle2, Coins, X
 } from 'lucide-react';
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend
@@ -16,10 +17,45 @@ export const CashflowPage = () => {
   const [currency, setCurrency] = useState('ALL');
   const [typeFilter, setTypeFilter] = useState('ALL'); // ALL, INCOME, EXPENSE
   const [search, setSearch] = useState('');
+  const [globalRate, setGlobalRate] = useState('10.90');
+  const [showConvertModal, setShowConvertModal] = useState(false);
+
+  const queryClient = useQueryClient();
+
+  const [convertForm, setConvertForm] = useState({
+    from_currency: 'USD',
+    to_currency: 'TJS',
+    from_amount: '',
+    exchange_rate: '10.90',
+    date: dayjs().format('YYYY-MM-DD'),
+    method: 'CASH',
+    reference: '',
+    comment: ''
+  });
 
   const { data: response, isLoading, refetch } = useQuery({
     queryKey: ['finance-cashflow', year, currency, typeFilter, search],
     queryFn: () => financeApi.getCashflow({ year, currency, type: typeFilter, search })
+  });
+
+  const convertMutation = useMutation({
+    mutationFn: financeApi.convertCurrency,
+    onSuccess: () => {
+      queryClient.invalidateQueries(['finance-cashflow']);
+      queryClient.invalidateQueries(['finance-income']);
+      queryClient.invalidateQueries(['finance-expenses']);
+      setShowConvertModal(false);
+      setConvertForm({
+        from_currency: 'USD',
+        to_currency: 'TJS',
+        from_amount: '',
+        exchange_rate: '10.90',
+        date: dayjs().format('YYYY-MM-DD'),
+        method: 'CASH',
+        reference: '',
+        comment: ''
+      });
+    }
   });
 
   const cashflowData = response || { 
@@ -31,12 +67,23 @@ export const CashflowPage = () => {
   };
 
   const summary = cashflowData.summaryByCurrency || {};
-  const activeCur = currency !== 'ALL' ? currency : 'USD';
-  const curSummary = summary[activeCur] || { totalIncome: 0, totalExpense: 0, netCashflow: 0 };
   const transactions = cashflowData.transactions || [];
   const availableYears = cashflowData.availableYears && cashflowData.availableYears.length > 0
     ? cashflowData.availableYears
     : [year - 1, year, year + 1, year + 2];
+
+  // Calculate Consolidated Equivalent Balance
+  const usdNet = summary.USD?.netCashflow || 0;
+  const tjsNet = summary.TJS?.netCashflow || 0;
+  const rateNum = parseFloat(globalRate) || 10.90;
+  const totalEquivalentInTjs = (usdNet * rateNum) + tjsNet;
+  const totalEquivalentInUsd = usdNet + (rateNum > 0 ? (tjsNet / rateNum) : 0);
+
+  const handleConvertSubmit = (e) => {
+    e.preventDefault();
+    if (!convertForm.from_amount || Number(convertForm.from_amount) <= 0) return;
+    convertMutation.mutate(convertForm);
+  };
 
   return (
     <div className="space-y-6 max-w-7xl mx-auto pb-16">
@@ -48,7 +95,7 @@ export const CashflowPage = () => {
             <span>Движение денежных средств (ДДС)</span>
           </h1>
           <p className="mt-1 text-xs sm:text-sm text-slate-500">
-            Сводный баланс поступлений и выплат, чистый денежный поток и единый журнал кассовых операций
+            Сводный баланс касс, чистый денежный поток, валютообмен и единый журнал кассовых операций
           </p>
         </div>
 
@@ -60,11 +107,66 @@ export const CashflowPage = () => {
           >
             <RefreshCw className={`h-4 w-4 ${isLoading ? 'animate-spin' : ''}`} />
           </button>
+
+          <button
+            onClick={() => setShowConvertModal(true)}
+            className="flex items-center gap-2 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 px-4 py-2.5 text-xs font-bold text-white shadow-md shadow-blue-600/20 hover:from-blue-700 hover:to-indigo-700 transition cursor-pointer"
+          >
+            <ArrowRightLeft className="h-4 w-4" />
+            <span>Конвертация / Обмен валют</span>
+          </button>
         </div>
       </div>
 
       {/* Finance Navigation Tabs */}
       <FinanceTabs />
+
+      {/* Consolidated Equivalent Banner */}
+      <div className="rounded-3xl border border-indigo-100 bg-gradient-to-r from-slate-900 via-indigo-950 to-slate-900 text-white p-6 shadow-md relative overflow-hidden">
+        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6 relative z-10">
+          <div>
+            <div className="flex items-center gap-2">
+              <span className="px-2.5 py-1 rounded-lg text-[10px] font-black uppercase tracking-wider bg-indigo-500/30 text-indigo-200 border border-indigo-400/30">
+                Сводный капитал компании
+              </span>
+              <div className="flex items-center gap-1 text-xs text-indigo-200">
+                <span>Курс пересчета: 1 USD =</span>
+                <input
+                  type="number"
+                  step="0.01"
+                  value={globalRate}
+                  onChange={e => setGlobalRate(e.target.value)}
+                  className="w-16 rounded-md border border-indigo-400/40 bg-white/10 px-1.5 py-0.5 text-xs font-bold text-white outline-none text-center"
+                />
+                <span>TJS</span>
+              </div>
+            </div>
+
+            <div className="mt-3 flex items-baseline gap-3 flex-wrap">
+              <span className="text-3xl sm:text-4xl font-black text-white tracking-tight">
+                {totalEquivalentInTjs.toLocaleString('ru-RU', { minimumFractionDigits: 0, maximumFractionDigits: 2 })}
+                <span className="text-lg font-bold text-indigo-300 ml-1.5">сомони (TJS)</span>
+              </span>
+              <span className="text-sm font-semibold text-indigo-200/80">
+                (≈ ${totalEquivalentInUsd.toLocaleString('ru-RU', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} USD)
+              </span>
+            </div>
+            <p className="text-xs text-indigo-300/80 mt-1">
+              Фактический общий остаток средств во всех кассах с учетом пересчета валют
+            </p>
+          </div>
+
+          <div className="flex items-center gap-3">
+            <button
+              onClick={() => setShowConvertModal(true)}
+              className="flex items-center gap-2 rounded-2xl bg-white/15 hover:bg-white/25 border border-white/20 px-4 py-2.5 text-xs font-bold text-white transition backdrop-blur-md cursor-pointer"
+            >
+              <Coins className="h-4 w-4 text-amber-300" />
+              <span>Сконвертировать USD в TJS</span>
+            </button>
+          </div>
+        </div>
+      </div>
 
       {/* Currency Balances Summary Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -138,21 +240,21 @@ export const CashflowPage = () => {
           </div>
         </div>
 
-        {/* Global Net Card */}
-        <div className="rounded-3xl border border-slate-200 bg-gradient-to-br from-slate-900 to-slate-800 text-white p-5 shadow-2xs flex flex-col justify-between">
+        {/* Global Stats Card */}
+        <div className="rounded-3xl border border-slate-200 bg-white p-5 shadow-2xs flex flex-col justify-between">
           <div className="flex items-center justify-between">
-            <span className="text-xs font-bold text-slate-300 uppercase tracking-wider">Всего операций в ДДС</span>
-            <span className="p-1.5 rounded-xl bg-white/10 text-white">📊</span>
+            <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">Всего операций в ДДС</span>
+            <span className="p-1.5 rounded-xl bg-slate-100 text-slate-600">📊</span>
           </div>
           <div className="my-2">
-            <div className="text-3xl font-black text-white tracking-tight">
-              {transactions.length} <span className="text-sm font-normal text-slate-300">ордеров</span>
+            <div className="text-3xl font-black text-slate-900 tracking-tight">
+              {transactions.length} <span className="text-sm font-normal text-slate-400">ордеров</span>
             </div>
-            <p className="text-xs text-slate-400 mt-0.5">Включая все приходы (ПКО) и расходы (РКО)</p>
+            <p className="text-xs text-slate-400 mt-0.5">Включая ПКО, РКО и автоконвертации</p>
           </div>
-          <div className="text-[11px] text-emerald-400 font-bold flex items-center gap-1">
+          <div className="text-[11px] text-emerald-600 font-bold flex items-center gap-1">
             <TrendingUp className="h-3.5 w-3.5" />
-            <span>Сквозной учет по кассам компании</span>
+            <span>Сквозной баланс всех касс компании</span>
           </div>
         </div>
       </div>
@@ -283,8 +385,9 @@ export const CashflowPage = () => {
             <tbody className="divide-y divide-slate-100 font-medium">
               {transactions.map((t) => {
                 const isIncome = t.type === 'INCOME';
+                const isConversion = t.category === 'Конвертация валюты' || t.title?.includes('Конвертация');
                 return (
-                  <tr key={t.id} className="hover:bg-slate-50 transition">
+                  <tr key={t.id} className={`transition ${isConversion ? 'bg-indigo-50/30 hover:bg-indigo-50/60' : 'hover:bg-slate-50'}`}>
                     <td className="p-3.5 pl-5 whitespace-nowrap text-slate-600">
                       <div className="flex items-center gap-1.5 font-bold">
                         <Calendar className="h-3.5 w-3.5 text-slate-400" />
@@ -293,10 +396,20 @@ export const CashflowPage = () => {
                     </td>
                     <td className="p-3.5">
                       <span className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-md text-[10px] font-extrabold ${
-                        isIncome ? 'bg-emerald-100 text-emerald-800' : 'bg-rose-100 text-rose-800'
+                        isConversion
+                          ? 'bg-indigo-100 text-indigo-800'
+                          : isIncome
+                          ? 'bg-emerald-100 text-emerald-800'
+                          : 'bg-rose-100 text-rose-800'
                       }`}>
-                        {isIncome ? <ArrowUpRight className="h-3 w-3" /> : <ArrowDownRight className="h-3 w-3" />}
-                        {isIncome ? 'ПРИХОД (ПКО)' : 'РАСХОД (РКО)'}
+                        {isConversion ? (
+                          <ArrowRightLeft className="h-3 w-3" />
+                        ) : isIncome ? (
+                          <ArrowUpRight className="h-3 w-3" />
+                        ) : (
+                          <ArrowDownRight className="h-3 w-3" />
+                        )}
+                        {isConversion ? 'КОНВЕРТАЦИЯ' : isIncome ? 'ПРИХОД (ПКО)' : 'РАСХОД (РКО)'}
                       </span>
                     </td>
                     <td className="p-3.5 font-bold text-slate-900 font-mono">
@@ -307,7 +420,9 @@ export const CashflowPage = () => {
                       <div className="text-[10px] text-slate-400">{t.title}</div>
                     </td>
                     <td className="p-3.5">
-                      <span className="px-2 py-0.5 rounded-lg bg-slate-100 text-slate-700 font-medium">
+                      <span className={`px-2 py-0.5 rounded-lg font-medium ${
+                        isConversion ? 'bg-indigo-100 text-indigo-800 font-bold' : 'bg-slate-100 text-slate-700'
+                      }`}>
                         {t.category}
                       </span>
                     </td>
@@ -322,7 +437,7 @@ export const CashflowPage = () => {
                     }`}>
                       {isIncome ? '+' : '-'}{t.amount.toLocaleString('ru-RU', { minimumFractionDigits: 2 })} {t.currency}
                     </td>
-                    <td className="p-3.5 pr-5 text-slate-400 max-w-xs truncate" title={t.comment}>
+                    <td className="p-3.5 pr-5 text-slate-500 max-w-xs truncate" title={t.comment}>
                       {t.comment || '-'}
                     </td>
                   </tr>
@@ -339,6 +454,164 @@ export const CashflowPage = () => {
           </table>
         </div>
       </div>
+
+      {/* Manual Conversion Modal */}
+      {showConvertModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs animate-in fade-in">
+          <div className="relative w-full max-w-lg overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-2xl">
+            <div className="flex items-center justify-between border-b border-slate-100 bg-gradient-to-r from-slate-900 via-indigo-950 to-slate-900 px-6 py-4 text-white">
+              <div className="flex items-center gap-3">
+                <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-indigo-500/20 text-indigo-400 border border-indigo-500/30">
+                  <ArrowRightLeft className="h-5 w-5" />
+                </div>
+                <div>
+                  <h3 className="text-base font-bold">Валютообмен кассы (Конвертация)</h3>
+                  <p className="text-xs text-indigo-200">Списание из кассы USD с зачислением в кассу TJS</p>
+                </div>
+              </div>
+              <button
+                onClick={() => setShowConvertModal(false)}
+                className="rounded-lg p-1.5 text-slate-400 hover:bg-slate-700 hover:text-white transition cursor-pointer"
+              >
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+
+            <form onSubmit={handleConvertSubmit} className="p-6 space-y-4 max-h-[80vh] overflow-y-auto">
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 mb-1">Списать из кассы *</label>
+                  <select
+                    value={convertForm.from_currency}
+                    onChange={e => setConvertForm({ ...convertForm, from_currency: e.target.value })}
+                    className="w-full rounded-xl border border-slate-300 bg-slate-50 px-3 py-2 text-xs font-bold outline-none focus:border-indigo-500"
+                  >
+                    <option value="USD">Касса USD ($)</option>
+                    <option value="TJS">Касса TJS (Сомони)</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 mb-1">Зачислить в кассу *</label>
+                  <select
+                    value={convertForm.to_currency}
+                    onChange={e => setConvertForm({ ...convertForm, to_currency: e.target.value })}
+                    className="w-full rounded-xl border border-slate-300 bg-slate-50 px-3 py-2 text-xs font-bold outline-none focus:border-indigo-500"
+                  >
+                    <option value="TJS">Касса TJS (Сомони)</option>
+                    <option value="USD">Касса USD ($)</option>
+                  </select>
+                </div>
+              </div>
+
+              {/* Amount and Rate */}
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 mb-1">
+                    Сумма к обмену ({convertForm.from_currency}) *
+                  </label>
+                  <input
+                    type="number"
+                    step="0.01"
+                    min="0.01"
+                    required
+                    value={convertForm.from_amount}
+                    onChange={e => setConvertForm({ ...convertForm, from_amount: e.target.value })}
+                    placeholder="Например: 1000"
+                    className="w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm font-black text-slate-900 outline-none focus:border-indigo-500"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 mb-1">
+                    Курс обмена (1 USD = TJS) *
+                  </label>
+                  <input
+                    type="number"
+                    step="0.01"
+                    required
+                    value={convertForm.exchange_rate}
+                    onChange={e => setConvertForm({ ...convertForm, exchange_rate: e.target.value })}
+                    className="w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm font-black text-slate-900 outline-none focus:border-indigo-500"
+                  />
+                </div>
+              </div>
+
+              {/* Calculation Preview */}
+              <div className="rounded-2xl border border-indigo-200 bg-indigo-50/70 p-3.5 space-y-1 text-xs">
+                <div className="flex justify-between items-center text-slate-700">
+                  <span>Списание с кассы {convertForm.from_currency}:</span>
+                  <strong className="text-rose-600 font-bold">
+                    -{Number(convertForm.from_amount || 0).toLocaleString()} {convertForm.from_currency}
+                  </strong>
+                </div>
+                <div className="flex justify-between items-center text-slate-700">
+                  <span>Зачисление в кассу {convertForm.to_currency}:</span>
+                  <strong className="text-emerald-700 font-black text-sm">
+                    +{(Number(convertForm.from_amount || 0) * (parseFloat(convertForm.exchange_rate) || 10.90)).toLocaleString()} {convertForm.to_currency}
+                  </strong>
+                </div>
+              </div>
+
+              {/* Date & Note */}
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 mb-1">Дата операции *</label>
+                  <input
+                    type="date"
+                    required
+                    value={convertForm.date}
+                    onChange={e => setConvertForm({ ...convertForm, date: e.target.value })}
+                    className="w-full rounded-xl border border-slate-300 bg-slate-50 px-3 py-2 text-xs outline-none focus:border-indigo-500"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 mb-1">Способ перемещения</label>
+                  <select
+                    value={convertForm.method}
+                    onChange={e => setConvertForm({ ...convertForm, method: e.target.value })}
+                    className="w-full rounded-xl border border-slate-300 bg-slate-50 px-3 py-2 text-xs font-medium outline-none"
+                  >
+                    <option value="CASH">💵 Наличные в кассу</option>
+                    <option value="BANK_TRANSFER">🏦 Банковский перевод</option>
+                  </select>
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-slate-700 mb-1">Основание / Примечание</label>
+                <input
+                  type="text"
+                  value={convertForm.comment}
+                  onChange={e => setConvertForm({ ...convertForm, comment: e.target.value })}
+                  placeholder="Пополнение кассы сомони для выплаты зарплат/материалов"
+                  className="w-full rounded-xl border border-slate-300 bg-slate-50 px-3 py-2 text-xs outline-none focus:border-indigo-500"
+                />
+              </div>
+
+              {/* Submit Buttons */}
+              <div className="flex items-center justify-end gap-3 pt-3 border-t border-slate-100">
+                <button
+                  type="button"
+                  onClick={() => setShowConvertModal(false)}
+                  className="rounded-xl border border-slate-300 px-4 py-2 text-xs font-bold text-slate-600 hover:bg-slate-50 transition cursor-pointer"
+                >
+                  Отмена
+                </button>
+                <button
+                  type="submit"
+                  disabled={convertMutation.isPending}
+                  className="flex items-center gap-2 rounded-xl bg-gradient-to-r from-indigo-600 to-blue-600 px-5 py-2 text-xs font-bold text-white shadow-md hover:from-indigo-700 hover:to-blue-700 transition cursor-pointer disabled:opacity-50"
+                >
+                  <CheckCircle2 className="h-4 w-4" />
+                  <span>{convertMutation.isPending ? 'Выполняется...' : 'Выполнить конвертацию'}</span>
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

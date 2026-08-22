@@ -21,6 +21,11 @@ export const financeApi = {
     return res?.data || res;
   },
 
+  convertCurrency: async (convertData) => {
+    const res = await api.post('/finance/convert', convertData);
+    return res?.data || res;
+  },
+
   getCashflow: async (filters = {}) => {
     const res = await api.get('/finance/cashflow', { params: filters });
     return res?.data || res;
