@@ -71,6 +71,9 @@ export const IncomePage = () => {
       queryClient.invalidateQueries(['finance-income']);
       queryClient.invalidateQueries(['finance-cashflow']);
       setEditingItem(null);
+    },
+    onError: (err) => {
+      alert(`Ошибка при сохранении ПКО: ${err.message}`);
     }
   });
 
@@ -79,6 +82,9 @@ export const IncomePage = () => {
     onSuccess: () => {
       queryClient.invalidateQueries(['finance-income']);
       queryClient.invalidateQueries(['finance-cashflow']);
+    },
+    onError: (err) => {
+      alert(`Ошибка при удалении ПКО: ${err.message}`);
     }
   });
 
@@ -497,8 +503,8 @@ export const IncomePage = () => {
                   disabled={updateMutation.isPending}
                   className="flex items-center gap-1.5 rounded-xl bg-blue-600 px-5 py-2 font-bold text-white shadow-md hover:bg-blue-700 cursor-pointer disabled:opacity-50"
                 >
-                  <Save className="h-4 w-4" />
-                  <span>Сохранить</span>
+                  <Save className={`h-4 w-4 ${updateMutation.isPending ? 'animate-spin' : ''}`} />
+                  <span>{updateMutation.isPending ? 'Сохранение...' : 'Сохранить'}</span>
                 </button>
               </div>
             </form>

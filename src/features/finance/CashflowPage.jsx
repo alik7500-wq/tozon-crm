@@ -69,6 +69,9 @@ export const CashflowPage = () => {
       queryClient.invalidateQueries(['finance-cashflow']);
       queryClient.invalidateQueries(['finance-income']);
       setEditingItem(null);
+    },
+    onError: (err) => {
+      alert(`Ошибка при сохранении ПКО: ${err.message}`);
     }
   });
 
@@ -78,6 +81,9 @@ export const CashflowPage = () => {
       queryClient.invalidateQueries(['finance-cashflow']);
       queryClient.invalidateQueries(['finance-expenses']);
       setEditingItem(null);
+    },
+    onError: (err) => {
+      alert(`Ошибка при сохранении РКО: ${err.message}`);
     }
   });
 
@@ -86,6 +92,9 @@ export const CashflowPage = () => {
     onSuccess: () => {
       queryClient.invalidateQueries(['finance-cashflow']);
       queryClient.invalidateQueries(['finance-income']);
+    },
+    onError: (err) => {
+      alert(`Ошибка при удалении ПКО: ${err.message}`);
     }
   });
 
@@ -94,6 +103,9 @@ export const CashflowPage = () => {
     onSuccess: () => {
       queryClient.invalidateQueries(['finance-cashflow']);
       queryClient.invalidateQueries(['finance-expenses']);
+    },
+    onError: (err) => {
+      alert(`Ошибка при удалении РКО: ${err.message}`);
     }
   });
 
@@ -808,8 +820,8 @@ export const CashflowPage = () => {
                   disabled={updateIncomeMutation.isPending || updateExpenseMutation.isPending}
                   className="flex items-center gap-1.5 rounded-xl bg-blue-600 px-5 py-2 font-bold text-white shadow-md hover:bg-blue-700 cursor-pointer disabled:opacity-50"
                 >
-                  <Save className="h-4 w-4" />
-                  <span>Сохранить</span>
+                  <Save className={`h-4 w-4 ${(updateIncomeMutation.isPending || updateExpenseMutation.isPending) ? 'animate-spin' : ''}`} />
+                  <span>{(updateIncomeMutation.isPending || updateExpenseMutation.isPending) ? 'Сохранение...' : 'Сохранить'}</span>
                 </button>
               </div>
             </form>

@@ -75,6 +75,9 @@ export const ExpensesPage = () => {
       queryClient.invalidateQueries(['finance-expenses']);
       queryClient.invalidateQueries(['finance-cashflow']);
       setEditingItem(null);
+    },
+    onError: (err) => {
+      alert(`Ошибка при сохранении расхода: ${err.message}`);
     }
   });
 
@@ -83,6 +86,9 @@ export const ExpensesPage = () => {
     onSuccess: () => {
       queryClient.invalidateQueries(['finance-expenses']);
       queryClient.invalidateQueries(['finance-cashflow']);
+    },
+    onError: (err) => {
+      alert(`Ошибка при удалении: ${err.message}`);
     }
   });
 
@@ -560,8 +566,8 @@ export const ExpensesPage = () => {
                   disabled={updateMutation.isPending}
                   className="flex items-center gap-1.5 rounded-xl bg-rose-600 px-5 py-2 font-bold text-white shadow-md hover:bg-rose-700 cursor-pointer disabled:opacity-50"
                 >
-                  <Save className="h-4 w-4" />
-                  <span>Сохранить</span>
+                  <Save className={`h-4 w-4 ${updateMutation.isPending ? 'animate-spin' : ''}`} />
+                  <span>{updateMutation.isPending ? 'Сохранение...' : 'Сохранить'}</span>
                 </button>
               </div>
             </form>
