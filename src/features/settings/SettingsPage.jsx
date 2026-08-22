@@ -114,14 +114,14 @@ export const SettingsPage = () => {
           </p>
         </div>
 
-        {user?.role === 'ADMIN' && (
+        {user?.role === 'ADMIN' && activeTab === 'projects' && (
           <div className="flex items-center gap-2.5">
             <button
               onClick={() => setIsCreateProjectOpen(true)}
               className="flex items-center gap-2 rounded-xl bg-blue-600 px-4 py-2.5 text-xs font-bold text-white shadow-md shadow-blue-500/20 hover:bg-blue-700 transition cursor-pointer"
             >
               <Plus className="h-4 w-4" />
-              <span>+ Добавить ЖК</span>
+              <span>Добавить ЖК</span>
             </button>
 
             <button
