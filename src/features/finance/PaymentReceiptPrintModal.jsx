@@ -2,9 +2,15 @@ import React, { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { Printer, ArrowLeft, Globe, Receipt, CheckCircle2 } from 'lucide-react';
 import { formatContractNumber } from '../../utils/formatters';
+import { useModalDismiss } from '../../hooks/useModalDismiss';
 
 export const PaymentReceiptPrintModal = ({ payment, deal, onClose, initialLang = 'TJ' }) => {
   const [lang, setLang] = useState(initialLang);
+
+  const { requestClose } = useModalDismiss({
+    isOpen: Boolean(payment),
+    onClose
+  });
 
   useEffect(() => {
     document.body.classList.add('has-print-modal');
@@ -57,7 +63,7 @@ export const PaymentReceiptPrintModal = ({ payment, deal, onClose, initialLang =
           <div className="flex items-center gap-3">
             {onClose && (
               <button
-                onClick={onClose}
+                onClick={requestClose}
                 className="flex items-center gap-1.5 text-xs font-semibold text-slate-300 hover:text-white transition cursor-pointer"
               >
                 <ArrowLeft className="h-4 w-4" />

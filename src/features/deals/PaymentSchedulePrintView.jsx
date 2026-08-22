@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
+import { useModalDismiss } from '../../hooks/useModalDismiss';
 import {
   Printer,
   ArrowLeft,
@@ -17,12 +18,18 @@ import {
   MapPin,
   Clock,
   Sparkles,
-  Globe
+  Globe,
+  FileSpreadsheet
 } from 'lucide-react';
 import { formatContractNumber } from '../../utils/formatters';
 
 export const PaymentSchedulePrintView = ({ deal, onClose, initialLang = 'TJ' }) => {
   const [lang, setLang] = useState(initialLang); // 'TJ' or 'RU'
+
+  const { requestClose } = useModalDismiss({
+    isOpen: Boolean(deal),
+    onClose
+  });
 
   useEffect(() => {
     document.body.classList.add('has-print-modal');
@@ -139,7 +146,7 @@ export const PaymentSchedulePrintView = ({ deal, onClose, initialLang = 'TJ' }) 
           <div className="flex items-center gap-3">
             {onClose && (
               <button
-                onClick={onClose}
+                onClick={requestClose}
                 className="flex items-center gap-1.5 text-xs font-semibold text-slate-300 hover:text-white transition cursor-pointer"
               >
                 <ArrowLeft className="h-4 w-4" />

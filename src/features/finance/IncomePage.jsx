@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { financeApi } from '../../api/finance.api';
 import { dictionariesApi } from '../../api/dictionaries.api';
+import { useModalDismiss } from '../../hooks/useModalDismiss';
 import { FinanceTabs } from '../../components/FinanceTabs';
 import { useAuth } from '../auth/AuthContext';
 import { 
@@ -56,6 +57,21 @@ export const IncomePage = () => {
   useEffect(() => {
     financeApi.getDealsForSelect().then(data => setDealsList(data || [])).catch(() => {});
   }, []);
+
+  const isAddDirty = Boolean(formData.amount && parseFloat(formData.amount) > 0 || formData.payer_name.trim() || formData.comment.trim());
+  const { requestClose: requestCloseAdd } = useModalDismiss({
+    isOpen: showAddModal,
+    onClose: () => setShowAddModal(false),
+    isDirty: isAddDirty,
+    confirmMessage: 'Введенный приход не сохранен. Закрыть окно?'
+  });
+
+  const { requestClose: requestCloseEdit } = useModalDismiss({
+    isOpen: Boolean(editingItem),
+    onClose: () => setEditingItem(null),
+    isDirty: Boolean(editingItem?.amount && parseFloat(editingItem.amount) > 0),
+    confirmMessage: 'Изменения прихода не сохранены. Закрыть окно?'
+  });
 
   const addMutation = useMutation({
     mutationFn: financeApi.addIncome,
@@ -409,7 +425,7 @@ export const IncomePage = () => {
                 </div>
               </div>
               <button
-                onClick={() => setEditingItem(null)}
+                onClick={requestCloseEdit}
                 className="rounded-lg p-1.5 text-slate-400 hover:bg-slate-800 hover:text-white transition cursor-pointer"
               >
                 <X className="h-5 w-5" />
@@ -504,7 +520,7 @@ export const IncomePage = () => {
               <div className="flex items-center justify-end gap-3 pt-3 border-t border-slate-100">
                 <button
                   type="button"
-                  onClick={() => setEditingItem(null)}
+                  onClick={requestCloseEdit}
                   className="rounded-xl border border-slate-300 px-4 py-2 font-bold text-slate-600 hover:bg-slate-50 cursor-pointer"
                 >
                   Отмена
@@ -539,7 +555,7 @@ export const IncomePage = () => {
                 </div>
               </div>
               <button
-                onClick={() => setShowAddModal(false)}
+                onClick={requestCloseAdd}
                 className="rounded-lg p-1 text-slate-400 hover:bg-slate-700 hover:text-white transition cursor-pointer"
               >
                 <X className="h-4 w-4" />
@@ -680,7 +696,7 @@ export const IncomePage = () => {
               <div className="flex items-center justify-end gap-3 pt-2.5 border-t border-slate-100">
                 <button
                   type="button"
-                  onClick={() => setShowAddModal(false)}
+                  onClick={requestCloseAdd}
                   className="rounded-xl border border-slate-300 px-4 py-1.5 text-xs font-bold text-slate-600 hover:bg-slate-50 transition cursor-pointer"
                 >
                   Отмена

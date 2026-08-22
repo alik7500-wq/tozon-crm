@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { api } from '../../api/client';
+import { useModalDismiss } from '../../hooks/useModalDismiss';
 import { X, Building2, MapPin, Briefcase, FileCode, Coins, AlertCircle } from 'lucide-react';
 
 export const CreateProjectModal = ({ isOpen, onClose, onCreated }) => {
@@ -14,6 +15,15 @@ export const CreateProjectModal = ({ isOpen, onClose, onCreated }) => {
   });
   const [error, setError] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const isDirty = Boolean(formData.name.trim() || formData.address.trim() || formData.developer_name.trim());
+
+  const { requestClose } = useModalDismiss({
+    isOpen,
+    onClose,
+    isDirty,
+    confirmMessage: 'Введенные данные жилого комплекса не сохранены. Вы действительно хотите закрыть окно?'
+  });
 
   if (!isOpen) return null;
 
@@ -56,7 +66,7 @@ export const CreateProjectModal = ({ isOpen, onClose, onCreated }) => {
             </div>
           </div>
           <button
-            onClick={onClose}
+            onClick={requestClose}
             className="rounded-lg p-1.5 text-slate-400 hover:bg-slate-100 hover:text-slate-700 transition cursor-pointer"
           >
             <X className="h-5 w-5" />
@@ -182,7 +192,7 @@ export const CreateProjectModal = ({ isOpen, onClose, onCreated }) => {
           <div className="mt-6 flex items-center justify-end gap-3 border-t border-slate-100 pt-4">
             <button
               type="button"
-              onClick={onClose}
+              onClick={requestClose}
               className="rounded-xl px-4 py-2 text-sm font-semibold text-slate-600 hover:bg-slate-100 hover:text-slate-900 transition cursor-pointer"
             >
               Отмена

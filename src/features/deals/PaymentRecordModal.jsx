@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { api } from '../../api/client';
 import { financeApi } from '../../api/finance.api';
 import { dictionariesApi } from '../../api/dictionaries.api';
+import { useModalDismiss } from '../../hooks/useModalDismiss';
 import { formatContractNumber } from '../../utils/formatters';
 import {
   X,
@@ -91,6 +92,15 @@ export const PaymentRecordModal = ({
       setAmount(String(targetAmount > 0 ? targetAmount : ''));
     }
   }, [deal, initialScheduleId, isOpen]);
+
+  const isDirty = Boolean(amount && parseFloat(amount) > 0 || reference.trim() || comment.trim());
+
+  const { requestClose } = useModalDismiss({
+    isOpen: Boolean(isOpen && deal),
+    onClose,
+    isDirty,
+    confirmMessage: 'Внесенные данные платежа не сохранены. Вы действительно хотите закрыть окно?'
+  });
 
   if (!isOpen || !deal) return null;
 
@@ -220,7 +230,7 @@ export const PaymentRecordModal = ({
             </div>
           </div>
           <button
-            onClick={onClose}
+            onClick={requestClose}
             className="rounded-lg p-1.5 text-slate-400 hover:bg-slate-700 hover:text-white transition cursor-pointer"
           >
             <X className="h-5 w-5" />

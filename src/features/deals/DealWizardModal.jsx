@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { api } from '../../api/client';
+import { useModalDismiss } from '../../hooks/useModalDismiss';
 import {
   X,
   User,
@@ -204,6 +205,15 @@ export const DealWizardModal = ({
     }
   }, [finalPrice, downPaymentAmount, installmentMonths, paymentType, firstPaymentDate, remainingBalance, barterAmount]);
 
+  const isDirty = Boolean(selectedLead || (step > (initialUnit ? 1 : 0)) || Boolean(newLeadData?.full_name?.trim()));
+
+  const { requestClose } = useModalDismiss({
+    isOpen,
+    onClose,
+    isDirty,
+    confirmMessage: 'Оформление сделки не завершено. Вы уверены, что хотите закрыть окно?'
+  });
+
   if (!isOpen) return null;
 
   const handleCreateNewLead = async (e) => {
@@ -341,7 +351,7 @@ export const DealWizardModal = ({
             </p>
           </div>
 
-          <button onClick={onClose} className="rounded-lg p-1.5 text-slate-400 hover:bg-slate-100 transition cursor-pointer">
+          <button onClick={requestClose} className="rounded-lg p-1.5 text-slate-400 hover:bg-slate-100 transition cursor-pointer">
             <X className="h-5 w-5" />
           </button>
         </div>

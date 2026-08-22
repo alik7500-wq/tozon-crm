@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { api } from '../../api/client';
 import { dictionariesApi } from '../../api/dictionaries.api';
+import { useModalDismiss } from '../../hooks/useModalDismiss';
 import {
   X,
   User,
@@ -92,6 +93,20 @@ export const CreateLeadModal = ({ isOpen, onClose, onCreated, leadToEdit = null,
     setError('');
   }, [isOpen, leadToEdit]);
 
+  const isDirty = Boolean(
+    formData.full_name.trim() ||
+    formData.phone.trim() ||
+    formData.notes.trim() ||
+    formData.passport_number.trim()
+  );
+
+  const { requestClose } = useModalDismiss({
+    isOpen,
+    onClose,
+    isDirty: !leadToEdit && isDirty,
+    confirmMessage: 'Введенные данные клиента не сохранены. Вы уверены, что хотите закрыть окно?'
+  });
+
   if (!isOpen) return null;
 
   const handleChange = (e) => {
@@ -107,25 +122,17 @@ export const CreateLeadModal = ({ isOpen, onClose, onCreated, leadToEdit = null,
       return;
     }
 
-    setError('');
     setIsSubmitting(true);
+    setError('');
 
     try {
-      const payload = {
-        ...formData,
-        interested_project_id: formData.interested_project_id ? parseInt(formData.interested_project_id, 10) : null,
-        desired_rooms: formData.desired_rooms !== '' ? parseInt(formData.desired_rooms, 10) : null,
-        budget_max_minor: formData.budget_max ? Math.round(parseFloat(formData.budget_max) * 100) : null,
-      };
-      delete payload.budget_max;
-
       let resultLead;
       if (leadToEdit) {
-        const res = await api.put(`/leads/${leadToEdit.id}`, payload);
-        resultLead = res.data.lead;
+        const res = await api.put(`/leads/${leadToEdit.id}`, formData);
+        resultLead = res.data?.lead || res.lead || res;
       } else {
-        const res = await api.post('/leads', payload);
-        resultLead = res.data.lead;
+        const res = await api.post('/leads', formData);
+        resultLead = res.data?.lead || res.lead || res;
       }
 
       onCreated(resultLead);
@@ -155,7 +162,7 @@ export const CreateLeadModal = ({ isOpen, onClose, onCreated, leadToEdit = null,
               </p>
             </div>
           </div>
-          <button onClick={onClose} className="rounded-lg p-1.5 text-slate-400 hover:bg-slate-100 cursor-pointer">
+          <button onClick={requestClose} className="rounded-lg p-1.5 text-slate-400 hover:bg-slate-100 cursor-pointer">
             <X className="h-5 w-5" />
           </button>
         </div>
@@ -438,7 +445,7 @@ export const CreateLeadModal = ({ isOpen, onClose, onCreated, leadToEdit = null,
           <div className="mt-6 flex items-center justify-end gap-3 border-t border-slate-100 pt-4">
             <button
               type="button"
-              onClick={onClose}
+              onClick={requestClose}
               className="rounded-xl px-4 py-2 text-sm font-semibold text-slate-600 hover:bg-slate-100 transition cursor-pointer"
             >
               Отмена

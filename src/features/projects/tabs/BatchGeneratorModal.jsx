@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { api } from '../../../api/client';
+import { useModalDismiss } from '../../../hooks/useModalDismiss';
 import {
   X,
   Sparkles,
@@ -30,6 +31,11 @@ export const BatchGeneratorModal = ({ isOpen, onClose, projectId, currency = 'US
 
   const [error, setError] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const { requestClose } = useModalDismiss({
+    isOpen,
+    onClose
+  });
 
   if (!isOpen) return null;
 
@@ -121,7 +127,7 @@ export const BatchGeneratorModal = ({ isOpen, onClose, projectId, currency = 'US
             </div>
           </div>
           <button
-            onClick={onClose}
+            onClick={requestClose}
             className="rounded-lg p-1.5 text-slate-400 hover:bg-slate-100 hover:text-slate-700 transition cursor-pointer"
           >
             <X className="h-5 w-5" />
@@ -349,7 +355,7 @@ export const BatchGeneratorModal = ({ isOpen, onClose, projectId, currency = 'US
           <div className="flex items-center justify-end gap-3 pt-2">
             <button
               type="button"
-              onClick={onClose}
+              onClick={requestClose}
               className="rounded-xl border border-slate-300 px-4 py-2 text-xs font-bold text-slate-700 hover:bg-slate-50 transition cursor-pointer"
             >
               Отмена

@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { financeApi } from '../../api/finance.api';
+import { useModalDismiss } from '../../hooks/useModalDismiss';
 import { FinanceTabs } from '../../components/FinanceTabs';
 import { useAuth } from '../auth/AuthContext';
 import { 
@@ -51,6 +52,21 @@ export const CashflowPage = () => {
     method: 'CASH',
     reference: '',
     comment: ''
+  });
+
+  const isConvertDirty = Boolean(convertForm.from_amount && parseFloat(convertForm.from_amount) > 0 || convertForm.comment.trim());
+  const { requestClose: requestCloseConvert } = useModalDismiss({
+    isOpen: showConvertModal,
+    onClose: () => setShowConvertModal(false),
+    isDirty: isConvertDirty,
+    confirmMessage: 'Введенная операция обмена валюты не сохранена. Закрыть окно?'
+  });
+
+  const { requestClose: requestCloseEdit } = useModalDismiss({
+    isOpen: Boolean(editingItem),
+    onClose: () => setEditingItem(null),
+    isDirty: Boolean(editingItem?.amount && parseFloat(editingItem.amount) > 0),
+    confirmMessage: 'Изменения проводки не сохранены. Закрыть окно?'
   });
 
   const { data: response, isLoading, refetch } = useQuery({
@@ -735,7 +751,7 @@ export const CashflowPage = () => {
                 </div>
               </div>
               <button
-                onClick={() => setEditingItem(null)}
+                onClick={requestCloseEdit}
                 className="rounded-lg p-1.5 text-slate-400 hover:bg-slate-800 hover:text-white transition cursor-pointer"
               >
                 <X className="h-5 w-5" />
@@ -847,7 +863,7 @@ export const CashflowPage = () => {
               <div className="flex items-center justify-end gap-3 pt-3 border-t border-slate-100">
                 <button
                   type="button"
-                  onClick={() => setEditingItem(null)}
+                  onClick={requestCloseEdit}
                   className="rounded-xl border border-slate-300 px-4 py-2 font-bold text-slate-600 hover:bg-slate-50 cursor-pointer"
                 >
                   Отмена
@@ -881,7 +897,7 @@ export const CashflowPage = () => {
                 </div>
               </div>
               <button
-                onClick={() => setShowConvertModal(false)}
+                onClick={requestCloseConvert}
                 className="rounded-lg p-1.5 text-slate-400 hover:bg-slate-700 hover:text-white transition cursor-pointer"
               >
                 <X className="h-5 w-5" />
@@ -1009,7 +1025,7 @@ export const CashflowPage = () => {
               <div className="flex items-center justify-end gap-3 pt-3 border-t border-slate-100">
                 <button
                   type="button"
-                  onClick={() => setShowConvertModal(false)}
+                  onClick={requestCloseConvert}
                   className="rounded-xl border border-slate-300 px-4 py-2 text-xs font-bold text-slate-600 hover:bg-slate-50 transition cursor-pointer"
                 >
                   Отмена

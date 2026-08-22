@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { dictionariesApi } from '../../api/dictionaries.api';
+import { useModalDismiss } from '../../hooks/useModalDismiss';
 import { 
   BookOpen, Plus, Edit, Trash2, CheckCircle2, 
   TrendingDown, TrendingUp, Megaphone, XCircle, CreditCard,
@@ -67,6 +68,14 @@ export const DictionariesTab = () => {
     code: '',
     color: '#3b82f6',
     sort_order: 1
+  });
+
+  const isDirty = Boolean(formData.name.trim() || formData.code.trim());
+  const { requestClose } = useModalDismiss({
+    isOpen: isModalOpen,
+    onClose: () => setIsModalOpen(false),
+    isDirty: !editingItem && isDirty,
+    confirmMessage: 'Введенная позиция справочника не сохранена. Закрыть окно?'
   });
 
   const currentTypeConfig = DICTIONARY_TYPES.find(t => t.id === selectedType) || DICTIONARY_TYPES[0];
@@ -363,7 +372,7 @@ export const DictionariesTab = () => {
                 </div>
               </div>
               <button
-                onClick={() => setIsModalOpen(false)}
+                onClick={requestClose}
                 className="p-1.5 rounded-xl hover:bg-white/10 text-slate-400 hover:text-white transition cursor-pointer"
               >
                 <X className="h-4 w-4" />
@@ -441,7 +450,7 @@ export const DictionariesTab = () => {
               <div className="pt-2 flex items-center justify-end gap-2 border-t border-slate-100">
                 <button
                   type="button"
-                  onClick={() => setIsModalOpen(false)}
+                  onClick={requestClose}
                   className="px-4 py-2 rounded-xl text-xs font-bold text-slate-600 hover:bg-slate-100 transition cursor-pointer"
                 >
                   Отмена

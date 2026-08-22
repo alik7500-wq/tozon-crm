@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { api } from '../../api/client';
+import { useModalDismiss } from '../../hooks/useModalDismiss';
 import { formatContractNumber } from '../../utils/formatters';
 import {
   X,
@@ -102,6 +103,13 @@ export const ClientDetailModal = ({ isOpen, onClose, client, onClientUpdated }) 
       setClientDeals([]);
     }
   }, [isOpen, client]);
+
+  const { requestClose } = useModalDismiss({
+    isOpen: Boolean(isOpen && client),
+    onClose,
+    isDirty: Boolean(newNote.trim()),
+    confirmMessage: 'У вас есть введенная заметка. Вы действительно хотите закрыть окно?'
+  });
 
   if (!isOpen || !client) return null;
 
@@ -296,7 +304,7 @@ export const ClientDetailModal = ({ isOpen, onClose, client, onClientUpdated }) 
             )}
 
             <button
-              onClick={onClose}
+              onClick={requestClose}
               className="rounded-xl p-2 text-slate-400 hover:bg-slate-800 hover:text-white transition cursor-pointer"
             >
               <X className="h-5 w-5" />

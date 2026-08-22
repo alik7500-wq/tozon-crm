@@ -4,6 +4,7 @@ import { useAuth } from '../auth/AuthContext';
 import { DealWizardModal } from '../deals/DealWizardModal';
 import { ContractPrintView } from '../deals/ContractPrintView';
 import { PaymentRecordModal } from '../deals/PaymentRecordModal';
+import { useModalDismiss } from '../../hooks/useModalDismiss';
 import { formatContractNumber } from '../../utils/formatters';
 import {
   X,
@@ -67,6 +68,11 @@ export const ApartmentDetailModal = ({
       fetchUnit();
     }
   }, [isOpen, unitId]);
+
+  const { requestClose } = useModalDismiss({
+    isOpen: Boolean(isOpen && unitId),
+    onClose
+  });
 
   if (!isOpen) return null;
 
@@ -140,7 +146,7 @@ export const ApartmentDetailModal = ({
           </div>
 
           <button
-            onClick={onClose}
+            onClick={requestClose}
             className="rounded-xl p-2 text-slate-400 hover:bg-slate-100 hover:text-slate-700 transition cursor-pointer"
           >
             <X className="h-5 w-5" />

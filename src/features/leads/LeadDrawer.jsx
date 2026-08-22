@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { api } from '../../api/client';
+import { useModalDismiss } from '../../hooks/useModalDismiss';
 import { formatContractNumber } from '../../utils/formatters';
 import {
   X,
@@ -32,6 +33,13 @@ export const LeadDrawer = ({ isOpen, onClose, leadId, onLeadUpdated, onEditLead 
   const [isAddingNote, setIsAddingNote] = useState(false);
   const [isUpdatingStatus, setIsUpdatingStatus] = useState(false);
   const [toastMessage, setToastMessage] = useState('');
+
+  const { requestClose } = useModalDismiss({
+    isOpen: Boolean(isOpen && leadId),
+    onClose,
+    isDirty: Boolean(newNote.trim()),
+    confirmMessage: 'У вас есть введенная, но не отправленная заметка. Вы действительно хотите закрыть окно?'
+  });
 
   const fetchLeadDetails = async () => {
     if (!leadId) return;
@@ -218,7 +226,7 @@ export const LeadDrawer = ({ isOpen, onClose, leadId, onLeadUpdated, onEditLead 
             )}
             <button
               type="button"
-              onClick={onClose}
+              onClick={requestClose}
               className="rounded-lg p-1.5 text-slate-400 hover:bg-slate-100 hover:text-slate-700 transition cursor-pointer"
             >
               <X className="h-5 w-5" />

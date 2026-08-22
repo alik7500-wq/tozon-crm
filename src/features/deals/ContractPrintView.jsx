@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
+import { useModalDismiss } from '../../hooks/useModalDismiss';
 import {
   Printer,
   ArrowLeft,
@@ -11,6 +12,12 @@ import {
 export const ContractPrintView = ({ deal, onClose, initialLang = 'TJ' }) => {
   const [activeTab, setActiveTab] = useState('CONTRACT'); // 'CONTRACT' or 'SCHEDULE'
   const [lang, setLang] = useState(initialLang); // 'TJ' (Тоҷикӣ) or 'RU' (Русский)
+
+  const { requestClose } = useModalDismiss({
+    isOpen: Boolean(deal),
+    onClose,
+    isDirty: false
+  });
 
   useEffect(() => {
     document.body.classList.add('has-print-modal');

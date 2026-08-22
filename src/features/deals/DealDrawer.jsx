@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { api } from '../../api/client';
 import { formatContractNumber } from '../../utils/formatters';
 import { PaymentRecordModal } from './PaymentRecordModal';
+import { useModalDismiss } from '../../hooks/useModalDismiss';
 import {
   X,
   FileCheck,
@@ -70,6 +71,15 @@ export const DealDrawer = ({
       setDeal(null);
     }
   }, [isOpen, dealId]);
+
+  const isDirty = (isCancelPromptOpen && Boolean(cancelReason.trim())) || (isExtendPromptOpen && Boolean(newExtendExpiresAt));
+
+  const { requestClose } = useModalDismiss({
+    isOpen: Boolean(isOpen && dealId),
+    onClose,
+    isDirty,
+    confirmMessage: 'В окне есть несохраненный ввод. Вы действительно хотите закрыть окно?'
+  });
 
   if (!isOpen) return null;
 
@@ -243,7 +253,7 @@ export const DealDrawer = ({
             )}
 
             <button
-              onClick={onClose}
+              onClick={requestClose}
               className="rounded-xl p-2 text-slate-400 hover:bg-slate-100 hover:text-slate-600 transition cursor-pointer"
             >
               <X className="h-5 w-5" />
