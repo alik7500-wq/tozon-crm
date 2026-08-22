@@ -233,16 +233,38 @@ export const CashflowPage = () => {
 
             <div className="mt-3 flex items-baseline gap-3 flex-wrap">
               <span className="text-3xl sm:text-4xl font-black text-white tracking-tight">
-                {totalEquivalentInTjs.toLocaleString('ru-RU', { minimumFractionDigits: 0, maximumFractionDigits: 2 })}
-                <span className="text-lg font-bold text-indigo-300 ml-1.5">сомони (TJS)</span>
+                ${totalEquivalentInUsd.toLocaleString('ru-RU', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                <span className="text-lg font-bold text-indigo-300 ml-1.5">USD</span>
               </span>
               <span className="text-sm font-semibold text-indigo-200/80">
-                (≈ ${totalEquivalentInUsd.toLocaleString('ru-RU', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} USD)
+                (≈ {totalEquivalentInTjs.toLocaleString('ru-RU', { minimumFractionDigits: 0, maximumFractionDigits: 2 })} сомони (TJS))
               </span>
             </div>
             <p className="text-xs text-indigo-300/80 mt-1">
               Фактический общий остаток денежных средств во всех кассах компании
             </p>
+
+            {/* Cash desks breakdown pills */}
+            <div className="mt-3.5 flex items-center gap-2.5 flex-wrap text-xs">
+              <span className="text-[11px] font-bold text-indigo-300">Фактический остаток в кассах:</span>
+              <div className="flex items-center gap-1.5 bg-white/10 hover:bg-white/15 px-3 py-1.5 rounded-xl border border-white/15 backdrop-blur-xs transition">
+                <span>💵</span>
+                <span className="text-indigo-200 font-medium">Касса USD:</span>
+                <strong className="text-white font-black">${(summary.USD?.netCashflow || 0).toLocaleString('ru-RU', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</strong>
+              </div>
+              <div className="flex items-center gap-1.5 bg-white/10 hover:bg-white/15 px-3 py-1.5 rounded-xl border border-white/15 backdrop-blur-xs transition">
+                <span>🇹🇯</span>
+                <span className="text-indigo-200 font-medium">Касса TJS:</span>
+                <strong className="text-white font-black">{(summary.TJS?.netCashflow || 0).toLocaleString('ru-RU', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} сомони</strong>
+              </div>
+              {summary.RUB && (summary.RUB?.netCashflow !== 0) && (
+                <div className="flex items-center gap-1.5 bg-white/10 hover:bg-white/15 px-3 py-1.5 rounded-xl border border-white/15 backdrop-blur-xs transition">
+                  <span>🇷🇺</span>
+                  <span className="text-indigo-200 font-medium">Касса RUB:</span>
+                  <strong className="text-white font-black">{(summary.RUB?.netCashflow || 0).toLocaleString('ru-RU', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ₽</strong>
+                </div>
+              )}
+            </div>
           </div>
 
           <div className="flex items-center gap-3">
