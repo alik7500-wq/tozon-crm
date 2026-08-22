@@ -21,7 +21,8 @@ import {
   MapPin,
   Briefcase,
   Trash2,
-  BookOpen
+  BookOpen,
+  Loader2
 } from 'lucide-react';
 
 export const SettingsPage = () => {
@@ -34,9 +35,25 @@ export const SettingsPage = () => {
   const [selectedProjectId, setSelectedProjectId] = useState('');
   const [isLoading, setIsLoading] = useState(false);
 
+  const [usersList, setUsersList] = useState([]);
+  const [isUsersLoading, setIsUsersLoading] = useState(false);
+
   const [isCreateProjectOpen, setIsCreateProjectOpen] = useState(false);
   const [isGeneratorOpen, setIsGeneratorOpen] = useState(false);
   const [generatorProjectId, setGeneratorProjectId] = useState(null);
+
+  const fetchUsersList = async () => {
+    setIsUsersLoading(true);
+    try {
+      const res = await api.get('/users');
+      const list = res.data?.users || res.users || [];
+      setUsersList(list);
+    } catch (err) {
+      console.error('Ошибка загрузки пользователей:', err);
+    } finally {
+      setIsUsersLoading(false);
+    }
+  };
 
   const fetchProjects = async () => {
     setIsLoading(true);
@@ -86,6 +103,28 @@ export const SettingsPage = () => {
       fetchLayouts(selectedProjectId);
     }
   }, [selectedProjectId]);
+
+  useEffect(() => {
+    if (activeTab === 'users') {
+      fetchUsersList();
+    }
+  }, [activeTab]);
+
+  const getRoleBadge = (role) => {
+    switch (role) {
+      case 'ADMIN':
+        return { label: 'Администратор', bg: 'bg-rose-50 text-rose-700 border-rose-200' };
+      case 'DIRECTOR':
+        return { label: 'Директор', bg: 'bg-purple-50 text-purple-700 border-purple-200' };
+      case 'SALES_MANAGER':
+      case 'MANAGER':
+        return { label: 'Менеджер продаж', bg: 'bg-blue-50 text-blue-700 border-blue-200' };
+      case 'FINANCE_MANAGER':
+        return { label: 'Финансист', bg: 'bg-emerald-50 text-emerald-700 border-emerald-200' };
+      default:
+        return { label: role, bg: 'bg-slate-50 text-slate-700 border-slate-200' };
+    }
+  };
 
   const handleProjectCreated = (newProj) => {
     setProjects((prev) => [newProj, ...prev]);
@@ -311,14 +350,23 @@ export const SettingsPage = () => {
       {/* TAB 2: USERS */}
       {activeTab === 'users' && (
         <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-2xs space-y-4">
-          <div className="flex items-center justify-between border-b border-slate-100 pb-4">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-100 pb-4">
             <div>
               <h3 className="text-base font-bold text-slate-900">Пользователи Tozon CRM</h3>
-              <p className="text-xs text-slate-500">Учетные записи администраторов и менеджеров отдела продаж</p>
+              <p className="text-xs text-slate-500">Учетные записи администраторов и сотрудников отдела продаж</p>
             </div>
-            <span className="text-xs font-bold px-3 py-1 rounded-lg bg-slate-100 text-slate-700">
-              Текущий вход: {user?.email} ({user?.role})
-            </span>
+            <div className="flex items-center gap-3">
+              <span className="text-xs font-bold px-3 py-1 rounded-lg bg-slate-100 text-slate-700">
+                Текущий вход: {user?.email} ({user?.role})
+              </span>
+              <button
+                onClick={() => navigate('/users')}
+                className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-blue-50 text-blue-700 hover:bg-blue-100 text-xs font-bold transition cursor-pointer"
+              >
+                <span>Сотрудники и роли</span>
+                <ExternalLink className="h-3.5 w-3.5" />
+              </button>
+            </div>
           </div>
 
           <div className="rounded-xl border border-slate-200 overflow-hidden">
@@ -329,23 +377,55 @@ export const SettingsPage = () => {
                   <th className="p-3">Email</th>
                   <th className="p-3">Роль</th>
                   <th className="p-3">Статус</th>
+                  <th className="p-3">Дата регистрации</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">
-                <tr className="hover:bg-slate-50">
-                  <td className="p-3 pl-4 font-bold text-slate-900">{user?.name || 'Super Admin'}</td>
-                  <td className="p-3 text-slate-600">{user?.email || 'admin@tozon.crm'}</td>
-                  <td className="p-3">
-                    <span className="px-2 py-0.5 rounded-full text-[11px] font-bold bg-purple-50 text-purple-700 border border-purple-200">
-                      {user?.role || 'ADMIN'}
-                    </span>
-                  </td>
-                  <td className="p-3">
-                    <span className="flex items-center gap-1 text-emerald-600 font-bold">
-                      <CheckCircle2 className="h-3.5 w-3.5" /> Активен
-                    </span>
-                  </td>
-                </tr>
+                {isUsersLoading ? (
+                  <tr>
+                    <td colSpan={5} className="p-8 text-center text-slate-400">
+                      <Loader2 className="h-6 w-6 animate-spin mx-auto text-blue-600 mb-2" />
+                      Загрузка пользователей...
+                    </td>
+                  </tr>
+                ) : usersList.length === 0 ? (
+                  <tr>
+                    <td colSpan={5} className="p-8 text-center text-slate-400">
+                      Пользователи не найдены
+                    </td>
+                  </tr>
+                ) : (
+                  usersList.map((u) => {
+                    const badge = getRoleBadge(u.role);
+                    const formattedDate = u.created_at
+                      ? new Date(u.created_at).toLocaleDateString('ru-RU')
+                      : '—';
+
+                    return (
+                      <tr key={u.id} className="hover:bg-slate-50 transition">
+                        <td className="p-3 pl-4 font-bold text-slate-900 flex items-center gap-2.5">
+                          <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-blue-100 text-blue-800 font-bold text-xs">
+                            {(u.name || 'U').charAt(0).toUpperCase()}
+                          </div>
+                          <span>{u.name || 'Без имени'}</span>
+                        </td>
+                        <td className="p-3 text-slate-600 font-medium">{u.email}</td>
+                        <td className="p-3">
+                          <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold border ${badge.bg}`}>
+                            {badge.label}
+                          </span>
+                        </td>
+                        <td className="p-3">
+                          <span className="inline-flex items-center gap-1 text-emerald-600 font-bold">
+                            <CheckCircle2 className="h-3.5 w-3.5 text-emerald-500" />
+                            <span>{u.is_active ? 'Активен' : 'Отключен'}</span>
+                          </span>
+                        </td>
+                        <td className="p-3 text-slate-500">{formattedDate}</td>
+                      </tr>
+                    );
+                  })
+                )}
               </tbody>
             </table>
           </div>

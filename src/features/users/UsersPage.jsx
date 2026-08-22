@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { api } from '../../api/client';
 import { useAuth } from '../auth/AuthContext';
 import { useModalDismiss } from '../../hooks/useModalDismiss';
 import {
@@ -11,54 +12,42 @@ import {
   Wallet,
   CheckCircle2,
   Lock,
-  X
+  X,
+  Trash2,
+  Loader2
 } from 'lucide-react';
 
 export const UsersPage = () => {
   const { user: currentUser } = useAuth();
-  const [users, setUsers] = useState([
-    {
-      id: 1,
-      name: 'Администратор Системы',
-      email: 'admin@tozon.tj',
-      role: 'ADMIN',
-      status: 'ACTIVE',
-      created_at: '2026-08-01',
-    },
-    {
-      id: 2,
-      name: 'Руководитель Отдела Продаж',
-      email: 'director@tozon.tj',
-      role: 'DIRECTOR',
-      status: 'ACTIVE',
-      created_at: '2026-08-05',
-    },
-    {
-      id: 3,
-      name: 'Менеджер по продажам (Алишер)',
-      email: 'manager1@tozon.tj',
-      role: 'SALES_MANAGER',
-      status: 'ACTIVE',
-      created_at: '2026-08-10',
-    },
-    {
-      id: 4,
-      name: 'Финансовый менеджер (Казначейство)',
-      email: 'finance@tozon.tj',
-      role: 'FINANCE_MANAGER',
-      status: 'ACTIVE',
-      created_at: '2026-08-12',
-    },
-  ]);
+  const [users, setUsers] = useState([]);
+  const [isLoading, setIsLoading] = useState(true);
 
   const [search, setSearch] = useState('');
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [newUser, setNewUser] = useState({
     name: '',
     email: '',
     role: 'SALES_MANAGER',
     password: '',
   });
+
+  const fetchUsers = async () => {
+    setIsLoading(true);
+    try {
+      const res = await api.get('/users');
+      const list = res.data?.users || res.users || [];
+      setUsers(list);
+    } catch (err) {
+      console.error('Ошибка загрузки пользователей:', err);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchUsers();
+  }, []);
 
   const isDirty = Boolean(newUser.name.trim() || newUser.email.trim() || newUser.password.trim());
   const { requestClose } = useModalDismiss({
@@ -75,6 +64,7 @@ export const UsersPage = () => {
       case 'DIRECTOR':
         return { label: 'Директор', bg: 'bg-purple-50 text-purple-700 border-purple-200', icon: Briefcase };
       case 'SALES_MANAGER':
+      case 'MANAGER':
         return { label: 'Менеджер продаж', bg: 'bg-blue-50 text-blue-700 border-blue-200', icon: UserCheck };
       case 'FINANCE_MANAGER':
         return { label: 'Финансист', bg: 'bg-emerald-50 text-emerald-700 border-emerald-200', icon: Wallet };
@@ -83,28 +73,48 @@ export const UsersPage = () => {
     }
   };
 
-  const handleCreateUser = (e) => {
+  const handleCreateUser = async (e) => {
     e.preventDefault();
-    setUsers((prev) => [
-      ...prev,
-      {
-        id: Date.now(),
-        name: newUser.name,
-        email: newUser.email,
-        role: newUser.role,
-        status: 'ACTIVE',
-        created_at: new Date().toISOString().split('T')[0],
-      },
-    ]);
-    setIsModalOpen(false);
-    setNewUser({ name: '', email: '', role: 'SALES_MANAGER', password: '' });
+    if (!newUser.name.trim() || !newUser.email.trim() || !newUser.password.trim()) {
+      alert('Пожалуйста, заполните все обязательные поля');
+      return;
+    }
+
+    setIsSubmitting(true);
+    try {
+      await api.post('/users', newUser);
+      setIsModalOpen(false);
+      setNewUser({ name: '', email: '', role: 'SALES_MANAGER', password: '' });
+      await fetchUsers();
+    } catch (err) {
+      alert(err.message || 'Ошибка при создании сотрудника');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleDeleteUser = async (u) => {
+    if (String(u.id) === String(currentUser?.id)) {
+      alert('Нельзя удалить собственную учетную запись');
+      return;
+    }
+    if (!window.confirm(`Вы уверены, что хотите удалить сотрудника "${u.name}" (${u.email})?`)) {
+      return;
+    }
+
+    try {
+      await api.delete(`/users/${u.id}`);
+      await fetchUsers();
+    } catch (err) {
+      alert(err.message || 'Ошибка при удалении сотрудника');
+    }
   };
 
   const filteredUsers = users.filter((u) => {
     return (
       !search ||
-      u.name.toLowerCase().includes(search.toLowerCase()) ||
-      u.email.toLowerCase().includes(search.toLowerCase())
+      (u.name && u.name.toLowerCase().includes(search.toLowerCase())) ||
+      (u.email && u.email.toLowerCase().includes(search.toLowerCase()))
     );
   });
 
@@ -122,13 +132,15 @@ export const UsersPage = () => {
           </p>
         </div>
 
-        <button
-          onClick={() => setIsModalOpen(true)}
-          className="flex items-center gap-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white px-4 py-2.5 text-xs font-bold transition shadow-md cursor-pointer"
-        >
-          <Plus className="h-4 w-4" />
-          <span>Добавить сотрудника</span>
-        </button>
+        {currentUser?.role === 'ADMIN' && (
+          <button
+            onClick={() => setIsModalOpen(true)}
+            className="flex items-center gap-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white px-4 py-2.5 text-xs font-bold transition shadow-md cursor-pointer"
+          >
+            <Plus className="h-4 w-4" />
+            <span>Добавить сотрудника</span>
+          </button>
+        )}
       </div>
 
       {/* Filter Toolbar */}
@@ -160,37 +172,72 @@ export const UsersPage = () => {
                 <th className="p-3.5">Роль в CRM</th>
                 <th className="p-3.5">Статус</th>
                 <th className="p-3.5">Дата регистрации</th>
+                {currentUser?.role === 'ADMIN' && (
+                  <th className="p-3.5 text-right pr-5">Действия</th>
+                )}
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100">
-              {filteredUsers.map((u) => {
-                const badge = getRoleBadge(u.role);
-                const Icon = badge.icon;
-                return (
-                  <tr key={u.id} className="hover:bg-slate-50 transition">
-                    <td className="p-3.5 pl-5 font-bold text-slate-900 flex items-center gap-2.5">
-                      <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-blue-100 text-blue-800 font-black text-xs">
-                        {u.name.charAt(0)}
-                      </div>
-                      <span>{u.name}</span>
-                    </td>
-                    <td className="p-3.5 font-medium text-slate-600">{u.email}</td>
-                    <td className="p-3.5">
-                      <span className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full font-bold border text-[10px] ${badge.bg}`}>
-                        <Icon className="h-3 w-3" />
-                        <span>{badge.label}</span>
-                      </span>
-                    </td>
-                    <td className="p-3.5">
-                      <span className="inline-flex items-center gap-1 text-emerald-700 font-bold text-[11px]">
-                        <CheckCircle2 className="h-3.5 w-3.5 text-emerald-500" />
-                        <span>Активен</span>
-                      </span>
-                    </td>
-                    <td className="p-3.5 text-slate-500">{u.created_at}</td>
-                  </tr>
-                );
-              })}
+              {isLoading ? (
+                <tr>
+                  <td colSpan={currentUser?.role === 'ADMIN' ? 6 : 5} className="p-8 text-center text-slate-400">
+                    <Loader2 className="h-6 w-6 animate-spin mx-auto text-blue-600 mb-2" />
+                    Загрузка списка пользователей...
+                  </td>
+                </tr>
+              ) : filteredUsers.length === 0 ? (
+                <tr>
+                  <td colSpan={currentUser?.role === 'ADMIN' ? 6 : 5} className="p-8 text-center text-slate-400">
+                    Сотрудники не найдены
+                  </td>
+                </tr>
+              ) : (
+                filteredUsers.map((u) => {
+                  const badge = getRoleBadge(u.role);
+                  const Icon = badge.icon;
+                  const formattedDate = u.created_at
+                    ? new Date(u.created_at).toLocaleDateString('ru-RU')
+                    : '—';
+
+                  return (
+                    <tr key={u.id} className="hover:bg-slate-50 transition">
+                      <td className="p-3.5 pl-5 font-bold text-slate-900 flex items-center gap-2.5">
+                        <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-blue-100 text-blue-800 font-black text-xs">
+                          {(u.name || 'U').charAt(0).toUpperCase()}
+                        </div>
+                        <span>{u.name || 'Без имени'}</span>
+                      </td>
+                      <td className="p-3.5 font-medium text-slate-600">{u.email}</td>
+                      <td className="p-3.5">
+                        <span className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full font-bold border text-[10px] ${badge.bg}`}>
+                          <Icon className="h-3 w-3" />
+                          <span>{badge.label}</span>
+                        </span>
+                      </td>
+                      <td className="p-3.5">
+                        <span className="inline-flex items-center gap-1 text-emerald-700 font-bold text-[11px]">
+                          <CheckCircle2 className="h-3.5 w-3.5 text-emerald-500" />
+                          <span>{u.is_active ? 'Активен' : 'Отключен'}</span>
+                        </span>
+                      </td>
+                      <td className="p-3.5 text-slate-500">{formattedDate}</td>
+                      {currentUser?.role === 'ADMIN' && (
+                        <td className="p-3.5 text-right pr-5">
+                          {String(u.id) !== String(currentUser?.id) && (
+                            <button
+                              onClick={() => handleDeleteUser(u)}
+                              className="p-1.5 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-50 transition cursor-pointer"
+                              title="Удалить сотрудника"
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </button>
+                          )}
+                        </td>
+                      )}
+                    </tr>
+                  );
+                })
+              )}
             </tbody>
           </table>
         </div>
@@ -204,7 +251,7 @@ export const UsersPage = () => {
               <h3 className="text-lg font-bold text-slate-900">Новый сотрудник</h3>
               <button
                 onClick={requestClose}
-                className="rounded-lg p-1.5 text-slate-400 hover:bg-slate-100"
+                className="rounded-lg p-1.5 text-slate-400 hover:bg-slate-100 cursor-pointer"
               >
                 <X className="h-5 w-5" />
               </button>
@@ -265,15 +312,18 @@ export const UsersPage = () => {
                 <button
                   type="button"
                   onClick={requestClose}
-                  className="rounded-xl px-4 py-2 text-sm font-semibold text-slate-600 hover:bg-slate-100"
+                  disabled={isSubmitting}
+                  className="rounded-xl px-4 py-2 text-sm font-semibold text-slate-600 hover:bg-slate-100 cursor-pointer"
                 >
                   Отмена
                 </button>
                 <button
                   type="submit"
-                  className="rounded-xl bg-blue-600 px-5 py-2 text-sm font-bold text-white shadow-md hover:bg-blue-700 transition"
+                  disabled={isSubmitting}
+                  className="rounded-xl bg-blue-600 px-5 py-2 text-sm font-bold text-white shadow-md hover:bg-blue-700 transition cursor-pointer disabled:opacity-50 flex items-center gap-2"
                 >
-                  Создать
+                  {isSubmitting && <Loader2 className="h-4 w-4 animate-spin" />}
+                  <span>Создать</span>
                 </button>
               </div>
             </form>
