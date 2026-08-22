@@ -2,7 +2,7 @@ import React from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { AuthProvider } from './features/auth/AuthContext';
-import { ProtectedRoute } from './features/auth/ProtectedRoute';
+import { ProtectedRoute, PermissionGuard } from './features/auth/ProtectedRoute';
 import { LoginPage } from './features/auth/LoginPage';
 import { MainLayout } from './layouts/MainLayout';
 import { DashboardPage } from './features/dashboard/DashboardPage';
@@ -79,10 +79,31 @@ function App() {
                 <Route path="/analytics/1" element={<AnalyticsOnePage />} />
                 <Route path="/analytics/2" element={<AnalyticsTwoPage />} />
                 <Route path="/analytics/3" element={<AnalyticsThreePage />} />
-                <Route path="/automation" element={<AutomationPage />} />
+                <Route
+                  path="/automation"
+                  element={
+                    <PermissionGuard requiredPermission="automation.manage">
+                      <AutomationPage />
+                    </PermissionGuard>
+                  }
+                />
                 <Route path="/notifications" element={<NotificationsPage />} />
-                <Route path="/users" element={<UsersPage />} />
-                <Route path="/settings" element={<SettingsPage />} />
+                <Route
+                  path="/users"
+                  element={
+                    <PermissionGuard requiredPermission="users.manage">
+                      <UsersPage />
+                    </PermissionGuard>
+                  }
+                />
+                <Route
+                  path="/settings"
+                  element={
+                    <PermissionGuard requiredPermission="settings.manage">
+                      <SettingsPage />
+                    </PermissionGuard>
+                  }
+                />
               </Route>
             </Route>
 

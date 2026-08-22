@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { api } from '../../api/client';
 import { useAuth } from '../auth/AuthContext';
 import { formatContractNumber } from '../../utils/formatters';
+import { hasPermission } from '../../utils/permissions';
 import {
   Building2,
   Users,
@@ -303,18 +304,46 @@ export const DashboardPage = () => {
                 <ArrowUpRight className="h-4 w-4 text-slate-400 group-hover:text-blue-600 transition" />
               </button>
 
-              <button
-                onClick={() => navigate('/settings')}
-                className="flex w-full items-center justify-between rounded-xl bg-slate-50 p-3.5 border border-slate-200 text-left hover:border-blue-300 hover:bg-blue-50/40 transition group cursor-pointer"
-              >
-                <div>
-                  <div className="text-sm font-semibold text-slate-800 group-hover:text-blue-600 transition">
-                    3. Меню Настройки
+              {user?.role === 'ADMIN' ? (
+                <button
+                  onClick={() => navigate('/settings')}
+                  className="flex w-full items-center justify-between rounded-xl bg-slate-50 p-3.5 border border-slate-200 text-left hover:border-blue-300 hover:bg-blue-50/40 transition group cursor-pointer"
+                >
+                  <div>
+                    <div className="text-sm font-semibold text-slate-800 group-hover:text-blue-600 transition">
+                      3. Меню Настройки
+                    </div>
+                    <div className="text-xs text-slate-500">Создание ЖК, генератор этажей и структура</div>
                   </div>
-                  <div className="text-xs text-slate-500">Создание ЖК, генератор этажей и структура</div>
-                </div>
-                <ArrowUpRight className="h-4 w-4 text-slate-400 group-hover:text-blue-600 transition" />
-              </button>
+                  <ArrowUpRight className="h-4 w-4 text-slate-400 group-hover:text-blue-600 transition" />
+                </button>
+              ) : hasPermission(user, 'deals.view') ? (
+                <button
+                  onClick={() => navigate('/deals')}
+                  className="flex w-full items-center justify-between rounded-xl bg-slate-50 p-3.5 border border-slate-200 text-left hover:border-blue-300 hover:bg-blue-50/40 transition group cursor-pointer"
+                >
+                  <div>
+                    <div className="text-sm font-semibold text-slate-800 group-hover:text-blue-600 transition">
+                      3. Сделки и брони
+                    </div>
+                    <div className="text-xs text-slate-500">Оформление сделок и бронирование квартир</div>
+                  </div>
+                  <ArrowUpRight className="h-4 w-4 text-slate-400 group-hover:text-blue-600 transition" />
+                </button>
+              ) : (
+                <button
+                  onClick={() => navigate('/tasks')}
+                  className="flex w-full items-center justify-between rounded-xl bg-slate-50 p-3.5 border border-slate-200 text-left hover:border-blue-300 hover:bg-blue-50/40 transition group cursor-pointer"
+                >
+                  <div>
+                    <div className="text-sm font-semibold text-slate-800 group-hover:text-blue-600 transition">
+                      3. Задачи и звонки
+                    </div>
+                    <div className="text-xs text-slate-500">План звонков и напоминаний по клиентам</div>
+                  </div>
+                  <ArrowUpRight className="h-4 w-4 text-slate-400 group-hover:text-blue-600 transition" />
+                </button>
+              )}
             </div>
           </div>
         </div>

@@ -1,8 +1,9 @@
 import React from 'react';
 import { Navigate, Outlet } from 'react-router-dom';
 import { useAuth } from './AuthContext';
+import { hasPermission } from '../../utils/permissions';
 
-export const ProtectedRoute = () => {
+export const ProtectedRoute = ({ requiredPermission }) => {
   const { user, isLoading } = useAuth();
 
   if (isLoading) {
@@ -20,5 +21,17 @@ export const ProtectedRoute = () => {
     return <Navigate to="/login" replace />;
   }
 
+  if (requiredPermission && !hasPermission(user, requiredPermission)) {
+    return <Navigate to="/" replace />;
+  }
+
   return <Outlet />;
+};
+
+export const PermissionGuard = ({ requiredPermission, children }) => {
+  const { user } = useAuth();
+  if (requiredPermission && !hasPermission(user, requiredPermission)) {
+    return <Navigate to="/" replace />;
+  }
+  return children;
 };
