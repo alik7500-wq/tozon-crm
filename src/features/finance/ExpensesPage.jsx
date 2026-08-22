@@ -1,8 +1,10 @@
 import React, { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { financeApi } from '../../api/finance.api';
+import { FinanceTabs } from '../../components/FinanceTabs';
 import { 
-  TrendingDown, Plus, Search, Calendar, Tag, FileText, Download, Wallet
+  TrendingDown, Plus, Search, Calendar, Tag, FileText, Wallet, RefreshCw,
+  DollarSign, CheckCircle2, User, CreditCard, X
 } from 'lucide-react';
 import {
   PieChart, Pie, Cell, Tooltip, ResponsiveContainer, Legend
@@ -13,19 +15,27 @@ const COLORS = ['#ef4444', '#f97316', '#f59e0b', '#eab308', '#84cc16', '#22c55e'
 
 export const ExpensesPage = () => {
   const [year, setYear] = useState(new Date().getFullYear());
+  const [currency, setCurrency] = useState('ALL');
+  const [categoryFilter, setCategoryFilter] = useState('ALL');
+  const [search, setSearch] = useState('');
   const [showAddModal, setShowAddModal] = useState(false);
+
   const queryClient = useQueryClient();
 
   const [formData, setFormData] = useState({
     amount: '',
+    currency: 'USD',
     date: dayjs().format('YYYY-MM-DD'),
-    category: 'Офис',
+    category: 'Строительные материалы',
+    method: 'CASH',
+    reference: '',
+    recipient: '',
     description: ''
   });
 
-  const { data: response, isLoading } = useQuery({
-    queryKey: ['finance-expenses', year],
-    queryFn: () => financeApi.getExpenses({ year })
+  const { data: response, isLoading, refetch } = useQuery({
+    queryKey: ['finance-expenses', year, currency, categoryFilter, search],
+    queryFn: () => financeApi.getExpenses({ year, currency, category: categoryFilter, search })
   });
 
   const addMutation = useMutation({
@@ -34,170 +44,311 @@ export const ExpensesPage = () => {
       queryClient.invalidateQueries(['finance-expenses']);
       queryClient.invalidateQueries(['finance-cashflow']);
       setShowAddModal(false);
-      setFormData({ ...formData, amount: '', description: '' });
+      setFormData({
+        amount: '',
+        currency: 'USD',
+        date: dayjs().format('YYYY-MM-DD'),
+        category: 'Строительные материалы',
+        method: 'CASH',
+        reference: '',
+        recipient: '',
+        description: ''
+      });
     }
   });
 
-  const expensesData = response?.data || { list: [], categoriesChart: [] };
-  const totalExpenses = expensesData.list.reduce((sum, item) => sum + item.amount, 0);
+  const expensesData = response || { list: [], totalsByCurrency: {}, availableCurrencies: ['USD', 'TJS'], categoriesChart: [] };
+  const totals = expensesData.totalsByCurrency || {};
+  const list = expensesData.list || [];
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    if (!formData.amount || !formData.date || !formData.category) return;
-    addMutation.mutate({
-      ...formData,
-      amount: Number(formData.amount)
-    });
+    if (!formData.amount || Number(formData.amount) <= 0) return;
+    addMutation.mutate(formData);
   };
 
-  if (isLoading) {
-    return (
-      <div className="flex items-center justify-center h-full">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
-      </div>
-    );
-  }
-
   return (
-    <div className="space-y-6">
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+    <div className="space-y-6 max-w-7xl mx-auto pb-16">
+      {/* Header */}
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-slate-900 tracking-tight flex items-center gap-2">
-            <TrendingDown className="h-6 w-6 text-rose-500" />
-            Расходы
+          <h1 className="text-2xl font-extrabold text-slate-900 tracking-tight flex items-center gap-2.5">
+            <TrendingDown className="h-7 w-7 text-rose-600" />
+            <span>Расходы и расходные ордера (РКО)</span>
           </h1>
-          <p className="text-sm text-slate-500 mt-1">
-            Учет операционных, маркетинговых и прочих расходов
+          <p className="mt-1 text-xs sm:text-sm text-slate-500">
+            Учет прямых затрат, зарплат, маркетинга, стройматериалов и операционных расходов
           </p>
         </div>
-        
+
         <div className="flex items-center gap-3">
-          <select 
-            value={year}
-            onChange={(e) => setYear(Number(e.target.value))}
-            className="rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-700 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition-all cursor-pointer"
+          <button
+            onClick={() => refetch()}
+            title="Обновить"
+            className="p-2 rounded-xl bg-white border border-slate-200 text-slate-600 hover:text-blue-600 transition shadow-2xs cursor-pointer"
           >
-            {[2023, 2024, 2025, 2026, 2027].map(y => (
-              <option key={y} value={y}>{y} год</option>
-            ))}
-          </select>
-          <button 
+            <RefreshCw className={`h-4 w-4 ${isLoading ? 'animate-spin' : ''}`} />
+          </button>
+
+          <button
             onClick={() => setShowAddModal(true)}
-            className="flex items-center gap-2 rounded-xl bg-blue-600 px-4 py-2 text-sm font-bold text-white hover:bg-blue-700 transition shadow-sm shadow-blue-500/30 cursor-pointer"
+            className="flex items-center gap-2 rounded-xl bg-gradient-to-r from-rose-600 to-red-600 px-4 py-2.5 text-xs font-bold text-white shadow-md shadow-rose-600/20 hover:from-rose-700 hover:to-red-700 transition cursor-pointer"
           >
             <Plus className="h-4 w-4" />
-            Добавить
+            <span>Оформить расход (РКО)</span>
           </button>
         </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        {/* KPI Card */}
-        <div className="rounded-2xl bg-gradient-to-br from-rose-500 to-red-600 p-6 text-white shadow-lg shadow-rose-500/20 flex flex-col justify-between relative overflow-hidden">
-          <div className="absolute top-0 right-0 p-4 opacity-20">
-            <Wallet className="h-24 w-24" />
+      {/* Finance Navigation Tabs */}
+      <FinanceTabs />
+
+      {/* Currency KPI Summary Cards */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className="rounded-3xl border border-rose-200 bg-gradient-to-br from-rose-50 to-red-50/40 p-5 shadow-2xs relative overflow-hidden">
+          <div className="flex items-center justify-between">
+            <span className="text-xs font-bold text-rose-700 uppercase tracking-wider">Расход в USD ($)</span>
+            <span className="p-2 rounded-xl bg-rose-500/10 text-rose-600">💵</span>
           </div>
-          <div>
-            <p className="text-rose-100 font-medium text-sm">Всего расходов ({year})</p>
-            <h3 className="text-4xl font-extrabold mt-2 tracking-tight">
-              {totalExpenses.toLocaleString()} <span className="text-xl font-medium opacity-80">c.</span>
-            </h3>
+          <div className="text-2xl font-black text-rose-950 mt-2">
+            ${(totals.USD || 0).toLocaleString('ru-RU', { minimumFractionDigits: 2 })}
           </div>
-          <div className="mt-6 flex items-center gap-2 text-sm font-medium text-rose-100 bg-black/10 w-max px-3 py-1.5 rounded-lg backdrop-blur-sm">
-            <TrendingDown className="h-4 w-4" />
-            <span>Вычтено из ДДС</span>
-          </div>
+          <p className="text-[11px] text-rose-600/90 mt-1 font-medium">Выплачено в долларах США ({year} г.)</p>
         </div>
 
-        {/* Chart */}
-        <div className="md:col-span-2 rounded-2xl bg-white p-6 shadow-sm border border-slate-200">
-          <h3 className="text-base font-bold text-slate-900 mb-2 flex items-center gap-2">
-            <PieChart className="h-5 w-5 text-slate-400" />
-            Структура расходов
+        <div className="rounded-3xl border border-amber-200 bg-gradient-to-br from-amber-50 to-orange-50/40 p-5 shadow-2xs relative overflow-hidden">
+          <div className="flex items-center justify-between">
+            <span className="text-xs font-bold text-amber-700 uppercase tracking-wider">Расход в TJS (Сомони)</span>
+            <span className="p-2 rounded-xl bg-amber-500/10 text-amber-600">🇹🇯</span>
+          </div>
+          <div className="text-2xl font-black text-amber-950 mt-2">
+            {(totals.TJS || 0).toLocaleString('ru-RU', { minimumFractionDigits: 2 })} <span className="text-sm font-semibold">TJS</span>
+          </div>
+          <p className="text-[11px] text-amber-600/90 mt-1 font-medium">Выплачено в сомони ({year} г.)</p>
+        </div>
+
+        {totals.RUB !== undefined && (
+          <div className="rounded-3xl border border-purple-200 bg-gradient-to-br from-purple-50 to-pink-50/40 p-5 shadow-2xs relative overflow-hidden">
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-bold text-purple-700 uppercase tracking-wider">Расход в RUB (Рубли)</span>
+              <span className="p-2 rounded-xl bg-purple-500/10 text-purple-600">🇷🇺</span>
+            </div>
+            <div className="text-2xl font-black text-purple-950 mt-2">
+              {(totals.RUB || 0).toLocaleString('ru-RU', { minimumFractionDigits: 2 })} <span className="text-sm font-semibold">₽</span>
+            </div>
+            <p className="text-[11px] text-purple-600/90 mt-1 font-medium">Выплачено в рублях ({year} г.)</p>
+          </div>
+        )}
+
+        <div className="rounded-3xl border border-slate-200 bg-white p-5 shadow-2xs flex flex-col justify-between">
+          <div className="flex items-center justify-between">
+            <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">Всего ордеров</span>
+            <span className="p-2 rounded-xl bg-slate-100 text-slate-600">📤</span>
+          </div>
+          <div className="text-2xl font-black text-slate-900 mt-2">
+            {list.length} <span className="text-xs font-normal text-slate-400">РКО</span>
+          </div>
+          <p className="text-[11px] text-slate-400 mt-1">Оформлено выплат</p>
+        </div>
+      </div>
+
+      {/* Filter Toolbar */}
+      <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 bg-white p-4 rounded-3xl border border-slate-200 shadow-2xs">
+        <div className="flex items-center gap-2 flex-wrap">
+          <span className="text-xs font-bold text-slate-500 mr-1">Валюта:</span>
+          {['ALL', 'USD', 'TJS', 'RUB'].map((cur) => (
+            <button
+              key={cur}
+              onClick={() => setCurrency(cur)}
+              className={`px-3 py-1.5 rounded-xl text-xs font-bold transition cursor-pointer ${
+                currency === cur
+                  ? 'bg-rose-600 text-white shadow-xs'
+                  : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+              }`}
+            >
+              {cur === 'ALL' ? 'Все валюты' : cur}
+            </button>
+          ))}
+        </div>
+
+        <div className="flex items-center gap-3 flex-wrap">
+          <select
+            value={categoryFilter}
+            onChange={(e) => setCategoryFilter(e.target.value)}
+            className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs font-bold text-slate-700 outline-none cursor-pointer"
+          >
+            <option value="ALL">Все категории</option>
+            <option value="Строительные материалы">Строительные материалы</option>
+            <option value="Зарплата">Зарплата</option>
+            <option value="Маркетинг и реклама">Маркетинг и реклама</option>
+            <option value="Аренда и офис">Аренда и офис</option>
+            <option value="Налоги и сборы">Налоги и сборы</option>
+            <option value="Хозяйственные нужды">Хозяйственные нужды</option>
+            <option value="Прочее">Прочее</option>
+          </select>
+
+          <select
+            value={year}
+            onChange={(e) => setYear(Number(e.target.value))}
+            className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs font-bold text-slate-700 outline-none cursor-pointer"
+          >
+            {[2024, 2025, 2026, 2027].map(y => (
+              <option key={y} value={y}>{y} год</option>
+            ))}
+          </select>
+
+          <div className="relative min-w-[200px]">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-slate-400" />
+            <input
+              type="text"
+              placeholder="Поиск по получателю, описанию..."
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              className="w-full rounded-xl border border-slate-200 bg-slate-50 pl-8 pr-3 py-1.5 text-xs text-slate-900 outline-none focus:border-rose-500 focus:bg-white transition"
+            />
+          </div>
+        </div>
+      </div>
+
+      {/* Chart and Structure */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div className="lg:col-span-2 rounded-3xl bg-white p-6 shadow-2xs border border-slate-200">
+          <h3 className="text-sm font-bold text-slate-900 mb-4 flex items-center justify-between">
+            <span className="flex items-center gap-2">
+              <Tag className="h-4 w-4 text-rose-600" />
+              Структура расходов по категориям ({expensesData.chartCurrency || 'USD'})
+            </span>
           </h3>
           <div className="h-64">
-            {expensesData.categoriesChart.length > 0 ? (
+            {expensesData.categoriesChart && expensesData.categoriesChart.length > 0 ? (
               <ResponsiveContainer width="100%" height="100%">
                 <PieChart>
                   <Pie
                     data={expensesData.categoriesChart}
                     cx="50%"
                     cy="50%"
-                    innerRadius={70}
-                    outerRadius={90}
-                    paddingAngle={5}
+                    innerRadius={65}
+                    outerRadius={95}
+                    paddingAngle={4}
                     dataKey="amount"
                   >
                     {expensesData.categoriesChart.map((entry, index) => (
                       <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                     ))}
                   </Pie>
-                  <Tooltip 
-                    formatter={(value) => `${value.toLocaleString()} с.`}
-                    contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }}
+                  <Tooltip
+                    formatter={(value) => [`${value.toLocaleString()} ${expensesData.chartCurrency || 'USD'}`, 'Расход']}
+                    contentStyle={{ borderRadius: '16px', border: '1px solid #e2e8f0', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.05)' }}
                   />
                   <Legend verticalAlign="middle" align="right" layout="vertical" iconType="circle" />
                 </PieChart>
               </ResponsiveContainer>
             ) : (
-              <div className="flex items-center justify-center h-full text-slate-400 text-sm">
-                Нет данных для графика
+              <div className="flex flex-col items-center justify-center h-full text-slate-400 text-xs">
+                <Wallet className="h-8 w-8 mb-2 opacity-30" />
+                <span>Нет данных о расходах по выбранной валюте ({expensesData.chartCurrency || 'USD'})</span>
               </div>
             )}
           </div>
         </div>
+
+        {/* Quick Category Summary */}
+        <div className="rounded-3xl bg-white p-6 shadow-2xs border border-slate-200 flex flex-col justify-between">
+          <div>
+            <h3 className="text-sm font-bold text-slate-900 mb-3">Категории выплат ({year})</h3>
+            <div className="space-y-2.5 max-h-56 overflow-y-auto pr-1">
+              {expensesData.categoriesChart && expensesData.categoriesChart.length > 0 ? (
+                expensesData.categoriesChart.map((cat, idx) => (
+                  <div key={cat.name} className="flex items-center justify-between text-xs p-2 rounded-xl bg-slate-50 border border-slate-100">
+                    <div className="flex items-center gap-2">
+                      <span className="h-2.5 w-2.5 rounded-full" style={{ backgroundColor: COLORS[idx % COLORS.length] }} />
+                      <span className="font-bold text-slate-800">{cat.name}</span>
+                    </div>
+                    <span className="font-black text-rose-700">
+                      {cat.amount.toLocaleString()} {expensesData.chartCurrency || 'USD'}
+                    </span>
+                  </div>
+                ))
+              ) : (
+                <p className="text-xs text-slate-400 py-4 text-center">Категории не сформированы</p>
+              )}
+            </div>
+          </div>
+
+          <button
+            onClick={() => setShowAddModal(true)}
+            className="w-full mt-4 py-2.5 rounded-xl border border-dashed border-rose-300 bg-rose-50/50 hover:bg-rose-50 text-rose-700 text-xs font-bold transition flex items-center justify-center gap-1.5 cursor-pointer"
+          >
+            <Plus className="h-4 w-4" />
+            <span>Добавить расход в журнал</span>
+          </button>
+        </div>
       </div>
 
-      {/* Table */}
-      <div className="rounded-2xl bg-white shadow-sm border border-slate-200 overflow-hidden">
-        <div className="flex items-center justify-between p-6 border-b border-slate-100">
-          <h3 className="text-base font-bold text-slate-900">Журнал расходов</h3>
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
-            <input 
-              type="text"
-              placeholder="Поиск..."
-              className="pl-9 pr-4 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all w-64"
-            />
-          </div>
+      {/* Expenses Table */}
+      <div className="rounded-3xl bg-white shadow-2xs border border-slate-200 overflow-hidden">
+        <div className="p-5 border-b border-slate-100 flex items-center justify-between">
+          <h3 className="text-sm font-extrabold text-slate-900 flex items-center gap-2">
+            <FileText className="h-4 w-4 text-rose-600" />
+            <span>Журнал расходных кассовых ордеров (РКО)</span>
+          </h3>
+          <span className="text-xs font-semibold text-slate-400">
+            Всего записей: {list.length}
+          </span>
         </div>
+
         <div className="overflow-x-auto">
-          <table className="w-full text-left text-sm">
-            <thead className="bg-slate-50 text-xs uppercase text-slate-500 font-semibold">
+          <table className="w-full text-xs text-left">
+            <thead className="bg-slate-50 border-b border-slate-200 text-slate-600 font-bold uppercase tracking-wider">
               <tr>
-                <th className="px-6 py-4">Дата</th>
-                <th className="px-6 py-4">Категория</th>
-                <th className="px-6 py-4">Описание</th>
-                <th className="px-6 py-4">Сумма</th>
+                <th className="p-3.5 pl-5">Дата</th>
+                <th className="p-3.5">Документ / РКО</th>
+                <th className="p-3.5">Получатель</th>
+                <th className="p-3.5">Категория</th>
+                <th className="p-3.5">Способ оплаты</th>
+                <th className="p-3.5">Сумма расхода</th>
+                <th className="p-3.5 pr-5">Назначение / Комментарий</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-100">
-              {expensesData.list.map((item) => (
-                <tr key={item.id} className="hover:bg-slate-50/80 transition-colors">
-                  <td className="px-6 py-4 text-slate-600 whitespace-nowrap">
-                    <div className="flex items-center gap-2">
-                      <Calendar className="h-4 w-4 text-slate-400" />
+            <tbody className="divide-y divide-slate-100 font-medium">
+              {list.map((item) => (
+                <tr key={item.id} className="hover:bg-slate-50 transition">
+                  <td className="p-3.5 pl-5 whitespace-nowrap text-slate-600">
+                    <div className="flex items-center gap-1.5 font-bold">
+                      <Calendar className="h-3.5 w-3.5 text-slate-400" />
                       {dayjs(item.date).format('DD.MM.YYYY')}
                     </div>
                   </td>
-                  <td className="px-6 py-4">
-                    <span className="inline-flex items-center gap-1.5 rounded-md px-2.5 py-1 text-xs font-medium bg-slate-100 text-slate-700">
-                      <Tag className="h-3.5 w-3.5 text-slate-500" />
+                  <td className="p-3.5 font-bold text-slate-900 font-mono">
+                    {item.reference || `РКО-${item.id}`}
+                  </td>
+                  <td className="p-3.5 font-bold text-slate-900">
+                    {item.recipient}
+                  </td>
+                  <td className="p-3.5">
+                    <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-md text-[11px] font-bold bg-slate-100 text-slate-700">
+                      <Tag className="h-3 w-3 text-slate-500" />
                       {item.category}
                     </span>
                   </td>
-                  <td className="px-6 py-4 text-slate-600 max-w-xs truncate" title={item.description}>
-                    {item.description || '-'}
+                  <td className="p-3.5">
+                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-bold bg-slate-50 text-slate-600 border border-slate-200">
+                      <CreditCard className="h-3 w-3" />
+                      {item.method === 'CASH' ? 'Наличные' : item.method === 'BANK_TRANSFER' ? 'Банк' : item.method}
+                    </span>
                   </td>
-                  <td className="px-6 py-4 font-bold text-rose-600 whitespace-nowrap">
-                    -{item.amount.toLocaleString()} с.
+                  <td className="p-3.5 font-black text-sm text-rose-600 whitespace-nowrap">
+                    -{item.amount.toLocaleString('ru-RU', { minimumFractionDigits: 2 })} {item.currency}
+                  </td>
+                  <td className="p-3.5 pr-5 text-slate-500 max-w-xs truncate" title={item.description}>
+                    {item.description || '-'}
                   </td>
                 </tr>
               ))}
-              {expensesData.list.length === 0 && (
+              {list.length === 0 && (
                 <tr>
-                  <td colSpan="4" className="px-6 py-12 text-center text-slate-500">
-                    Нет записей о расходах за выбранный период
+                  <td colSpan={7} className="p-12 text-center text-slate-400">
+                    Нет зарегистрированных расходов по выбранным фильтрам
                   </td>
                 </tr>
               )}
@@ -206,88 +357,170 @@ export const ExpensesPage = () => {
         </div>
       </div>
 
-      {/* Add Expense Modal */}
+      {/* Modal: New Expense Order (РКО) */}
       {showAddModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-sm">
-          <div className="bg-white rounded-2xl w-full max-w-md shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200">
-            <div className="flex items-center justify-between p-5 border-b border-slate-100">
-              <h2 className="text-lg font-bold text-slate-900">Добавить расход</h2>
-              <button 
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs animate-in fade-in">
+          <div className="relative w-full max-w-lg overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-2xl">
+            <div className="flex items-center justify-between border-b border-slate-100 bg-gradient-to-r from-slate-900 via-slate-800 to-slate-900 px-6 py-4 text-white">
+              <div className="flex items-center gap-3">
+                <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-rose-500/20 text-rose-400 border border-rose-500/30">
+                  <TrendingDown className="h-5 w-5" />
+                </div>
+                <div>
+                  <h3 className="text-base font-bold">Оформить расходный кассовый ордер (РКО)</h3>
+                  <p className="text-xs text-slate-300">Регистрация расхода / выдачи денежных средств</p>
+                </div>
+              </div>
+              <button
                 onClick={() => setShowAddModal(false)}
-                className="text-slate-400 hover:text-slate-600 transition"
+                className="rounded-lg p-1.5 text-slate-400 hover:bg-slate-700 hover:text-white transition cursor-pointer"
               >
-                ✕
+                <X className="h-5 w-5" />
               </button>
             </div>
-            
-            <form onSubmit={handleSubmit} className="p-5 space-y-4">
+
+            <form onSubmit={handleSubmit} className="p-6 space-y-4 max-h-[80vh] overflow-y-auto">
+              {/* Recipient */}
               <div>
-                <label className="block text-xs font-semibold text-slate-700 mb-1">Сумма (с.) *</label>
-                <input 
-                  type="number" 
-                  required 
-                  min="0"
-                  step="0.01"
-                  value={formData.amount}
-                  onChange={e => setFormData({...formData, amount: e.target.value})}
-                  className="w-full rounded-xl border border-slate-200 px-4 py-2 text-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition-all outline-none"
-                  placeholder="0.00"
-                />
-              </div>
-              
-              <div>
-                <label className="block text-xs font-semibold text-slate-700 mb-1">Дата *</label>
-                <input 
-                  type="date" 
-                  required 
-                  value={formData.date}
-                  onChange={e => setFormData({...formData, date: e.target.value})}
-                  className="w-full rounded-xl border border-slate-200 px-4 py-2 text-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition-all outline-none"
+                <label className="block text-xs font-bold text-slate-700 mb-1">
+                  Получатель средств (Кому выдано / Контрагент) *
+                </label>
+                <input
+                  type="text"
+                  required
+                  value={formData.recipient}
+                  onChange={e => setFormData({ ...formData, recipient: e.target.value })}
+                  placeholder="ФИО сотрудника или название организации"
+                  className="w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-xs outline-none focus:border-rose-500"
                 />
               </div>
 
+              {/* Category */}
               <div>
-                <label className="block text-xs font-semibold text-slate-700 mb-1">Категория *</label>
-                <select 
+                <label className="block text-xs font-bold text-slate-700 mb-1">
+                  Категория расхода *
+                </label>
+                <select
                   required
                   value={formData.category}
-                  onChange={e => setFormData({...formData, category: e.target.value})}
-                  className="w-full rounded-xl border border-slate-200 px-4 py-2 text-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition-all outline-none"
+                  onChange={e => setFormData({ ...formData, category: e.target.value })}
+                  className="w-full rounded-xl border border-slate-300 bg-slate-50 px-3 py-2 text-xs font-bold text-slate-800 outline-none focus:border-rose-500 cursor-pointer"
                 >
-                  <option value="Офис">Офис</option>
-                  <option value="Зарплата">Зарплата</option>
-                  <option value="Маркетинг">Маркетинг</option>
-                  <option value="Налоги">Налоги</option>
-                  <option value="Хозяйственные">Хозяйственные</option>
-                  <option value="Прочее">Прочее</option>
+                  <option value="Строительные материалы">Строительные материалы</option>
+                  <option value="Зарплата">Зарплата сотрудникам / строителям</option>
+                  <option value="Маркетинг и реклама">Маркетинг и реклама</option>
+                  <option value="Аренда и офис">Аренда и содержание офиса</option>
+                  <option value="Налоги и сборы">Налоги, сборы и лицензии</option>
+                  <option value="Хозяйственные нужды">Хозяйственные нужды</option>
+                  <option value="Прочее">Прочие расходы</option>
                 </select>
               </div>
 
-              <div>
-                <label className="block text-xs font-semibold text-slate-700 mb-1">Описание</label>
-                <textarea 
-                  rows="2"
-                  value={formData.description}
-                  onChange={e => setFormData({...formData, description: e.target.value})}
-                  className="w-full rounded-xl border border-slate-200 px-4 py-2 text-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition-all outline-none resize-none"
-                  placeholder="За что произведена оплата..."
-                ></textarea>
+              {/* Amount and Currency */}
+              <div className="grid grid-cols-3 gap-3">
+                <div className="col-span-2">
+                  <label className="block text-xs font-bold text-slate-700 mb-1">
+                    Сумма расхода *
+                  </label>
+                  <input
+                    type="number"
+                    step="0.01"
+                    min="0.01"
+                    required
+                    value={formData.amount}
+                    onChange={e => setFormData({ ...formData, amount: e.target.value })}
+                    placeholder="0.00"
+                    className="w-full rounded-xl border border-slate-300 bg-white px-3.5 py-2 text-sm font-black text-slate-900 outline-none focus:border-rose-500"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 mb-1">
+                    Валюта *
+                  </label>
+                  <select
+                    value={formData.currency}
+                    onChange={e => setFormData({ ...formData, currency: e.target.value })}
+                    className="w-full rounded-xl border border-slate-300 bg-slate-50 px-3 py-2.5 text-xs font-bold text-slate-800 outline-none focus:border-rose-500"
+                  >
+                    <option value="USD">USD ($)</option>
+                    <option value="TJS">TJS (Сомони)</option>
+                    <option value="RUB">RUB (Рубль)</option>
+                    <option value="EUR">EUR (€)</option>
+                  </select>
+                </div>
               </div>
 
-              <div className="pt-4 flex items-center justify-end gap-3">
-                <button 
+              {/* Date & Payment Method */}
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 mb-1">Дата расхода *</label>
+                  <input
+                    type="date"
+                    required
+                    value={formData.date}
+                    onChange={e => setFormData({ ...formData, date: e.target.value })}
+                    className="w-full rounded-xl border border-slate-300 bg-slate-50 px-3 py-2 text-xs outline-none focus:border-rose-500"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 mb-1">Форма оплаты *</label>
+                  <select
+                    value={formData.method}
+                    onChange={e => setFormData({ ...formData, method: e.target.value })}
+                    className="w-full rounded-xl border border-slate-300 bg-slate-50 px-3 py-2 text-xs font-medium outline-none focus:border-rose-500 cursor-pointer"
+                  >
+                    <option value="CASH">💵 Наличные из кассы</option>
+                    <option value="BANK_TRANSFER">🏦 Безналичный расчет (Банк)</option>
+                    <option value="CARD">💳 Корпоративная карта</option>
+                    <option value="OTHER">📁 Прочее</option>
+                  </select>
+                </div>
+              </div>
+
+              {/* Reference */}
+              <div>
+                <label className="block text-xs font-bold text-slate-700 mb-1">
+                  Номер документа / РКО / Накладная
+                </label>
+                <input
+                  type="text"
+                  value={formData.reference}
+                  onChange={e => setFormData({ ...formData, reference: e.target.value })}
+                  placeholder="Например: РКО-4019 / Чек №..."
+                  className="w-full rounded-xl border border-slate-300 bg-slate-50 px-3 py-2 text-xs outline-none focus:border-rose-500"
+                />
+              </div>
+
+              {/* Description */}
+              <div>
+                <label className="block text-xs font-bold text-slate-700 mb-1">Назначение платежа / Описание</label>
+                <textarea
+                  rows="2"
+                  value={formData.description}
+                  onChange={e => setFormData({ ...formData, description: e.target.value })}
+                  placeholder="Подробное назначение расхода..."
+                  className="w-full rounded-xl border border-slate-300 bg-slate-50 px-3 py-2 text-xs outline-none focus:border-rose-500 resize-none"
+                />
+              </div>
+
+              {/* Buttons */}
+              <div className="flex items-center justify-end gap-3 pt-3 border-t border-slate-100">
+                <button
                   type="button"
                   onClick={() => setShowAddModal(false)}
-                  className="px-4 py-2 text-sm font-medium text-slate-600 hover:bg-slate-100 rounded-xl transition"
+                  className="rounded-xl border border-slate-300 px-4 py-2 text-xs font-bold text-slate-600 hover:bg-slate-50 transition cursor-pointer"
                 >
                   Отмена
                 </button>
-                <button 
+                <button
                   type="submit"
                   disabled={addMutation.isPending}
-                  className="px-6 py-2 text-sm font-bold text-white bg-blue-600 hover:bg-blue-700 rounded-xl transition shadow-sm disabled:opacity-50"
+                  className="flex items-center gap-2 rounded-xl bg-gradient-to-r from-rose-600 to-red-600 px-5 py-2 text-xs font-bold text-white shadow-md hover:from-rose-700 hover:to-red-700 transition cursor-pointer disabled:opacity-50"
                 >
-                  {addMutation.isPending ? 'Сохранение...' : 'Сохранить'}
+                  <CheckCircle2 className="h-4 w-4" />
+                  <span>{addMutation.isPending ? 'Сохранение...' : 'Зафиксировать расход'}</span>
                 </button>
               </div>
             </form>
