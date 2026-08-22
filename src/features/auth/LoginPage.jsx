@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate, Navigate } from 'react-router-dom';
 import { useAuth } from './AuthContext';
-import { Building2, Lock, Mail, ArrowRight, ShieldCheck, Sparkles, AlertCircle } from 'lucide-react';
+import { Building2, Lock, Mail, ArrowRight, ShieldCheck, AlertCircle } from 'lucide-react';
 
 export const LoginPage = () => {
   const { user, login } = useAuth();
@@ -30,12 +30,6 @@ export const LoginPage = () => {
     } finally {
       setIsSubmitting(false);
     }
-  };
-
-  const autofillDemo = (demoEmail, demoPass) => {
-    setEmail(demoEmail);
-    setPassword(demoPass);
-    setError('');
   };
 
   return (
@@ -89,7 +83,7 @@ export const LoginPage = () => {
                   required
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  placeholder="admin@tozon.crm"
+                  placeholder="name@tozon.crm"
                   className="w-full rounded-xl border border-slate-300 bg-slate-50/50 px-10 py-2.5 text-sm text-slate-900 placeholder-slate-400 outline-none transition focus:border-blue-500 focus:bg-white focus:ring-2 focus:ring-blue-500/20"
                 />
               </div>
@@ -127,32 +121,11 @@ export const LoginPage = () => {
               )}
             </button>
           </form>
-
-          {/* Quick Demo Access Pill */}
-          <div className="mt-6 border-t border-slate-100 pt-5">
-            <div className="flex items-center gap-2 text-xs text-slate-500 mb-2 font-medium">
-              <Sparkles className="h-3.5 w-3.5 text-amber-500" />
-              <span>Быстрый вход для тестирования:</span>
-            </div>
-            <button
-              type="button"
-              onClick={() => autofillDemo('admin@tozon.crm', 'admin123')}
-              className="flex w-full items-center justify-between rounded-xl border border-slate-200 bg-slate-50/80 px-3.5 py-2 text-xs text-slate-700 transition hover:border-blue-300 hover:bg-blue-50/50 cursor-pointer"
-            >
-              <div className="flex flex-col text-left">
-                <span className="font-semibold text-blue-700">Администратор</span>
-                <span className="text-slate-500 text-[11px]">admin@tozon.crm / admin123</span>
-              </div>
-              <span className="rounded-lg bg-white border border-slate-200 px-2 py-0.5 text-[11px] font-medium text-slate-600 shadow-xs">
-                Подставить
-              </span>
-            </button>
-          </div>
         </div>
 
         {/* Footer info */}
         <p className="mt-6 text-center text-xs text-slate-400 font-medium">
-          TOZON CRM • Локальная база SQLite WAL
+          TOZON CRM • Real Estate Management Platform
         </p>
       </div>
     </div>
