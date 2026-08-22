@@ -1,4 +1,4 @@
-import api from './axios';
+import { api } from './client.js';
 
 export const financeApi = {
   getIncome: async (filters = {}) => {
