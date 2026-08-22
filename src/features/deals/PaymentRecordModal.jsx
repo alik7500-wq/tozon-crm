@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { api } from '../../api/client';
+import { financeApi } from '../../api/finance.api';
+import { dictionariesApi } from '../../api/dictionaries.api';
 import { formatContractNumber } from '../../utils/formatters';
 import {
   X,
@@ -33,12 +35,30 @@ export const PaymentRecordModal = ({
   // Cash desks and currencies
   const [cashDesk, setCashDesk] = useState('MAIN_CASHIER');
   const [cashCurrency, setCashCurrency] = useState('USD'); // USD or TJS
-  const [exchangeRate, setExchangeRate] = useState('10.90'); // default USD/TJS rate
+  const [exchangeRate, setExchangeRate] = useState('9.27'); // default Eskhata USD/TJS rate
+  const [paymentMethods, setPaymentMethods] = useState([]);
 
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
 
   const dealCurrency = deal?.currency || deal?.project_currency || 'USD';
+
+  useEffect(() => {
+    if (isOpen) {
+      financeApi.getEskhataRate()
+        .then(res => {
+          const rate = res?.data?.sellRate || res?.sellRate;
+          if (rate) setExchangeRate(String(rate));
+        })
+        .catch(() => {});
+
+      dictionariesApi.getItems('PAYMENT_METHOD')
+        .then(items => {
+          if (items && items.length > 0) setPaymentMethods(items);
+        })
+        .catch(() => {});
+    }
+  }, [isOpen]);
 
   useEffect(() => {
     if (deal) {
@@ -288,21 +308,24 @@ export const PaymentRecordModal = ({
           {/* If currency conversion is needed */}
           {cashCurrency !== dealCurrency && (
             <div className="rounded-2xl border border-amber-200 bg-amber-50/60 p-3.5 space-y-2 text-xs">
-              <div className="flex items-center justify-between">
+              <div className="flex items-center justify-between flex-wrap gap-2">
                 <span className="font-bold text-amber-900 flex items-center gap-1">
                   <ArrowRightLeft className="h-3.5 w-3.5 text-amber-700" />
                   Конвертация ({cashCurrency} → {dealCurrency})
                 </span>
-                <div className="flex items-center gap-1.5">
-                  <span className="text-[11px] text-amber-800">Курс: 1 USD =</span>
+                <div className="flex items-center gap-1.5 text-[11px]">
+                  <span className="inline-flex items-center gap-1 font-bold text-amber-900 bg-amber-200/80 px-2 py-0.5 rounded-md border border-amber-300">
+                    🏦 Эсхата (Продажа):
+                  </span>
+                  <span className="text-amber-800 font-semibold">1 USD =</span>
                   <input
                     type="number"
                     step="0.01"
                     value={exchangeRate}
                     onChange={(e) => setExchangeRate(e.target.value)}
-                    className="w-16 rounded-lg border border-amber-300 bg-white px-2 py-0.5 text-xs font-bold text-amber-950 outline-none text-center"
+                    className="w-16 rounded-md border border-amber-300 bg-white px-1.5 py-0.5 text-xs font-black text-amber-950 outline-none text-center shadow-xs"
                   />
-                  <span className="text-[11px] text-amber-800">TJS</span>
+                  <span className="text-amber-800 font-bold">TJS</span>
                 </div>
               </div>
 
@@ -338,15 +361,15 @@ export const PaymentRecordModal = ({
                 value={amount}
                 onChange={(e) => setAmount(e.target.value)}
                 placeholder="0.00"
-                className="w-full rounded-xl border border-slate-300 bg-white px-3.5 py-2.5 text-sm font-black text-slate-900 outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+                className="w-full rounded-xl border border-slate-300 bg-slate-50 px-3.5 py-2.5 text-base font-black text-slate-900 outline-none focus:border-blue-500 focus:bg-white"
               />
-              <span className="absolute right-3.5 top-1/2 -translate-y-1/2 text-xs font-black text-slate-500">
+              <span className="absolute right-3.5 top-1/2 -translate-y-1/2 font-extrabold text-xs text-slate-500">
                 {cashCurrency}
               </span>
             </div>
           </div>
 
-          {/* Installment selection if schedules exist */}
+          {/* Schedule link selection */}
           {deal.schedules && deal.schedules.length > 0 && (
             <div>
               <label className="block text-xs font-bold text-slate-700 mb-1">
@@ -355,16 +378,15 @@ export const PaymentRecordModal = ({
               <select
                 value={scheduleId || ''}
                 onChange={handleScheduleChange}
-                className="w-full rounded-xl border border-slate-300 bg-slate-50 px-3 py-2 text-xs font-medium outline-none focus:border-blue-500 focus:bg-white"
+                className="w-full rounded-xl border border-slate-300 bg-slate-50 px-3 py-2 text-xs font-medium outline-none focus:border-blue-500 focus:bg-white cursor-pointer"
               >
-                <option value="">-- Общий платеж по договору (без привязки к строке) --</option>
-                {deal.schedules.map((s) => {
-                  const sAmount = s.amount_minor / 100;
-                  const sPaid = (s.paid_amount_minor || 0) / 100;
-                  const sRemain = Math.max(0, sAmount - sPaid);
+                <option value="">Без привязки к конкретному платежу</option>
+                {deal.schedules.map((s, idx) => {
+                  const rem = Math.max(0, (s.amount_minor || 0) - (s.paid_amount_minor || 0)) / 100;
+                  const isPaid = s.status === 'PAID' || rem <= 0;
                   return (
-                    <option key={s.id} value={s.id}>
-                      Платеж №{s.payment_number} (до {s.due_date}) — План: {sAmount.toLocaleString()} {dealCurrency} | Остаток: {sRemain.toLocaleString()} {dealCurrency} [{s.status}]
+                    <option key={s.id} value={s.id} disabled={isPaid}>
+                      Платеж №{s.payment_number || idx + 1} (до {s.due_date}) — План: {((s.amount_minor || 0) / 100).toLocaleString()} {dealCurrency} | Остаток: {rem.toLocaleString()} {dealCurrency} [{s.status}]
                     </option>
                   );
                 })}
