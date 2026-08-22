@@ -2,9 +2,11 @@ import React, { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { financeApi } from '../../api/finance.api';
 import { FinanceTabs } from '../../components/FinanceTabs';
+import { useAuth } from '../auth/AuthContext';
 import { 
   TrendingUp, Plus, Search, Calendar, DollarSign, Coins, CreditCard, 
-  User, FileText, CheckCircle2, RefreshCw, Filter, ArrowUpRight, Building2, X
+  User, FileText, CheckCircle2, RefreshCw, Filter, ArrowUpRight, Building2, X,
+  Edit, Trash2, Save
 } from 'lucide-react';
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer
@@ -12,10 +14,14 @@ import {
 import dayjs from 'dayjs';
 
 export const IncomePage = () => {
+  const { user } = useAuth();
+  const isAdmin = user?.role === 'ADMIN';
+
   const [year, setYear] = useState(new Date().getFullYear());
   const [currency, setCurrency] = useState('ALL');
   const [search, setSearch] = useState('');
   const [showAddModal, setShowAddModal] = useState(false);
+  const [editingItem, setEditingItem] = useState(null);
   const [dealsList, setDealsList] = useState([]);
 
   const queryClient = useQueryClient();
@@ -56,6 +62,23 @@ export const IncomePage = () => {
         reference: '',
         comment: ''
       });
+    }
+  });
+
+  const updateMutation = useMutation({
+    mutationFn: financeApi.updateIncome,
+    onSuccess: () => {
+      queryClient.invalidateQueries(['finance-income']);
+      queryClient.invalidateQueries(['finance-cashflow']);
+      setEditingItem(null);
+    }
+  });
+
+  const deleteMutation = useMutation({
+    mutationFn: financeApi.deleteIncome,
+    onSuccess: () => {
+      queryClient.invalidateQueries(['finance-income']);
+      queryClient.invalidateQueries(['finance-cashflow']);
     }
   });
 
@@ -271,7 +294,8 @@ export const IncomePage = () => {
                 <th className="p-3.5">Договор / Назначение</th>
                 <th className="p-3.5">Способ оплаты</th>
                 <th className="p-3.5">Сумма прихода</th>
-                <th className="p-3.5 pr-5">Ответственный</th>
+                <th className="p-3.5">Ответственный</th>
+                {isAdmin && <th className="p-3.5 pr-5 text-right">Действия</th>}
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100 font-medium">
@@ -304,15 +328,48 @@ export const IncomePage = () => {
                   <td className="p-3.5 font-black text-sm text-emerald-600 whitespace-nowrap">
                     +{item.amount.toLocaleString('ru-RU', { minimumFractionDigits: 2 })} {item.currency}
                   </td>
-                  <td className="p-3.5 pr-5 text-slate-500">
+                  <td className="p-3.5 text-slate-500">
                     <div className="text-[11px] font-semibold text-slate-700">{item.createdByName}</div>
                     {item.comment && <div className="text-[10px] text-slate-400 truncate max-w-xs" title={item.comment}>{item.comment}</div>}
                   </td>
+                  {isAdmin && (
+                    <td className="p-3.5 pr-5 text-right whitespace-nowrap">
+                      <div className="flex items-center justify-end gap-1.5">
+                        <button
+                          onClick={() => setEditingItem({
+                            id: item.id,
+                            amount: item.amount,
+                            currency: item.currency,
+                            date: item.date,
+                            method: item.method || 'CASH',
+                            reference: item.reference || '',
+                            comment: item.comment || '',
+                            payer_name: item.clientName || ''
+                          })}
+                          title="Редактировать ПКО (Админ)"
+                          className="p-1.5 rounded-lg text-slate-400 hover:text-blue-600 hover:bg-blue-50 transition cursor-pointer"
+                        >
+                          <Edit className="h-4 w-4" />
+                        </button>
+                        <button
+                          onClick={() => {
+                            if (window.confirm(`Вы уверены, что хотите удалить ПКО "${item.reference || item.id}" на сумму ${item.amount} ${item.currency}?`)) {
+                              deleteMutation.mutate(item.id);
+                            }
+                          }}
+                          title="Удалить ПКО (Админ)"
+                          className="p-1.5 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-50 transition cursor-pointer"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </button>
+                      </div>
+                    </td>
+                  )}
                 </tr>
               ))}
               {list.length === 0 && (
                 <tr>
-                  <td colSpan={7} className="p-12 text-center text-slate-400">
+                  <td colSpan={isAdmin ? 8 : 7} className="p-12 text-center text-slate-400">
                     Нет зарегистрированных приходов по выбранным фильтрам
                   </td>
                 </tr>
@@ -321,6 +378,133 @@ export const IncomePage = () => {
           </table>
         </div>
       </div>
+
+      {/* Admin Edit Modal */}
+      {editingItem && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs animate-in fade-in">
+          <div className="relative w-full max-w-md overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-2xl">
+            <div className="flex items-center justify-between border-b border-slate-100 bg-slate-900 px-6 py-4 text-white">
+              <div className="flex items-center gap-2.5">
+                <Edit className="h-5 w-5 text-amber-400" />
+                <div>
+                  <h3 className="text-sm font-bold">Редактирование прихода (ПКО)</h3>
+                  <p className="text-[11px] text-slate-400">Только для администратора</p>
+                </div>
+              </div>
+              <button
+                onClick={() => setEditingItem(null)}
+                className="rounded-lg p-1.5 text-slate-400 hover:bg-slate-800 hover:text-white transition cursor-pointer"
+              >
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+
+            <form onSubmit={(e) => {
+              e.preventDefault();
+              updateMutation.mutate(editingItem);
+            }} className="p-6 space-y-3.5 text-xs">
+              <div className="grid grid-cols-3 gap-3">
+                <div className="col-span-2">
+                  <label className="block font-bold text-slate-700 mb-1">Сумма прихода *</label>
+                  <input
+                    type="number"
+                    step="0.01"
+                    required
+                    value={editingItem.amount}
+                    onChange={e => setEditingItem({ ...editingItem, amount: e.target.value })}
+                    className="w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm font-black text-slate-900 outline-none focus:border-blue-500"
+                  />
+                </div>
+                <div>
+                  <label className="block font-bold text-slate-700 mb-1">Валюта *</label>
+                  <select
+                    value={editingItem.currency}
+                    onChange={e => setEditingItem({ ...editingItem, currency: e.target.value })}
+                    className="w-full rounded-xl border border-slate-300 bg-slate-50 px-3 py-2 text-xs font-bold outline-none"
+                  >
+                    <option value="USD">USD</option>
+                    <option value="TJS">TJS</option>
+                    <option value="RUB">RUB</option>
+                  </select>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block font-bold text-slate-700 mb-1">Дата *</label>
+                  <input
+                    type="date"
+                    required
+                    value={editingItem.date}
+                    onChange={e => setEditingItem({ ...editingItem, date: e.target.value })}
+                    className="w-full rounded-xl border border-slate-300 bg-slate-50 px-3 py-1.5 outline-none"
+                  />
+                </div>
+                <div>
+                  <label className="block font-bold text-slate-700 mb-1">Способ оплаты</label>
+                  <select
+                    value={editingItem.method}
+                    onChange={e => setEditingItem({ ...editingItem, method: e.target.value })}
+                    className="w-full rounded-xl border border-slate-300 bg-slate-50 px-3 py-1.5 outline-none"
+                  >
+                    <option value="CASH">Наличные</option>
+                    <option value="BANK_TRANSFER">Банковский перевод</option>
+                    <option value="CARD">Карта</option>
+                  </select>
+                </div>
+              </div>
+
+              <div>
+                <label className="block font-bold text-slate-700 mb-1">Номер ПКО / Референс</label>
+                <input
+                  type="text"
+                  value={editingItem.reference}
+                  onChange={e => setEditingItem({ ...editingItem, reference: e.target.value })}
+                  className="w-full rounded-xl border border-slate-300 bg-slate-50 px-3 py-1.5 outline-none"
+                />
+              </div>
+
+              <div>
+                <label className="block font-bold text-slate-700 mb-1">Плательщик / Клиент</label>
+                <input
+                  type="text"
+                  value={editingItem.payer_name}
+                  onChange={e => setEditingItem({ ...editingItem, payer_name: e.target.value })}
+                  className="w-full rounded-xl border border-slate-300 bg-slate-50 px-3 py-1.5 outline-none"
+                />
+              </div>
+
+              <div>
+                <label className="block font-bold text-slate-700 mb-1">Примечание</label>
+                <textarea
+                  rows="2"
+                  value={editingItem.comment}
+                  onChange={e => setEditingItem({ ...editingItem, comment: e.target.value })}
+                  className="w-full rounded-xl border border-slate-300 bg-slate-50 px-3 py-1.5 outline-none resize-none"
+                />
+              </div>
+
+              <div className="flex items-center justify-end gap-3 pt-3 border-t border-slate-100">
+                <button
+                  type="button"
+                  onClick={() => setEditingItem(null)}
+                  className="rounded-xl border border-slate-300 px-4 py-2 font-bold text-slate-600 hover:bg-slate-50 cursor-pointer"
+                >
+                  Отмена
+                </button>
+                <button
+                  type="submit"
+                  disabled={updateMutation.isPending}
+                  className="flex items-center gap-1.5 rounded-xl bg-blue-600 px-5 py-2 font-bold text-white shadow-md hover:bg-blue-700 cursor-pointer disabled:opacity-50"
+                >
+                  <Save className="h-4 w-4" />
+                  <span>Сохранить</span>
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
 
       {/* Modal: New Income Order (ПКО) */}
       {showAddModal && (

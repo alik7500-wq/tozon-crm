@@ -2,10 +2,11 @@ import React, { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { financeApi } from '../../api/finance.api';
 import { FinanceTabs } from '../../components/FinanceTabs';
+import { useAuth } from '../auth/AuthContext';
 import { 
   Wallet, TrendingUp, TrendingDown, RefreshCw, Calendar, ArrowUpRight, 
   ArrowDownRight, FileText, Search, CreditCard, Filter, ArrowRightLeft,
-  DollarSign, CheckCircle2, Coins, X
+  DollarSign, CheckCircle2, Coins, X, Edit, Trash2, AlertCircle, Save
 } from 'lucide-react';
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend
@@ -13,12 +14,16 @@ import {
 import dayjs from 'dayjs';
 
 export const CashflowPage = () => {
+  const { user } = useAuth();
+  const isAdmin = user?.role === 'ADMIN';
+
   const [year, setYear] = useState(new Date().getFullYear());
   const [currency, setCurrency] = useState('ALL');
   const [typeFilter, setTypeFilter] = useState('ALL'); // ALL, INCOME, EXPENSE
   const [search, setSearch] = useState('');
   const [globalRate, setGlobalRate] = useState('10.90');
   const [showConvertModal, setShowConvertModal] = useState(false);
+  const [editingItem, setEditingItem] = useState(null);
 
   const queryClient = useQueryClient();
 
@@ -58,6 +63,40 @@ export const CashflowPage = () => {
     }
   });
 
+  const updateIncomeMutation = useMutation({
+    mutationFn: financeApi.updateIncome,
+    onSuccess: () => {
+      queryClient.invalidateQueries(['finance-cashflow']);
+      queryClient.invalidateQueries(['finance-income']);
+      setEditingItem(null);
+    }
+  });
+
+  const updateExpenseMutation = useMutation({
+    mutationFn: financeApi.updateExpense,
+    onSuccess: () => {
+      queryClient.invalidateQueries(['finance-cashflow']);
+      queryClient.invalidateQueries(['finance-expenses']);
+      setEditingItem(null);
+    }
+  });
+
+  const deleteIncomeMutation = useMutation({
+    mutationFn: financeApi.deleteIncome,
+    onSuccess: () => {
+      queryClient.invalidateQueries(['finance-cashflow']);
+      queryClient.invalidateQueries(['finance-income']);
+    }
+  });
+
+  const deleteExpenseMutation = useMutation({
+    mutationFn: financeApi.deleteExpense,
+    onSuccess: () => {
+      queryClient.invalidateQueries(['finance-cashflow']);
+      queryClient.invalidateQueries(['finance-expenses']);
+    }
+  });
+
   const cashflowData = response || { 
     summaryByCurrency: {}, 
     availableCurrencies: ['USD', 'TJS'], 
@@ -83,6 +122,44 @@ export const CashflowPage = () => {
     e.preventDefault();
     if (!convertForm.from_amount || Number(convertForm.from_amount) <= 0) return;
     convertMutation.mutate(convertForm);
+  };
+
+  const handleEditClick = (t) => {
+    setEditingItem({
+      id: t.rawId,
+      type: t.type,
+      amount: t.amount,
+      currency: t.currency,
+      date: t.date,
+      method: t.method || 'CASH',
+      reference: t.reference || '',
+      comment: t.comment || '',
+      category: t.category || 'Прочее',
+      recipient: t.counterparty || '',
+      payer_name: t.counterparty || ''
+    });
+  };
+
+  const handleSaveEdit = (e) => {
+    e.preventDefault();
+    if (!editingItem) return;
+    if (editingItem.type === 'INCOME') {
+      updateIncomeMutation.mutate(editingItem);
+    } else {
+      updateExpenseMutation.mutate(editingItem);
+    }
+  };
+
+  const handleDeleteClick = (t) => {
+    const isIncome = t.type === 'INCOME';
+    const typeLabel = isIncome ? 'приходный ордер (ПКО)' : 'расходный ордер (РКО)';
+    if (window.confirm(`Вы уверены, что хотите удалить ${typeLabel} "${t.reference}" на сумму ${t.amount} ${t.currency}?`)) {
+      if (isIncome) {
+        deleteIncomeMutation.mutate(t.rawId);
+      } else {
+        deleteExpenseMutation.mutate(t.rawId);
+      }
+    }
   };
 
   return (
@@ -499,7 +576,8 @@ export const CashflowPage = () => {
                 <th className="p-3.5">Статья / Категория</th>
                 <th className="p-3.5">Способ оплаты</th>
                 <th className="p-3.5 text-right">Сумма операции</th>
-                <th className="p-3.5 pr-5">Примечание</th>
+                <th className="p-3.5">Примечание</th>
+                {isAdmin && <th className="p-3.5 pr-5 text-right">Действия</th>}
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100 font-medium">
@@ -557,15 +635,35 @@ export const CashflowPage = () => {
                     }`}>
                       {isIncome ? '+' : '-'}{t.amount.toLocaleString('ru-RU', { minimumFractionDigits: 2 })} {t.currency}
                     </td>
-                    <td className="p-3.5 pr-5 text-slate-500 max-w-xs truncate" title={t.comment}>
+                    <td className="p-3.5 text-slate-500 max-w-xs truncate" title={t.comment}>
                       {t.comment || '-'}
                     </td>
+                    {isAdmin && (
+                      <td className="p-3.5 pr-5 text-right whitespace-nowrap">
+                        <div className="flex items-center justify-end gap-1.5">
+                          <button
+                            onClick={() => handleEditClick(t)}
+                            title="Редактировать запись (Админ)"
+                            className="p-1.5 rounded-lg text-slate-400 hover:text-blue-600 hover:bg-blue-50 transition cursor-pointer"
+                          >
+                            <Edit className="h-4 w-4" />
+                          </button>
+                          <button
+                            onClick={() => handleDeleteClick(t)}
+                            title="Удалить запись (Админ)"
+                            className="p-1.5 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-50 transition cursor-pointer"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </button>
+                        </div>
+                      </td>
+                    )}
                   </tr>
                 );
               })}
               {transactions.length === 0 && (
                 <tr>
-                  <td colSpan={8} className="p-12 text-center text-slate-400">
+                  <td colSpan={isAdmin ? 9 : 8} className="p-12 text-center text-slate-400">
                     Нет финансовых операций по заданным критериям
                   </td>
                 </tr>
@@ -574,6 +672,150 @@ export const CashflowPage = () => {
           </table>
         </div>
       </div>
+
+      {/* Admin Edit Modal */}
+      {editingItem && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs animate-in fade-in">
+          <div className="relative w-full max-w-md overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-2xl">
+            <div className="flex items-center justify-between border-b border-slate-100 bg-slate-900 px-6 py-4 text-white">
+              <div className="flex items-center gap-2.5">
+                <Edit className="h-5 w-5 text-amber-400" />
+                <div>
+                  <h3 className="text-sm font-bold">Редактирование {editingItem.type === 'INCOME' ? 'прихода (ПКО)' : 'расхода (РКО)'}</h3>
+                  <p className="text-[11px] text-slate-400">Только для администратора</p>
+                </div>
+              </div>
+              <button
+                onClick={() => setEditingItem(null)}
+                className="rounded-lg p-1.5 text-slate-400 hover:bg-slate-800 hover:text-white transition cursor-pointer"
+              >
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+
+            <form onSubmit={handleSaveEdit} className="p-6 space-y-3.5 text-xs">
+              <div className="grid grid-cols-3 gap-3">
+                <div className="col-span-2">
+                  <label className="block font-bold text-slate-700 mb-1">Сумма *</label>
+                  <input
+                    type="number"
+                    step="0.01"
+                    required
+                    value={editingItem.amount}
+                    onChange={e => setEditingItem({ ...editingItem, amount: e.target.value })}
+                    className="w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm font-black text-slate-900 outline-none focus:border-blue-500"
+                  />
+                </div>
+                <div>
+                  <label className="block font-bold text-slate-700 mb-1">Валюта *</label>
+                  <select
+                    value={editingItem.currency}
+                    onChange={e => setEditingItem({ ...editingItem, currency: e.target.value })}
+                    className="w-full rounded-xl border border-slate-300 bg-slate-50 px-3 py-2 text-xs font-bold outline-none"
+                  >
+                    <option value="USD">USD</option>
+                    <option value="TJS">TJS</option>
+                    <option value="RUB">RUB</option>
+                  </select>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block font-bold text-slate-700 mb-1">Дата *</label>
+                  <input
+                    type="date"
+                    required
+                    value={editingItem.date}
+                    onChange={e => setEditingItem({ ...editingItem, date: e.target.value })}
+                    className="w-full rounded-xl border border-slate-300 bg-slate-50 px-3 py-1.5 outline-none"
+                  />
+                </div>
+                <div>
+                  <label className="block font-bold text-slate-700 mb-1">Способ оплаты</label>
+                  <select
+                    value={editingItem.method}
+                    onChange={e => setEditingItem({ ...editingItem, method: e.target.value })}
+                    className="w-full rounded-xl border border-slate-300 bg-slate-50 px-3 py-1.5 outline-none"
+                  >
+                    <option value="CASH">Наличные</option>
+                    <option value="BANK_TRANSFER">Банковский перевод</option>
+                    <option value="CARD">Карта</option>
+                  </select>
+                </div>
+              </div>
+
+              <div>
+                <label className="block font-bold text-slate-700 mb-1">Номер документа / Референс</label>
+                <input
+                  type="text"
+                  value={editingItem.reference}
+                  onChange={e => setEditingItem({ ...editingItem, reference: e.target.value })}
+                  className="w-full rounded-xl border border-slate-300 bg-slate-50 px-3 py-1.5 outline-none"
+                />
+              </div>
+
+              {editingItem.type === 'EXPENSE' && (
+                <div>
+                  <label className="block font-bold text-slate-700 mb-1">Категория расхода</label>
+                  <input
+                    type="text"
+                    value={editingItem.category}
+                    onChange={e => setEditingItem({ ...editingItem, category: e.target.value })}
+                    className="w-full rounded-xl border border-slate-300 bg-slate-50 px-3 py-1.5 outline-none"
+                  />
+                </div>
+              )}
+
+              <div>
+                <label className="block font-bold text-slate-700 mb-1">
+                  {editingItem.type === 'INCOME' ? 'Плательщик / Клиент' : 'Получатель / Контрагент'}
+                </label>
+                <input
+                  type="text"
+                  value={editingItem.type === 'INCOME' ? (editingItem.payer_name || '') : (editingItem.recipient || '')}
+                  onChange={e => {
+                    if (editingItem.type === 'INCOME') {
+                      setEditingItem({ ...editingItem, payer_name: e.target.value });
+                    } else {
+                      setEditingItem({ ...editingItem, recipient: e.target.value });
+                    }
+                  }}
+                  className="w-full rounded-xl border border-slate-300 bg-slate-50 px-3 py-1.5 outline-none"
+                />
+              </div>
+
+              <div>
+                <label className="block font-bold text-slate-700 mb-1">Примечание / Назначение</label>
+                <textarea
+                  rows="2"
+                  value={editingItem.comment}
+                  onChange={e => setEditingItem({ ...editingItem, comment: e.target.value, description: e.target.value })}
+                  className="w-full rounded-xl border border-slate-300 bg-slate-50 px-3 py-1.5 outline-none resize-none"
+                />
+              </div>
+
+              <div className="flex items-center justify-end gap-3 pt-3 border-t border-slate-100">
+                <button
+                  type="button"
+                  onClick={() => setEditingItem(null)}
+                  className="rounded-xl border border-slate-300 px-4 py-2 font-bold text-slate-600 hover:bg-slate-50 cursor-pointer"
+                >
+                  Отмена
+                </button>
+                <button
+                  type="submit"
+                  disabled={updateIncomeMutation.isPending || updateExpenseMutation.isPending}
+                  className="flex items-center gap-1.5 rounded-xl bg-blue-600 px-5 py-2 font-bold text-white shadow-md hover:bg-blue-700 cursor-pointer disabled:opacity-50"
+                >
+                  <Save className="h-4 w-4" />
+                  <span>Сохранить</span>
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
 
       {/* Manual Conversion Modal */}
       {showConvertModal && (

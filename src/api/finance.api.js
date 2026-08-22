@@ -11,6 +11,16 @@ export const financeApi = {
     return res?.data || res;
   },
 
+  updateIncome: async ({ id, ...data }) => {
+    const res = await api.put(`/finance/income/${id}`, data);
+    return res?.data || res;
+  },
+
+  deleteIncome: async (id) => {
+    const res = await api.delete(`/finance/income/${id}`);
+    return res?.data || res;
+  },
+
   getExpenses: async (filters = {}) => {
     const res = await api.get('/finance/expenses', { params: filters });
     return res?.data || res;
@@ -18,6 +28,16 @@ export const financeApi = {
 
   addExpense: async (expenseData) => {
     const res = await api.post('/finance/expenses', expenseData);
+    return res?.data || res;
+  },
+
+  updateExpense: async ({ id, ...data }) => {
+    const res = await api.put(`/finance/expenses/${id}`, data);
+    return res?.data || res;
+  },
+
+  deleteExpense: async (id) => {
+    const res = await api.delete(`/finance/expenses/${id}`);
     return res?.data || res;
   },
 
