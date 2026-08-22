@@ -323,9 +323,16 @@ export const ExpensesPage = () => {
                       <span className="h-2.5 w-2.5 rounded-full" style={{ backgroundColor: COLORS[idx % COLORS.length] }} />
                       <span className="font-bold text-slate-800">{cat.name}</span>
                     </div>
-                    <span className="font-black text-rose-700">
-                      {cat.amount.toLocaleString()} {expensesData.chartCurrency || 'USD'}
-                    </span>
+                    <div className="text-right">
+                      <span className="font-black text-rose-700">
+                        {cat.amount.toLocaleString()} {expensesData.chartCurrency || 'USD'}
+                      </span>
+                      {currency === 'ALL' && cat.breakdown?.TJS && (
+                        <div className="text-[10px] text-slate-400 font-medium">
+                          {cat.breakdown.TJS.toLocaleString()} TJS
+                        </div>
+                      )}
+                    </div>
                   </div>
                 ))
               ) : (
