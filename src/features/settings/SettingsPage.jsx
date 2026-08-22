@@ -5,6 +5,7 @@ import { useAuth } from '../auth/AuthContext';
 import { CreateProjectModal } from '../projects/CreateProjectModal';
 import { BatchGeneratorModal } from '../projects/tabs/BatchGeneratorModal';
 import { DictionariesTab } from './DictionariesTab';
+import { ALL_PERMISSIONS } from '../../utils/permissions';
 import {
   Settings,
   Building2,
@@ -16,13 +17,15 @@ import {
   Layers,
   ChevronRight,
   Shield,
+  ShieldCheck,
   CheckCircle2,
   ExternalLink,
   MapPin,
   Briefcase,
   Trash2,
   BookOpen,
-  Loader2
+  Loader2,
+  KeyRound
 } from 'lucide-react';
 
 export const SettingsPage = () => {
@@ -376,21 +379,23 @@ export const SettingsPage = () => {
                   <th className="p-3 pl-4">Имя</th>
                   <th className="p-3">Email</th>
                   <th className="p-3">Роль</th>
+                  <th className="p-3">Активные доступы</th>
                   <th className="p-3">Статус</th>
                   <th className="p-3">Дата регистрации</th>
+                  <th className="p-3 text-right pr-4">Действие</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">
                 {isUsersLoading ? (
                   <tr>
-                    <td colSpan={5} className="p-8 text-center text-slate-400">
+                    <td colSpan={7} className="p-8 text-center text-slate-400">
                       <Loader2 className="h-6 w-6 animate-spin mx-auto text-blue-600 mb-2" />
                       Загрузка пользователей...
                     </td>
                   </tr>
                 ) : usersList.length === 0 ? (
                   <tr>
-                    <td colSpan={5} className="p-8 text-center text-slate-400">
+                    <td colSpan={7} className="p-8 text-center text-slate-400">
                       Пользователи не найдены
                     </td>
                   </tr>
@@ -400,6 +405,9 @@ export const SettingsPage = () => {
                     const formattedDate = u.created_at
                       ? new Date(u.created_at).toLocaleDateString('ru-RU')
                       : '—';
+                    const userPerms = Array.isArray(u.permissions) ? u.permissions : [];
+                    const isFullAdmin = u.role === 'ADMIN' || userPerms.includes('*');
+                    const countPerms = isFullAdmin ? ALL_PERMISSIONS.length : userPerms.length;
 
                     return (
                       <tr key={u.id} className="hover:bg-slate-50 transition">
@@ -416,12 +424,33 @@ export const SettingsPage = () => {
                           </span>
                         </td>
                         <td className="p-3">
+                          {isFullAdmin ? (
+                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-emerald-50 text-emerald-700 border border-emerald-200 text-[10px] font-bold">
+                              <ShieldCheck className="h-3 w-3" />
+                              <span>Полный доступ</span>
+                            </span>
+                          ) : (
+                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-blue-50 text-blue-700 border border-blue-100 text-[10px] font-semibold">
+                              <KeyRound className="h-3 w-3 text-blue-500" />
+                              <span>{countPerms} из {ALL_PERMISSIONS.length} функций</span>
+                            </span>
+                          )}
+                        </td>
+                        <td className="p-3">
                           <span className="inline-flex items-center gap-1 text-emerald-600 font-bold">
                             <CheckCircle2 className="h-3.5 w-3.5 text-emerald-500" />
                             <span>{u.is_active ? 'Активен' : 'Отключен'}</span>
                           </span>
                         </td>
                         <td className="p-3 text-slate-500">{formattedDate}</td>
+                        <td className="p-3 text-right pr-4">
+                          <button
+                            onClick={() => navigate('/users')}
+                            className="px-2.5 py-1 rounded-lg bg-blue-50 text-blue-700 hover:bg-blue-100 text-[11px] font-bold transition cursor-pointer"
+                          >
+                            Настроить права →
+                          </button>
+                        </td>
                       </tr>
                     );
                   })

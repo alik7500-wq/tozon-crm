@@ -37,6 +37,8 @@ import {
   Table
 } from 'lucide-react';
 
+import { hasPermission, hasAnyPermission } from '../utils/permissions';
+
 export const MainLayout = () => {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
@@ -86,18 +88,18 @@ export const MainLayout = () => {
 
   const navGroups = [
     { type: 'link', label: 'Обзор', path: '/', icon: LayoutDashboard },
-    { type: 'link', label: 'Задачи', path: '/tasks', icon: CheckSquare },
+    { type: 'link', label: 'Задачи', path: '/tasks', icon: CheckSquare, permission: 'tasks.manage' },
     {
       type: 'group',
       id: 'crm',
       label: 'CRM',
       icon: Users,
       children: [
-        { label: 'Лиды', path: '/leads', icon: UserPlus },
-        { label: 'Сделки', path: '/deals', icon: FileCheck },
-        { label: 'Клиенты', path: '/clients', icon: Users },
-        { label: 'SMS-оповещения', path: '/crm/sms-notifications', icon: Smartphone },
-        { label: 'SMS шаблоны', path: '/crm/sms-templates', icon: MessageSquare },
+        { label: 'Лиды', path: '/leads', icon: UserPlus, permission: 'leads.view' },
+        { label: 'Сделки', path: '/deals', icon: FileCheck, permission: 'deals.view' },
+        { label: 'Клиенты', path: '/clients', icon: Users, permission: 'leads.view' },
+        { label: 'SMS-оповещения', path: '/crm/sms-notifications', icon: Smartphone, permission: 'automation.manage' },
+        { label: 'SMS шаблоны', path: '/crm/sms-templates', icon: MessageSquare, permission: 'automation.manage' },
       ],
     },
     {
@@ -106,8 +108,8 @@ export const MainLayout = () => {
       label: 'Проекты',
       icon: Building2,
       children: [
-        { label: 'Объекты ЖК', path: '/projects', icon: Building2 },
-        { label: 'Квартиры', path: '/apartments', icon: Home },
+        { label: 'Объекты ЖК', path: '/projects', icon: Building2, permission: 'inventory.view' },
+        { label: 'Квартиры', path: '/apartments', icon: Home, permission: 'inventory.view' },
       ],
     },
     {
@@ -116,10 +118,10 @@ export const MainLayout = () => {
       label: 'Аналитика',
       icon: BarChart3,
       children: [
-        { label: 'Сводные отчеты', path: '/reports', icon: BarChart3 },
-        { label: 'Аналитика 1.0', path: '/analytics/1', icon: PieChart },
-        { label: 'Аналитика 2.0', path: '/analytics/2', icon: TrendingUp },
-        { label: 'Аналитика 3.0', path: '/analytics/3', icon: Target },
+        { label: 'Сводные отчеты', path: '/reports', icon: BarChart3, permission: 'analytics.reports' },
+        { label: 'Аналитика 1.0', path: '/analytics/1', icon: PieChart, permission: 'analytics.view' },
+        { label: 'Аналитика 2.0', path: '/analytics/2', icon: TrendingUp, permission: 'analytics.view' },
+        { label: 'Аналитика 3.0', path: '/analytics/3', icon: Target, permission: 'analytics.view' },
       ],
     },
     {
@@ -128,23 +130,41 @@ export const MainLayout = () => {
       label: 'Финансы',
       icon: CreditCard,
       children: [
-        { label: 'Приём платежей', path: '/payments', icon: CreditCard },
-        { label: 'План-Факт по клиентам', path: '/payments/plan-fact', icon: Table },
-        { label: 'Календарь платежей', path: '/finance/calendar', icon: Calendar },
-        { label: 'Реестр должников', path: '/finance/debtors', icon: AlertCircle },
-        { label: 'Доходы (ПКО)', path: '/finance/income', icon: TrendingUp },
-        { label: 'Расходы (РКО)', path: '/finance/expenses', icon: TrendingDown },
-        { label: 'ДДС (Движение средств)', path: '/finance/cashflow', icon: Wallet },
+        { label: 'Приём платежей', path: '/payments', icon: CreditCard, permission: 'finance.payments' },
+        { label: 'План-Факт по клиентам', path: '/payments/plan-fact', icon: Table, permission: 'finance.view' },
+        { label: 'Календарь платежей', path: '/finance/calendar', icon: Calendar, permission: 'finance.view' },
+        { label: 'Реестр должников', path: '/finance/debtors', icon: AlertCircle, permission: 'finance.debtors' },
+        { label: 'Доходы (ПКО)', path: '/finance/income', icon: TrendingUp, permission: 'finance.payments' },
+        { label: 'Расходы (РКО)', path: '/finance/expenses', icon: TrendingDown, permission: 'finance.expenses' },
+        { label: 'ДДС (Движение средств)', path: '/finance/cashflow', icon: Wallet, permission: 'finance.cashflow' },
       ],
     },
-    { type: 'link', label: 'Автоматизация', path: '/automation', icon: Zap },
+    { type: 'link', label: 'Автоматизация', path: '/automation', icon: Zap, permission: 'automation.manage' },
     { type: 'link', label: 'Уведомления', path: '/notifications', icon: Bell },
+    { type: 'link', label: 'Пользователи', path: '/users', icon: Users, permission: 'users.manage' },
+    { type: 'link', label: 'Настройки', path: '/settings', icon: Settings, permission: 'settings.manage' },
   ];
 
-  if (user?.role === 'ADMIN') {
-    navGroups.push({ type: 'link', label: 'Пользователи', path: '/users', icon: Users });
-    navGroups.push({ type: 'link', label: 'Настройки', path: '/settings', icon: Settings });
-  }
+  const filteredNavGroups = navGroups
+    .map((item) => {
+      if (item.type === 'link') {
+        if (item.permission && !hasPermission(user, item.permission)) {
+          return null;
+        }
+        return item;
+      }
+      if (item.type === 'group') {
+        const allowedChildren = item.children.filter(
+          (child) => !child.permission || hasPermission(user, child.permission)
+        );
+        if (allowedChildren.length === 0) {
+          return null;
+        }
+        return { ...item, children: allowedChildren };
+      }
+      return item;
+    })
+    .filter(Boolean);
 
   return (
     <div className="flex h-screen w-screen overflow-hidden bg-slate-50 text-slate-900">
@@ -177,7 +197,7 @@ export const MainLayout = () => {
 
         {/* Navigation links */}
         <nav className="flex-1 space-y-1 p-3 overflow-y-auto">
-          {navGroups.map((item) => {
+          {filteredNavGroups.map((item) => {
             if (item.type === 'link') {
               const Icon = item.icon;
               return (
