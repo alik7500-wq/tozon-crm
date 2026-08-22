@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { api } from '../../api/client';
+import { dictionariesApi } from '../../api/dictionaries.api';
 import {
   X,
   User,
@@ -16,6 +17,7 @@ import {
 
 export const CreateLeadModal = ({ isOpen, onClose, onCreated, leadToEdit = null, projects = [] }) => {
   const [activeTab, setActiveTab] = useState('main'); // 'main', 'preferences', 'passport'
+  const [leadSources, setLeadSources] = useState([]);
 
   const [formData, setFormData] = useState({
     full_name: '',
@@ -37,6 +39,16 @@ export const CreateLeadModal = ({ isOpen, onClose, onCreated, leadToEdit = null,
 
   const [error, setError] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  useEffect(() => {
+    dictionariesApi.getItems('LEAD_SOURCE')
+      .then(items => {
+        if (items && items.length > 0) {
+          setLeadSources(items);
+        }
+      })
+      .catch(() => {});
+  }, []);
 
   useEffect(() => {
     if (leadToEdit) {
@@ -237,18 +249,28 @@ export const CreateLeadModal = ({ isOpen, onClose, onCreated, leadToEdit = null,
                     name="source"
                     value={formData.source}
                     onChange={handleChange}
-                    className="w-full rounded-xl border border-slate-300 bg-slate-50 px-3.5 py-2 text-sm outline-none focus:border-blue-500 focus:bg-white"
+                    className="w-full rounded-xl border border-slate-300 bg-slate-50 px-3.5 py-2 text-sm outline-none focus:border-blue-500 focus:bg-white cursor-pointer"
                   >
-                    <option value="DIRECT">Прямой визит в офис</option>
-                    <option value="PHONE">Телефонный звонок</option>
-                    <option value="WEBSITE">Заявка с сайта</option>
-                    <option value="INSTAGRAM">Instagram</option>
-                    <option value="TELEGRAM">Telegram</option>
-                    <option value="WHATSAPP">WhatsApp</option>
-                    <option value="FACEBOOK">Facebook Lead Ads</option>
-                    <option value="RECOMMENDATION">Рекомендация</option>
-                    <option value="OUTDOOR">Наружная реклама / Баннер</option>
-                    <option value="OTHER">Другой источник</option>
+                    {leadSources.length > 0 ? (
+                      leadSources.map(s => (
+                        <option key={s.id || s.code || s.name} value={s.code || s.name}>
+                          {s.name}
+                        </option>
+                      ))
+                    ) : (
+                      <>
+                        <option value="DIRECT">Прямой визит в офис</option>
+                        <option value="PHONE">Телефонный звонок</option>
+                        <option value="WEBSITE">Заявка с сайта</option>
+                        <option value="INSTAGRAM">Instagram</option>
+                        <option value="TELEGRAM">Telegram</option>
+                        <option value="WHATSAPP">WhatsApp</option>
+                        <option value="FACEBOOK">Facebook Lead Ads</option>
+                        <option value="RECOMMENDATION">Рекомендация</option>
+                        <option value="OUTDOOR">Наружная реклама / Баннер</option>
+                        <option value="OTHER">Другой источник</option>
+                      </>
+                    )}
                   </select>
                 </div>
 

@@ -4,6 +4,7 @@ import { api } from '../../api/client';
 import { useAuth } from '../auth/AuthContext';
 import { CreateProjectModal } from '../projects/CreateProjectModal';
 import { BatchGeneratorModal } from '../projects/tabs/BatchGeneratorModal';
+import { DictionariesTab } from './DictionariesTab';
 import {
   Settings,
   Building2,
@@ -19,7 +20,8 @@ import {
   ExternalLink,
   MapPin,
   Briefcase,
-  Trash2
+  Trash2,
+  BookOpen
 } from 'lucide-react';
 
 export const SettingsPage = () => {
@@ -161,6 +163,18 @@ export const SettingsPage = () => {
         </button>
 
         <button
+          onClick={() => setActiveTab('dictionaries')}
+          className={`flex items-center gap-2 border-b-2 px-4 py-3 text-xs font-bold transition cursor-pointer ${
+            activeTab === 'dictionaries'
+              ? 'border-blue-600 text-blue-600'
+              : 'border-transparent text-slate-500 hover:text-slate-900'
+          }`}
+        >
+          <BookOpen className="h-4 w-4" />
+          <span>Справочники системы</span>
+        </button>
+
+        <button
           onClick={() => setActiveTab('backups')}
           className={`flex items-center gap-2 border-b-2 px-4 py-3 text-xs font-bold transition cursor-pointer ${
             activeTab === 'backups'
@@ -172,6 +186,9 @@ export const SettingsPage = () => {
           <span>Резервные копии</span>
         </button>
       </div>
+
+      {/* TAB: DICTIONARIES */}
+      {activeTab === 'dictionaries' && <DictionariesTab />}
 
       {/* TAB 1: PROJECTS & STRUCTURE */}
       {activeTab === 'projects' && (

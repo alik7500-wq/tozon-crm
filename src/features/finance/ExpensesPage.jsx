@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { financeApi } from '../../api/finance.api';
+import { dictionariesApi } from '../../api/dictionaries.api';
 import { FinanceTabs } from '../../components/FinanceTabs';
 import { useAuth } from '../auth/AuthContext';
 import { 
@@ -27,6 +28,16 @@ export const ExpensesPage = () => {
 
   const queryClient = useQueryClient();
 
+  const { data: expenseCategories = [] } = useQuery({
+    queryKey: ['dictionaries', 'EXPENSE_CATEGORY'],
+    queryFn: () => dictionariesApi.getItems('EXPENSE_CATEGORY')
+  });
+
+  const { data: paymentMethods = [] } = useQuery({
+    queryKey: ['dictionaries', 'PAYMENT_METHOD'],
+    queryFn: () => dictionariesApi.getItems('PAYMENT_METHOD')
+  });
+
   const { data: eskhataRateData } = useQuery({
     queryKey: ['eskhata-rate'],
     queryFn: financeApi.getEskhataRate,
@@ -48,6 +59,12 @@ export const ExpensesPage = () => {
     exchange_rate: '9.27',
     source_currency: 'USD'
   });
+
+  useEffect(() => {
+    if (expenseCategories.length > 0 && !formData.category) {
+      setFormData(prev => ({ ...prev, category: expenseCategories[0].name }));
+    }
+  }, [expenseCategories]);
 
   useEffect(() => {
     if (eskhataRateData?.sellRate) {
@@ -230,13 +247,9 @@ export const ExpensesPage = () => {
             className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs font-bold text-slate-700 outline-none cursor-pointer"
           >
             <option value="ALL">Все категории</option>
-            <option value="Строительные материалы">Строительные материалы</option>
-            <option value="Зарплата">Зарплата</option>
-            <option value="Маркетинг и реклама">Маркетинг и реклама</option>
-            <option value="Аренда и офис">Аренда и офис</option>
-            <option value="Налоги и сборы">Налоги и сборы</option>
-            <option value="Хозяйственные нужды">Хозяйственные нужды</option>
-            <option value="Прочее">Прочее</option>
+            {expenseCategories.map(cat => (
+              <option key={cat.id || cat.name} value={cat.name}>{cat.name}</option>
+            ))}
           </select>
 
           <div className="flex items-center gap-1.5 bg-slate-50 p-1 rounded-2xl border border-slate-200">
@@ -648,13 +661,9 @@ export const ExpensesPage = () => {
                     onChange={e => setFormData({ ...formData, category: e.target.value })}
                     className="w-full rounded-xl border border-slate-300 bg-slate-50 px-3 py-1.5 text-xs font-bold text-slate-800 outline-none focus:border-rose-500 cursor-pointer"
                   >
-                    <option value="Строительные материалы">Строительные материалы</option>
-                    <option value="Зарплата">Зарплата сотрудникам / строителям</option>
-                    <option value="Маркетинг и реклама">Маркетинг и реклама</option>
-                    <option value="Аренда и офис">Аренда и содержание офиса</option>
-                    <option value="Налоги и сборы">Налоги, сборы и лицензии</option>
-                    <option value="Хозяйственные нужды">Хозяйственные нужды</option>
-                    <option value="Прочее">Прочие расходы</option>
+                    {expenseCategories.map(cat => (
+                      <option key={cat.id || cat.name} value={cat.name}>{cat.name}</option>
+                    ))}
                   </select>
                 </div>
 
@@ -714,10 +723,11 @@ export const ExpensesPage = () => {
                         onChange={e => setFormData({ ...formData, method: e.target.value })}
                         className="w-full rounded-xl border border-slate-300 bg-slate-50 px-2 py-1.5 text-xs font-medium outline-none focus:border-rose-500 cursor-pointer"
                       >
-                        <option value="CASH">💵 Наличные</option>
-                        <option value="BANK_TRANSFER">🏦 Банк (Безнал)</option>
-                        <option value="CARD">💳 Карта</option>
-                        <option value="OTHER">📁 Прочее</option>
+                        {paymentMethods.map(m => (
+                          <option key={m.id || m.code || m.name} value={m.code || m.name}>
+                            {m.name}
+                          </option>
+                        ))}
                       </select>
                     </div>
                   </div>

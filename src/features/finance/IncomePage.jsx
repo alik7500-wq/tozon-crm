@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { financeApi } from '../../api/finance.api';
+import { dictionariesApi } from '../../api/dictionaries.api';
 import { FinanceTabs } from '../../components/FinanceTabs';
 import { useAuth } from '../auth/AuthContext';
 import { 
@@ -25,6 +26,16 @@ export const IncomePage = () => {
   const [dealsList, setDealsList] = useState([]);
 
   const queryClient = useQueryClient();
+
+  const { data: paymentMethods = [] } = useQuery({
+    queryKey: ['dictionaries', 'PAYMENT_METHOD'],
+    queryFn: () => dictionariesApi.getItems('PAYMENT_METHOD')
+  });
+
+  const { data: incomeCategories = [] } = useQuery({
+    queryKey: ['dictionaries', 'INCOME_CATEGORY'],
+    queryFn: () => dictionariesApi.getItems('INCOME_CATEGORY')
+  });
 
   const [formData, setFormData] = useState({
     deal_id: '',
@@ -580,10 +591,11 @@ export const IncomePage = () => {
                     onChange={e => setFormData({ ...formData, method: e.target.value })}
                     className="w-full rounded-xl border border-slate-300 bg-slate-50 px-2.5 py-1.5 text-xs font-medium outline-none focus:border-emerald-500 cursor-pointer"
                   >
-                    <option value="CASH">💵 Наличные в кассу</option>
-                    <option value="BANK_TRANSFER">🏦 Банковский перевод</option>
-                    <option value="CARD">💳 Банковская карта</option>
-                    <option value="OTHER">📁 Прочее / Эл. кошелек</option>
+                    {paymentMethods.map(m => (
+                      <option key={m.id || m.code || m.name} value={m.code || m.name}>
+                        {m.name}
+                      </option>
+                    ))}
                   </select>
                 </div>
 
