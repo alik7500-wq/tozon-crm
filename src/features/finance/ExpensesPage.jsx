@@ -60,6 +60,9 @@ export const ExpensesPage = () => {
   const expensesData = response || { list: [], totalsByCurrency: {}, availableCurrencies: ['USD', 'TJS'], categoriesChart: [] };
   const totals = expensesData.totalsByCurrency || {};
   const list = expensesData.list || [];
+  const availableYears = expensesData.availableYears && expensesData.availableYears.length > 0
+    ? expensesData.availableYears
+    : [year - 1, year, year + 1, year + 2];
 
   const handleSubmit = (e) => {
     e.preventDefault();
@@ -187,15 +190,22 @@ export const ExpensesPage = () => {
             <option value="Прочее">Прочее</option>
           </select>
 
-          <select
-            value={year}
-            onChange={(e) => setYear(Number(e.target.value))}
-            className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs font-bold text-slate-700 outline-none cursor-pointer"
-          >
-            {[2024, 2025, 2026, 2027].map(y => (
-              <option key={y} value={y}>{y} год</option>
+          <div className="flex items-center gap-1.5 bg-slate-50 p-1 rounded-2xl border border-slate-200">
+            <span className="text-[11px] font-bold text-slate-500 px-2">Год:</span>
+            {availableYears.map(y => (
+              <button
+                key={y}
+                onClick={() => setYear(y)}
+                className={`px-3 py-1 rounded-xl text-xs font-bold transition cursor-pointer ${
+                  year === y
+                    ? 'bg-rose-600 text-white shadow-xs'
+                    : 'text-slate-600 hover:bg-slate-200/70'
+                }`}
+              >
+                {y}
+              </button>
             ))}
-          </select>
+          </div>
 
           <div className="relative min-w-[200px]">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-slate-400" />

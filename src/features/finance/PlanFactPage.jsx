@@ -51,6 +51,9 @@ export const PlanFactPage = () => {
   const rows = reportData.rows || [];
   const summary = reportData.summary || { grandTotalContract: 0, grandTotalPaid: 0, grandTotalDebt: 0, monthTotals: [] };
   const monthsHeader = reportData.monthsHeader || [];
+  const availableYears = reportData.availableYears && reportData.availableYears.length > 0
+    ? reportData.availableYears
+    : [year - 1, year, year + 1, year + 2];
 
   // Pagination
   const totalPages = Math.ceil(rows.length / pageSize) || 1;
@@ -208,9 +211,9 @@ export const PlanFactPage = () => {
             />
           </div>
 
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 flex-wrap">
             <span className="text-xs font-bold text-slate-500">Год:</span>
-            {[2024, 2025, 2026, 2027].map(y => (
+            {availableYears.map(y => (
               <button
                 key={y}
                 onClick={() => { setYear(y); setCurrentPage(1); }}
