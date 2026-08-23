@@ -4,6 +4,8 @@ import { useAuth } from '../auth/AuthContext';
 import { DealWizardModal } from '../deals/DealWizardModal';
 import { ContractPrintView } from '../deals/ContractPrintView';
 import { PaymentRecordModal } from '../deals/PaymentRecordModal';
+import { ReserveApartmentModal } from './ReserveApartmentModal';
+import { ExtendReservationModal } from './ExtendReservationModal';
 import { useModalDismiss } from '../../hooks/useModalDismiss';
 import { formatContractNumber } from '../../utils/formatters';
 import {
@@ -28,7 +30,10 @@ import {
   Image as ImageIcon,
   Layers,
   MapPin,
-  ShieldCheck
+  ShieldCheck,
+  CalendarPlus,
+  XCircle,
+  FileCheck2
 } from 'lucide-react';
 
 export const ApartmentDetailModal = ({
@@ -46,6 +51,8 @@ export const ApartmentDetailModal = ({
 
   // Modals
   const [isDealWizardOpen, setIsDealWizardOpen] = useState(false);
+  const [isReserveModalOpen, setIsReserveModalOpen] = useState(false);
+  const [isExtendModalOpen, setIsExtendModalOpen] = useState(false);
   const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false);
   const [isPrintModalOpen, setIsPrintModalOpen] = useState(false);
 
@@ -113,11 +120,50 @@ export const ApartmentDetailModal = ({
   const schedules = activeDeal?.deal_payment_schedules || activeDeal?.schedules || [];
   const payments = activeDeal?.payments || [];
 
-  const buildingName = unit?.floors?.sections?.buildings?.name || unit?.building_name || 'Корпус 1';
-  const sectionName = unit?.floors?.sections?.name || unit?.section_name || 'Секция 1';
-  const floorNumber = unit?.floors?.floor_number || unit?.floor_number || 1;
-  const projectName = unit?.floors?.sections?.buildings?.projects?.name || unit?.project_name || 'Жилой Комплекс';
-  const projectCurrency = unit?.floors?.sections?.buildings?.projects?.currency || currency;
+  const isReserved = unit?.status === 'RESERVED' || activeDeal?.status === 'RESERVED';
+  const isSold = unit?.status === 'SOLD' || activeDeal?.status === 'SIGNED';
+
+  const handleSignReservation = async () => {
+    if (!activeDeal) return;
+    if (!window.confirm(`Подтвердить подписание договора купли-продажи по квартире №${unit.unit_number}? Статус квартиры изменится на «Продана».`)) return;
+    setIsUpdatingStatus(true);
+    try {
+      await api.post(`/deals/${activeDeal.id}/sign`);
+      fetchUnit();
+      if (onUnitUpdated) onUnitUpdated();
+    } catch (err) {
+      alert(err.message || 'Ошибка подписания сделки');
+    } finally {
+      setIsUpdatingStatus(false);
+    }
+  };
+
+  const handleCancelReservation = async () => {
+    if (!activeDeal) return;
+    const reason = window.prompt('Укажите причину снятия брони:', 'Отказ клиента / истек срок брони');
+    if (reason === null) return;
+    setIsUpdatingStatus(true);
+    try {
+      await api.post(`/deals/${activeDeal.id}/cancel`, { reason });
+      fetchUnit();
+      if (onUnitUpdated) onUnitUpdated();
+    } catch (err) {
+      alert(err.message || 'Ошибка снятия брони');
+    } finally {
+      setIsUpdatingStatus(false);
+    }
+  };
+
+  const getDaysLeft = (expDate) => {
+    if (!expDate) return null;
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const exp = new Date(expDate);
+    exp.setHours(0, 0, 0, 0);
+    return Math.ceil((exp - today) / (1000 * 60 * 60 * 24));
+  };
+
+  const daysLeft = activeDeal?.reservation_expires_at ? getDaysLeft(activeDeal.reservation_expires_at) : null;
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-xs animate-in fade-in overflow-y-auto">
@@ -125,7 +171,13 @@ export const ApartmentDetailModal = ({
         {/* Modal Header */}
         <div className="flex items-start justify-between border-b border-slate-100 pb-4">
           <div className="flex items-center gap-3">
-            <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-gradient-to-tr from-blue-600 to-indigo-600 text-white shadow-md shadow-blue-500/20">
+            <div className={`flex h-12 w-12 items-center justify-center rounded-2xl text-white shadow-md ${
+              isReserved
+                ? 'bg-gradient-to-tr from-amber-500 to-orange-600 shadow-amber-500/20'
+                : isSold
+                ? 'bg-gradient-to-tr from-rose-600 to-red-600 shadow-rose-500/20'
+                : 'bg-gradient-to-tr from-blue-600 to-indigo-600 shadow-blue-500/20'
+            }`}>
               <Home className="h-6 w-6" />
             </div>
             <div>
@@ -180,7 +232,7 @@ export const ApartmentDetailModal = ({
                 </div>
               </div>
 
-              {activeDeal ? (
+              {isSold && activeDeal ? (
                 <>
                   <div className="rounded-2xl bg-slate-50 p-3.5 border border-slate-200/80">
                     <span className="text-[10px] font-bold uppercase text-slate-400 block">
@@ -202,6 +254,26 @@ export const ApartmentDetailModal = ({
                           Ост: {(activeDeal.remaining_debt_minor / 100).toLocaleString()} {projectCurrency}
                         </span>
                       </span>
+                    </div>
+                  </div>
+                </>
+              ) : isReserved && activeDeal ? (
+                <>
+                  <div className="rounded-2xl bg-amber-50/60 p-3.5 border border-amber-200/80">
+                    <span className="text-[10px] font-bold uppercase text-amber-700 block">
+                      Зафиксированная цена
+                    </span>
+                    <div className="text-base font-black text-amber-950 mt-0.5">
+                      {(activeDeal.final_price_minor / 100).toLocaleString()} {projectCurrency}
+                    </div>
+                  </div>
+
+                  <div className="rounded-2xl bg-amber-50/60 p-3.5 border border-amber-200/80">
+                    <span className="text-[10px] font-bold uppercase text-amber-700 block">
+                      Срок брони
+                    </span>
+                    <div className="text-xs font-black text-amber-900 mt-1">
+                      {activeDeal.reservation_expires_at ? new Date(activeDeal.reservation_expires_at).toLocaleDateString('ru-RU') : '—'}
                     </div>
                   </div>
                 </>
@@ -238,8 +310,126 @@ export const ApartmentDetailModal = ({
               </div>
             )}
 
-            {/* Active Deal & Buyer Information Section */}
-            {activeDeal ? (
+            {/* SECTION 1: IF UNIT IS RESERVED (🟠 БРОНЬ) */}
+            {isReserved && activeDeal && (
+              <div className="rounded-2xl border border-amber-300 bg-gradient-to-b from-amber-50/80 to-amber-50/30 p-5 space-y-4 shadow-sm">
+                <div className="flex flex-wrap items-center justify-between gap-3 border-b border-amber-200 pb-3">
+                  <div className="flex items-center gap-2">
+                    <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-amber-500 text-white shadow-xs">
+                      <Clock className="h-4 w-4" />
+                    </div>
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <span className="text-sm font-black text-amber-950 font-mono">
+                          Бронь №{formatContractNumber(activeDeal.contract_number)}
+                        </span>
+                        <span className="text-[10px] font-extrabold uppercase px-2 py-0.5 rounded-md bg-amber-500 text-white">
+                          В брони
+                        </span>
+                      </div>
+                      <span className="text-xs text-amber-800 font-medium">
+                        Квартира зарезервирована и защищена от продажи
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Countdown Badge */}
+                  {daysLeft !== null && (
+                    <div>
+                      {daysLeft < 0 ? (
+                        <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-xl bg-rose-100 border border-rose-300 text-rose-800 text-xs font-black">
+                          <AlertCircle className="h-3.5 w-3.5 text-rose-600" />
+                          <span>Просрочена на {Math.abs(daysLeft)} дн.</span>
+                        </span>
+                      ) : daysLeft === 0 ? (
+                        <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-xl bg-amber-200 border border-amber-400 text-amber-900 text-xs font-black animate-pulse">
+                          <Clock className="h-3.5 w-3.5 text-amber-700" />
+                          <span>Истекает сегодня!</span>
+                        </span>
+                      ) : (
+                        <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-xl bg-amber-100 border border-amber-300 text-amber-800 text-xs font-bold">
+                          <Clock className="h-3.5 w-3.5 text-amber-600" />
+                          <span>Осталось {daysLeft} дн. (до {new Date(activeDeal.reservation_expires_at).toLocaleDateString('ru-RU')})</span>
+                        </span>
+                      )}
+                    </div>
+                  )}
+                </div>
+
+                {/* Reservation Client Info */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
+                  <div>
+                    <span className="text-amber-700/80 block font-semibold">Покупатель (ФИО):</span>
+                    <span className="font-extrabold text-slate-900 text-sm flex items-center gap-1.5 mt-0.5">
+                      <User className="h-4 w-4 text-amber-600" />
+                      {activeDeal.lead_name || 'Не указан'}
+                    </span>
+                  </div>
+
+                  <div>
+                    <span className="text-amber-700/80 block font-semibold">Номер телефона:</span>
+                    <span className="font-bold text-blue-700 text-sm flex items-center gap-1.5 mt-0.5">
+                      <Phone className="h-4 w-4 text-blue-500" />
+                      {activeDeal.lead_phone ? (
+                        <a href={`tel:${activeDeal.lead_phone}`} className="hover:underline">
+                          {activeDeal.lead_phone}
+                        </a>
+                      ) : (
+                        'Не указан'
+                      )}
+                    </span>
+                  </div>
+
+                  <div>
+                    <span className="text-amber-700/80 block font-semibold">Зафиксированная стоимость:</span>
+                    <span className="font-bold text-slate-900 mt-0.5 block">
+                      {(activeDeal.final_price_minor / 100).toLocaleString()} {projectCurrency}
+                    </span>
+                  </div>
+
+                  <div>
+                    <span className="text-amber-700/80 block font-semibold">Внесенный залог / задаток:</span>
+                    <span className="font-bold text-slate-900 mt-0.5 block">
+                      {activeDeal.down_payment_minor > 0
+                        ? `${(activeDeal.down_payment_minor / 100).toLocaleString()} ${projectCurrency}`
+                        : 'Без залога'}
+                    </span>
+                  </div>
+                </div>
+
+                {/* Actions for Reserved Unit */}
+                <div className="flex flex-wrap items-center justify-end gap-2.5 pt-3 border-t border-amber-200">
+                  <button
+                    onClick={handleCancelReservation}
+                    disabled={isUpdatingStatus}
+                    className="inline-flex items-center gap-1.5 rounded-xl border border-rose-200 bg-white hover:bg-rose-50 text-rose-700 px-3.5 py-2 text-xs font-bold transition shadow-2xs cursor-pointer disabled:opacity-60"
+                  >
+                    <XCircle className="h-3.5 w-3.5 text-rose-500" />
+                    <span>Снять бронь</span>
+                  </button>
+
+                  <button
+                    onClick={() => setIsExtendModalOpen(true)}
+                    className="inline-flex items-center gap-1.5 rounded-xl border border-amber-300 bg-white hover:bg-amber-100/50 text-amber-800 px-3.5 py-2 text-xs font-bold transition shadow-2xs cursor-pointer"
+                  >
+                    <CalendarPlus className="h-3.5 w-3.5 text-amber-600" />
+                    <span>Продлить срок</span>
+                  </button>
+
+                  <button
+                    onClick={handleSignReservation}
+                    disabled={isUpdatingStatus}
+                    className="inline-flex items-center gap-1.5 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white px-4 py-2 text-xs font-bold transition shadow-md shadow-emerald-600/20 cursor-pointer disabled:opacity-60"
+                  >
+                    <FileCheck2 className="h-3.5 w-3.5" />
+                    <span>Оформить продажу (подписать договор)</span>
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {/* SECTION 2: IF UNIT IS SOLD (🔴 ПРОДАНА) */}
+            {isSold && activeDeal && (
               <div className="space-y-4">
                 <div className="rounded-2xl border border-blue-200 bg-blue-50/40 p-5 space-y-4 shadow-2xs">
                   <div className="flex flex-wrap items-center justify-between gap-3 border-b border-blue-100 pb-3">
@@ -397,27 +587,45 @@ export const ApartmentDetailModal = ({
                   )}
                 </div>
               </div>
-            ) : (
-              /* If unit is AVAILABLE */
+            )}
+
+            {/* SECTION 3: IF UNIT IS AVAILABLE (🟢 СВОБОДНА) OR BLOCKED (⚪) */}
+            {!isReserved && !isSold && (
               <div className="rounded-2xl border border-slate-200 bg-slate-50/50 p-6 text-center space-y-4">
                 <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-emerald-50 text-emerald-600 mx-auto border border-emerald-100">
                   <CheckCircle2 className="h-6 w-6" />
                 </div>
                 <div>
-                  <h4 className="text-base font-bold text-slate-900">Квартира свободна для брони и покупки</h4>
+                  <h4 className="text-base font-bold text-slate-900">
+                    {unit.status === 'BLOCKED' ? 'Квартира заблокирована' : 'Квартира свободна для брони и покупки'}
+                  </h4>
                   <p className="text-xs text-slate-500 mt-1 max-w-md mx-auto">
-                    Вы можете оформить сделку, зафиксировать условия рассрочки и автоматически сгенерировать договор купли-продажи.
+                    {unit.status === 'BLOCKED'
+                      ? 'Данная квартира временно заблокирована администрацией и недоступна для оформления сделок.'
+                      : 'Вы можете поставить квартиру на временную бронь для клиента либо сразу оформить сделку и договор купли-продажи.'}
                   </p>
                 </div>
 
-                <div className="flex items-center justify-center gap-3 pt-2">
-                  <button
-                    onClick={() => setIsDealWizardOpen(true)}
-                    className="flex items-center gap-2 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 px-6 py-2.5 text-xs font-bold text-white shadow-md hover:from-blue-700 hover:to-indigo-700 transition cursor-pointer"
-                  >
-                    <Plus className="h-4 w-4" />
-                    <span>Оформить сделку / Рассрочку</span>
-                  </button>
+                <div className="flex flex-wrap items-center justify-center gap-3 pt-2">
+                  {unit.status !== 'BLOCKED' && (
+                    <>
+                      <button
+                        onClick={() => setIsReserveModalOpen(true)}
+                        className="flex items-center gap-2 rounded-xl bg-gradient-to-r from-amber-500 to-orange-600 px-5 py-2.5 text-xs font-bold text-white shadow-md shadow-amber-500/20 hover:from-amber-600 hover:to-orange-700 transition cursor-pointer"
+                      >
+                        <Clock className="h-4 w-4" />
+                        <span>Забронировать квартиру</span>
+                      </button>
+
+                      <button
+                        onClick={() => setIsDealWizardOpen(true)}
+                        className="flex items-center gap-2 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 px-5 py-2.5 text-xs font-bold text-white shadow-md hover:from-blue-700 hover:to-indigo-700 transition cursor-pointer"
+                      >
+                        <Plus className="h-4 w-4" />
+                        <span>Оформить сделку / Рассрочку</span>
+                      </button>
+                    </>
+                  )}
 
                   {user?.role === 'ADMIN' && (
                     <button
@@ -445,6 +653,33 @@ export const ApartmentDetailModal = ({
         )}
 
         {/* Child Modals */}
+        {isReserveModalOpen && (
+          <ReserveApartmentModal
+            isOpen={isReserveModalOpen}
+            onClose={() => setIsReserveModalOpen(false)}
+            unit={unit}
+            currency={projectCurrency}
+            onReserved={() => {
+              fetchUnit();
+              if (onUnitUpdated) onUnitUpdated();
+              setIsReserveModalOpen(false);
+            }}
+          />
+        )}
+
+        {isExtendModalOpen && activeDeal && (
+          <ExtendReservationModal
+            isOpen={isExtendModalOpen}
+            onClose={() => setIsExtendModalOpen(false)}
+            deal={activeDeal}
+            onExtended={() => {
+              fetchUnit();
+              if (onUnitUpdated) onUnitUpdated();
+              setIsExtendModalOpen(false);
+            }}
+          />
+        )}
+
         {isDealWizardOpen && (
           <DealWizardModal
             isOpen={isDealWizardOpen}
