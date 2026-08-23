@@ -46,7 +46,6 @@ export const ApartmentDetailModal = ({
   const { user } = useAuth();
   const [unit, setUnit] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState('details'); // 'details', 'deal', 'schedule', 'payments'
   const [isUpdatingStatus, setIsUpdatingStatus] = useState(false);
 
   // Modals
@@ -118,10 +117,15 @@ export const ApartmentDetailModal = ({
 
   const activeDeal = unit?.active_deal;
   const schedules = activeDeal?.deal_payment_schedules || activeDeal?.schedules || [];
-  const payments = activeDeal?.payments || [];
 
   const isReserved = unit?.status === 'RESERVED' || activeDeal?.status === 'RESERVED';
   const isSold = unit?.status === 'SOLD' || activeDeal?.status === 'SIGNED';
+
+  const buildingName = unit?.floors?.sections?.buildings?.name || unit?.building_name || 'Корпус 1';
+  const sectionName = unit?.floors?.sections?.name || unit?.section_name || 'Секция 1';
+  const floorNumber = unit?.floors?.floor_number || unit?.floor_number || 1;
+  const projectName = unit?.floors?.sections?.buildings?.projects?.name || unit?.project_name || 'Жилой Комплекс';
+  const projectCurrency = unit?.floors?.sections?.buildings?.projects?.currency || currency;
 
   const handleSignReservation = async () => {
     if (!activeDeal) return;
@@ -511,7 +515,7 @@ export const ApartmentDetailModal = ({
                   </div>
                 </div>
 
-                {/* Installment Schedule & Payments Breakdown Tabs */}
+                {/* Installment Schedule & Payments Breakdown */}
                 <div className="rounded-2xl border border-slate-200 bg-white p-5 space-y-4 shadow-2xs">
                   <div className="flex items-center justify-between border-b border-slate-100 pb-3">
                     <div className="flex items-center gap-2">
