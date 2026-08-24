@@ -89,7 +89,10 @@ export const DealWizardModal = ({
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   // Calculations
-  const areaM2 = selectedUnit ? selectedUnit.area_m2_x100 / 100 : 50;
+  const areaM2 = selectedUnit 
+    ? (selectedUnit.area_m2_x100 ? (selectedUnit.area_m2_x100 / 100) : (parseFloat(selectedUnit.area) || 50)) 
+    : 50;
+
   const calculatedBasePrice = Math.round(areaM2 * (parseFloat(pricePerM2) || 0));
 
   const actualDiscountMinor = discountType === 'PERCENT'
@@ -98,12 +101,19 @@ export const DealWizardModal = ({
 
   const finalPrice = Math.max(0, calculatedBasePrice - actualDiscountMinor);
 
+  const getUnitProjectName = (u) => {
+    if (!u) return 'ЖК TOZON PLAZA';
+    return u.project_name || u.floors?.sections?.buildings?.projects?.name || 'ЖК TOZON PLAZA';
+  };
+
   // Update rates when unit is selected
   useEffect(() => {
     if (selectedUnit) {
-      const p = selectedUnit.price_per_m2_minor > 0 ? selectedUnit.price_per_m2_minor / 100 : 500;
+      const p = selectedUnit.price_per_m2_minor > 0 
+        ? (selectedUnit.price_per_m2_minor / 100) 
+        : (parseFloat(selectedUnit.price_per_m2) || 500);
       setPricePerM2(p);
-      const total = Math.round((selectedUnit.area_m2_x100 / 100) * p);
+      const total = Math.round(areaM2 * p);
       setDownPaymentAmount(Math.round(total * (downPaymentPercent / 100)));
     }
   }, [selectedUnit]);
@@ -330,25 +340,26 @@ export const DealWizardModal = ({
     }
   };
 
-  const filteredUnits = availableUnits.filter((u) => {
+  const filteredUnits = (availableUnits || []).filter((u) => {
     if (unitRoomsFilter !== 'ALL' && String(u.rooms) !== String(unitRoomsFilter)) return false;
     if (unitSearch) {
       const q = unitSearch.toLowerCase();
-      return (
-        u.unit_number.toLowerCase().includes(q) ||
-        u.project_name.toLowerCase().includes(q) ||
-        (u.building_name && u.building_name.toLowerCase().includes(q))
-      );
+      const uNum = String(u.unit_number || '').toLowerCase();
+      const pName = String(u.project_name || u.floors?.sections?.buildings?.projects?.name || '').toLowerCase();
+      const bName = String(u.building_name || u.floors?.sections?.buildings?.name || '').toLowerCase();
+      return uNum.includes(q) || pName.includes(q) || bName.includes(q);
     }
     return true;
   });
 
-  const filteredLeads = leads.filter((l) =>
-    l.full_name?.toLowerCase().includes(searchLead.toLowerCase()) ||
-    l.phone?.toLowerCase().includes(searchLead.toLowerCase())
-  );
+  const filteredLeads = (leads || []).filter((l) => {
+    const q = (searchLead || '').toLowerCase();
+    const name = String(l.full_name || '').toLowerCase();
+    const phone = String(l.phone || '').toLowerCase();
+    return name.includes(q) || phone.includes(q);
+  });
 
-  const currency = selectedUnit?.project_currency || initialCurrency || 'USD';
+  const currency = selectedUnit?.project_currency || selectedUnit?.floors?.sections?.buildings?.projects?.currency || initialCurrency || 'USD';
 
   const stepLabels = initialUnit
     ? ['1. Покупатель', '2. Условия & Цена', '3. Рассрочка/График', '4. Подтверждение']
@@ -357,7 +368,7 @@ export const DealWizardModal = ({
   const currentStepIndex = initialUnit ? step - 1 : step;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs animate-in fade-in">
+    <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-slate-900/70 backdrop-blur-xs animate-in fade-in">
       <div className="relative w-full max-w-3xl max-h-[92vh] overflow-y-auto rounded-2xl border border-slate-200 bg-white p-6 shadow-2xl flex flex-col">
         {/* Header */}
         <div className="flex items-center justify-between border-b border-slate-100 pb-4">
@@ -365,7 +376,7 @@ export const DealWizardModal = ({
             <div className="flex items-center gap-2">
               {selectedUnit && (
                 <span className="rounded-md bg-blue-50 px-2 py-0.5 text-xs font-bold text-blue-700 border border-blue-200">
-                  Кв. №{selectedUnit.unit_number} ({selectedUnit.project_name || 'Объект'})
+                  Кв. №{selectedUnit.unit_number} ({getUnitProjectName(selectedUnit)})
                 </span>
               )}
               <h3 className="text-lg font-bold text-slate-900">Оформление сделки</h3>

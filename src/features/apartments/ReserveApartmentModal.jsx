@@ -185,7 +185,7 @@ export const ReserveApartmentModal = ({
   const buildingName = unit?.floors?.sections?.buildings?.name || unit?.building_name || 'Корпус';
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 bg-slate-900/60 backdrop-blur-xs animate-in fade-in">
+    <div className="fixed inset-0 z-[60] flex items-center justify-center p-2 sm:p-4 bg-slate-900/60 backdrop-blur-xs animate-in fade-in">
       <div className="relative w-full max-w-4xl rounded-3xl border border-amber-200 bg-white p-4 sm:p-5 shadow-2xl space-y-3.5 max-h-[96vh] flex flex-col justify-between">
         {/* Header */}
         <div className="flex items-center justify-between border-b border-slate-100 pb-3 shrink-0">
@@ -196,7 +196,7 @@ export const ReserveApartmentModal = ({
             <div>
               <div className="flex items-center gap-2 flex-wrap">
                 <h2 className="text-base sm:text-lg font-black text-slate-900 leading-tight">
-                  Бронирование квартиры №{unit.unit_number}
+                  Бронирование квартиры №{unit?.unit_number}
                 </h2>
                 <span className="px-2 py-0.5 rounded-full text-[11px] font-bold bg-amber-50 text-amber-700 border border-amber-300">
                   🟠 В бронь

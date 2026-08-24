@@ -170,8 +170,9 @@ export const ApartmentDetailModal = ({
   const daysLeft = activeDeal?.reservation_expires_at ? getDaysLeft(activeDeal.reservation_expires_at) : null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-xs animate-in fade-in overflow-y-auto">
-      <div className="relative w-full max-w-3xl max-h-[92vh] overflow-y-auto rounded-3xl border border-slate-200 bg-white p-6 shadow-2xl space-y-6">
+    <>
+      <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-xs animate-in fade-in overflow-y-auto">
+        <div className="relative w-full max-w-3xl max-h-[92vh] overflow-y-auto rounded-3xl border border-slate-200 bg-white p-6 shadow-2xl space-y-6">
         {/* Modal Header */}
         <div className="flex items-start justify-between border-b border-slate-100 pb-4">
           <div className="flex items-center gap-3">
@@ -655,69 +656,70 @@ export const ApartmentDetailModal = ({
             )}
           </div>
         )}
-
-        {/* Child Modals */}
-        {isReserveModalOpen && (
-          <ReserveApartmentModal
-            isOpen={isReserveModalOpen}
-            onClose={() => setIsReserveModalOpen(false)}
-            unit={unit}
-            currency={projectCurrency}
-            onReserved={() => {
-              fetchUnit();
-              if (onUnitUpdated) onUnitUpdated();
-              setIsReserveModalOpen(false);
-            }}
-          />
-        )}
-
-        {isExtendModalOpen && activeDeal && (
-          <ExtendReservationModal
-            isOpen={isExtendModalOpen}
-            onClose={() => setIsExtendModalOpen(false)}
-            deal={activeDeal}
-            onExtended={() => {
-              fetchUnit();
-              if (onUnitUpdated) onUnitUpdated();
-              setIsExtendModalOpen(false);
-            }}
-          />
-        )}
-
-        {isDealWizardOpen && (
-          <DealWizardModal
-            isOpen={isDealWizardOpen}
-            onClose={() => setIsDealWizardOpen(false)}
-            unit={unit}
-            currency={projectCurrency}
-            onDealCreated={() => {
-              fetchUnit();
-              if (onUnitUpdated) onUnitUpdated();
-              setIsDealWizardOpen(false);
-            }}
-          />
-        )}
-
-        {isPaymentModalOpen && activeDeal && (
-          <PaymentRecordModal
-            isOpen={isPaymentModalOpen}
-            onClose={() => setIsPaymentModalOpen(false)}
-            deal={activeDeal}
-            onPaymentSuccess={() => {
-              fetchUnit();
-              if (onUnitUpdated) onUnitUpdated();
-              setIsPaymentModalOpen(false);
-            }}
-          />
-        )}
-
-        {isPrintModalOpen && activeDeal && (
-          <ContractPrintView
-            deal={activeDeal}
-            onClose={() => setIsPrintModalOpen(false)}
-          />
-        )}
+        </div>
       </div>
-    </div>
+
+      {/* Child Modals with Top-Level Layering */}
+      {isReserveModalOpen && (
+        <ReserveApartmentModal
+          isOpen={isReserveModalOpen}
+          onClose={() => setIsReserveModalOpen(false)}
+          unit={unit}
+          currency={projectCurrency}
+          onReserved={() => {
+            fetchUnit();
+            if (onUnitUpdated) onUnitUpdated();
+            setIsReserveModalOpen(false);
+          }}
+        />
+      )}
+
+      {isExtendModalOpen && activeDeal && (
+        <ExtendReservationModal
+          isOpen={isExtendModalOpen}
+          onClose={() => setIsExtendModalOpen(false)}
+          deal={activeDeal}
+          onExtended={() => {
+            fetchUnit();
+            if (onUnitUpdated) onUnitUpdated();
+            setIsExtendModalOpen(false);
+          }}
+        />
+      )}
+
+      {isDealWizardOpen && (
+        <DealWizardModal
+          isOpen={isDealWizardOpen}
+          onClose={() => setIsDealWizardOpen(false)}
+          unit={unit}
+          currency={projectCurrency}
+          onDealCreated={() => {
+            fetchUnit();
+            if (onUnitUpdated) onUnitUpdated();
+            setIsDealWizardOpen(false);
+          }}
+        />
+      )}
+
+      {isPaymentModalOpen && activeDeal && (
+        <PaymentRecordModal
+          isOpen={isPaymentModalOpen}
+          onClose={() => setIsPaymentModalOpen(false)}
+          deal={activeDeal}
+          onPaymentSuccess={() => {
+            fetchUnit();
+            if (onUnitUpdated) onUnitUpdated();
+            setIsPaymentModalOpen(false);
+          }}
+        />
+      )}
+
+      {isPrintModalOpen && activeDeal && (
+        <ContractPrintView
+          deal={activeDeal}
+          onClose={() => setIsPrintModalOpen(false)}
+        />
+      )}
+    </>
   );
 };

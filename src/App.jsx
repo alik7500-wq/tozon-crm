@@ -31,6 +31,7 @@ import { SmsTemplatesPage } from './features/crm/SmsTemplatesPage';
 import { AnalyticsOnePage } from './features/analytics/AnalyticsOnePage';
 import { AnalyticsTwoPage } from './features/analytics/AnalyticsTwoPage';
 import { AnalyticsThreePage } from './features/analytics/AnalyticsThreePage';
+import { ErrorBoundary } from './components/ErrorBoundary';
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -43,10 +44,11 @@ const queryClient = new QueryClient({
 
 function App() {
   return (
-    <QueryClientProvider client={queryClient}>
-      <AuthProvider>
-        <BrowserRouter>
-          <Routes>
+    <ErrorBoundary>
+      <QueryClientProvider client={queryClient}>
+        <AuthProvider>
+          <BrowserRouter>
+            <Routes>
             {/* Public routes */}
             <Route path="/login" element={<LoginPage />} />
 
@@ -113,6 +115,7 @@ function App() {
         </BrowserRouter>
       </AuthProvider>
     </QueryClientProvider>
+  </ErrorBoundary>
   );
 }
 
