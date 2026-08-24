@@ -430,16 +430,23 @@ export const IncomePage = () => {
                       {isAdmin && (
                         <>
                           <button
-                            onClick={() => setEditingItem({
-                              id: item.id,
-                              amount: item.amount,
-                              currency: item.currency,
-                              date: item.date,
-                              method: item.method || 'CASH',
-                              reference: item.reference || '',
-                              comment: item.comment || '',
-                              payer_name: item.clientName || ''
-                            })}
+                            onClick={() => {
+                              let cleanRef = item.reference || `ПКО-${item.id}`;
+                              if (cleanRef === 'ПВ при подписании' || cleanRef.includes('ПВ')) {
+                                cleanRef = `ПКО-${item.contract || item.id}`;
+                              }
+                              setEditingItem({
+                                id: item.id,
+                                amount: item.amount,
+                                currency: item.currency,
+                                date: item.date,
+                                method: item.method || 'CASH',
+                                reference: cleanRef,
+                                comment: item.comment || '',
+                                payer_name: item.clientName || '',
+                                contract: item.contract || ''
+                              });
+                            }}
                             title="Редактировать ПКО (Админ)"
                             className="p-1.5 rounded-lg text-slate-400 hover:text-blue-600 hover:bg-blue-50 transition cursor-pointer"
                           >
@@ -549,13 +556,23 @@ export const IncomePage = () => {
                 </div>
               </div>
 
+              {editingItem.contract && (
+                <div className="flex items-center justify-between p-2.5 rounded-xl bg-blue-50/80 border border-blue-200 text-xs">
+                  <span className="text-blue-900 font-semibold">Привязка к сделке:</span>
+                  <span className="font-bold px-2.5 py-0.5 rounded-md bg-blue-600 text-white text-[11px]">
+                    Договор № {editingItem.contract}
+                  </span>
+                </div>
+              )}
+
               <div>
-                <label className="block font-bold text-slate-700 mb-1">Номер ПКО / Референс</label>
+                <label className="block font-bold text-slate-700 mb-1">Номер ПКО / Документ</label>
                 <input
                   type="text"
                   value={editingItem.reference}
                   onChange={e => setEditingItem({ ...editingItem, reference: e.target.value })}
-                  className="w-full rounded-xl border border-slate-300 bg-slate-50 px-3 py-1.5 outline-none"
+                  placeholder="ПКО-0001..."
+                  className="w-full rounded-xl border border-slate-300 bg-slate-50 px-3 py-1.5 outline-none font-bold text-slate-900"
                 />
               </div>
 
