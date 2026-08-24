@@ -848,8 +848,22 @@ export const ExpensesPage = () => {
                   />
                 </div>
 
-                {/* Attachment / Замима */}
+                {/* Description / Назначение */}
                 <div>
+                  <label className="block text-[11px] font-bold text-slate-700 mb-1">
+                    Назначение платежа / Описание
+                  </label>
+                  <input
+                    type="text"
+                    value={formData.description}
+                    onChange={e => setFormData({ ...formData, description: e.target.value })}
+                    placeholder="Подробное назначение расхода..."
+                    className="w-full rounded-xl border border-slate-300 bg-slate-50 px-3 py-1.5 text-xs outline-none focus:border-rose-500"
+                  />
+                </div>
+
+                {/* Attachment / Замима */}
+                <div className="sm:col-span-2">
                   <label className="block text-[11px] font-bold text-slate-700 mb-1">
                     Замима (Приложение / Документ-основание)
                   </label>
@@ -858,18 +872,6 @@ export const ExpensesPage = () => {
                     value={formData.attachment}
                     onChange={e => setFormData({ ...formData, attachment: e.target.value })}
                     placeholder="Например: Шартномаи нотариалии ҷуброн аз 03.02.2026 сол"
-                    className="w-full rounded-xl border border-slate-300 bg-slate-50 px-3 py-1.5 text-xs outline-none focus:border-rose-500"
-                  />
-                </div>
-
-                {/* Description */}
-                <div className="sm:col-span-2">
-                  <label className="block text-[11px] font-bold text-slate-700 mb-1">Назначение платежа / Описание</label>
-                  <input
-                    type="text"
-                    value={formData.description}
-                    onChange={e => setFormData({ ...formData, description: e.target.value })}
-                    placeholder="Подробное назначение расхода..."
                     className="w-full rounded-xl border border-slate-300 bg-slate-50 px-3 py-1.5 text-xs outline-none focus:border-rose-500"
                   />
                 </div>
