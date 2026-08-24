@@ -58,6 +58,7 @@ export const ExpensesPage = () => {
     reference: '',
     recipient: '',
     description: '',
+    attachment: '',
     auto_convert: true,
     exchange_rate: '9.27',
     source_currency: 'USD'
@@ -112,6 +113,7 @@ export const ExpensesPage = () => {
         category: formData.category,
         reference: formData.reference,
         description: formData.description,
+        attachment: formData.attachment,
         method: formData.method
       };
       setPrintableExpense(createdExpense);
@@ -124,6 +126,7 @@ export const ExpensesPage = () => {
         reference: '',
         recipient: '',
         description: '',
+        attachment: '',
         auto_convert: true,
         exchange_rate: liveEskhataRate,
         source_currency: 'USD'
@@ -467,6 +470,7 @@ export const ExpensesPage = () => {
                           category: item.category,
                           reference: item.reference,
                           description: item.description,
+                          attachment: item.attachment || item.appendix || '',
                           method: item.method,
                           created_by_name: item.createdByName
                         })}
@@ -844,8 +848,22 @@ export const ExpensesPage = () => {
                   />
                 </div>
 
-                {/* Description */}
+                {/* Attachment / Замима */}
                 <div>
+                  <label className="block text-[11px] font-bold text-slate-700 mb-1">
+                    Замима (Приложение / Документ-основание)
+                  </label>
+                  <input
+                    type="text"
+                    value={formData.attachment}
+                    onChange={e => setFormData({ ...formData, attachment: e.target.value })}
+                    placeholder="Например: Шартномаи нотариалии ҷуброн аз 03.02.2026 сол"
+                    className="w-full rounded-xl border border-slate-300 bg-slate-50 px-3 py-1.5 text-xs outline-none focus:border-rose-500"
+                  />
+                </div>
+
+                {/* Description */}
+                <div className="sm:col-span-2">
                   <label className="block text-[11px] font-bold text-slate-700 mb-1">Назначение платежа / Описание</label>
                   <input
                     type="text"

@@ -6,6 +6,7 @@ import { useModalDismiss } from '../../hooks/useModalDismiss';
 
 export const ExpenseReceiptPrintModal = ({ expense, onClose, initialLang = 'TJ' }) => {
   const [lang, setLang] = useState(initialLang);
+  const [appendix, setAppendix] = useState(expense?.attachment || expense?.appendix || '');
 
   const { requestClose } = useModalDismiss({
     isOpen: Boolean(expense),
@@ -233,9 +234,13 @@ export const ExpenseReceiptPrintModal = ({ expense, onClose, initialLang = 'TJ' 
                 <span className="shrink-0 font-bold text-slate-900">
                   {isTJ ? 'Замима:' : 'Приложение:'}
                 </span>
-                <span className="grow border-b border-black font-medium pb-0.5">
-                  {appendixText}
-                </span>
+                <input
+                  type="text"
+                  value={appendix}
+                  onChange={e => setAppendix(e.target.value)}
+                  placeholder={isTJ ? 'Шартнома / Чек / Ҳуҷҷат...' : 'Договор / Чек / Документ...'}
+                  className="grow border-b border-black font-medium pb-0.5 bg-transparent outline-none placeholder:text-slate-300 placeholder:italic print:placeholder:text-transparent"
+                />
               </div>
             </div>
 
