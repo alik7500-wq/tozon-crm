@@ -729,6 +729,9 @@ export const DealWizardModal = ({
                   onChange={(e) => {
                     const newD = e.target.value;
                     setDealDate(newD);
+                    if (!initialPaymentDate || initialPaymentDate === dealDate) {
+                      setInitialPaymentDate(newD);
+                    }
                     if (newD) {
                       const parts = newD.split('-');
                       if (parts.length === 3) {
@@ -1055,58 +1058,70 @@ export const DealWizardModal = ({
                 )}
 
                 {dealStatus === 'SIGNED' && downPaymentAmount > 0 && (
-                  <div className="rounded-xl border border-blue-200 bg-blue-50/50 p-3 space-y-2.5">
-                    <div className="flex items-center gap-2">
-                      <input
-                        type="checkbox"
-                        id="recordInit"
-                        checked={recordInitialPayment}
-                        onChange={(e) => setRecordInitialPayment(e.target.checked)}
-                        className="h-4 w-4 rounded text-blue-600 focus:ring-blue-500 cursor-pointer"
-                      />
-                      <label htmlFor="recordInit" className="text-xs text-slate-900 font-bold cursor-pointer">
-                        Сразу зафиксировать оплату первоначального взноса ({downPaymentAmount.toLocaleString()} {currency})
-                      </label>
+                  <div className="rounded-2xl border-2 border-emerald-300 bg-emerald-50/70 p-4 space-y-3 shadow-xs">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <input
+                          type="checkbox"
+                          id="recordInit"
+                          checked={recordInitialPayment}
+                          onChange={(e) => setRecordInitialPayment(e.target.checked)}
+                          className="h-4 w-4 rounded text-emerald-600 focus:ring-emerald-500 cursor-pointer"
+                        />
+                        <label htmlFor="recordInit" className="text-xs text-slate-900 font-bold cursor-pointer">
+                          Зафиксировать оплату первоначального взноса в кассу
+                        </label>
+                      </div>
+                      <span className="font-extrabold text-xs text-emerald-700 bg-emerald-100 px-2 py-0.5 rounded-md border border-emerald-300">
+                        +{downPaymentAmount.toLocaleString()} {currency}
+                      </span>
                     </div>
 
                     {recordInitialPayment && (
-                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5 pt-2 border-t border-blue-200/60 text-xs">
-                        <div>
-                          <label className="block text-[11px] font-bold text-slate-700 mb-1">
-                            Номер ПКО
-                          </label>
-                          <input
-                            type="text"
-                            value={initialPaymentReference}
-                            onChange={(e) => setInitialPaymentReference(e.target.value)}
-                            placeholder="ПКО договора"
-                            className="w-full rounded-lg border border-slate-300 bg-white px-2.5 py-1.5 text-xs font-bold text-slate-900 outline-none focus:border-blue-500"
-                          />
-                        </div>
-                        <div>
-                          <label className="block text-[11px] font-bold text-slate-700 mb-1">
-                            Дата оплаты ПКО
-                          </label>
-                          <input
-                            type="date"
-                            value={initialPaymentDate || dealDate}
-                            onChange={(e) => setInitialPaymentDate(e.target.value)}
-                            className="w-full rounded-lg border border-slate-300 bg-white px-2.5 py-1.5 text-xs font-bold text-slate-900 outline-none focus:border-blue-500"
-                          />
-                        </div>
-                        <div>
-                          <label className="block text-[11px] font-bold text-slate-700 mb-1">
-                            Способ оплаты
-                          </label>
-                          <select
-                            value={initialPaymentMethod}
-                            onChange={(e) => setInitialPaymentMethod(e.target.value)}
-                            className="w-full rounded-lg border border-slate-300 bg-white px-2.5 py-1.5 text-xs font-bold text-slate-900 outline-none focus:border-blue-500"
-                          >
-                            <option value="CASH">💵 Наличные</option>
-                            <option value="BANK_TRANSFER">🏦 Банк</option>
-                            <option value="CARD">💳 Карта</option>
-                          </select>
+                      <div className="space-y-2.5 pt-2.5 border-t border-emerald-200/80 text-xs animate-in fade-in">
+                        <p className="text-[11px] text-emerald-900 font-medium">
+                          Укажите номер документа из книги регистрации ПКО и фактическую дату оплаты клиентом:
+                        </p>
+
+                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                          <div>
+                            <label className="block text-[11px] font-bold text-slate-800 mb-1">
+                              Номер ПКО (по книге) *
+                            </label>
+                            <input
+                              type="text"
+                              value={initialPaymentReference}
+                              onChange={(e) => setInitialPaymentReference(e.target.value)}
+                              placeholder="Напр. 1, 28 или 105"
+                              className="w-full rounded-xl border border-emerald-300 bg-white px-3 py-2 text-xs font-bold text-slate-900 outline-none focus:border-emerald-600 focus:ring-1 focus:ring-emerald-500 shadow-xs"
+                            />
+                          </div>
+                          <div>
+                            <label className="block text-[11px] font-bold text-slate-800 mb-1">
+                              Дата платежа по ПКО *
+                            </label>
+                            <input
+                              type="date"
+                              required
+                              value={initialPaymentDate || dealDate}
+                              onChange={(e) => setInitialPaymentDate(e.target.value)}
+                              className="w-full rounded-xl border border-emerald-300 bg-white px-3 py-2 text-xs font-bold text-slate-900 outline-none focus:border-emerald-600 focus:ring-1 focus:ring-emerald-500 shadow-xs"
+                            />
+                          </div>
+                          <div>
+                            <label className="block text-[11px] font-bold text-slate-800 mb-1">
+                              Способ внесения
+                            </label>
+                            <select
+                              value={initialPaymentMethod}
+                              onChange={(e) => setInitialPaymentMethod(e.target.value)}
+                              className="w-full rounded-xl border border-emerald-300 bg-white px-3 py-2 text-xs font-bold text-slate-900 outline-none focus:border-emerald-600 focus:ring-1 focus:ring-emerald-500 shadow-xs cursor-pointer"
+                            >
+                              <option value="CASH">💵 Наличные в кассу</option>
+                              <option value="BANK_TRANSFER">🏦 Банковский перевод</option>
+                              <option value="CARD">💳 Банковская карта</option>
+                            </select>
+                          </div>
                         </div>
                       </div>
                     )}
