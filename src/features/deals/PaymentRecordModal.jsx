@@ -3,6 +3,7 @@ import { api } from '../../api/client';
 import { financeApi } from '../../api/finance.api';
 import { dictionariesApi } from '../../api/dictionaries.api';
 import { useModalDismiss } from '../../hooks/useModalDismiss';
+import { PaymentReceiptPrintModal } from '../finance/PaymentReceiptPrintModal';
 import { formatContractNumber } from '../../utils/formatters';
 import {
   X,
@@ -41,6 +42,8 @@ export const PaymentRecordModal = ({
 
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
+  const [recordedPayment, setRecordedPayment] = useState(null);
+  const [updatedDealResult, setUpdatedDealResult] = useState(null);
 
   const dealCurrency = deal?.currency || deal?.project_currency || 'USD';
 
@@ -103,6 +106,22 @@ export const PaymentRecordModal = ({
   });
 
   if (!isOpen || !deal) return null;
+
+  if (recordedPayment) {
+    return (
+      <PaymentReceiptPrintModal
+        payment={recordedPayment}
+        deal={deal}
+        onClose={() => {
+          if (onPaymentSuccess && updatedDealResult) {
+            onPaymentSuccess(updatedDealResult);
+          }
+          setRecordedPayment(null);
+          onClose();
+        }}
+      />
+    );
+  }
 
   const cashDesksList = [
     { id: 'MAIN_CASHIER', name: 'Главная касса компании (Бухгалтерия)', icon: '🏢' },
@@ -201,11 +220,23 @@ export const PaymentRecordModal = ({
         comment: fullCommentParts.join(' • '),
       });
 
+      const createdPayment = res.data?.payment || res.payment || {
+        id: res.data?.id || res.id || 'ПКО',
+        payment_number: res.data?.payment_number || res.payment_number || reference || 'ПКО',
+        payment_date: paymentDate,
+        amount_minor: amountMinor,
+        amount: amountMinor / 100,
+        currency: cashCurrency,
+        payment_method: method,
+        method: method,
+        reference: reference.trim() ? `${reference.trim()} (${cashCurrency})` : `Касса: ${cashCurrency}`,
+        payer_name: deal.lead_name || deal.buyer_name,
+        comment: fullCommentParts.join(' • ')
+      };
+
       const updatedDeal = res.data?.deal || res.deal || res;
-      if (onPaymentSuccess) {
-        onPaymentSuccess(updatedDeal);
-      }
-      onClose();
+      setUpdatedDealResult(updatedDeal);
+      setRecordedPayment(createdPayment);
     } catch (err) {
       setError(err.message || 'Ошибка сохранения платежа');
     } finally {

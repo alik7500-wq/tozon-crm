@@ -3,12 +3,13 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { financeApi } from '../../api/finance.api';
 import { dictionariesApi } from '../../api/dictionaries.api';
 import { useModalDismiss } from '../../hooks/useModalDismiss';
+import { PaymentReceiptPrintModal } from './PaymentReceiptPrintModal';
 import { FinanceTabs } from '../../components/FinanceTabs';
 import { useAuth } from '../auth/AuthContext';
 import { 
   TrendingUp, Plus, Search, Calendar, DollarSign, Coins, CreditCard, 
   User, FileText, CheckCircle2, RefreshCw, Filter, ArrowUpRight, Building2, X,
-  Edit, Trash2, Save
+  Edit, Trash2, Save, Printer
 } from 'lucide-react';
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer
@@ -24,6 +25,7 @@ export const IncomePage = () => {
   const [search, setSearch] = useState('');
   const [showAddModal, setShowAddModal] = useState(false);
   const [editingItem, setEditingItem] = useState(null);
+  const [printableIncome, setPrintableIncome] = useState(null);
   const [dealsList, setDealsList] = useState([]);
 
   const queryClient = useQueryClient();
@@ -75,10 +77,22 @@ export const IncomePage = () => {
 
   const addMutation = useMutation({
     mutationFn: financeApi.addIncome,
-    onSuccess: () => {
+    onSuccess: (data) => {
       queryClient.invalidateQueries(['finance-income']);
       queryClient.invalidateQueries(['finance-cashflow']);
       setShowAddModal(false);
+      const createdPayment = data?.data || data || {
+        id: `ПКО-${Date.now().toString().slice(-4)}`,
+        amount: formData.amount,
+        amount_minor: Math.round(Number(formData.amount) * 100),
+        currency: formData.currency,
+        payment_date: formData.date,
+        payer_name: formData.payer_name,
+        reference: formData.reference,
+        comment: formData.comment,
+        method: formData.method,
+      };
+      setPrintableIncome(createdPayment);
       setFormData({
         deal_id: '',
         payer_name: '',
@@ -328,7 +342,7 @@ export const IncomePage = () => {
                 <th className="p-3.5">Способ оплаты</th>
                 <th className="p-3.5">Сумма прихода</th>
                 <th className="p-3.5">Ответственный</th>
-                {isAdmin && <th className="p-3.5 pr-5 text-right">Действия</th>}
+                <th className="p-3.5 pr-5 text-right">Действия</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100 font-medium">
@@ -365,44 +379,65 @@ export const IncomePage = () => {
                     <div className="text-[11px] font-semibold text-slate-700">{item.createdByName}</div>
                     {item.comment && <div className="text-[10px] text-slate-400 truncate max-w-xs" title={item.comment}>{item.comment}</div>}
                   </td>
-                  {isAdmin && (
-                    <td className="p-3.5 pr-5 text-right whitespace-nowrap">
-                      <div className="flex items-center justify-end gap-1.5">
-                        <button
-                          onClick={() => setEditingItem({
-                            id: item.id,
-                            amount: item.amount,
-                            currency: item.currency,
-                            date: item.date,
-                            method: item.method || 'CASH',
-                            reference: item.reference || '',
-                            comment: item.comment || '',
-                            payer_name: item.clientName || ''
-                          })}
-                          title="Редактировать ПКО (Админ)"
-                          className="p-1.5 rounded-lg text-slate-400 hover:text-blue-600 hover:bg-blue-50 transition cursor-pointer"
-                        >
-                          <Edit className="h-4 w-4" />
-                        </button>
-                        <button
-                          onClick={() => {
-                            if (window.confirm(`Вы уверены, что хотите удалить ПКО "${item.reference || item.id}" на сумму ${item.amount} ${item.currency}?`)) {
-                              deleteMutation.mutate(item.id);
-                            }
-                          }}
-                          title="Удалить ПКО (Админ)"
-                          className="p-1.5 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-50 transition cursor-pointer"
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </button>
-                      </div>
-                    </td>
-                  )}
+                  <td className="p-3.5 pr-5 text-right whitespace-nowrap">
+                    <div className="flex items-center justify-end gap-1.5">
+                      <button
+                        onClick={() => setPrintableIncome({
+                          id: item.id,
+                          amount: item.amount,
+                          amount_minor: Math.round(item.amount * 100),
+                          currency: item.currency,
+                          payment_date: item.date,
+                          payer_name: item.clientName,
+                          contract: item.contract,
+                          reference: item.reference,
+                          comment: item.comment,
+                          method: item.method,
+                          created_by_name: item.createdByName
+                        })}
+                        title="Печать ПКО (Квитанция)"
+                        className="p-1.5 rounded-lg text-slate-400 hover:text-emerald-600 hover:bg-emerald-50 transition cursor-pointer"
+                      >
+                        <Printer className="h-4 w-4" />
+                      </button>
+                      {isAdmin && (
+                        <>
+                          <button
+                            onClick={() => setEditingItem({
+                              id: item.id,
+                              amount: item.amount,
+                              currency: item.currency,
+                              date: item.date,
+                              method: item.method || 'CASH',
+                              reference: item.reference || '',
+                              comment: item.comment || '',
+                              payer_name: item.clientName || ''
+                            })}
+                            title="Редактировать ПКО (Админ)"
+                            className="p-1.5 rounded-lg text-slate-400 hover:text-blue-600 hover:bg-blue-50 transition cursor-pointer"
+                          >
+                            <Edit className="h-4 w-4" />
+                          </button>
+                          <button
+                            onClick={() => {
+                              if (window.confirm(`Вы уверены, что хотите удалить ПКО "${item.reference || item.id}" на сумму ${item.amount} ${item.currency}?`)) {
+                                deleteMutation.mutate(item.id);
+                              }
+                            }}
+                            title="Удалить ПКО (Админ)"
+                            className="p-1.5 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-50 transition cursor-pointer"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </button>
+                        </>
+                      )}
+                    </div>
+                  </td>
                 </tr>
               ))}
               {list.length === 0 && (
                 <tr>
-                  <td colSpan={isAdmin ? 8 : 7} className="p-12 text-center text-slate-400">
+                  <td colSpan={8} className="p-12 text-center text-slate-400">
                     Нет зарегистрированных приходов по выбранным фильтрам
                   </td>
                 </tr>
@@ -713,6 +748,13 @@ export const IncomePage = () => {
             </form>
           </div>
         </div>
+      )}
+      {/* Printable Receipt Modal */}
+      {printableIncome && (
+        <PaymentReceiptPrintModal
+          payment={printableIncome}
+          onClose={() => setPrintableIncome(null)}
+        />
       )}
     </div>
   );

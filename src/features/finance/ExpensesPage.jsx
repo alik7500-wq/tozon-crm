@@ -3,11 +3,12 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { financeApi } from '../../api/finance.api';
 import { dictionariesApi } from '../../api/dictionaries.api';
 import { useModalDismiss } from '../../hooks/useModalDismiss';
+import { ExpenseReceiptPrintModal } from './ExpenseReceiptPrintModal';
 import { FinanceTabs } from '../../components/FinanceTabs';
 import { useAuth } from '../auth/AuthContext';
 import { 
   TrendingDown, Plus, Search, Calendar, Tag, FileText, Wallet, RefreshCw,
-  DollarSign, CheckCircle2, User, CreditCard, X, Edit, Trash2, Save
+  DollarSign, CheckCircle2, User, CreditCard, X, Edit, Trash2, Save, Printer
 } from 'lucide-react';
 import {
   PieChart, Pie, Cell, Tooltip, ResponsiveContainer, Legend
@@ -26,6 +27,7 @@ export const ExpensesPage = () => {
   const [search, setSearch] = useState('');
   const [showAddModal, setShowAddModal] = useState(false);
   const [editingItem, setEditingItem] = useState(null);
+  const [printableExpense, setPrintableExpense] = useState(null);
 
   const queryClient = useQueryClient();
 
@@ -95,11 +97,24 @@ export const ExpensesPage = () => {
 
   const addMutation = useMutation({
     mutationFn: financeApi.addExpense,
-    onSuccess: () => {
+    onSuccess: (data) => {
       queryClient.invalidateQueries(['finance-expenses']);
       queryClient.invalidateQueries(['finance-cashflow']);
       queryClient.invalidateQueries(['finance-income']);
       setShowAddModal(false);
+      const createdExpense = data?.data || data || {
+        id: `РКО-${Date.now().toString().slice(-4)}`,
+        amount: formData.amount,
+        amount_minor: Math.round(Number(formData.amount) * 100),
+        currency: formData.currency,
+        expense_date: formData.date,
+        recipient: formData.recipient,
+        category: formData.category,
+        reference: formData.reference,
+        description: formData.description,
+        method: formData.method
+      };
+      setPrintableExpense(createdExpense);
       setFormData({
         amount: '',
         currency: 'TJS',
@@ -403,7 +418,7 @@ export const ExpensesPage = () => {
                 <th className="p-3.5">Способ оплаты</th>
                 <th className="p-3.5">Сумма расхода</th>
                 <th className="p-3.5">Назначение / Комментарий</th>
-                {isAdmin && <th className="p-3.5 pr-5 text-right">Действия</th>}
+                <th className="p-3.5 pr-5 text-right">Действия</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100 font-medium">
@@ -439,45 +454,66 @@ export const ExpensesPage = () => {
                   <td className="p-3.5 text-slate-500 max-w-xs truncate" title={item.description}>
                     {item.description || '-'}
                   </td>
-                  {isAdmin && (
-                    <td className="p-3.5 pr-5 text-right whitespace-nowrap">
-                      <div className="flex items-center justify-end gap-1.5">
-                        <button
-                          onClick={() => setEditingItem({
-                            id: item.id,
-                            amount: item.amount,
-                            currency: item.currency,
-                            date: item.date,
-                            method: item.method || 'CASH',
-                            category: item.category || 'Прочее',
-                            recipient: item.recipient || '',
-                            reference: item.reference || '',
-                            description: item.description || ''
-                          })}
-                          title="Редактировать РКО (Админ)"
-                          className="p-1.5 rounded-lg text-slate-400 hover:text-blue-600 hover:bg-blue-50 transition cursor-pointer"
-                        >
-                          <Edit className="h-4 w-4" />
-                        </button>
-                        <button
-                          onClick={() => {
-                            if (window.confirm(`Вы уверены, что хотите удалить РКО "${item.reference || item.id}" на сумму ${item.amount} ${item.currency}?`)) {
-                              deleteMutation.mutate(item.id);
-                            }
-                          }}
-                          title="Удалить РКО (Админ)"
-                          className="p-1.5 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-50 transition cursor-pointer"
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </button>
-                      </div>
-                    </td>
-                  )}
+                  <td className="p-3.5 pr-5 text-right whitespace-nowrap">
+                    <div className="flex items-center justify-end gap-1.5">
+                      <button
+                        onClick={() => setPrintableExpense({
+                          id: item.id,
+                          amount: item.amount,
+                          amount_minor: Math.round(item.amount * 100),
+                          currency: item.currency,
+                          expense_date: item.date,
+                          recipient: item.recipient,
+                          category: item.category,
+                          reference: item.reference,
+                          description: item.description,
+                          method: item.method,
+                          created_by_name: item.createdByName
+                        })}
+                        title="Печать РКО (Ордер расхода)"
+                        className="p-1.5 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-50 transition cursor-pointer"
+                      >
+                        <Printer className="h-4 w-4" />
+                      </button>
+                      {isAdmin && (
+                        <>
+                          <button
+                            onClick={() => setEditingItem({
+                              id: item.id,
+                              amount: item.amount,
+                              currency: item.currency,
+                              date: item.date,
+                              method: item.method || 'CASH',
+                              category: item.category || 'Прочее',
+                              recipient: item.recipient || '',
+                              reference: item.reference || '',
+                              description: item.description || ''
+                            })}
+                            title="Редактировать РКО (Админ)"
+                            className="p-1.5 rounded-lg text-slate-400 hover:text-blue-600 hover:bg-blue-50 transition cursor-pointer"
+                          >
+                            <Edit className="h-4 w-4" />
+                          </button>
+                          <button
+                            onClick={() => {
+                              if (window.confirm(`Вы уверены, что хотите удалить РКО "${item.reference || item.id}" на сумму ${item.amount} ${item.currency}?`)) {
+                                deleteMutation.mutate(item.id);
+                              }
+                            }}
+                            title="Удалить РКО (Админ)"
+                            className="p-1.5 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-50 transition cursor-pointer"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </button>
+                        </>
+                      )}
+                    </div>
+                  </td>
                 </tr>
               ))}
               {list.length === 0 && (
                 <tr>
-                  <td colSpan={isAdmin ? 8 : 7} className="p-12 text-center text-slate-400">
+                  <td colSpan={8} className="p-12 text-center text-slate-400">
                     Нет зарегистрированных расходов по выбранным фильтрам
                   </td>
                 </tr>
@@ -842,6 +878,13 @@ export const ExpensesPage = () => {
             </form>
           </div>
         </div>
+      )}
+      {/* Printable Expense Receipt Modal */}
+      {printableExpense && (
+        <ExpenseReceiptPrintModal
+          expense={printableExpense}
+          onClose={() => setPrintableExpense(null)}
+        />
       )}
     </div>
   );
