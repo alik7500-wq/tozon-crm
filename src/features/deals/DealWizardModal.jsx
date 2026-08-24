@@ -175,26 +175,48 @@ export const DealWizardModal = ({
     ? Math.max(0, finalPrice - (parseFloat(barterAmount) || 0))
     : finalPrice;
 
-  const remainingBalance = Math.max(0, effectiveCashDebt - downPaymentAmount);
-
   useEffect(() => {
     if ((paymentType === 'INSTALLMENT' || paymentType === 'PARTIAL_BARTER') && installmentMonths > 0 && remainingBalance > 0) {
-      const months = parseInt(installmentMonths, 10);
+      const months = Math.min(240, Math.max(1, parseInt(installmentMonths, 10) || 0));
       const base = Math.floor(remainingBalance / months);
       const remainder = remainingBalance % months;
 
-      const items = [];
-      const startDate = new Date(firstPaymentDate);
+      // Safely parse firstPaymentDate with fallback to today + 30 days if invalid/partial
+      let startYear, startMonth, startDay;
+      const cleanDateStr = String(firstPaymentDate || '').split('T')[0];
+      const parts = cleanDateStr.split('-');
+      if (parts.length === 3 && parts[0].length === 4 && !isNaN(parseInt(parts[0], 10))) {
+        startYear = parseInt(parts[0], 10);
+        startMonth = Math.max(1, Math.min(12, parseInt(parts[1], 10) || 1));
+        startDay = Math.max(1, Math.min(31, parseInt(parts[2], 10) || 1));
+      } else {
+        const now = new Date();
+        startYear = now.getFullYear();
+        startMonth = now.getMonth() + 1;
+        startDay = now.getDate();
+      }
 
+      const items = [];
       for (let i = 1; i <= months; i++) {
-        const d = new Date(startDate);
-        d.setMonth(d.getMonth() + (i - 1));
-        // According to AGENTS.md 10.3: first `remainder` payments get base + 1, rest get base
+        // Calculate target month and year with proper calendar day clamping (Rule #21)
+        const totalMonths = (startMonth - 1) + (i - 1);
+        const targetYear = startYear + Math.floor(totalMonths / 12);
+        const targetMonth = (totalMonths % 12); // 0-indexed for Date
+        
+        // Find maximum valid days in this specific target month (handles 28/29 Feb, 30/31 days)
+        const maxDaysInMonth = new Date(targetYear, targetMonth + 1, 0).getDate();
+        const actualDay = Math.min(startDay, maxDaysInMonth);
+
+        const yyyy = String(targetYear);
+        const mm = String(targetMonth + 1).padStart(2, '0');
+        const dd = String(actualDay).padStart(2, '0');
+        const dueDateStr = `${yyyy}-${mm}-${dd}`;
+
         const amount = i <= remainder ? (base + 1) : base;
 
         items.push({
           payment_number: i,
-          due_date: d.toISOString().split('T')[0],
+          due_date: dueDateStr,
           amount_minor: amount * 100,
           status: 'UPCOMING',
         });
