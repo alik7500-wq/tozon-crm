@@ -145,10 +145,10 @@ export const CreateLeadModal = ({ isOpen, onClose, onCreated, leadToEdit = null,
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-xs animate-in fade-in">
-      <div className="relative w-full max-w-2xl max-h-[90vh] overflow-y-auto rounded-2xl border border-slate-200 bg-white p-6 shadow-2xl">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 bg-slate-900/60 backdrop-blur-xs animate-in fade-in">
+      <div className="relative w-full max-w-3xl max-h-[96vh] overflow-y-auto rounded-3xl border border-slate-200 bg-white p-4 sm:p-5 shadow-2xl space-y-3 flex flex-col justify-between">
         {/* Header */}
-        <div className="flex items-center justify-between border-b border-slate-100 pb-4">
+        <div className="flex items-center justify-between border-b border-slate-100 pb-3 shrink-0">
           <div className="flex items-center gap-2.5">
             <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-purple-50 text-purple-600 border border-purple-100">
               <User className="h-5 w-5" />

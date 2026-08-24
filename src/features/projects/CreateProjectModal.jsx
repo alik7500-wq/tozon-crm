@@ -52,20 +52,21 @@ export const CreateProjectModal = ({ isOpen, onClose, onCreated }) => {
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-xs animate-in fade-in">
-      <div className="relative w-full max-w-lg rounded-2xl border border-slate-200 bg-white p-6 shadow-2xl">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 bg-slate-900/60 backdrop-blur-xs animate-in fade-in">
+      <div className="relative w-full max-w-2xl rounded-3xl border border-slate-200 bg-white p-4 sm:p-5 shadow-2xl space-y-3.5 max-h-[96vh] flex flex-col justify-between">
         {/* Modal Header */}
-        <div className="flex items-center justify-between border-b border-slate-100 pb-4">
+        <div className="flex items-center justify-between border-b border-slate-100 pb-3 shrink-0">
           <div className="flex items-center gap-2.5">
-            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-blue-50 text-blue-600 border border-blue-100">
+            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-blue-50 text-blue-600 border border-blue-100 shrink-0">
               <Building2 className="h-5 w-5" />
             </div>
             <div>
-              <h3 className="text-lg font-bold text-slate-900">Новый жилой комплекс</h3>
+              <h3 className="text-base font-black text-slate-900 leading-tight">Новый жилой комплекс</h3>
               <p className="text-xs text-slate-500">Добавление строительного объекта в Tozon CRM</p>
             </div>
           </div>
           <button
+            type="button"
             onClick={requestClose}
             className="rounded-lg p-1.5 text-slate-400 hover:bg-slate-100 hover:text-slate-700 transition cursor-pointer"
           >
@@ -74,17 +75,17 @@ export const CreateProjectModal = ({ isOpen, onClose, onCreated }) => {
         </div>
 
         {error && (
-          <div className="mt-4 flex items-center gap-2 rounded-xl border border-rose-200 bg-rose-50 p-3 text-xs text-rose-700">
+          <div className="flex items-center gap-2 rounded-xl border border-rose-200 bg-rose-50 px-3 py-2 text-xs text-rose-700 shrink-0">
             <AlertCircle className="h-4 w-4 shrink-0 text-rose-500" />
-            <span>{error}</span>
+            <span className="font-semibold">{error}</span>
           </div>
         )}
 
         {/* Form */}
-        <form onSubmit={handleSubmit} className="mt-4 space-y-4">
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <form onSubmit={handleSubmit} className="space-y-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div>
-              <label className="block text-xs font-semibold text-slate-700 mb-1">
+              <label className="block text-xs font-bold text-slate-700 mb-1">
                 Название ЖК *
               </label>
               <input
@@ -94,16 +95,16 @@ export const CreateProjectModal = ({ isOpen, onClose, onCreated }) => {
                 value={formData.name}
                 onChange={handleChange}
                 placeholder="ЖК «Панорама»"
-                className="w-full rounded-xl border border-slate-300 bg-slate-50/50 px-3.5 py-2 text-sm text-slate-900 placeholder-slate-400 outline-none focus:border-blue-500 focus:bg-white focus:ring-1 focus:ring-blue-500"
+                className="w-full rounded-xl border border-slate-300 bg-white px-3 py-1.5 text-xs text-slate-900 outline-none focus:border-blue-500 font-medium"
               />
             </div>
 
             <div>
-              <label className="block text-xs font-semibold text-slate-700 mb-1">
+              <label className="block text-xs font-bold text-slate-700 mb-1">
                 Код объекта (для договоров) *
               </label>
               <div className="relative">
-                <FileCode className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+                <FileCode className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-slate-400" />
                 <input
                   type="text"
                   required
@@ -111,19 +112,19 @@ export const CreateProjectModal = ({ isOpen, onClose, onCreated }) => {
                   value={formData.code}
                   onChange={handleChange}
                   placeholder="PAN"
-                  className="w-full rounded-xl border border-slate-300 bg-slate-50/50 pl-9 pr-3.5 py-2 text-sm text-slate-900 uppercase placeholder-slate-400 outline-none focus:border-blue-500 focus:bg-white focus:ring-1 focus:ring-blue-500"
+                  className="w-full rounded-xl border border-slate-300 bg-white pl-8 pr-3 py-1.5 text-xs text-slate-900 uppercase outline-none focus:border-blue-500 font-bold"
                 />
               </div>
             </div>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div>
-              <label className="block text-xs font-semibold text-slate-700 mb-1">
+              <label className="block text-xs font-bold text-slate-700 mb-1">
                 Застройщик (юрлицо) *
               </label>
               <div className="relative">
-                <Briefcase className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+                <Briefcase className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-slate-400" />
                 <input
                   type="text"
                   required
@@ -131,22 +132,22 @@ export const CreateProjectModal = ({ isOpen, onClose, onCreated }) => {
                   value={formData.developer_name}
                   onChange={handleChange}
                   placeholder="ООО «Тозон Девелопмент»"
-                  className="w-full rounded-xl border border-slate-300 bg-slate-50/50 pl-9 pr-3.5 py-2 text-sm text-slate-900 placeholder-slate-400 outline-none focus:border-blue-500 focus:bg-white focus:ring-1 focus:ring-blue-500"
+                  className="w-full rounded-xl border border-slate-300 bg-white pl-8 pr-3 py-1.5 text-xs text-slate-900 outline-none focus:border-blue-500 font-medium"
                 />
               </div>
             </div>
 
             <div>
-              <label className="block text-xs font-semibold text-slate-700 mb-1">
+              <label className="block text-xs font-bold text-slate-700 mb-1">
                 Валюта по умолчанию *
               </label>
               <div className="relative">
-                <Coins className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+                <Coins className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-slate-400" />
                 <select
                   name="currency"
                   value={formData.currency}
                   onChange={handleChange}
-                  className="w-full rounded-xl border border-slate-300 bg-slate-50/50 pl-9 pr-3.5 py-2 text-sm text-slate-900 outline-none focus:border-blue-500 focus:bg-white focus:ring-1 focus:ring-blue-500 cursor-pointer"
+                  className="w-full rounded-xl border border-slate-300 bg-white pl-8 pr-3 py-1.5 text-xs text-slate-900 outline-none focus:border-blue-500 cursor-pointer font-bold"
                 >
                   <option value="TJS">TJS (Сомони)</option>
                   <option value="USD">USD ($)</option>
@@ -156,51 +157,53 @@ export const CreateProjectModal = ({ isOpen, onClose, onCreated }) => {
             </div>
           </div>
 
-          <div>
-            <label className="block text-xs font-semibold text-slate-700 mb-1">
-              Адрес объекта *
-            </label>
-            <div className="relative">
-              <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div>
+              <label className="block text-xs font-bold text-slate-700 mb-1">
+                Адрес объекта *
+              </label>
+              <div className="relative">
+                <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-slate-400" />
+                <input
+                  type="text"
+                  required
+                  name="address"
+                  value={formData.address}
+                  onChange={handleChange}
+                  placeholder="г. Душанбе, ул. Рудаки 120"
+                  className="w-full rounded-xl border border-slate-300 bg-white pl-8 pr-3 py-1.5 text-xs text-slate-900 outline-none focus:border-blue-500 font-medium"
+                />
+              </div>
+            </div>
+
+            <div>
+              <label className="block text-xs font-bold text-slate-700 mb-1">
+                Описание / Примечание
+              </label>
               <input
                 type="text"
-                required
-                name="address"
-                value={formData.address}
+                name="description"
+                value={formData.description}
                 onChange={handleChange}
-                placeholder="г. Душанбе, ул. Рудаки 120"
-                className="w-full rounded-xl border border-slate-300 bg-slate-50/50 pl-9 pr-3.5 py-2 text-sm text-slate-900 placeholder-slate-400 outline-none focus:border-blue-500 focus:bg-white focus:ring-1 focus:ring-blue-500"
+                placeholder="Класс комфорт+, 16 этажей, монолит..."
+                className="w-full rounded-xl border border-slate-300 bg-white px-3 py-1.5 text-xs text-slate-900 outline-none focus:border-blue-500 font-medium"
               />
             </div>
           </div>
 
-          <div>
-            <label className="block text-xs font-semibold text-slate-700 mb-1">
-              Описание / Примечание
-            </label>
-            <textarea
-              name="description"
-              rows={2}
-              value={formData.description}
-              onChange={handleChange}
-              placeholder="Класс комфорт+, 16 этажей, монолит..."
-              className="w-full rounded-xl border border-slate-300 bg-slate-50/50 px-3.5 py-2 text-sm text-slate-900 placeholder-slate-400 outline-none focus:border-blue-500 focus:bg-white focus:ring-1 focus:ring-blue-500 resize-none"
-            />
-          </div>
-
           {/* Actions */}
-          <div className="mt-6 flex items-center justify-end gap-3 border-t border-slate-100 pt-4">
+          <div className="flex items-center justify-end gap-2.5 pt-2 border-t border-slate-100 shrink-0">
             <button
               type="button"
               onClick={requestClose}
-              className="rounded-xl px-4 py-2 text-sm font-semibold text-slate-600 hover:bg-slate-100 hover:text-slate-900 transition cursor-pointer"
+              className="rounded-xl border border-slate-300 bg-white px-4 py-2 text-xs font-bold text-slate-600 hover:bg-slate-50 transition cursor-pointer"
             >
               Отмена
             </button>
             <button
               type="submit"
               disabled={isSubmitting}
-              className="flex items-center gap-2 rounded-xl bg-gradient-to-r from-blue-600 to-cyan-600 px-5 py-2 text-sm font-bold text-white shadow-md hover:from-blue-700 hover:to-cyan-700 transition disabled:opacity-60 cursor-pointer"
+              className="flex items-center gap-2 rounded-xl bg-gradient-to-r from-blue-600 to-cyan-600 px-6 py-2 text-xs font-bold text-white shadow-md hover:from-blue-700 hover:to-cyan-700 transition disabled:opacity-60 cursor-pointer"
             >
               {isSubmitting ? 'Сохранение...' : 'Создать ЖК'}
             </button>
