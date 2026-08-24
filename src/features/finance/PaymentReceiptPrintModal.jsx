@@ -166,116 +166,114 @@ export const PaymentReceiptPrintModal = ({ payment, deal, onClose, initialLang =
 
         {/* OFFICIAL DUAL-PANEL PKO DOCUMENT (Шакли КО-1) */}
         <div id="print-section" className="p-4 sm:p-8 text-black font-serif select-text bg-white">
-          <div className="flex flex-row border border-black w-full min-h-[580px]">
+          <div className="flex flex-row border border-black w-full">
             
-            {/* LEFT PART: ОРДЕРИ ДАРОМАДИ ХАЗИНАВӢ (64% width) */}
-            <div className="w-[64%] p-4 sm:p-5 space-y-3 border-r border-dashed border-black flex flex-col justify-between">
-              <div className="space-y-2.5">
-                {/* Organization and Form Standard */}
-                <div className="flex items-start justify-between">
-                  <div className="border-b-2 border-black pb-0.5 font-bold text-sm tracking-wide">
-                    {companyTitle}
-                  </div>
-                  <div className="text-[11px] font-sans text-right">
-                    {isTJ ? 'Шакли КО-1' : 'Форма КО-1'}
-                  </div>
+            {/* LEFT PART: ОРДЕРИ ДАРОМАДИ ХАЗИНАВӢ (63% width) */}
+            <div className="w-[63%] p-4 sm:p-5 border-r border-dashed border-black flex flex-col justify-between space-y-3">
+              {/* Organization and Form Standard */}
+              <div className="flex items-start justify-between">
+                <div className="border-b-2 border-black pb-0.5 font-bold text-sm tracking-wide">
+                  {companyTitle}
                 </div>
-
-                {/* Title */}
-                <div className="text-center pt-0.5">
-                  <h2 className="text-sm sm:text-base font-bold uppercase tracking-wide">
-                    {isTJ ? 'ОРДЕРИ ДАРОМАДИ ХАЗИНАВИ №' : 'ПРИХОДНЫЙ КАССОВЫЙ ОРДЕР №'}{' '}
-                    <span className="underline">{docNumber}</span>
-                  </h2>
-                </div>
-
-                {/* Date Table */}
-                <div className="flex justify-center">
-                  <table className="border-collapse border border-black text-center text-xs font-sans">
-                    <thead>
-                      <tr className="bg-slate-50 font-bold border-b border-black">
-                        <th className="border border-black px-4 py-0.5">{isTJ ? 'Рӯз' : 'День'}</th>
-                        <th className="border border-black px-6 py-0.5">{isTJ ? 'Моҳ' : 'Месяц'}</th>
-                        <th className="border border-black px-5 py-0.5">{isTJ ? 'Сол' : 'Год'}</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      <tr>
-                        <td className="border border-black px-4 py-0.5 font-bold">{dayStr}</td>
-                        <td className="border border-black px-6 py-0.5 font-bold">{monthStr}</td>
-                        <td className="border border-black px-5 py-0.5 font-bold">{yearStr}</td>
-                      </tr>
-                    </tbody>
-                  </table>
-                </div>
-
-                {/* Account Coding Table */}
-                <div className="overflow-x-auto pt-0.5">
-                  <table className="w-full border-collapse border border-black text-center text-[10px] font-sans">
-                    <thead>
-                      <tr className="bg-slate-50 font-semibold border-b border-black leading-tight">
-                        <th className="border border-black p-1 w-10">{isTJ ? '№ таб' : '№ таб'}</th>
-                        <th className="border border-black p-1">{isTJ ? 'Ҳисоби муросилотӣ, ҳисоботи иловагӣ' : 'Корреспондирующий счет, субсчет'}</th>
-                        <th className="border border-black p-1">{isTJ ? 'Рамзи ҳисоби таҳлилӣ' : 'Код аналитического учета'}</th>
-                        <th className="border border-black p-1 font-bold">{isTJ ? 'Маблағ' : 'Сумма'}</th>
-                        <th className="border border-black p-1">{isTJ ? 'Рамзи таъминоти мақсаднок' : 'Код целевого назначения'}</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      <tr className="h-7">
-                        <td className="border border-black p-1"></td>
-                        <td className="border border-black p-1"></td>
-                        <td className="border border-black p-1"></td>
-                        <td className="border border-black p-1 font-bold font-sans text-xs">
-                          {amountFormatted}
-                        </td>
-                        <td className="border border-black p-1"></td>
-                      </tr>
-                    </tbody>
-                  </table>
-                </div>
-
-                {/* Payer Line */}
-                <div className="pt-1 text-xs">
-                  <div className="flex items-baseline gap-2">
-                    <span className="shrink-0 text-slate-800">
-                      {isTJ ? 'Қабул карда шуд аз' : 'Принято от'}
-                    </span>
-                    <span className="grow border-b border-black font-bold pb-0.5">
-                      {payerName}
-                    </span>
-                  </div>
-                </div>
-
-                {/* Basis Line */}
-                <div className="text-xs">
-                  <div className="flex items-baseline gap-2">
-                    <span className="shrink-0 text-slate-800">
-                      {isTJ ? 'Асос:' : 'Основание:'}
-                    </span>
-                    <span className="grow border-b border-black font-medium pb-0.5 leading-relaxed">
-                      {basisText}
-                    </span>
-                  </div>
-                </div>
-
-                {/* Amount in words */}
-                <div className="border-b border-black pb-0.5 text-xs font-medium leading-relaxed">
-                  {wordsFormatted}
-                </div>
-
-                {/* Double line divider */}
-                <div className="border-t-2 border-b border-black py-0.5"></div>
-
-                {/* Application / Appendix */}
-                <div className="flex items-baseline gap-2 text-xs">
-                  <span className="shrink-0 font-medium">{isTJ ? 'Замима:' : 'Приложение:'}</span>
-                  <span className="grow border-b border-black"></span>
+                <div className="text-[11px] font-sans text-right">
+                  {isTJ ? 'Шакли КО-1' : 'Форма КО-1'}
                 </div>
               </div>
 
+              {/* Title */}
+              <div className="text-center">
+                <h2 className="text-sm sm:text-base font-bold uppercase tracking-wide">
+                  {isTJ ? 'ОРДЕРИ ДАРОМАДИ ХАЗИНАВИ №' : 'ПРИХОДНЫЙ КАССОВЫЙ ОРДЕР №'}{' '}
+                  <span className="underline">{docNumber}</span>
+                </h2>
+              </div>
+
+              {/* Date Table */}
+              <div className="flex justify-center">
+                <table className="border-collapse border border-black text-center text-xs font-sans">
+                  <thead>
+                    <tr className="bg-slate-50 font-bold border-b border-black">
+                      <th className="border border-black px-4 py-0.5">{isTJ ? 'Рӯз' : 'День'}</th>
+                      <th className="border border-black px-6 py-0.5">{isTJ ? 'Моҳ' : 'Месяц'}</th>
+                      <th className="border border-black px-5 py-0.5">{isTJ ? 'Сол' : 'Год'}</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr>
+                      <td className="border border-black px-4 py-0.5 font-bold">{dayStr}</td>
+                      <td className="border border-black px-6 py-0.5 font-bold">{monthStr}</td>
+                      <td className="border border-black px-5 py-0.5 font-bold">{yearStr}</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+
+              {/* Account Coding Table */}
+              <div className="overflow-x-auto">
+                <table className="w-full border-collapse border border-black text-center text-[10px] font-sans">
+                  <thead>
+                    <tr className="bg-slate-50 font-semibold border-b border-black leading-tight">
+                      <th className="border border-black p-1 w-10">{isTJ ? '№ таб' : '№ таб'}</th>
+                      <th className="border border-black p-1">{isTJ ? 'Ҳисоби муросилотӣ, ҳисоботи иловагӣ' : 'Корреспондирующий счет, субсчет'}</th>
+                      <th className="border border-black p-1">{isTJ ? 'Рамзи ҳисоби таҳлилӣ' : 'Код аналитического учета'}</th>
+                      <th className="border border-black p-1 font-bold">{isTJ ? 'Маблағ' : 'Сумма'}</th>
+                      <th className="border border-black p-1">{isTJ ? 'Рамзи таъминоти мақсаднок' : 'Код целевого назначения'}</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr className="h-7">
+                      <td className="border border-black p-1"></td>
+                      <td className="border border-black p-1"></td>
+                      <td className="border border-black p-1"></td>
+                      <td className="border border-black p-1 font-bold font-sans text-xs">
+                        {amountFormatted}
+                      </td>
+                      <td className="border border-black p-1"></td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+
+              {/* Payer Line */}
+              <div className="text-xs">
+                <div className="flex items-baseline gap-2">
+                  <span className="shrink-0 text-slate-800">
+                    {isTJ ? 'Қабул карда шуд аз' : 'Принято от'}
+                  </span>
+                  <span className="grow border-b border-black font-bold pb-0.5">
+                    {payerName}
+                  </span>
+                </div>
+              </div>
+
+              {/* Basis Line */}
+              <div className="text-xs">
+                <div className="flex items-baseline gap-2">
+                  <span className="shrink-0 text-slate-800">
+                    {isTJ ? 'Асос:' : 'Основание:'}
+                  </span>
+                  <span className="grow border-b border-black font-medium pb-0.5 leading-relaxed">
+                    {basisText}
+                  </span>
+                </div>
+              </div>
+
+              {/* Amount in words */}
+              <div className="border-b border-black pb-0.5 text-xs font-medium leading-relaxed">
+                {wordsFormatted}
+              </div>
+
+              {/* Double line divider */}
+              <div className="border-t-2 border-b border-black py-0.5"></div>
+
+              {/* Application / Appendix */}
+              <div className="flex items-baseline gap-2 text-xs">
+                <span className="shrink-0 font-medium">{isTJ ? 'Замима:' : 'Приложение:'}</span>
+                <span className="grow border-b border-black"></span>
+              </div>
+
               {/* Signatures */}
-              <div className="space-y-2.5 pt-2 text-xs">
+              <div className="space-y-3 pt-1 text-xs">
                 <div className="flex items-baseline gap-3">
                   <span className="w-24 shrink-0 font-bold">{isTJ ? 'Сармуҳосиб' : 'Главный бухгалтер'}</span>
                   <span className="grow border-b border-black"></span>
@@ -309,90 +307,81 @@ export const PaymentReceiptPrintModal = ({ payment, deal, onClose, initialLang =
               </div>
             </div>
 
-            {/* RIGHT PART: РАСИД / КВИТАНЦИЯ (36% width) */}
-            <div className="w-[36%] p-4 sm:p-5 space-y-2.5 flex flex-col justify-between relative bg-white">
+            {/* RIGHT PART: РАСИД / КВИТАНЦИЯ (37% width) */}
+            <div className="w-[37%] p-4 sm:p-5 border-l-0 relative bg-white flex flex-col justify-between space-y-3">
               {/* Vertical cutting line indicator on the left border */}
               <div className="absolute -left-3 top-1/2 -translate-y-1/2 hidden md:flex flex-col items-center bg-white py-2 text-[8px] font-sans tracking-widest text-slate-500 uppercase select-none [writing-mode:vertical-rl] rotate-180">
                 {isTJ ? 'ХАТИ БУРРИШ' : 'ЛИНИЯ ОТРЕЗА'}
               </div>
 
-              <div className="space-y-2.5">
-                {/* Org header */}
-                <div className="text-center font-bold text-xs tracking-wide border-b border-black pb-1">
-                  {companyTitle}
-                </div>
+              {/* Org header */}
+              <div className="text-center font-bold text-xs tracking-wide border-b border-black pb-1">
+                {companyTitle}
+              </div>
 
-                {/* Title */}
-                <div className="text-center">
-                  <h3 className="text-base font-bold tracking-[0.25em] uppercase">
-                    {isTJ ? 'Р А С И Д' : 'К В И Т А Н Ц И Я'}
-                  </h3>
-                  <p className="text-[10px] text-slate-800 mt-0.5">
-                    {isTJ ? 'ба ордери даромади хазинавӣ №' : 'к приходному кассовому ордеру №'} <strong className="underline font-sans">{docNumber}</strong>
-                  </p>
-                </div>
+              {/* Title */}
+              <div className="text-center">
+                <h3 className="text-base font-bold tracking-[0.25em] uppercase">
+                  {isTJ ? 'Р А С И Д' : 'К В И Т А Н Ц И Я'}
+                </h3>
+                <p className="text-[10px] text-slate-800 mt-0.5">
+                  {isTJ ? 'ба ордери даромади хазинавӣ №' : 'к приходному кассовому ордеру №'} <strong className="underline font-sans">{docNumber}</strong>
+                </p>
+              </div>
 
-                {/* Payer Line */}
-                <div className="space-y-0.5 text-xs">
-                  <span className="text-slate-800 block text-[10px] font-medium">
-                    {isTJ ? 'Қабул карда шуд аз' : 'Принято от'}
-                  </span>
-                  <div className="border-b border-black font-bold pb-0.5 text-xs">
-                    {payerName}
-                  </div>
-                </div>
-
-                {/* Amount Big Centered */}
-                <div className="text-center py-0.5">
-                  <div className="inline-block border-b-2 border-black px-4 py-0.5 font-sans text-base font-black tracking-tight">
-                    {amountFormatted}
-                  </div>
-                </div>
-
-                {/* Basis Line */}
-                <div className="space-y-0.5 text-xs">
-                  <span className="text-slate-800 block text-[10px] font-medium">
-                    {isTJ ? 'Асос:' : 'Основание:'}
-                  </span>
-                  <div className="border-b border-black font-medium pb-0.5 leading-tight text-[10px]">
-                    {basisText}
-                  </div>
-                </div>
-
-                {/* Amount in words */}
-                <div className="border-b border-black pb-0.5 text-[10px] leading-tight font-medium">
-                  {wordsFormatted}
-                </div>
-
-                {/* Total amount summary */}
-                <div className="flex items-center justify-between text-xs font-bold pt-0.5">
-                  <span>{isTJ ? 'Маблағ' : 'Сумма'}</span>
-                  <span className="font-sans text-xs font-black underline">{amountFormatted}</span>
-                </div>
-
-                {/* Date Table */}
-                <div className="flex justify-center pt-0.5">
-                  <table className="border-collapse border border-black text-center text-[10px] font-sans w-full max-w-[180px]">
-                    <thead>
-                      <tr className="bg-slate-50 font-bold border-b border-black text-[9px]">
-                        <th className="border border-black px-2 py-0.5">{isTJ ? 'Рӯз' : 'День'}</th>
-                        <th className="border border-black px-2 py-0.5">{isTJ ? 'Моҳ' : 'Месяц'}</th>
-                        <th className="border border-black px-2 py-0.5">{isTJ ? 'Сол' : 'Год'}</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      <tr>
-                        <td className="border border-black px-2 py-0.5 font-bold">{dayStr}</td>
-                        <td className="border border-black px-2 py-0.5 font-bold">{monthStr}</td>
-                        <td className="border border-black px-2 py-0.5 font-bold">{yearStr}</td>
-                      </tr>
-                    </tbody>
-                  </table>
+              {/* Payer Line (NO amount under FIO!) */}
+              <div className="space-y-0.5 text-xs">
+                <span className="text-slate-800 block text-[10px] font-medium">
+                  {isTJ ? 'Қабул карда шуд аз' : 'Принято от'}
+                </span>
+                <div className="border-b border-black font-bold pb-0.5 text-xs">
+                  {payerName}
                 </div>
               </div>
 
+              {/* Basis Line */}
+              <div className="space-y-0.5 text-xs">
+                <span className="text-slate-800 block text-[10px] font-medium">
+                  {isTJ ? 'Асос:' : 'Основание:'}
+                </span>
+                <div className="border-b border-black font-medium pb-0.5 leading-tight text-[11px]">
+                  {basisText}
+                </div>
+              </div>
+
+              {/* Amount in words */}
+              <div className="border-b border-black pb-0.5 text-[11px] leading-tight font-medium">
+                {wordsFormatted}
+              </div>
+
+              {/* Total amount summary */}
+              <div className="flex items-center justify-between text-xs font-bold pt-0.5">
+                <span>{isTJ ? 'Маблағ' : 'Сумма'}</span>
+                <span className="font-sans text-sm font-black underline">{amountFormatted}</span>
+              </div>
+
+              {/* Date Table */}
+              <div className="flex justify-center">
+                <table className="border-collapse border border-black text-center text-[10px] font-sans w-full max-w-[190px]">
+                  <thead>
+                    <tr className="bg-slate-50 font-bold border-b border-black text-[9px]">
+                      <th className="border border-black px-2 py-0.5">{isTJ ? 'Рӯз' : 'День'}</th>
+                      <th className="border border-black px-2 py-0.5">{isTJ ? 'Моҳ' : 'Месяц'}</th>
+                      <th className="border border-black px-2 py-0.5">{isTJ ? 'Сол' : 'Год'}</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr>
+                      <td className="border border-black px-2 py-0.5 font-bold">{dayStr}</td>
+                      <td className="border border-black px-2 py-0.5 font-bold">{monthStr}</td>
+                      <td className="border border-black px-2 py-0.5 font-bold">{yearStr}</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+
               {/* Signatures & Seal */}
-              <div className="space-y-2 pt-2 text-xs">
+              <div className="space-y-2.5 pt-1 text-xs">
                 <div className="flex items-baseline gap-2">
                   <span className="w-20 shrink-0 font-bold text-[10px]">{isTJ ? 'Сармуҳосиб' : 'Главный бухгалтер'}</span>
                   <span className="grow border-b border-black"></span>
