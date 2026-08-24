@@ -371,7 +371,9 @@ export const PaymentReceiptPrintModal = ({ payment, deal, onClose, initialLang =
               {/* Total amount summary */}
               <div className="flex items-center justify-between text-xs font-bold pt-0.5">
                 <span>{isTJ ? 'Маблағ' : 'Сумма'}</span>
-                <span className="font-sans text-sm font-black underline">{amountFormatted}</span>
+                <span className="font-sans text-sm font-black underline">
+                  {amountFormatted} {isTJ ? 'сомонӣ' : 'сомони'}
+                </span>
               </div>
 
               {/* Date Table */}
