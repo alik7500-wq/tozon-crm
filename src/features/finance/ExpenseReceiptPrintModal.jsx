@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
-import { Printer, ArrowLeft, Globe, Receipt, CheckCircle2 } from 'lucide-react';
+import { Printer, ArrowLeft, Receipt } from 'lucide-react';
+import { numberToWordsTJ, numberToWordsRU } from '../../utils/numberToWords';
 import { useModalDismiss } from '../../hooks/useModalDismiss';
 
 export const ExpenseReceiptPrintModal = ({ expense, onClose, initialLang = 'TJ' }) => {
@@ -27,37 +28,60 @@ export const ExpenseReceiptPrintModal = ({ expense, onClose, initialLang = 'TJ' 
   const isTJ = lang === 'TJ';
 
   const cleanCompanyName = (rawName) => {
-    let name = (rawName || 'Тозон Девелопмент')
+    let name = (rawName || 'ТОЗОН')
       .replace(/^(ООО|ҶДММ|ЗАО|ҶСК|ЧДММ)\s*["«']?|["»']$/gi, '')
       .replace(/^["«']+|["»']+$/g, '')
       .trim();
-    if (!name) name = 'Тозон Девелопмент';
+    if (!name) name = 'ТОЗОН';
     return isTJ ? `ҶДММ "${name}"` : `ООО "${name}"`;
   };
 
-  const formatDate = (dateStr) => {
-    if (!dateStr) return '—';
-    const d = new Date(dateStr);
-    if (isNaN(d.getTime())) return dateStr;
-    const day = String(d.getDate()).padStart(2, '0');
-    const month = String(d.getMonth() + 1).padStart(2, '0');
-    const year = d.getFullYear();
-    return `${day}.${month}.${year}`;
-  };
+  // Date breakdown
+  const expenseDateObj = expense.expense_date 
+    ? new Date(expense.expense_date) 
+    : (expense.date ? new Date(expense.date) : new Date());
+  const validDate = !isNaN(expenseDateObj.getTime()) ? expenseDateObj : new Date();
 
-  const amountMinor = expense.amount_minor || (expense.amount ? expense.amount * 100 : 0);
-  const amountFormatted = (amountMinor / 100).toLocaleString('ru-RU', {
+  const dayStr = String(validDate.getDate()).padStart(2, '0');
+  const monthNumStr = String(validDate.getMonth() + 1).padStart(2, '0');
+  const yearStr = String(validDate.getFullYear());
+
+  // Amount & Currency
+  const amountMinor = expense.amount_minor !== undefined 
+    ? expense.amount_minor 
+    : (expense.amount ? Math.round(expense.amount * 100) : 0);
+  const amountNumber = amountMinor / 100;
+  const amountFormatted = amountNumber.toLocaleString('ru-RU', {
     minimumFractionDigits: 2,
     maximumFractionDigits: 2,
   });
 
-  const currency = expense.currency || 'TJS';
+  const currency = (expense.currency || 'TJS').toUpperCase();
+  const wordsFormatted = isTJ 
+    ? numberToWordsTJ(amountNumber, currency)
+    : numberToWordsRU(amountNumber, currency);
+
+  // Document Number
+  const docNumber = expense.reference 
+    ? String(expense.reference).replace(/^[^\d]+/g, '') || expense.id || '1'
+    : expense.id || '1';
+
+  // Recipient
+  const recipientName = (expense.recipient || '—').trim();
+
+  // Ground / Basis
+  const basisText = (expense.description || expense.comment || expense.category || (isTJ ? 'Хароҷоти амалиётӣ' : 'Операционный расход')).trim();
+
+  // Appendix / Attached document
+  const appendixText = (expense.reference || expense.attachment || '—').trim();
+
+  const companyTitle = cleanCompanyName(expense.developer_name);
 
   return createPortal(
     <div className="print-portal-root fixed inset-0 z-50 overflow-y-auto bg-slate-900/60 backdrop-blur-xs p-2 sm:p-6 flex justify-center animate-in fade-in print:static print:p-0 print:m-0 print:bg-white print:overflow-visible print:block print:h-auto">
-      <div className="print-document-root relative w-full max-w-2xl bg-white rounded-2xl shadow-2xl overflow-hidden flex flex-col my-auto border border-slate-200 print:border-none print:shadow-none print:rounded-none print:max-w-none print:w-full print:overflow-visible print:m-0 print:p-0 print:static print:block print:h-auto">
-        {/* Controls bar (hidden during print) */}
-        <div className="print:hidden flex items-center justify-between bg-slate-900 text-white px-4 sm:px-6 py-3.5 border-b border-slate-800 flex-wrap gap-2">
+      <div className="print-document-root relative w-full max-w-4xl bg-white rounded-2xl shadow-2xl overflow-hidden flex flex-col my-auto border border-slate-200 print:border-none print:shadow-none print:rounded-none print:max-w-none print:w-full print:overflow-visible print:m-0 print:p-0 print:static print:block print:h-auto">
+        {/* Controls bar (Hidden during print) */}
+        <div className="print:hidden flex items-center justify-between bg-slate-900 text-white px-4 sm:px-6 py-3 border-b border-slate-800 flex-wrap gap-2">
           <div className="flex items-center gap-3">
             {onClose && (
               <button
@@ -71,7 +95,7 @@ export const ExpenseReceiptPrintModal = ({ expense, onClose, initialLang = 'TJ' 
             )}
             <span className="text-slate-600">|</span>
             <span className="text-xs font-bold text-rose-400 flex items-center gap-1">
-              <Receipt className="h-3.5 w-3.5" /> {isTJ ? 'Ордери хароҷот (РКО)' : 'Расходный кассовый ордер (РКО)'}
+              <Receipt className="h-3.5 w-3.5" /> {isTJ ? 'Ордери содироти хазинавӣ (РКО)' : 'Расходный кассовый ордер (РКО)'}
             </span>
           </div>
 
@@ -105,7 +129,7 @@ export const ExpenseReceiptPrintModal = ({ expense, onClose, initialLang = 'TJ' 
             <button
               type="button"
               onClick={handlePrint}
-              className="flex items-center gap-2 rounded-xl bg-blue-600 hover:bg-blue-700 px-4 py-2 text-xs font-bold text-white shadow-md transition cursor-pointer"
+              className="flex items-center gap-2 rounded-xl bg-blue-600 hover:bg-blue-700 px-5 py-1.5 text-xs font-bold text-white shadow-md transition cursor-pointer"
             >
               <Printer className="h-4 w-4" />
               <span>{isTJ ? 'Чоп кардан' : 'Печать'}</span>
@@ -113,98 +137,160 @@ export const ExpenseReceiptPrintModal = ({ expense, onClose, initialLang = 'TJ' 
           </div>
         </div>
 
-        {/* PRINTABLE RKO RECEIPT */}
-        <div id="print-section" className="p-8 sm:p-12 text-slate-900 font-sans select-text bg-white space-y-6">
-          {/* Header */}
-          <div className="border-b-2 border-slate-900 pb-4 flex justify-between items-start">
-            <div>
-              <h2 className="text-lg font-black tracking-tight uppercase text-slate-900">
-                {cleanCompanyName(expense.developer_name)}
+        {/* OFFICIAL RKO DOCUMENT (ОРДЕРИ СОДИРОТИ ХАЗИНАВИ) */}
+        <div id="print-section" className="p-6 sm:p-10 text-black font-serif select-text bg-white">
+          <div className="border border-black p-6 sm:p-8 space-y-4 max-w-3xl mx-auto">
+            
+            {/* Top Company Header */}
+            <div className="border-b-2 border-black pb-0.5 inline-block font-bold text-sm sm:text-base tracking-wide">
+              {companyTitle}
+            </div>
+
+            {/* Main Title */}
+            <div className="text-center pt-1">
+              <h2 className="text-sm sm:text-base font-bold uppercase tracking-wide">
+                {isTJ ? 'ОРДЕРИ СОДИРОТИ ХАЗИНАВИ №' : 'РАСХОДНЫЙ КАССОВЫЙ ОРДЕР №'}{' '}
+                <span className="underline font-sans">{docNumber}</span>
               </h2>
-              <p className="text-xs text-slate-500 mt-0.5">
-                {isTJ ? 'Ҷумҳурии Тоҷикистон' : 'Республика Таджикистан'}
-              </p>
-            </div>
-            <div className="text-right">
-              <span className="text-xs font-bold uppercase text-slate-500 block">
-                {isTJ ? 'ОРДЕРИ ХАРОҶОТИ ХАЗИНА' : 'РАСХОДНЫЙ КАССОВЫЙ ОРДЕР'}
-              </span>
-              <strong className="text-base text-slate-900 font-black">
-                № {expense.reference || expense.id || 'РКО-001'}
-              </strong>
-              <p className="text-xs text-slate-500 mt-0.5">
-                {isTJ ? 'Сана:' : 'Дата:'} {formatDate(expense.expense_date || expense.date || expense.created_at)}
-              </p>
-            </div>
-          </div>
-
-          {/* Details Table */}
-          <div className="space-y-2.5 text-xs sm:text-sm">
-            <div className="flex justify-between border-b border-dotted border-slate-300 pb-1">
-              <span className="text-slate-600">{isTJ ? 'Гирандаи маблағ (Таҳвилгар / Шахс):' : 'Выдано (Получатель / Контрагент):'}</span>
-              <strong className="text-slate-900">{expense.recipient || '—'}</strong>
             </div>
 
-            <div className="flex justify-between border-b border-dotted border-slate-300 pb-1">
-              <span className="text-slate-600">{isTJ ? 'Моддаи хароҷот / Категория:' : 'Статья расхода / Категория:'}</span>
-              <strong className="text-slate-900">
-                {expense.category || (isTJ ? 'Хароҷоти амалиётӣ' : 'Операционный расход')}
-              </strong>
+            {/* Date Table */}
+            <div className="flex justify-center">
+              <table className="border-collapse border border-black text-center text-xs font-sans">
+                <thead>
+                  <tr className="bg-slate-50 font-bold border-b border-black">
+                    <th className="border border-black px-6 py-0.5">{isTJ ? 'Рӯз' : 'День'}</th>
+                    <th className="border border-black px-8 py-0.5">{isTJ ? 'Моҳ' : 'Месяц'}</th>
+                    <th className="border border-black px-6 py-0.5">{isTJ ? 'Сол' : 'Год'}</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td className="border border-black px-6 py-0.5 font-bold">{dayStr}</td>
+                    <td className="border border-black px-8 py-0.5 font-bold">{monthNumStr}</td>
+                    <td className="border border-black px-6 py-0.5 font-bold">{yearStr}</td>
+                  </tr>
+                </tbody>
+              </table>
             </div>
 
-            <div className="flex justify-between border-b border-dotted border-slate-300 pb-1">
-              <span className="text-slate-600">{isTJ ? 'Асос / Тавзеҳот:' : 'Основание / Примечание:'}</span>
-              <span className="text-slate-900 font-medium">
-                {expense.description || expense.comment || 'Пардохт тибқи асос'}
-              </span>
+            {/* Account Coding Table */}
+            <div className="overflow-x-auto">
+              <table className="w-full border-collapse border border-black text-center text-[10px] sm:text-[11px] font-sans">
+                <thead>
+                  <tr className="bg-slate-50 font-semibold border-b border-black leading-tight">
+                    <th className="border border-black p-1">{isTJ ? 'Ҳисоби муросилотӣ, ҳисоботи иловагӣ' : 'Корреспондирующий счет, субсчет'}</th>
+                    <th className="border border-black p-1">{isTJ ? 'Рамзи ҳисоби таҳлилӣ' : 'Код аналитического учета'}</th>
+                    <th className="border border-black p-1 font-bold">{isTJ ? 'Маблағ' : 'Сумма'}</th>
+                    <th className="border border-black p-1">{isTJ ? 'Рамзи таъминоти мақсаднок' : 'Код целевого назначения'}</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr className="h-7">
+                    <td className="border border-black p-1"></td>
+                    <td className="border border-black p-1"></td>
+                    <td className="border border-black p-1 font-bold font-sans text-xs sm:text-sm">
+                      {amountFormatted}
+                    </td>
+                    <td className="border border-black p-1"></td>
+                  </tr>
+                </tbody>
+              </table>
             </div>
 
-            <div className="flex justify-between border-b border-dotted border-slate-300 pb-1">
-              <span className="text-slate-600">{isTJ ? 'Усули пардохт:' : 'Способ выдачи:'}</span>
-              <span className="text-slate-900 font-semibold">
-                {expense.method === 'BANK_TRANSFER' ? (isTJ ? 'Интиқоли бонкӣ' : 'Безналичный перевод') : (isTJ ? 'Нақдӣ аз хазина' : 'Наличные из кассы')}
-              </span>
-            </div>
-
-            {expense.reference && (
-              <div className="flex justify-between border-b border-dotted border-slate-300 pb-1">
-                <span className="text-slate-600">{isTJ ? 'Рақами ҳуҷҷат / Референс:' : 'Номер документа / Референс:'}</span>
-                <span className="text-slate-900 font-medium">{expense.reference}</span>
+            {/* Recipient Line */}
+            <div className="text-xs sm:text-sm pt-1">
+              <div className="flex items-baseline gap-2">
+                <span className="shrink-0 font-bold text-slate-900">
+                  {isTJ ? 'Дода шуд ба:' : 'Выдать:'}
+                </span>
+                <span className="grow border-b border-black font-medium pb-0.5">
+                  {recipientName}
+                </span>
               </div>
-            )}
-          </div>
-
-          {/* Amount Box */}
-          <div className="rounded-2xl border-2 border-slate-900 bg-rose-50/50 p-4 sm:p-5 flex justify-between items-center">
-            <span className="text-xs sm:text-sm font-bold uppercase tracking-wider text-slate-700">
-              {isTJ ? 'Маблағи додашуда:' : 'Выданная сумма:'}
-            </span>
-            <span className="text-xl sm:text-2xl font-black text-rose-700">
-              {amountFormatted} {currency}
-            </span>
-          </div>
-
-          {/* Signatures */}
-          <div className="border-t border-slate-300 pt-8 mt-8 grid grid-cols-3 gap-6 text-xs">
-            <div>
-              <p className="font-bold text-slate-900 mb-1">{isTJ ? 'Роҳбар:' : 'Руководитель:'}</p>
-              <div className="mt-8 border-b border-slate-400 w-32"></div>
-              <p className="text-[10px] text-slate-400 mt-1">{isTJ ? '(имзо)' : '(подпись)'}</p>
             </div>
 
-            <div>
-              <p className="font-bold text-slate-900 mb-1">{isTJ ? 'Хазинадор / Муҳосиб:' : 'Кассир / Бухгалтер:'}</p>
-              <p className="text-slate-600 truncate">{expense.created_by_name || expense.createdByName || 'Admin'}</p>
-              <div className="mt-8 border-b border-slate-400 w-32"></div>
-              <p className="text-[10px] text-slate-400 mt-1">{isTJ ? '(имзо, мӯҳр)' : '(подпись, М.П.)'}</p>
+            {/* Basis Line */}
+            <div className="text-xs sm:text-sm">
+              <div className="flex items-baseline gap-2">
+                <span className="shrink-0 font-bold text-slate-900">
+                  {isTJ ? 'Асос:' : 'Основание:'}
+                </span>
+                <span className="grow border-b border-black font-medium pb-0.5 leading-relaxed">
+                  {basisText}
+                </span>
+              </div>
             </div>
 
-            <div>
-              <p className="font-bold text-slate-900 mb-1">{isTJ ? 'Маблағро гирифтам:' : 'Сумму получил:'}</p>
-              <p className="text-slate-600 truncate">{expense.recipient || '—'}</p>
-              <div className="mt-8 border-b border-slate-400 w-32"></div>
-              <p className="text-[10px] text-slate-400 mt-1">{isTJ ? '(имзо дар гирифтан)' : '(подпись в получении)'}</p>
+            {/* Amount in words */}
+            <div className="border-b border-black pb-0.5 text-xs sm:text-sm font-medium leading-relaxed">
+              {wordsFormatted}
             </div>
+
+            {/* Appendix */}
+            <div className="text-xs sm:text-sm">
+              <div className="flex items-baseline gap-2">
+                <span className="shrink-0 font-bold text-slate-900">
+                  {isTJ ? 'Замима:' : 'Приложение:'}
+                </span>
+                <span className="grow border-b border-black font-medium pb-0.5">
+                  {appendixText !== '—' ? appendixText : ''}
+                </span>
+              </div>
+            </div>
+
+            {/* Management Signatures */}
+            <div className="grid grid-cols-2 gap-8 pt-2 text-xs sm:text-sm">
+              <div className="flex items-baseline gap-2">
+                <span className="shrink-0 font-bold">{isTJ ? 'Роҳбар' : 'Руководитель'}</span>
+                <span className="grow border-b border-black"></span>
+              </div>
+              <div className="flex items-baseline gap-2">
+                <span className="shrink-0 font-bold">{isTJ ? 'Сармуҳосиб' : 'Главный бухгалтер'}</span>
+                <span className="grow border-b border-black"></span>
+              </div>
+            </div>
+
+            {/* Received Amount Line */}
+            <div className="pt-2 text-xs sm:text-sm">
+              <div className="flex items-baseline gap-2">
+                <span className="shrink-0 font-bold">{isTJ ? 'Қабул кард' : 'Получил'}</span>
+                <span className="grow border-b border-black"></span>
+                <span className="shrink-0 font-sans">{isTJ ? 'сомонӣ' : (currency === 'USD' ? 'долларов' : 'сомони')}</span>
+                <span className="w-16 border-b border-black"></span>
+                <span className="shrink-0 font-sans">{isTJ ? 'дирам' : (currency === 'USD' ? 'центов' : 'дирамов')}</span>
+              </div>
+            </div>
+
+            {/* Date and Signature of Recipient */}
+            <div className="grid grid-cols-2 gap-8 pt-1 text-xs sm:text-sm">
+              <div className="flex items-baseline gap-1">
+                <span className="font-sans">"____" ______________ {yearStr} {isTJ ? 'с.' : 'г.'}</span>
+              </div>
+              <div className="flex items-baseline gap-2">
+                <span className="shrink-0 font-bold">{isTJ ? 'Имзо' : 'Подпись'}</span>
+                <span className="grow border-b border-black"></span>
+              </div>
+            </div>
+
+            {/* Document / Passport Details */}
+            <div className="text-xs sm:text-sm pt-1">
+              <div className="flex items-baseline gap-2">
+                <span className="shrink-0 font-bold text-slate-900">
+                  {isTJ ? 'Ҳуҷҷат:' : 'По документу:'}
+                </span>
+                <span className="grow border-b border-black font-medium pb-0.5"></span>
+              </div>
+            </div>
+
+            {/* Cashier Signature Centered */}
+            <div className="pt-3 flex justify-center text-xs sm:text-sm">
+              <div className="flex items-baseline gap-3 w-full max-w-sm">
+                <span className="shrink-0 font-bold">{isTJ ? 'Хазинадор' : 'Кассир'}</span>
+                <span className="grow border-b border-black"></span>
+              </div>
+            </div>
+
           </div>
         </div>
       </div>
