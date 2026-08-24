@@ -231,12 +231,16 @@ export const PaymentRecordModal = ({
 
     setIsLoading(true);
     try {
+      const cleanRef = reference.trim() 
+        ? (reference.trim().toUpperCase().startsWith('ПКО') ? reference.trim() : `ПКО-${reference.trim()}`)
+        : `ПКО-${Date.now().toString().slice(-4)}`;
+
       const res = await api.post(`/deals/${deal.id}/payments`, {
         amount_minor: amountMinor,
         payment_date: paymentDate,
         method,
         schedule_id: scheduleId || null,
-        reference: reference.trim() ? `${reference.trim()} (${cashCurrency})` : `Касса: ${cashCurrency}`,
+        reference: cleanRef,
         comment: fullCommentParts.join(' • '),
       });
 
@@ -247,7 +251,7 @@ export const PaymentRecordModal = ({
 
       const createdPayment = {
         id: res.data?.payment?.id || res.data?.id || res.id || 'ПКО',
-        payment_number: res.data?.payment?.payment_number || res.data?.payment_number || reference || 'ПКО',
+        payment_number: cleanRef,
         payment_date: paymentDate,
         amount: cashAmountTJS,
         amount_minor: Math.round(cashAmountTJS * 100),
@@ -257,7 +261,7 @@ export const PaymentRecordModal = ({
         exchange_rate: exchangeRate,
         payment_method: method,
         method: method,
-        reference: reference.trim() ? reference.trim() : `ПКО-${Date.now().toString().slice(-4)}`,
+        reference: cleanRef,
         payer_name: deal.lead_name || deal.buyer_name,
         comment: fullCommentParts.join(' • ')
       };

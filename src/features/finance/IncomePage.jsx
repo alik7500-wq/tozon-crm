@@ -351,11 +351,24 @@ export const IncomePage = () => {
                   <td className="p-3.5 pl-5 whitespace-nowrap text-slate-600">
                     <div className="flex items-center gap-1.5 font-bold">
                       <Calendar className="h-3.5 w-3.5 text-slate-400" />
-                      {dayjs(item.date).format('DD.MM.YYYY')}
+                      {(() => {
+                        if (!item.date) return '—';
+                        const parts = String(item.date).split('T')[0].split('-');
+                        return parts.length === 3 ? `${parts[2]}.${parts[1]}.${parts[0]}` : dayjs(item.date).format('DD.MM.YYYY');
+                      })()}
                     </div>
                   </td>
                   <td className="p-3.5 font-bold text-slate-900 font-mono">
-                    {item.reference || `ПКО-${item.id}`}
+                    {(() => {
+                      const ref = item.reference;
+                      if (!ref) return `ПКО-${item.id}`;
+                      const clean = String(ref).replace(/\s*\(.*?\)\s*/g, '').trim();
+                      if (/^\d+$/.test(clean)) return `ПКО-${clean}`;
+                      if (clean.toUpperCase().startsWith('ПКО')) return clean;
+                      if (clean === 'ПВ при подписании' || clean.includes('Первоначальный') || clean.includes('ПВ')) return `ПКО-ПВ`;
+                      if (clean.startsWith('Касса:')) return `ПКО-${item.id}`;
+                      return clean.startsWith('ПКО') ? clean : `ПКО-${clean}`;
+                    })()}
                   </td>
                   <td className="p-3.5">
                     <div className="font-bold text-slate-900">{item.clientName}</div>
@@ -382,19 +395,30 @@ export const IncomePage = () => {
                   <td className="p-3.5 pr-5 text-right whitespace-nowrap">
                     <div className="flex items-center justify-end gap-1.5">
                       <button
-                        onClick={() => setPrintableIncome({
-                          id: item.id,
-                          amount: item.amount,
-                          amount_minor: Math.round(item.amount * 100),
-                          currency: item.currency,
-                          payment_date: item.date,
-                          payer_name: item.clientName,
-                          contract: item.contract,
-                          reference: item.reference,
-                          comment: item.comment,
-                          method: item.method,
-                          created_by_name: item.createdByName
-                        })}
+                        onClick={() => {
+                          const ref = item.reference;
+                          let cleanDoc = `ПКО-${item.id}`;
+                          if (ref) {
+                            const clean = String(ref).replace(/\s*\(.*?\)\s*/g, '').trim();
+                            if (/^\d+$/.test(clean)) cleanDoc = `ПКО-${clean}`;
+                            else if (clean.toUpperCase().startsWith('ПКО')) cleanDoc = clean;
+                            else if (clean === 'ПВ при подписании' || clean.includes('Первоначальный') || clean.includes('ПВ')) cleanDoc = `ПКО-ПВ`;
+                            else if (!clean.startsWith('Касса:')) cleanDoc = `ПКО-${clean}`;
+                          }
+                          setPrintableIncome({
+                            id: item.id,
+                            amount: item.amount,
+                            amount_minor: Math.round(item.amount * 100),
+                            currency: item.currency,
+                            payment_date: item.date,
+                            payer_name: item.clientName,
+                            contract: item.contract,
+                            reference: cleanDoc,
+                            comment: item.comment,
+                            method: item.method,
+                            created_by_name: item.createdByName
+                          });
+                        }}
                         title="Печать ПКО (Квитанция)"
                         className="p-1.5 rounded-lg text-slate-400 hover:text-emerald-600 hover:bg-emerald-50 transition cursor-pointer"
                       >

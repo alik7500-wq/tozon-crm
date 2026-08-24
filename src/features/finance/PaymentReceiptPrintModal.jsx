@@ -47,14 +47,26 @@ export const PaymentReceiptPrintModal = ({ payment, deal, onClose, initialLang =
     return isTJ ? `ҶДММ "${name}"` : `ООО "${name}"`;
   };
 
-  // Date breakdown
-  const paymentDateObj = payment.payment_date ? new Date(payment.payment_date) : (payment.date ? new Date(payment.date) : new Date());
-  const validDate = !isNaN(paymentDateObj.getTime()) ? paymentDateObj : new Date();
+  // Date breakdown (strictly from payment date without timezone skew)
+  const rawDateStr = payment.payment_date || payment.date || (deal?.deal_date) || '';
+  const dateParts = rawDateStr ? String(rawDateStr).split('T')[0].split('-') : [];
+  
+  let dayStr = '01';
+  let monthIdx = 0;
+  let yearStr = String(new Date().getFullYear());
 
-  const dayStr = String(validDate.getDate()).padStart(2, '0');
-  const monthIdx = validDate.getMonth();
+  if (dateParts.length === 3) {
+    yearStr = dateParts[0];
+    monthIdx = Math.max(0, Math.min(11, parseInt(dateParts[1], 10) - 1));
+    dayStr = String(dateParts[2]).padStart(2, '0');
+  } else {
+    const d = new Date();
+    dayStr = String(d.getDate()).padStart(2, '0');
+    monthIdx = d.getMonth();
+    yearStr = String(d.getFullYear());
+  }
+
   const monthStr = isTJ ? MONTHS_TJ[monthIdx] : MONTHS_RU[monthIdx];
-  const yearStr = String(validDate.getFullYear());
   const fullDateFormatted = `${dayStr}.${String(monthIdx + 1).padStart(2, '0')}.${yearStr}`;
 
   // Amount & Currency (ALWAYS in TJS / Сомони for official RT cash orders)
@@ -95,8 +107,12 @@ export const PaymentReceiptPrintModal = ({ payment, deal, onClose, initialLang =
     '—'
   ).trim();
 
-  // Document Number
-  const docNumber = payment.payment_number || payment.id || '1';
+  // Document Number (Clean numeric or formatted PKO number)
+  const docNumber = (() => {
+    const raw = payment.reference || payment.payment_number || payment.id || '1';
+    const cleanDigits = String(raw).replace(/\s*\(.*?\)\s*/g, '').replace(/^[^\d]+/g, '').trim();
+    return cleanDigits || String(payment.id) || '1';
+  })();
 
   // Ground / Basis
   const dealContractNum = deal?.contract_number ? formatContractNumber(deal.contract_number) : null;
