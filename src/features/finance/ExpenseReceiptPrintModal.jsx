@@ -47,20 +47,34 @@ export const ExpenseReceiptPrintModal = ({ expense, onClose, initialLang = 'TJ' 
   const monthNumStr = String(validDate.getMonth() + 1).padStart(2, '0');
   const yearStr = String(validDate.getFullYear());
 
-  // Amount & Currency
-  const amountMinor = expense.amount_minor !== undefined 
-    ? expense.amount_minor 
-    : (expense.amount ? Math.round(expense.amount * 100) : 0);
-  const amountNumber = amountMinor / 100;
+  // Amount & Currency (ALWAYS in TJS / Сомони for official RT cash orders)
+  let rawAmount = 0;
+  if (expense.cash_amount !== undefined && expense.cash_currency === 'TJS') {
+    rawAmount = Number(expense.cash_amount);
+  } else if (expense.amount !== undefined) {
+    rawAmount = Number(expense.amount);
+  } else if (expense.amount_minor !== undefined) {
+    rawAmount = Number(expense.amount_minor) / 100;
+  }
+
+  const expenseCur = (expense.cash_currency || expense.currency || 'TJS').toUpperCase();
+  const rate = Number(expense.exchange_rate) || 9.27;
+
+  let amountTJS = rawAmount;
+  if (expenseCur === 'USD') {
+    amountTJS = rawAmount * rate;
+  }
+
+  const amountNumber = Number(amountTJS.toFixed(2));
   const amountFormatted = amountNumber.toLocaleString('ru-RU', {
     minimumFractionDigits: 2,
     maximumFractionDigits: 2,
   });
 
-  const currency = (expense.currency || 'TJS').toUpperCase();
+  const currency = 'TJS'; // Always TJS (Сомони)
   const wordsFormatted = isTJ 
-    ? numberToWordsTJ(amountNumber, currency)
-    : numberToWordsRU(amountNumber, currency);
+    ? numberToWordsTJ(amountNumber, 'TJS')
+    : numberToWordsRU(amountNumber, 'TJS');
 
   // Document Number
   const docNumber = expense.reference 

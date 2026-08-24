@@ -240,16 +240,24 @@ export const PaymentRecordModal = ({
         comment: fullCommentParts.join(' • '),
       });
 
-      const createdPayment = res.data?.payment || res.payment || {
-        id: res.data?.id || res.id || 'ПКО',
-        payment_number: res.data?.payment_number || res.payment_number || reference || 'ПКО',
+      // Cash payment details in TJS for official PKO receipt
+      const cashAmountTJS = cashCurrency === 'TJS' 
+        ? parsedAmount 
+        : Number((parsedAmount * (parseFloat(exchangeRate) || 9.27)).toFixed(2));
+
+      const createdPayment = {
+        id: res.data?.payment?.id || res.data?.id || res.id || 'ПКО',
+        payment_number: res.data?.payment?.payment_number || res.data?.payment_number || reference || 'ПКО',
         payment_date: paymentDate,
-        amount_minor: amountMinor,
-        amount: amountMinor / 100,
-        currency: cashCurrency,
+        amount: cashAmountTJS,
+        amount_minor: Math.round(cashAmountTJS * 100),
+        currency: 'TJS',
+        cash_amount: cashAmountTJS,
+        cash_currency: 'TJS',
+        exchange_rate: exchangeRate,
         payment_method: method,
         method: method,
-        reference: reference.trim() ? `${reference.trim()} (${cashCurrency})` : `Касса: ${cashCurrency}`,
+        reference: reference.trim() ? reference.trim() : `ПКО-${Date.now().toString().slice(-4)}`,
         payer_name: deal.lead_name || deal.buyer_name,
         comment: fullCommentParts.join(' • ')
       };
