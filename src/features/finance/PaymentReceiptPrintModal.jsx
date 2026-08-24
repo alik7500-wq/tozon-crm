@@ -182,8 +182,8 @@ export const PaymentReceiptPrintModal = ({ payment, deal, onClose, initialLang =
         <div id="print-section" className="p-4 sm:p-8 text-black font-serif select-text bg-white">
           <div className="flex flex-row border border-black w-full">
             
-            {/* LEFT PART: ОРДЕРИ ДАРОМАДИ ХАЗИНАВӢ (63% width) */}
-            <div className="w-[63%] p-4 sm:p-5 border-r border-dashed border-black flex flex-col justify-between space-y-3">
+            {/* LEFT PART: ОРДЕРИ ДАРОМАДИ ХАЗИНАВӢ (59% width) */}
+            <div className="w-[59%] p-4 sm:p-5 border-r border-black flex flex-col justify-between space-y-3">
               {/* Organization and Form Standard */}
               <div className="flex items-start justify-between">
                 <div className="border-b-2 border-black pb-0.5 font-bold text-sm tracking-wide">
@@ -321,12 +321,15 @@ export const PaymentReceiptPrintModal = ({ payment, deal, onClose, initialLang =
               </div>
             </div>
 
-            {/* RIGHT PART: РАСИД / КВИТАНЦИЯ (37% width) */}
-            <div className="w-[37%] p-4 sm:p-5 border-l-0 relative bg-white flex flex-col justify-between space-y-3">
-              {/* Vertical cutting line indicator on the left border */}
-              <div className="absolute -left-3 top-1/2 -translate-y-1/2 hidden md:flex flex-col items-center bg-white py-2 text-[8px] font-sans tracking-widest text-slate-500 uppercase select-none [writing-mode:vertical-rl] rotate-180">
+            {/* SEPARATOR COLUMN: ХАТИ БУРРИШ */}
+            <div className="w-6 shrink-0 border-r border-dashed border-black flex items-center justify-center bg-slate-50/50 select-none py-4">
+              <span className="text-[8px] font-sans tracking-[0.35em] text-slate-400 font-bold uppercase [writing-mode:vertical-rl] rotate-180">
                 {isTJ ? 'ХАТИ БУРРИШ' : 'ЛИНИЯ ОТРЕЗА'}
-              </div>
+              </span>
+            </div>
+
+            {/* RIGHT PART: РАСИД / КВИТАНЦИЯ */}
+            <div className="grow p-4 sm:p-5 bg-white flex flex-col justify-between space-y-3">
 
               {/* Org header */}
               <div className="text-center font-bold text-xs tracking-wide border-b border-black pb-1">
