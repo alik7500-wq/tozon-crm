@@ -1,8 +1,19 @@
 import React, { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
-import { Printer, ArrowLeft, Globe, Receipt, CheckCircle2 } from 'lucide-react';
+import { Printer, ArrowLeft, Receipt } from 'lucide-react';
 import { formatContractNumber } from '../../utils/formatters';
+import { numberToWordsTJ, numberToWordsRU } from '../../utils/numberToWords';
 import { useModalDismiss } from '../../hooks/useModalDismiss';
+
+const MONTHS_TJ = [
+  'Январ', 'Феврал', 'Март', 'Апрел', 'Май', 'Июн',
+  'Июл', 'Август', 'Сентябр', 'Октябр', 'Ноябр', 'Декабр'
+];
+
+const MONTHS_RU = [
+  'Января', 'Февраля', 'Марта', 'Апреля', 'Мая', 'Июня',
+  'Июля', 'Августа', 'Сентября', 'Октября', 'Ноября', 'Декабря'
+];
 
 export const PaymentReceiptPrintModal = ({ payment, deal, onClose, initialLang = 'TJ' }) => {
   const [lang, setLang] = useState(initialLang);
@@ -28,41 +39,80 @@ export const PaymentReceiptPrintModal = ({ payment, deal, onClose, initialLang =
   const isTJ = lang === 'TJ';
 
   const cleanCompanyName = (rawName) => {
-    let name = (rawName || 'Тозон')
+    let name = (rawName || 'ТОЗОН')
       .replace(/^(ООО|ҶДММ|ЗАО|ҶСК|ЧДММ)\s*["«']?|["»']$/gi, '')
       .replace(/^["«']+|["»']+$/g, '')
       .trim();
-    if (!name) name = 'Тозон';
+    if (!name) name = 'ТОЗОН';
     return isTJ ? `ҶДММ "${name}"` : `ООО "${name}"`;
   };
 
-  const formatDate = (dateStr) => {
-    if (!dateStr) return '—';
-    const d = new Date(dateStr);
-    if (isNaN(d.getTime())) return dateStr;
-    const day = String(d.getDate()).padStart(2, '0');
-    const month = String(d.getMonth() + 1).padStart(2, '0');
-    const year = d.getFullYear();
-    return `${day}.${month}.${year}`;
-  };
+  // Date breakdown
+  const paymentDateObj = payment.payment_date ? new Date(payment.payment_date) : (payment.date ? new Date(payment.date) : new Date());
+  const validDate = !isNaN(paymentDateObj.getTime()) ? paymentDateObj : new Date();
 
-  const amountMinor = payment.amount_minor !== undefined ? payment.amount_minor : (payment.amount ? Math.round(payment.amount * 100) : 0);
-  const amountFormatted = (amountMinor / 100).toLocaleString('ru-RU', {
+  const dayStr = String(validDate.getDate()).padStart(2, '0');
+  const monthIdx = validDate.getMonth();
+  const monthStr = isTJ ? MONTHS_TJ[monthIdx] : MONTHS_RU[monthIdx];
+  const yearStr = String(validDate.getFullYear());
+  const fullDateFormatted = `${dayStr}.${String(monthIdx + 1).padStart(2, '0')}.${yearStr}`;
+
+  // Amount & Currency
+  const amountMinor = payment.amount_minor !== undefined 
+    ? payment.amount_minor 
+    : (payment.amount ? Math.round(payment.amount * 100) : 0);
+  const amountNumber = amountMinor / 100;
+  const amountFormatted = amountNumber.toLocaleString('ru-RU', {
     minimumFractionDigits: 2,
     maximumFractionDigits: 2,
   });
 
   const currency = (payment.currency || deal?.currency || 'USD').toUpperCase();
-  const currencyShort = currency;
+  const wordsFormatted = isTJ 
+    ? numberToWordsTJ(amountNumber, currency)
+    : numberToWordsRU(amountNumber, currency);
+
+  // Client / Payer Name
+  const payerName = (
+    payment.payer_name ||
+    payment.clientName ||
+    deal?.lead_name ||
+    deal?.buyer_name ||
+    '—'
+  ).trim();
+
+  // Document Number
+  const docNumber = payment.payment_number || payment.id || '1';
+
+  // Ground / Basis
+  const dealContractNum = deal?.contract_number ? formatContractNumber(deal.contract_number) : null;
+  const dealDate = deal?.contract_date || deal?.deal_date || fullDateFormatted;
+  const dealDateFormatted = (() => {
+    if (!dealDate) return fullDateFormatted;
+    const d = new Date(dealDate);
+    if (isNaN(d.getTime())) return dealDate;
+    return `${String(d.getDate()).padStart(2, '0')}.${String(d.getMonth() + 1).padStart(2, '0')}.${d.getFullYear()}`;
+  })();
+
+  const basisText = isTJ
+    ? (dealContractNum 
+        ? `Пардохти маблағи ҳиссагузорӣ дар асоси шартномаи № ${dealContractNum} аз ${dealDateFormatted} сол` 
+        : (payment.comment || payment.contract || 'Пардохти маблағ ба хазина тибқи асос'))
+    : (dealContractNum 
+        ? `Оплата паевого взноса по договору № ${dealContractNum} от ${dealDateFormatted} г.` 
+        : (payment.comment || payment.contract || 'Прием денежных средств в кассу предприятия'));
+
+  const companyTitle = cleanCompanyName(deal?.developer_name);
 
   return createPortal(
     <div className="print-portal-root fixed inset-0 z-50 overflow-y-auto bg-slate-900/60 backdrop-blur-xs p-2 sm:p-6 flex justify-center animate-in fade-in print:static print:p-0 print:m-0 print:bg-white print:overflow-visible print:block print:h-auto">
-      <div className="print-document-root relative w-full max-w-2xl bg-white rounded-2xl shadow-2xl overflow-hidden flex flex-col my-auto border border-slate-200 print:border-none print:shadow-none print:rounded-none print:max-w-none print:w-full print:overflow-visible print:m-0 print:p-0 print:static print:block print:h-auto">
-        {/* Controls bar */}
-        <div className="print:hidden flex items-center justify-between bg-slate-900 text-white px-4 sm:px-6 py-3.5 border-b border-slate-800 flex-wrap gap-2">
+      <div className="print-document-root relative w-full max-w-5xl bg-white rounded-2xl shadow-2xl overflow-hidden flex flex-col my-auto border border-slate-200 print:border-none print:shadow-none print:rounded-none print:max-w-none print:w-full print:overflow-visible print:m-0 print:p-0 print:static print:block print:h-auto">
+        {/* Controls bar (Hidden during print) */}
+        <div className="print:hidden flex items-center justify-between bg-slate-900 text-white px-4 sm:px-6 py-3 border-b border-slate-800 flex-wrap gap-2">
           <div className="flex items-center gap-3">
             {onClose && (
               <button
+                type="button"
                 onClick={requestClose}
                 className="flex items-center gap-1.5 text-xs font-semibold text-slate-300 hover:text-white transition cursor-pointer"
               >
@@ -72,7 +122,7 @@ export const PaymentReceiptPrintModal = ({ payment, deal, onClose, initialLang =
             )}
             <span className="text-slate-600">|</span>
             <span className="text-xs font-bold text-emerald-400 flex items-center gap-1">
-              <Receipt className="h-3.5 w-3.5" /> {isTJ ? 'Расиди пардохт' : 'Квитанция об оплате'}
+              <Receipt className="h-3.5 w-3.5" /> {isTJ ? 'Ордери даромади хазинавӣ (Шакли КО-1)' : 'Приходный кассовый ордер (Форма КО-1)'}
             </span>
           </div>
 
@@ -80,6 +130,7 @@ export const PaymentReceiptPrintModal = ({ payment, deal, onClose, initialLang =
             {/* Language Toggle */}
             <div className="flex items-center bg-slate-800 p-1 rounded-xl border border-slate-700 gap-1">
               <button
+                type="button"
                 onClick={() => setLang('TJ')}
                 className={`px-2.5 py-1 rounded-lg text-xs font-bold transition cursor-pointer ${
                   lang === 'TJ'
@@ -90,6 +141,7 @@ export const PaymentReceiptPrintModal = ({ payment, deal, onClose, initialLang =
                 <span>🇹🇯 Тоҷикӣ</span>
               </button>
               <button
+                type="button"
                 onClick={() => setLang('RU')}
                 className={`px-2.5 py-1 rounded-lg text-xs font-bold transition cursor-pointer ${
                   lang === 'RU'
@@ -102,8 +154,9 @@ export const PaymentReceiptPrintModal = ({ payment, deal, onClose, initialLang =
             </div>
 
             <button
+              type="button"
               onClick={handlePrint}
-              className="flex items-center gap-2 rounded-xl bg-blue-600 hover:bg-blue-700 px-4 py-2 text-xs font-bold text-white shadow-md transition cursor-pointer"
+              className="flex items-center gap-2 rounded-xl bg-blue-600 hover:bg-blue-700 px-5 py-1.5 text-xs font-bold text-white shadow-md transition cursor-pointer"
             >
               <Printer className="h-4 w-4" />
               <span>{isTJ ? 'Чоп кардан' : 'Печать'}</span>
@@ -111,96 +164,251 @@ export const PaymentReceiptPrintModal = ({ payment, deal, onClose, initialLang =
           </div>
         </div>
 
-        {/* PRINTABLE RECEIPT */}
-        <div id="print-section" className="p-8 sm:p-12 text-slate-900 font-sans select-text bg-white space-y-6">
-          {/* Header */}
-          <div className="border-b-2 border-slate-900 pb-4 flex justify-between items-start">
-            <div>
-              <h2 className="text-lg font-black tracking-tight uppercase text-slate-900">
-                {cleanCompanyName(deal?.developer_name)}
-              </h2>
-              <p className="text-xs text-slate-500 mt-0.5">
-                {deal?.project_address || (isTJ ? 'ш. Хуҷанд' : 'г. Худжанд')}
-              </p>
-            </div>
-            <div className="text-right">
-              <span className="text-xs font-bold uppercase text-slate-500 block">
-                {isTJ ? 'РАСИДИ ПАРДОХТ' : 'КВИТАНЦИЯ К ПКО'}
-              </span>
-              <strong className="text-base text-slate-900 font-black">
-                № {payment.payment_number || payment.id || '001'}
-              </strong>
-              <p className="text-xs text-slate-500 mt-0.5">
-                {isTJ ? 'Сана:' : 'Дата:'} {formatDate(payment.payment_date || payment.created_at)}
-              </p>
-            </div>
-          </div>
+        {/* OFFICIAL DUAL-PANEL PKO DOCUMENT (Шакли КО-1) */}
+        <div id="print-section" className="p-4 sm:p-8 text-black font-serif select-text bg-white">
+          <div className="flex flex-row border border-black w-full min-h-[580px]">
+            
+            {/* LEFT PART: ОРДЕРИ ДАРОМАДИ ХАЗИНАВӢ (64% width) */}
+            <div className="w-[64%] p-4 sm:p-5 space-y-3 border-r border-dashed border-black flex flex-col justify-between">
+              <div className="space-y-2.5">
+                {/* Organization and Form Standard */}
+                <div className="flex items-start justify-between">
+                  <div className="border-b-2 border-black pb-0.5 font-bold text-sm tracking-wide">
+                    {companyTitle}
+                  </div>
+                  <div className="text-[11px] font-sans text-right">
+                    {isTJ ? 'Шакли КО-1' : 'Форма КО-1'}
+                  </div>
+                </div>
 
-          {/* Details Table */}
-          <div className="space-y-2.5 text-xs sm:text-sm">
-            <div className="flex justify-between border-b border-dotted border-slate-300 pb-1">
-              <span className="text-slate-600">{isTJ ? 'Пардохткунанда (Харидор):' : 'Плательщик (Покупатель):'}</span>
-              <strong className="text-slate-900">{payment.payer_name || payment.clientName || deal?.lead_name || deal?.buyer_name || '—'}</strong>
-            </div>
+                {/* Title */}
+                <div className="text-center pt-0.5">
+                  <h2 className="text-sm sm:text-base font-bold uppercase tracking-wide">
+                    {isTJ ? 'ОРДЕРИ ДАРОМАДИ ХАЗИНАВИ №' : 'ПРИХОДНЫЙ КАССОВЫЙ ОРДЕР №'}{' '}
+                    <span className="underline">{docNumber}</span>
+                  </h2>
+                </div>
 
-            <div className="flex justify-between border-b border-dotted border-slate-300 pb-1">
-              <span className="text-slate-600">{isTJ ? 'Асос (Шартнома):' : 'Основание (Договор):'}</span>
-              <strong className="text-slate-900">
-                {deal?.contract_number 
-                  ? `${isTJ ? 'Шартномаи №' : 'Договор №'} ${formatContractNumber(deal.contract_number)}` 
-                  : (payment.contract || (isTJ ? 'Пардохти хазинавӣ (ПКО)' : 'Приходный кассовый ордер (ПКО)'))}
-              </strong>
-            </div>
+                {/* Date Table */}
+                <div className="flex justify-center">
+                  <table className="border-collapse border border-black text-center text-xs font-sans">
+                    <thead>
+                      <tr className="bg-slate-50 font-bold border-b border-black">
+                        <th className="border border-black px-4 py-0.5">{isTJ ? 'Рӯз' : 'День'}</th>
+                        <th className="border border-black px-6 py-0.5">{isTJ ? 'Моҳ' : 'Месяц'}</th>
+                        <th className="border border-black px-5 py-0.5">{isTJ ? 'Сол' : 'Год'}</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      <tr>
+                        <td className="border border-black px-4 py-0.5 font-bold">{dayStr}</td>
+                        <td className="border border-black px-6 py-0.5 font-bold">{monthStr}</td>
+                        <td className="border border-black px-5 py-0.5 font-bold">{yearStr}</td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
 
-            {(deal?.project_name || payment.comment) && (
-              <div className="flex justify-between border-b border-dotted border-slate-300 pb-1">
-                <span className="text-slate-600">{deal?.project_name ? (isTJ ? 'Объект ва хона:' : 'Объект и квартира:') : (isTJ ? 'Тавзеҳот:' : 'Примечание:')}</span>
-                <span className="text-slate-900 font-medium">
-                  {deal?.project_name ? `${deal.project_name}, ${isTJ ? 'Хонаи №' : 'Кв. №'}${deal.unit_number || ''}` : (payment.comment || '—')}
-                </span>
+                {/* Account Coding Table */}
+                <div className="overflow-x-auto pt-0.5">
+                  <table className="w-full border-collapse border border-black text-center text-[10px] font-sans">
+                    <thead>
+                      <tr className="bg-slate-50 font-semibold border-b border-black leading-tight">
+                        <th className="border border-black p-1 w-10">{isTJ ? '№ таб' : '№ таб'}</th>
+                        <th className="border border-black p-1">{isTJ ? 'Ҳисоби муросилотӣ, ҳисоботи иловагӣ' : 'Корреспондирующий счет, субсчет'}</th>
+                        <th className="border border-black p-1">{isTJ ? 'Рамзи ҳисоби таҳлилӣ' : 'Код аналитического учета'}</th>
+                        <th className="border border-black p-1 font-bold">{isTJ ? 'Маблағ' : 'Сумма'}</th>
+                        <th className="border border-black p-1">{isTJ ? 'Рамзи таъминоти мақсаднок' : 'Код целевого назначения'}</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      <tr className="h-7">
+                        <td className="border border-black p-1"></td>
+                        <td className="border border-black p-1"></td>
+                        <td className="border border-black p-1"></td>
+                        <td className="border border-black p-1 font-bold font-sans text-xs">
+                          {amountFormatted}
+                        </td>
+                        <td className="border border-black p-1"></td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+
+                {/* Payer Line */}
+                <div className="pt-1 text-xs">
+                  <div className="flex items-baseline gap-2">
+                    <span className="shrink-0 text-slate-800">
+                      {isTJ ? 'Қабул карда шуд аз' : 'Принято от'}
+                    </span>
+                    <span className="grow border-b border-black font-bold pb-0.5">
+                      {payerName}
+                    </span>
+                  </div>
+                </div>
+
+                {/* Basis Line */}
+                <div className="text-xs">
+                  <div className="flex items-baseline gap-2">
+                    <span className="shrink-0 text-slate-800">
+                      {isTJ ? 'Асос:' : 'Основание:'}
+                    </span>
+                    <span className="grow border-b border-black font-medium pb-0.5 leading-relaxed">
+                      {basisText}
+                    </span>
+                  </div>
+                </div>
+
+                {/* Amount in words */}
+                <div className="border-b border-black pb-0.5 text-xs font-medium leading-relaxed">
+                  {wordsFormatted}
+                </div>
+
+                {/* Double line divider */}
+                <div className="border-t-2 border-b border-black py-0.5"></div>
+
+                {/* Application / Appendix */}
+                <div className="flex items-baseline gap-2 text-xs">
+                  <span className="shrink-0 font-medium">{isTJ ? 'Замима:' : 'Приложение:'}</span>
+                  <span className="grow border-b border-black"></span>
+                </div>
               </div>
-            )}
 
-            <div className="flex justify-between border-b border-dotted border-slate-300 pb-1">
-              <span className="text-slate-600">{isTJ ? 'Усули пардохт:' : 'Способ оплаты:'}</span>
-              <span className="text-slate-900 font-semibold">
-                {(payment.payment_method || payment.method) === 'BANK_TRANSFER' ? (isTJ ? 'Интиқоли бонкӣ' : 'Безналичный перевод') : (isTJ ? 'Нақдӣ (Хазина)' : 'Наличные (Касса)')}
-              </span>
-            </div>
+              {/* Signatures */}
+              <div className="space-y-2.5 pt-2 text-xs">
+                <div className="flex items-baseline gap-3">
+                  <span className="w-24 shrink-0 font-bold">{isTJ ? 'Сармуҳосиб' : 'Главный бухгалтер'}</span>
+                  <span className="grow border-b border-black"></span>
+                </div>
 
-            {payment.reference && (
-              <div className="flex justify-between border-b border-dotted border-slate-300 pb-1">
-                <span className="text-slate-600">{isTJ ? 'Рақами чек / Референс:' : 'Номер чека / Референс:'}</span>
-                <span className="text-slate-900 font-medium">{payment.reference}</span>
+                <div className="flex items-baseline gap-3">
+                  <span className="w-24 shrink-0 font-bold">{isTJ ? 'Хазинадор' : 'Кассир'}</span>
+                  <span className="grow border-b border-black"></span>
+                </div>
+
+                {/* Payer Signature with Explicit Full Name */}
+                <div className="pt-1">
+                  <div className="flex items-baseline gap-2">
+                    <span className="shrink-0 font-bold text-slate-900">
+                      {isTJ ? 'Пардохткунанда' : 'Плательщик'}
+                    </span>
+                    <span className="font-bold underline pr-2">
+                      {payerName}
+                    </span>
+                  </div>
+                  <div className="flex items-baseline gap-2 pt-1">
+                    <span className="shrink-0 text-[11px] text-slate-800">
+                      {isTJ ? 'супорид:' : 'сдал:'}
+                    </span>
+                    <span className="grow border-b border-black min-w-[120px]"></span>
+                    <span className="text-[10px] text-slate-400 pl-1">
+                      {isTJ ? '(имзо)' : '(подпись)'}
+                    </span>
+                  </div>
+                </div>
               </div>
-            )}
-          </div>
-
-          {/* Amount Box */}
-          <div className="rounded-2xl border-2 border-slate-900 bg-slate-50 p-4 sm:p-5 flex justify-between items-center">
-            <span className="text-xs sm:text-sm font-bold uppercase tracking-wider text-slate-700">
-              {isTJ ? 'Маблағи қабулшуда:' : 'Принятая сумма:'}
-            </span>
-            <span className="text-xl sm:text-2xl font-black text-slate-900">
-              {amountFormatted} {currencyShort}
-            </span>
-          </div>
-
-          {/* Signatures */}
-          <div className="border-t border-slate-300 pt-8 mt-8 grid grid-cols-2 gap-10 text-xs">
-            <div>
-              <p className="font-bold text-slate-900 mb-1">{isTJ ? 'Хазинадор / Менеҷер:' : 'Кассир / Менеджер:'}</p>
-              <p className="text-slate-600">{payment.created_by_name || 'Admin'}</p>
-              <div className="mt-8 border-b border-slate-400 w-44"></div>
-              <p className="text-[10px] text-slate-400 mt-1">{isTJ ? '(имзо, мӯҳр)' : '(подпись, М.П.)'}</p>
             </div>
 
-            <div>
-              <p className="font-bold text-slate-900 mb-1">{isTJ ? 'Пардохткунанда:' : 'Плательщик:'}</p>
-              <p className="text-slate-600">{payment.payer_name || deal?.lead_name || '—'}</p>
-              <div className="mt-8 border-b border-slate-400 w-44"></div>
-              <p className="text-[10px] text-slate-400 mt-1">{isTJ ? '(имзо)' : '(подпись)'}</p>
+            {/* RIGHT PART: РАСИД / КВИТАНЦИЯ (36% width) */}
+            <div className="w-[36%] p-4 sm:p-5 space-y-2.5 flex flex-col justify-between relative bg-white">
+              {/* Vertical cutting line indicator on the left border */}
+              <div className="absolute -left-3 top-1/2 -translate-y-1/2 hidden md:flex flex-col items-center bg-white py-2 text-[8px] font-sans tracking-widest text-slate-500 uppercase select-none [writing-mode:vertical-rl] rotate-180">
+                {isTJ ? 'ХАТИ БУРРИШ' : 'ЛИНИЯ ОТРЕЗА'}
+              </div>
+
+              <div className="space-y-2.5">
+                {/* Org header */}
+                <div className="text-center font-bold text-xs tracking-wide border-b border-black pb-1">
+                  {companyTitle}
+                </div>
+
+                {/* Title */}
+                <div className="text-center">
+                  <h3 className="text-base font-bold tracking-[0.25em] uppercase">
+                    {isTJ ? 'Р А С И Д' : 'К В И Т А Н Ц И Я'}
+                  </h3>
+                  <p className="text-[10px] text-slate-800 mt-0.5">
+                    {isTJ ? 'ба ордери даромади хазинавӣ №' : 'к приходному кассовому ордеру №'} <strong className="underline font-sans">{docNumber}</strong>
+                  </p>
+                </div>
+
+                {/* Payer Line */}
+                <div className="space-y-0.5 text-xs">
+                  <span className="text-slate-800 block text-[10px] font-medium">
+                    {isTJ ? 'Қабул карда шуд аз' : 'Принято от'}
+                  </span>
+                  <div className="border-b border-black font-bold pb-0.5 text-xs">
+                    {payerName}
+                  </div>
+                </div>
+
+                {/* Amount Big Centered */}
+                <div className="text-center py-0.5">
+                  <div className="inline-block border-b-2 border-black px-4 py-0.5 font-sans text-base font-black tracking-tight">
+                    {amountFormatted}
+                  </div>
+                </div>
+
+                {/* Basis Line */}
+                <div className="space-y-0.5 text-xs">
+                  <span className="text-slate-800 block text-[10px] font-medium">
+                    {isTJ ? 'Асос:' : 'Основание:'}
+                  </span>
+                  <div className="border-b border-black font-medium pb-0.5 leading-tight text-[10px]">
+                    {basisText}
+                  </div>
+                </div>
+
+                {/* Amount in words */}
+                <div className="border-b border-black pb-0.5 text-[10px] leading-tight font-medium">
+                  {wordsFormatted}
+                </div>
+
+                {/* Total amount summary */}
+                <div className="flex items-center justify-between text-xs font-bold pt-0.5">
+                  <span>{isTJ ? 'Маблағ' : 'Сумма'}</span>
+                  <span className="font-sans text-xs font-black underline">{amountFormatted}</span>
+                </div>
+
+                {/* Date Table */}
+                <div className="flex justify-center pt-0.5">
+                  <table className="border-collapse border border-black text-center text-[10px] font-sans w-full max-w-[180px]">
+                    <thead>
+                      <tr className="bg-slate-50 font-bold border-b border-black text-[9px]">
+                        <th className="border border-black px-2 py-0.5">{isTJ ? 'Рӯз' : 'День'}</th>
+                        <th className="border border-black px-2 py-0.5">{isTJ ? 'Моҳ' : 'Месяц'}</th>
+                        <th className="border border-black px-2 py-0.5">{isTJ ? 'Сол' : 'Год'}</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      <tr>
+                        <td className="border border-black px-2 py-0.5 font-bold">{dayStr}</td>
+                        <td className="border border-black px-2 py-0.5 font-bold">{monthStr}</td>
+                        <td className="border border-black px-2 py-0.5 font-bold">{yearStr}</td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+
+              {/* Signatures & Seal */}
+              <div className="space-y-2 pt-2 text-xs">
+                <div className="flex items-baseline gap-2">
+                  <span className="w-20 shrink-0 font-bold text-[10px]">{isTJ ? 'Сармуҳосиб' : 'Главный бухгалтер'}</span>
+                  <span className="grow border-b border-black"></span>
+                </div>
+
+                <div className="flex items-baseline gap-2">
+                  <span className="w-20 shrink-0 font-bold text-[10px]">{isTJ ? 'Хазинадор' : 'Кассир'}</span>
+                  <span className="grow border-b border-black"></span>
+                </div>
+
+                <div className="pt-1 text-center text-[9px] text-slate-400 font-sans tracking-widest uppercase">
+                  {isTJ ? 'М.П. / МӮҲР' : 'М.П. / ПЕЧАТЬ'}
+                </div>
+              </div>
             </div>
+
           </div>
         </div>
       </div>
