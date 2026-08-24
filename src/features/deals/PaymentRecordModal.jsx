@@ -36,7 +36,7 @@ export const PaymentRecordModal = ({
 
   // Cash desks and currencies
   const [cashDesk, setCashDesk] = useState('MAIN_CASHIER');
-  const [cashCurrency, setCashCurrency] = useState('USD'); // USD or TJS
+  const [cashCurrency, setCashCurrency] = useState('TJS'); // Default TJS (национальная валюта)
   const [exchangeRate, setExchangeRate] = useState('9.27'); // default Eskhata USD/TJS rate
   const [paymentMethods, setPaymentMethods] = useState([]);
 
@@ -68,7 +68,7 @@ export const PaymentRecordModal = ({
     if (deal) {
       setScheduleId(initialScheduleId);
       setError('');
-      setCashCurrency(dealCurrency === 'TJS' ? 'TJS' : 'USD');
+      setCashCurrency('TJS'); // Default always Сомони (TJS)
 
       let targetAmount = 0;
       if (initialScheduleId && deal.schedules) {
@@ -92,7 +92,13 @@ export const PaymentRecordModal = ({
         }
       }
 
-      setAmount(String(targetAmount > 0 ? targetAmount : ''));
+      const rate = parseFloat(exchangeRate) || 9.27;
+      if (dealCurrency === 'USD') {
+        const amountTJS = targetAmount > 0 ? (targetAmount * rate).toFixed(2) : '';
+        setAmount(String(amountTJS));
+      } else {
+        setAmount(String(targetAmount > 0 ? targetAmount : ''));
+      }
     }
   }, [deal, initialScheduleId, isOpen]);
 
@@ -131,6 +137,20 @@ export const PaymentRecordModal = ({
     { id: 'BANK_ACCOUNT', name: 'Расчетный счет в банке (Безналичные)', icon: '🏛' },
   ];
 
+  const handleCurrencyChange = (newCurrency) => {
+    if (newCurrency === cashCurrency) return;
+    const currentVal = parseFloat(amount);
+    const rate = parseFloat(exchangeRate) || 9.27;
+    if (currentVal && currentVal > 0) {
+      if (cashCurrency === 'USD' && newCurrency === 'TJS') {
+        setAmount(String((currentVal * rate).toFixed(2)));
+      } else if (cashCurrency === 'TJS' && newCurrency === 'USD') {
+        setAmount(String((currentVal / rate).toFixed(2)));
+      }
+    }
+    setCashCurrency(newCurrency);
+  };
+
   const handleScheduleChange = (e) => {
     const sId = e.target.value ? parseInt(e.target.value, 10) : null;
     setScheduleId(sId);
@@ -142,10 +162,10 @@ export const PaymentRecordModal = ({
         if (cashCurrency === dealCurrency) {
           setAmount(String(rem));
         } else if (dealCurrency === 'USD' && cashCurrency === 'TJS') {
-          const rate = parseFloat(exchangeRate) || 10.9;
+          const rate = parseFloat(exchangeRate) || 9.27;
           setAmount(String((rem * rate).toFixed(2)));
         } else if (dealCurrency === 'TJS' && cashCurrency === 'USD') {
-          const rate = parseFloat(exchangeRate) || 10.9;
+          const rate = parseFloat(exchangeRate) || 9.27;
           setAmount(String((rem / rate).toFixed(2)));
         }
       }
@@ -157,10 +177,10 @@ export const PaymentRecordModal = ({
     if (cashCurrency === dealCurrency) {
       setAmount(String(rem));
     } else if (dealCurrency === 'USD' && cashCurrency === 'TJS') {
-      const rate = parseFloat(exchangeRate) || 10.9;
+      const rate = parseFloat(exchangeRate) || 9.27;
       setAmount(String((rem * rate).toFixed(2)));
     } else if (dealCurrency === 'TJS' && cashCurrency === 'USD') {
-      const rate = parseFloat(exchangeRate) || 10.9;
+      const rate = parseFloat(exchangeRate) || 9.27;
       setAmount(String((rem / rate).toFixed(2)));
     }
     setScheduleId(null);
@@ -325,28 +345,28 @@ export const PaymentRecordModal = ({
                 <div className="grid grid-cols-2 gap-2">
                   <button
                     type="button"
-                    onClick={() => setCashCurrency('USD')}
-                    className={`flex items-center justify-center gap-1.5 rounded-xl py-1.5 px-3 text-xs font-bold border transition cursor-pointer ${
-                      cashCurrency === 'USD'
-                        ? 'bg-blue-600 text-white border-blue-600 shadow-xs'
-                        : 'bg-white text-slate-700 border-slate-200 hover:bg-slate-100'
-                    }`}
-                  >
-                    <span>💵</span>
-                    <span>Раздел USD ($)</span>
-                  </button>
-
-                  <button
-                    type="button"
-                    onClick={() => setCashCurrency('TJS')}
+                    onClick={() => handleCurrencyChange('TJS')}
                     className={`flex items-center justify-center gap-1.5 rounded-xl py-1.5 px-3 text-xs font-bold border transition cursor-pointer ${
                       cashCurrency === 'TJS'
-                        ? 'bg-emerald-600 text-white border-emerald-600 shadow-xs'
+                        ? 'bg-emerald-600 text-white border-emerald-600 shadow-md ring-2 ring-emerald-500/20'
                         : 'bg-white text-slate-700 border-slate-200 hover:bg-slate-100'
                     }`}
                   >
                     <span>🇹🇯</span>
                     <span>Раздел Сомони (TJS)</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => handleCurrencyChange('USD')}
+                    className={`flex items-center justify-center gap-1.5 rounded-xl py-1.5 px-3 text-xs font-bold border transition cursor-pointer ${
+                      cashCurrency === 'USD'
+                        ? 'bg-blue-600 text-white border-blue-600 shadow-md ring-2 ring-blue-500/20'
+                        : 'bg-white text-slate-700 border-slate-200 hover:bg-slate-100'
+                    }`}
+                  >
+                    <span>💵</span>
+                    <span>Раздел USD ($)</span>
                   </button>
                 </div>
 
