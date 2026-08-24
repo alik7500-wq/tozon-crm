@@ -335,11 +335,6 @@ export const MainLayout = () => {
 
           {/* Quick Actions & Notifications */}
           <div className="flex items-center gap-3">
-            <div className="hidden sm:flex items-center gap-2 rounded-xl bg-slate-100 px-3 py-1.5 border border-slate-200 text-xs text-slate-600">
-              <span className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse"></span>
-              <span>База данных: <strong className="text-slate-800">SQLite WAL</strong></span>
-            </div>
-
             <NavLink
               to="/notifications"
               title="Уведомления"
