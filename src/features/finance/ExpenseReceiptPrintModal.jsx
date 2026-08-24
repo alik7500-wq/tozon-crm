@@ -72,8 +72,8 @@ export const ExpenseReceiptPrintModal = ({ expense, onClose, initialLang = 'TJ' 
   // Ground / Basis
   const basisText = (expense.description || expense.comment || expense.category || (isTJ ? 'Хароҷоти амалиётӣ' : 'Операционный расход')).trim();
 
-  // Appendix / Attached document
-  const appendixText = (expense.reference || expense.attachment || '—').trim();
+  // Appendix / Attached document (only if explicitly specified)
+  const appendixText = expense.attachment ? String(expense.attachment).trim() : '';
 
   const companyTitle = cleanCompanyName(expense.developer_name);
 
@@ -234,7 +234,7 @@ export const ExpenseReceiptPrintModal = ({ expense, onClose, initialLang = 'TJ' 
                   {isTJ ? 'Замима:' : 'Приложение:'}
                 </span>
                 <span className="grow border-b border-black font-medium pb-0.5">
-                  {appendixText !== '—' ? appendixText : ''}
+                  {appendixText}
                 </span>
               </div>
             </div>
