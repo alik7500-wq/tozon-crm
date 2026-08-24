@@ -331,34 +331,31 @@ export const IncomePage = () => {
           </span>
         </div>
 
-        <div className="overflow-x-auto">
+        <div className="overflow-x-auto w-full">
           <table className="w-full text-xs text-left">
-            <thead className="bg-slate-50 border-b border-slate-200 text-slate-600 font-bold uppercase tracking-wider">
+            <thead className="bg-slate-50/80 border-b border-slate-200 text-slate-500 font-bold text-[11px] uppercase tracking-wider">
               <tr>
-                <th className="p-3.5 pl-5">Дата</th>
-                <th className="p-3.5">Документ / ПКО</th>
-                <th className="p-3.5">Плательщик / Клиент</th>
-                <th className="p-3.5">Договор / Назначение</th>
-                <th className="p-3.5">Способ оплаты</th>
-                <th className="p-3.5">Сумма прихода</th>
-                <th className="p-3.5">Ответственный</th>
-                <th className="p-3.5 pr-5 text-right">Действия</th>
+                <th className="py-2.5 pl-4 pr-2 whitespace-nowrap">Дата</th>
+                <th className="py-2.5 px-2 whitespace-nowrap">ПКО</th>
+                <th className="py-2.5 px-2.5">Клиент</th>
+                <th className="py-2.5 px-2 text-center whitespace-nowrap">Договор</th>
+                <th className="py-2.5 px-2 text-center whitespace-nowrap">Оплата</th>
+                <th className="py-2.5 px-2.5 whitespace-nowrap">Сумма прихода</th>
+                <th className="py-2.5 px-2.5">Ответственный</th>
+                <th className="py-2.5 pr-4 text-right whitespace-nowrap">Действия</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100 font-medium">
               {list.map((item) => (
-                <tr key={item.id} className="hover:bg-slate-50 transition">
-                  <td className="p-3.5 pl-5 whitespace-nowrap text-slate-600">
-                    <div className="flex items-center gap-1.5 font-bold">
-                      <Calendar className="h-3.5 w-3.5 text-slate-400" />
-                      {(() => {
-                        if (!item.date) return '—';
-                        const parts = String(item.date).split('T')[0].split('-');
-                        return parts.length === 3 ? `${parts[2]}.${parts[1]}.${parts[0]}` : dayjs(item.date).format('DD.MM.YYYY');
-                      })()}
-                    </div>
+                <tr key={item.id} className="hover:bg-slate-50/80 transition">
+                  <td className="py-2.5 pl-4 pr-2 whitespace-nowrap text-slate-600 font-semibold text-[11px]">
+                    {(() => {
+                      if (!item.date) return '—';
+                      const parts = String(item.date).split('T')[0].split('-');
+                      return parts.length === 3 ? `${parts[2]}.${parts[1]}.${parts[0]}` : dayjs(item.date).format('DD.MM.YYYY');
+                    })()}
                   </td>
-                  <td className="p-3.5 font-bold text-slate-900 font-mono">
+                  <td className="py-2.5 px-2 font-bold text-slate-900 font-mono text-[11px] whitespace-nowrap">
                     {(() => {
                       const ref = item.reference;
                       if (!ref) return `ПКО-${item.id}`;
@@ -370,30 +367,36 @@ export const IncomePage = () => {
                       return clean.startsWith('ПКО') ? clean : `ПКО-${clean}`;
                     })()}
                   </td>
-                  <td className="p-3.5">
-                    <div className="font-bold text-slate-900">{item.clientName}</div>
-                    {item.clientPhone && <div className="text-[10px] text-slate-400">{item.clientPhone}</div>}
+                  <td className="py-2.5 px-2.5">
+                    <div className="font-bold text-slate-900 text-xs leading-tight line-clamp-1" title={item.clientName}>
+                      {item.clientName}
+                    </div>
+                    {item.clientPhone && <div className="text-[10px] text-slate-400 mt-0.5">{item.clientPhone}</div>}
                   </td>
-                  <td className="p-3.5 text-slate-600">
-                    <span className="px-2 py-0.5 rounded-lg bg-blue-50 text-blue-700 font-bold border border-blue-100">
+                  <td className="py-2.5 px-2 text-center whitespace-nowrap">
+                    <span className="px-2 py-0.5 rounded-md bg-blue-50 text-blue-700 font-bold border border-blue-100 text-[11px]">
                       {item.contract}
                     </span>
                   </td>
-                  <td className="p-3.5">
-                    <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-md text-[11px] font-bold bg-slate-100 text-slate-700">
+                  <td className="py-2.5 px-2 text-center whitespace-nowrap">
+                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-bold bg-slate-100 text-slate-700">
                       <CreditCard className="h-3 w-3 text-slate-500" />
                       {item.method === 'CASH' ? 'Наличные' : item.method === 'BANK_TRANSFER' ? 'Банк' : item.method === 'CARD' ? 'Карта' : item.method}
                     </span>
                   </td>
-                  <td className="p-3.5 font-black text-sm text-emerald-600 whitespace-nowrap">
+                  <td className="py-2.5 px-2.5 font-black text-xs sm:text-sm text-emerald-600 whitespace-nowrap">
                     +{item.amount.toLocaleString('ru-RU', { minimumFractionDigits: 2 })} {item.currency}
                   </td>
-                  <td className="p-3.5 text-slate-500">
-                    <div className="text-[11px] font-semibold text-slate-700">{item.createdByName}</div>
-                    {item.comment && <div className="text-[10px] text-slate-400 truncate max-w-xs" title={item.comment}>{item.comment}</div>}
+                  <td className="py-2.5 px-2.5">
+                    <div className="text-[11px] font-semibold text-slate-700 leading-tight line-clamp-1">{item.createdByName}</div>
+                    {item.comment && (
+                      <div className="text-[10px] text-slate-400 truncate max-w-[180px] mt-0.5" title={item.comment}>
+                        {item.comment}
+                      </div>
+                    )}
                   </td>
-                  <td className="p-3.5 pr-5 text-right whitespace-nowrap">
-                    <div className="flex items-center justify-end gap-1.5">
+                  <td className="py-2.5 pr-4 text-right whitespace-nowrap">
+                    <div className="flex items-center justify-end gap-1">
                       <button
                         onClick={() => {
                           const ref = item.reference;

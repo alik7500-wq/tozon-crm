@@ -410,55 +410,52 @@ export const ExpensesPage = () => {
           </span>
         </div>
 
-        <div className="overflow-x-auto">
+        <div className="overflow-x-auto w-full">
           <table className="w-full text-xs text-left">
-            <thead className="bg-slate-50 border-b border-slate-200 text-slate-600 font-bold uppercase tracking-wider">
+            <thead className="bg-slate-50/80 border-b border-slate-200 text-slate-500 font-bold text-[11px] uppercase tracking-wider">
               <tr>
-                <th className="p-3.5 pl-5">Дата</th>
-                <th className="p-3.5">Документ / РКО</th>
-                <th className="p-3.5">Получатель</th>
-                <th className="p-3.5">Категория</th>
-                <th className="p-3.5">Способ оплаты</th>
-                <th className="p-3.5">Сумма расхода</th>
-                <th className="p-3.5">Назначение / Комментарий</th>
-                <th className="p-3.5 pr-5 text-right">Действия</th>
+                <th className="py-2.5 pl-4 pr-2 whitespace-nowrap">Дата</th>
+                <th className="py-2.5 px-2 whitespace-nowrap">РКО</th>
+                <th className="py-2.5 px-2.5">Получатель</th>
+                <th className="py-2.5 px-2 text-center whitespace-nowrap">Категория</th>
+                <th className="py-2.5 px-2 text-center whitespace-nowrap">Оплата</th>
+                <th className="py-2.5 px-2.5 whitespace-nowrap">Сумма расхода</th>
+                <th className="py-2.5 px-2.5">Назначение</th>
+                <th className="py-2.5 pr-4 text-right whitespace-nowrap">Действия</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100 font-medium">
               {list.map((item) => (
-                <tr key={item.id} className="hover:bg-slate-50 transition">
-                  <td className="p-3.5 pl-5 whitespace-nowrap text-slate-600">
-                    <div className="flex items-center gap-1.5 font-bold">
-                      <Calendar className="h-3.5 w-3.5 text-slate-400" />
-                      {dayjs(item.date).format('DD.MM.YYYY')}
-                    </div>
+                <tr key={item.id} className="hover:bg-slate-50/80 transition">
+                  <td className="py-2.5 pl-4 pr-2 whitespace-nowrap text-slate-600 font-semibold text-[11px]">
+                    {dayjs(item.date).format('DD.MM.YYYY')}
                   </td>
-                  <td className="p-3.5 font-bold text-slate-900 font-mono">
+                  <td className="py-2.5 px-2 font-bold text-slate-900 font-mono text-[11px] whitespace-nowrap">
                     {item.reference || `РКО-${item.id}`}
                   </td>
-                  <td className="p-3.5 font-bold text-slate-900">
+                  <td className="py-2.5 px-2.5 font-bold text-slate-900 text-xs leading-tight line-clamp-1" title={item.recipient}>
                     {item.recipient}
                   </td>
-                  <td className="p-3.5">
-                    <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-md text-[11px] font-bold bg-slate-100 text-slate-700">
-                      <Tag className="h-3 w-3 text-slate-500" />
+                  <td className="py-2.5 px-2 text-center whitespace-nowrap">
+                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-bold bg-slate-100 text-slate-700">
+                      <Tag className="h-2.5 w-2.5 text-slate-500" />
                       {item.category}
                     </span>
                   </td>
-                  <td className="p-3.5">
+                  <td className="py-2.5 px-2 text-center whitespace-nowrap">
                     <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-bold bg-slate-50 text-slate-600 border border-slate-200">
-                      <CreditCard className="h-3 w-3" />
+                      <CreditCard className="h-2.5 w-2.5" />
                       {item.method === 'CASH' ? 'Наличные' : item.method === 'BANK_TRANSFER' ? 'Банк' : item.method}
                     </span>
                   </td>
-                  <td className="p-3.5 font-black text-sm text-rose-600 whitespace-nowrap">
+                  <td className="py-2.5 px-2.5 font-black text-xs sm:text-sm text-rose-600 whitespace-nowrap">
                     -{item.amount.toLocaleString('ru-RU', { minimumFractionDigits: 2 })} {item.currency}
                   </td>
-                  <td className="p-3.5 text-slate-500 max-w-xs truncate" title={item.description}>
+                  <td className="py-2.5 px-2.5 text-slate-500 text-[11px] max-w-[200px] truncate" title={item.description}>
                     {item.description || '-'}
                   </td>
-                  <td className="p-3.5 pr-5 text-right whitespace-nowrap">
-                    <div className="flex items-center justify-end gap-1.5">
+                  <td className="py-2.5 pr-4 text-right whitespace-nowrap">
+                    <div className="flex items-center justify-end gap-1">
                       <button
                         onClick={() => setPrintableExpense({
                           id: item.id,
