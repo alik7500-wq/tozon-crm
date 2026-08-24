@@ -226,7 +226,10 @@ export const ChessboardTab = ({ projectId, currency = 'USD', onOpenGenerator }) 
                   </div>
 
                   <div className="min-w-max space-y-2">
-                    {section.floors.map((floor) => (
+                    {section.floors
+                      ?.slice()
+                      .sort((a, b) => Number(a.floor_number) - Number(b.floor_number))
+                      .map((floor) => (
                       <div key={floor.id} className="flex items-center gap-3">
                         {/* Floor Number Header Box */}
                         <div className="flex h-16 w-16 shrink-0 flex-col items-center justify-center rounded-xl bg-slate-100 border border-slate-200 text-slate-700 font-bold">
@@ -236,7 +239,14 @@ export const ChessboardTab = ({ projectId, currency = 'USD', onOpenGenerator }) 
 
                         {/* Units Grid on Floor */}
                         <div className="flex items-center gap-2.5 flex-wrap">
-                          {floor.units.map((unit) => {
+                          {floor.units
+                            ?.slice()
+                            .sort((a, b) => {
+                              const numA = parseInt(String(a.unit_number).replace(/\D/g, '')) || 0;
+                              const numB = parseInt(String(b.unit_number).replace(/\D/g, '')) || 0;
+                              return numA - numB;
+                            })
+                            .map((unit) => {
                             const badge = getStatusBadge(unit.status);
                             const areaM2 = (unit.area_m2_x100 / 100).toFixed(1);
 
