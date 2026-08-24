@@ -157,6 +157,9 @@ export const PaymentRecordModal = ({
     if (sId && deal.schedules) {
       const selected = deal.schedules.find((s) => s.id === sId);
       if (selected) {
+        if (selected.due_date) {
+          setPaymentDate(selected.due_date);
+        }
         const remainingMinor = (selected.amount_minor || 0) - (selected.paid_amount_minor || 0);
         const rem = Math.max(0, remainingMinor / 100);
         if (cashCurrency === dealCurrency) {
@@ -478,15 +481,43 @@ export const PaymentRecordModal = ({
               {/* Date & Payment Method */}
               <div className="grid grid-cols-2 gap-2">
                 <div>
-                  <label className="block text-[11px] font-bold text-slate-700 mb-1">
-                    Дата платежа *
-                  </label>
+                  <div className="flex items-center justify-between mb-1">
+                    <label className="block text-[11px] font-bold text-slate-700">
+                      Дата платежа (ПКО) *
+                    </label>
+                    <div className="flex items-center gap-1">
+                      <button
+                        type="button"
+                        onClick={() => setPaymentDate(new Date().toISOString().split('T')[0])}
+                        className="text-[10px] text-blue-600 font-bold hover:underline cursor-pointer"
+                        title="Установить сегодняшнюю дату"
+                      >
+                        Сегодня
+                      </button>
+                      {scheduleId && (() => {
+                        const s = deal.schedules?.find(x => x.id === scheduleId);
+                        if (s?.due_date && s.due_date !== paymentDate) {
+                          return (
+                            <button
+                              type="button"
+                              onClick={() => setPaymentDate(s.due_date)}
+                              className="text-[10px] text-emerald-600 font-bold hover:underline cursor-pointer ml-1"
+                              title={`Установить дату по графику: ${s.due_date}`}
+                            >
+                              По графику
+                            </button>
+                          );
+                        }
+                        return null;
+                      })()}
+                    </div>
+                  </div>
                   <input
                     type="date"
                     required
                     value={paymentDate}
                     onChange={(e) => setPaymentDate(e.target.value)}
-                    className="w-full rounded-xl border border-slate-300 bg-white px-2.5 py-1.5 text-xs outline-none focus:border-blue-500 font-medium"
+                    className="w-full rounded-xl border border-slate-300 bg-white px-2.5 py-1.5 text-xs outline-none focus:border-blue-500 font-bold text-slate-900 shadow-2xs"
                   />
                 </div>
 

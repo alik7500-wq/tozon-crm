@@ -79,6 +79,7 @@ export const DealWizardModal = ({
   const [downPaymentPercent, setDownPaymentPercent] = useState(30);
   const [downPaymentAmount, setDownPaymentAmount] = useState(0);
   const [installmentMonths, setInstallmentMonths] = useState(12);
+  const [dealDate, setDealDate] = useState(new Date().toISOString().split('T')[0]);
   const [firstPaymentDate, setFirstPaymentDate] = useState(
     new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]
   );
@@ -302,6 +303,7 @@ export const DealWizardModal = ({
       const res = await api.post('/deals', {
         lead_id: selectedLead.id,
         unit_id: selectedUnit.id,
+        deal_date: dealDate,
         status: dealStatus,
         payment_type: paymentType,
         base_price_minor: calculatedBasePrice * 100,
@@ -682,6 +684,51 @@ export const DealWizardModal = ({
                   <span className="text-slate-500 block">Покупатель:</span>
                   <strong className="text-slate-900">{selectedLead?.full_name}</strong>
                 </div>
+              </div>
+
+              {/* Deal / Contract Date */}
+              <div className="rounded-xl border border-blue-200 bg-blue-50/50 p-3">
+                <div className="flex items-center justify-between mb-1.5">
+                  <label className="block text-xs font-bold text-slate-800">
+                    Дата оформления сделки / договора *
+                  </label>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const today = new Date().toISOString().split('T')[0];
+                      setDealDate(today);
+                    }}
+                    className="text-[11px] text-blue-600 font-bold hover:underline cursor-pointer"
+                  >
+                    Сегодня
+                  </button>
+                </div>
+                <input
+                  type="date"
+                  required
+                  value={dealDate}
+                  onChange={(e) => {
+                    const newD = e.target.value;
+                    setDealDate(newD);
+                    if (newD) {
+                      const parts = newD.split('-');
+                      if (parts.length === 3) {
+                        const y = parseInt(parts[0], 10);
+                        const m = parseInt(parts[1], 10);
+                        const d = parseInt(parts[2], 10);
+                        const nextMonth = new Date(y, m, d);
+                        const nextY = nextMonth.getFullYear();
+                        const nextM = String(nextMonth.getMonth() + 1).padStart(2, '0');
+                        const nextD = String(nextMonth.getDate()).padStart(2, '0');
+                        setFirstPaymentDate(`${nextY}-${nextM}-${nextD}`);
+                      }
+                    }
+                  }}
+                  className="w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-xs font-bold outline-none focus:border-blue-500"
+                />
+                <p className="text-[10px] text-slate-500 mt-1">
+                  💡 При вводе предыдущих сделок выберите фактическую дату заключения договора.
+                </p>
               </div>
 
               {/* Price per m2 */}
