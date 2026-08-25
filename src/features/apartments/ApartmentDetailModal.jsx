@@ -185,6 +185,10 @@ export const ApartmentDetailModal = ({
   const activeTier = ladderTiers.find((t) => t.percent === selectedLadderPercent) || ladderTiers[4]; // Default 30%
 
   const handleOpenPriceModal = () => {
+    if (user?.role !== 'ADMIN') {
+      alert('Изменение стартовой цены доступно только Администратору.');
+      return;
+    }
     setEditPricePerM2(basePricePerM2);
     setPriceScope('UNIT');
     setIsPriceModalOpen(true);
@@ -376,15 +380,17 @@ export const ApartmentDetailModal = ({
                     </span>
                     <div className="text-base font-black text-blue-900 mt-0.5 flex items-center justify-between">
                       <span>{basePricePerM2.toLocaleString()} {projectCurrency}</span>
-                      <button
-                        type="button"
-                        onClick={handleOpenPriceModal}
-                        title="Настроить стартовую цену за м²"
-                        className="flex items-center gap-1 px-2 py-0.5 rounded-lg bg-white border border-blue-300 text-blue-700 text-[11px] font-bold hover:bg-blue-600 hover:text-white transition cursor-pointer shadow-2xs"
-                      >
-                        <Edit3 className="h-3 w-3" />
-                        <span>Изменить</span>
-                      </button>
+                      {user?.role === 'ADMIN' && (
+                        <button
+                          type="button"
+                          onClick={handleOpenPriceModal}
+                          title="Настроить стартовую цену за м² (только для Администратора)"
+                          className="flex items-center gap-1 px-2 py-0.5 rounded-lg bg-white border border-blue-300 text-blue-700 text-[11px] font-bold hover:bg-blue-600 hover:text-white transition cursor-pointer shadow-2xs"
+                        >
+                          <Edit3 className="h-3 w-3" />
+                          <span>Изменить</span>
+                        </button>
+                      )}
                     </div>
                   </div>
 
@@ -712,14 +718,22 @@ export const ApartmentDetailModal = ({
                       </div>
                     </div>
 
-                    <button
-                      type="button"
-                      onClick={handleOpenPriceModal}
-                      className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white border border-slate-200 text-xs font-bold text-slate-700 hover:bg-slate-50 hover:border-slate-300 shadow-2xs transition cursor-pointer self-start sm:self-auto"
-                    >
-                      <Edit3 className="h-3.5 w-3.5 text-blue-600" />
-                      <span>Стартовая цена: {basePricePerM2} {projectCurrency}/м²</span>
-                    </button>
+                    {user?.role === 'ADMIN' ? (
+                      <button
+                        type="button"
+                        onClick={handleOpenPriceModal}
+                        title="Настроить стартовую цену за м² (только Администратор)"
+                        className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white border border-slate-200 text-xs font-bold text-slate-700 hover:bg-slate-50 hover:border-slate-300 shadow-2xs transition cursor-pointer self-start sm:self-auto"
+                      >
+                        <Edit3 className="h-3.5 w-3.5 text-blue-600" />
+                        <span>Стартовая цена: {basePricePerM2} {projectCurrency}/м²</span>
+                      </button>
+                    ) : (
+                      <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white/80 border border-slate-200 text-xs font-bold text-slate-700 self-start sm:self-auto shadow-2xs">
+                        <Tag className="h-3.5 w-3.5 text-slate-500" />
+                        <span>Стартовая цена: {basePricePerM2} {projectCurrency}/м²</span>
+                      </div>
+                    )}
                   </div>
 
                   {/* Quick Percentage Selector Pills (12 options) */}
