@@ -886,46 +886,53 @@ export const ApartmentDetailModal = ({
                     </div>
                   </div>
 
-                  {/* Active Selected Tier Highlight Card */}
-                  <div className="rounded-2xl border border-indigo-200 bg-white p-4 shadow-sm grid grid-cols-2 sm:grid-cols-4 gap-3">
-                    <div className={`rounded-xl p-2.5 border ${
-                      activeTier.percent > 0 ? 'bg-emerald-50/70 border-emerald-200' : 'bg-slate-50 border-slate-200'
+                  {/* Active Selected Tier Highlight Cards */}
+                  <div className="rounded-2xl border-2 border-indigo-200/80 bg-white p-4 shadow-sm grid grid-cols-2 sm:grid-cols-4 gap-3">
+                    {/* CARD 1: ВЫГОДА ПОКУПАТЕЛЯ / ЭКОНОМИЯ (БОЛЬШИМИ ЦИФРАМИ) */}
+                    <div className={`rounded-2xl p-3 border shadow-2xs flex flex-col justify-between ${
+                      activeTier.percent > 0
+                        ? 'bg-gradient-to-br from-emerald-50 via-emerald-100/60 to-emerald-50 border-emerald-300 ring-2 ring-emerald-400/30'
+                        : 'bg-slate-50 border-slate-200'
                     }`}>
-                      <span className="text-[10px] font-bold text-slate-500 block uppercase">
-                        {activeTier.percent > 0 ? 'Скидка и выгода' : 'Скидка на 1 м²'}
+                      <span className="text-[10px] font-black uppercase tracking-wider block text-emerald-800">
+                        {activeTier.percent > 0 ? '🔥 Выгода покупателя' : 'Выгода покупателя'}
                       </span>
-                      <div className={`text-sm font-black mt-0.5 ${
+                      <div className={`text-base sm:text-lg font-black tracking-tight mt-1 ${
                         activeTier.percent > 0 ? 'text-emerald-700' : 'text-slate-700'
                       }`}>
-                        {activeTier.percent > 0 ? `-${activeTier.discountPerM2} ${projectCurrency}/м²` : `0 ${projectCurrency}/м²`}
+                        {activeTier.percent > 0
+                          ? `+${activeTier.discountTotal.toLocaleString()} ${projectCurrency}`
+                          : `0 ${projectCurrency}`}
                       </div>
-                      <div className={`text-[10px] font-bold mt-0.5 ${
-                        activeTier.percent > 0 ? 'text-emerald-600' : 'text-slate-400'
+                      <div className={`text-[10px] font-bold mt-1 ${
+                        activeTier.percent > 0 ? 'text-emerald-700' : 'text-slate-400'
                       }`}>
                         {activeTier.percent > 0
-                          ? `Экономия: +${activeTier.discountTotal.toLocaleString()} ${projectCurrency} (${activeTier.savingPercent}%)`
-                          : 'Стартовая цена (без скидки)'}
+                          ? `Скидка -${activeTier.discountPerM2} $/м² (–${activeTier.savingPercent}%)`
+                          : 'Базовая цена (0% скидки)'}
                       </div>
                     </div>
 
-                    <div className="rounded-xl bg-slate-50 p-2.5 border border-slate-100">
-                      <span className="text-[10px] font-bold text-slate-400 block uppercase">Цена за 1 м²</span>
-                      <div className="text-sm font-black text-indigo-900 mt-0.5">
+                    {/* CARD 2: ЦЕНА ЗА 1 М² */}
+                    <div className="rounded-2xl bg-slate-50 p-3 border border-slate-200/80 shadow-2xs flex flex-col justify-between">
+                      <span className="text-[10px] font-black text-slate-500 uppercase tracking-wider block">Цена за 1 м²</span>
+                      <div className="text-base sm:text-lg font-black text-indigo-950 mt-1">
                         {activeTier.tieredPricePerM2.toLocaleString()} {projectCurrency}/м²
                       </div>
-                      <div className="text-[10px] text-slate-400 font-semibold mt-0.5">
+                      <div className="text-[10px] text-slate-400 font-semibold mt-1">
                         (Базовая: {basePricePerM2} {projectCurrency})
                       </div>
                     </div>
 
-                    <div className="rounded-xl bg-emerald-50/80 p-2.5 border border-emerald-200">
-                      <span className="text-[10px] font-bold text-emerald-800 block uppercase">
+                    {/* CARD 3: ПЕРВЫЙ ВЗНОС */}
+                    <div className="rounded-2xl bg-emerald-50/70 p-3 border border-emerald-200 shadow-2xs flex flex-col justify-between">
+                      <span className="text-[10px] font-black text-emerald-800 uppercase tracking-wider block">
                         Первый взнос ({activeTier.percent}%)
                       </span>
-                      <div className="text-sm font-black text-emerald-700 mt-0.5">
+                      <div className="text-base sm:text-lg font-black text-emerald-800 mt-1">
                         {activeTier.downPayment.toLocaleString()} {projectCurrency}
                       </div>
-                      <div className="text-[10px] text-emerald-700 font-semibold mt-0.5">
+                      <div className="text-[10px] text-emerald-700 font-semibold mt-1">
                         {activeTier.percent === 100
                           ? 'Полная оплата договора'
                           : activeTier.percent === 0
@@ -934,12 +941,13 @@ export const ApartmentDetailModal = ({
                       </div>
                     </div>
 
-                    <div className="rounded-xl bg-blue-50/80 p-2.5 border border-blue-200">
-                      <span className="text-[10px] font-bold text-blue-800 block uppercase">Итоговая стоимость</span>
-                      <div className="text-sm font-black text-blue-900 mt-0.5">
+                    {/* CARD 4: ИТОГОВАЯ СТОИМОСТЬ */}
+                    <div className="rounded-2xl bg-blue-50/80 p-3 border border-blue-200 shadow-2xs flex flex-col justify-between">
+                      <span className="text-[10px] font-black text-blue-900 uppercase tracking-wider block">Итоговая стоимость</span>
+                      <div className="text-base sm:text-lg font-black text-blue-950 mt-1">
                         {activeTier.totalTierPrice.toLocaleString()} {projectCurrency}
                       </div>
-                      <div className="text-[10px] text-blue-700 font-semibold mt-0.5">
+                      <div className="text-[10px] text-blue-700 font-semibold mt-1">
                         {areaM2} м² × {activeTier.tieredPricePerM2} {projectCurrency}
                       </div>
                     </div>
