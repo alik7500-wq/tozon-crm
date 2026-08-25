@@ -21,7 +21,8 @@ import {
   Car,
   Building2,
   Home,
-  Clock
+  Clock,
+  Tag
 } from 'lucide-react';
 
 export const DealWizardModal = ({
