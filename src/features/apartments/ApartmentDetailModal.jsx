@@ -290,16 +290,29 @@ export const ApartmentDetailModal = ({
       alert('Пожалуйста, укажите корректную стартовую цену за м²');
       return;
     }
-    if (selectedUnitIds.length === 0) {
-      alert('Пожалуйста, выберите хотя бы одну квартиру на шахматке');
+
+    const isAdmin = user?.role === 'ADMIN';
+    const targetUnitIds = isAdmin ? selectedUnitIds : (unit ? [unit.id] : []);
+
+    if (targetUnitIds.length === 0) {
+      alert('Пожалуйста, выберите квартиру');
       return;
     }
+
     setIsSavingPrice(true);
     try {
-      await api.patch('/inventory/units/batch-price', {
-        unit_ids: selectedUnitIds,
-        price_per_m2_minor: Math.round(p * 100)
-      });
+      if (isAdmin && targetUnitIds.length > 1) {
+        await api.patch('/inventory/units/batch-price', {
+          unit_ids: targetUnitIds,
+          price_per_m2_minor: Math.round(p * 100)
+        });
+      } else {
+        await api.patch(`/inventory/units/${unit.id}/price`, {
+          price_per_m2_minor: Math.round(p * 100),
+          scope: 'UNIT',
+          unit_ids: [unit.id]
+        });
+      }
       setIsPriceModalOpen(false);
       fetchUnit();
       if (onUnitUpdated) onUnitUpdated();
@@ -1172,267 +1185,342 @@ export const ApartmentDetailModal = ({
         />
       )}
 
-      {/* Modal: Set Base Price with Interactive Chessboard Grid */}
+      {/* Modal: Set Base Price (Admin: Bulk Chessboard / Manager: Single Unit) */}
       {isPriceModalOpen && (
         <div className="fixed inset-0 z-[70] flex items-center justify-center p-3 sm:p-5 bg-slate-900/75 backdrop-blur-xs animate-in fade-in overflow-hidden">
-          <div className="relative w-full max-w-5xl max-h-[92vh] flex flex-col rounded-3xl border border-slate-200 bg-white shadow-2xl overflow-hidden">
-            {/* Modal Header */}
-            <div className="flex items-center justify-between border-b border-slate-100 p-4 sm:p-5 bg-slate-50/70">
-              <div className="flex items-center gap-3">
-                <div className="h-10 w-10 rounded-2xl bg-blue-600 text-white flex items-center justify-center shadow-xs">
-                  <Tag className="h-5 w-5" />
-                </div>
-                <div>
-                  <h3 className="text-base sm:text-lg font-black text-slate-900">
-                    Установка стартовой цены и выбор квартир на шахматке
-                  </h3>
-                  <p className="text-xs text-slate-500">
-                    {projectName} • Выберите нужные квартиры или этажи в сетке для применения цены
-                  </p>
-                </div>
-              </div>
-              <button
-                type="button"
-                onClick={() => setIsPriceModalOpen(false)}
-                className="p-2 rounded-xl text-slate-400 hover:bg-slate-200 hover:text-slate-700 cursor-pointer"
-              >
-                <X className="h-5 w-5" />
-              </button>
-            </div>
-
-            {/* Form */}
-            <form onSubmit={handleSaveBasePrice} className="flex-1 flex flex-col overflow-hidden">
-              {/* Top Controls & Stats */}
-              <div className="p-4 sm:p-5 bg-blue-50/40 border-b border-slate-200 space-y-3">
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 items-center">
+          {user?.role === 'ADMIN' ? (
+            /* ADMIN: Full Chessboard Bulk Price Configurator */
+            <div className="relative w-full max-w-5xl max-h-[92vh] flex flex-col rounded-3xl border border-slate-200 bg-white shadow-2xl overflow-hidden">
+              {/* Modal Header */}
+              <div className="flex items-center justify-between border-b border-slate-100 p-4 sm:p-5 bg-slate-50/70">
+                <div className="flex items-center gap-3">
+                  <div className="h-10 w-10 rounded-2xl bg-blue-600 text-white flex items-center justify-center shadow-xs">
+                    <Tag className="h-5 w-5" />
+                  </div>
                   <div>
-                    <label className="block text-xs font-bold text-slate-800 mb-1">
-                      Стартовая цена за 1 м² ({projectCurrency}) *
-                    </label>
-                    <div className="relative">
-                      <input
-                        type="number"
-                        required
-                        min="1"
-                        step="1"
-                        value={editPricePerM2}
-                        onChange={(e) => setEditPricePerM2(e.target.value)}
-                        className="w-full rounded-xl border-2 border-blue-300 bg-white px-3 py-2 text-base font-black text-blue-950 outline-none focus:border-blue-600 shadow-2xs"
-                      />
-                      <span className="absolute right-3 top-1/2 -translate-y-1/2 font-extrabold text-blue-600 text-xs">
-                        {projectCurrency}/м²
-                      </span>
-                    </div>
-                  </div>
-
-                  <div className="sm:col-span-2 grid grid-cols-3 gap-2">
-                    <div className="rounded-xl bg-white p-2.5 border border-blue-200 shadow-2xs">
-                      <span className="text-[10px] font-bold uppercase text-slate-400 block">Выбрано квартир</span>
-                      <div className="text-sm font-black text-blue-900 mt-0.5">
-                        {selectedUnitIds.length} <span className="text-xs font-semibold text-slate-500">из {allUnitsInProject.length}</span>
-                      </div>
-                    </div>
-                    <div className="rounded-xl bg-white p-2.5 border border-blue-200 shadow-2xs">
-                      <span className="text-[10px] font-bold uppercase text-slate-400 block">Общая площадь</span>
-                      <div className="text-sm font-black text-blue-900 mt-0.5">
-                        {totalSelectedArea.toFixed(1)} м²
-                      </div>
-                    </div>
-                    <div className="rounded-xl bg-white p-2.5 border border-blue-200 shadow-2xs">
-                      <span className="text-[10px] font-bold uppercase text-slate-400 block">Общая стоимость</span>
-                      <div className="text-sm font-black text-emerald-700 mt-0.5 truncate">
-                        {totalSelectedAmount.toLocaleString()} {projectCurrency}
-                      </div>
-                    </div>
+                    <h3 className="text-base sm:text-lg font-black text-slate-900">
+                      Установка стартовой цены и выбор квартир на шахматке
+                    </h3>
+                    <p className="text-xs text-slate-500">
+                      {projectName} • Выберите нужные квартиры или этажи в сетке для применения цены
+                    </p>
                   </div>
                 </div>
+                <button
+                  type="button"
+                  onClick={() => setIsPriceModalOpen(false)}
+                  className="p-2 rounded-xl text-slate-400 hover:bg-slate-200 hover:text-slate-700 cursor-pointer"
+                >
+                  <X className="h-5 w-5" />
+                </button>
+              </div>
 
-                {/* Quick Selection Presets */}
-                <div className="flex flex-wrap items-center gap-1.5 pt-1">
-                  <span className="text-[11px] font-bold text-slate-600 mr-1">Быстрый выбор:</span>
-                  <button
-                    type="button"
-                    onClick={handleSelectOnlyThisUnit}
-                    className="px-2.5 py-1 rounded-lg bg-white border border-slate-300 text-[11px] font-bold text-slate-700 hover:bg-slate-100 cursor-pointer shadow-2xs"
-                  >
-                    Только №{unit?.unit_number}
-                  </button>
-                  <button
-                    type="button"
-                    onClick={handleSelectAllSameRooms}
-                    className="px-2.5 py-1 rounded-lg bg-white border border-slate-300 text-[11px] font-bold text-slate-700 hover:bg-slate-100 cursor-pointer shadow-2xs"
-                  >
-                    Все {unit?.rooms}-комнатные ({allUnitsInProject.filter((u) => u.rooms === unit?.rooms).length})
-                  </button>
-                  <button
-                    type="button"
-                    onClick={handleSelectAllSameFloor}
-                    className="px-2.5 py-1 rounded-lg bg-white border border-slate-300 text-[11px] font-bold text-slate-700 hover:bg-slate-100 cursor-pointer shadow-2xs"
-                  >
-                    Весь {floorNumber} этаж ({allUnitsInProject.filter((u) => u.floor_id === unit?.floor_id).length})
-                  </button>
-                  <button
-                    type="button"
-                    onClick={handleSelectAllProject}
-                    className="px-2.5 py-1 rounded-lg bg-blue-100 border border-blue-300 text-[11px] font-bold text-blue-800 hover:bg-blue-200 cursor-pointer shadow-2xs"
-                  >
-                    Выбрать ВСЕ ({allUnitsInProject.length})
-                  </button>
-                  {selectedUnitIds.length > 0 && (
+              {/* Form */}
+              <form onSubmit={handleSaveBasePrice} className="flex-1 flex flex-col overflow-hidden">
+                {/* Top Controls & Stats */}
+                <div className="p-4 sm:p-5 bg-blue-50/40 border-b border-slate-200 space-y-3">
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 items-center">
+                    <div>
+                      <label className="block text-xs font-bold text-slate-800 mb-1">
+                        Стартовая цена за 1 м² ({projectCurrency}) *
+                      </label>
+                      <div className="relative">
+                        <input
+                          type="number"
+                          required
+                          min="1"
+                          step="1"
+                          value={editPricePerM2}
+                          onChange={(e) => setEditPricePerM2(e.target.value)}
+                          className="w-full rounded-xl border-2 border-blue-300 bg-white px-3 py-2 text-base font-black text-blue-950 outline-none focus:border-blue-600 shadow-2xs"
+                        />
+                        <span className="absolute right-3 top-1/2 -translate-y-1/2 font-extrabold text-blue-600 text-xs">
+                          {projectCurrency}/м²
+                        </span>
+                      </div>
+                    </div>
+
+                    <div className="sm:col-span-2 grid grid-cols-3 gap-2">
+                      <div className="rounded-xl bg-white p-2.5 border border-blue-200 shadow-2xs">
+                        <span className="text-[10px] font-bold uppercase text-slate-400 block">Выбрано квартир</span>
+                        <div className="text-sm font-black text-blue-900 mt-0.5">
+                          {selectedUnitIds.length} <span className="text-xs font-semibold text-slate-500">из {allUnitsInProject.length}</span>
+                        </div>
+                      </div>
+                      <div className="rounded-xl bg-white p-2.5 border border-blue-200 shadow-2xs">
+                        <span className="text-[10px] font-bold uppercase text-slate-400 block">Общая площадь</span>
+                        <div className="text-sm font-black text-blue-900 mt-0.5">
+                          {totalSelectedArea.toFixed(1)} м²
+                        </div>
+                      </div>
+                      <div className="rounded-xl bg-white p-2.5 border border-blue-200 shadow-2xs">
+                        <span className="text-[10px] font-bold uppercase text-slate-400 block">Общая стоимость</span>
+                        <div className="text-sm font-black text-emerald-700 mt-0.5 truncate">
+                          {totalSelectedAmount.toLocaleString()} {projectCurrency}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Quick Selection Presets */}
+                  <div className="flex flex-wrap items-center gap-1.5 pt-1">
+                    <span className="text-[11px] font-bold text-slate-600 mr-1">Быстрый выбор:</span>
                     <button
                       type="button"
-                      onClick={handleClearSelection}
-                      className="px-2.5 py-1 rounded-lg bg-rose-50 border border-rose-200 text-[11px] font-bold text-rose-700 hover:bg-rose-100 cursor-pointer"
+                      onClick={handleSelectOnlyThisUnit}
+                      className="px-2.5 py-1 rounded-lg bg-white border border-slate-300 text-[11px] font-bold text-slate-700 hover:bg-slate-100 cursor-pointer shadow-2xs"
                     >
-                      Снять все
+                      Только №{unit?.unit_number}
                     </button>
+                    <button
+                      type="button"
+                      onClick={handleSelectAllSameRooms}
+                      className="px-2.5 py-1 rounded-lg bg-white border border-slate-300 text-[11px] font-bold text-slate-700 hover:bg-slate-100 cursor-pointer shadow-2xs"
+                    >
+                      Все {unit?.rooms}-комнатные ({allUnitsInProject.filter((u) => u.rooms === unit?.rooms).length})
+                    </button>
+                    <button
+                      type="button"
+                      onClick={handleSelectAllSameFloor}
+                      className="px-2.5 py-1 rounded-lg bg-white border border-slate-300 text-[11px] font-bold text-slate-700 hover:bg-slate-100 cursor-pointer shadow-2xs"
+                    >
+                      Весь {floorNumber} этаж ({allUnitsInProject.filter((u) => u.floor_id === unit?.floor_id).length})
+                    </button>
+                    <button
+                      type="button"
+                      onClick={handleSelectAllProject}
+                      className="px-2.5 py-1 rounded-lg bg-blue-100 border border-blue-300 text-[11px] font-bold text-blue-800 hover:bg-blue-200 cursor-pointer shadow-2xs"
+                    >
+                      Выбрать ВСЕ ({allUnitsInProject.length})
+                    </button>
+                    {selectedUnitIds.length > 0 && (
+                      <button
+                        type="button"
+                        onClick={handleClearSelection}
+                        className="px-2.5 py-1 rounded-lg bg-rose-50 border border-rose-200 text-[11px] font-bold text-rose-700 hover:bg-rose-100 cursor-pointer"
+                      >
+                        Снять все
+                      </button>
+                    )}
+                  </div>
+                </div>
+
+                {/* Scrollable Visual Chessboard Area */}
+                <div className="flex-1 overflow-y-auto p-4 sm:p-5 space-y-6 bg-slate-100/60">
+                  {loadingChessboard ? (
+                    <div className="h-48 flex flex-col items-center justify-center gap-2">
+                      <div className="h-7 w-7 animate-spin rounded-full border-3 border-blue-600 border-t-transparent" />
+                      <span className="text-xs text-slate-500 font-medium">Загрузка шахматки объекта...</span>
+                    </div>
+                  ) : projectChessboard.length === 0 ? (
+                    <div className="p-8 text-center text-xs text-slate-400 bg-white rounded-2xl border">
+                      Данные шахматки объекта не найдены
+                    </div>
+                  ) : (
+                    projectChessboard.map((building) => (
+                      <div key={building.id} className="space-y-4">
+                        <div className="flex items-center gap-2 font-black text-sm text-slate-900 bg-white p-2.5 rounded-xl border border-slate-200 shadow-2xs">
+                          <Building2 className="h-4 w-4 text-blue-600" />
+                          <span>{building.name || `Корпус ${building.id}`}</span>
+                        </div>
+
+                        {(building.sections || []).map((section) => {
+                          const sortedFloors = [...(section.floors || [])].sort(
+                            (a, b) => (b.floor_number || 0) - (a.floor_number || 0)
+                          );
+
+                          return (
+                            <div key={section.id} className="rounded-2xl bg-white border border-slate-200 p-4 shadow-2xs space-y-3">
+                              <div className="flex items-center justify-between border-b border-slate-100 pb-2">
+                                <span className="text-xs font-black text-slate-700">
+                                  {section.name || `Подъезд ${section.id}`}
+                                </span>
+                                <span className="text-[11px] text-slate-400 font-semibold">
+                                  Этажей: {sortedFloors.length}
+                                </span>
+                              </div>
+
+                              <div className="space-y-2">
+                                {sortedFloors.map((floor) => {
+                                  const floorUnits = floor.units || [];
+                                  const isFloorAllSelected =
+                                    floorUnits.length > 0 &&
+                                    floorUnits.every((u) => selectedUnitIds.includes(u.id));
+
+                                  return (
+                                    <div
+                                      key={floor.id}
+                                      className="flex items-start sm:items-center gap-2.5 p-2 rounded-xl bg-slate-50 border border-slate-100"
+                                    >
+                                      <button
+                                        type="button"
+                                        onClick={() => handleToggleFloor(floorUnits)}
+                                        title="Выбрать/снять весь этаж"
+                                        className={`w-24 shrink-0 py-1.5 px-2 rounded-lg text-left text-xs font-bold transition cursor-pointer border ${
+                                          isFloorAllSelected
+                                            ? 'bg-blue-600 text-white border-blue-700 shadow-xs'
+                                            : 'bg-white text-slate-700 border-slate-200 hover:bg-blue-50'
+                                        }`}
+                                      >
+                                        <div className="text-[11px] font-black">{floor.floor_number} этаж</div>
+                                        <div className={`text-[9px] font-semibold ${isFloorAllSelected ? 'text-blue-100' : 'text-slate-400'}`}>
+                                          {isFloorAllSelected ? '✓ Выбран' : 'Выбрать этаж'}
+                                        </div>
+                                      </button>
+
+                                      <div className="flex-1 grid grid-cols-2 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-8 gap-1.5">
+                                        {floorUnits.map((u) => {
+                                          const isUnitSelected = selectedUnitIds.includes(u.id);
+                                          const curPrice = u.price_per_m2_minor > 0 ? u.price_per_m2_minor / 100 : 0;
+
+                                          return (
+                                            <button
+                                              key={u.id}
+                                              type="button"
+                                              onClick={() => handleToggleUnit(u.id)}
+                                              className={`p-2 rounded-xl text-left transition cursor-pointer border flex flex-col justify-between ${
+                                                isUnitSelected
+                                                  ? 'bg-blue-600 text-white border-blue-700 shadow-md ring-2 ring-blue-300 font-bold scale-[1.02]'
+                                                  : 'bg-white text-slate-800 border-slate-200 hover:border-blue-300 hover:bg-blue-50/50'
+                                              }`}
+                                            >
+                                              <div className="flex items-center justify-between">
+                                                <span className="text-xs font-black truncate">
+                                                  №{u.unit_number}
+                                                </span>
+                                                {isUnitSelected ? (
+                                                  <CheckCircle2 className="h-3.5 w-3.5 text-white shrink-0" />
+                                                ) : (
+                                                  <span className="h-3 w-3 rounded-full border border-slate-300 shrink-0" />
+                                                )}
+                                              </div>
+
+                                              <div className={`text-[10px] mt-1 ${isUnitSelected ? 'text-blue-100' : 'text-slate-500'}`}>
+                                                {u.rooms === 0 ? 'Студия' : `${u.rooms}к`} • {(u.area_m2_x100 / 100).toFixed(1)} м²
+                                              </div>
+
+                                              <div className={`text-[9px] font-bold mt-1 ${isUnitSelected ? 'text-blue-200' : 'text-slate-400'}`}>
+                                                {curPrice > 0 ? `${curPrice} $/м²` : 'Не задана'}
+                                              </div>
+                                            </button>
+                                          );
+                                        })}
+                                      </div>
+                                    </div>
+                                  );
+                                })}
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    ))
                   )}
                 </div>
+
+                {/* Modal Footer */}
+                <div className="flex items-center justify-between gap-3 p-4 sm:p-5 border-t border-slate-200 bg-white">
+                  <div className="text-xs font-bold text-slate-600">
+                    Выбрано для применения: <strong className="text-blue-700 font-black">{selectedUnitIds.length}</strong> квартир
+                  </div>
+
+                  <div className="flex items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={() => setIsPriceModalOpen(false)}
+                      className="px-4 py-2 rounded-xl border border-slate-300 font-bold text-xs text-slate-600 hover:bg-slate-50 cursor-pointer"
+                    >
+                      Отмена
+                    </button>
+                    <button
+                      type="submit"
+                      disabled={isSavingPrice || selectedUnitIds.length === 0}
+                      className="px-6 py-2.5 rounded-xl bg-blue-600 font-black text-xs text-white shadow-md hover:bg-blue-700 transition cursor-pointer disabled:opacity-50"
+                    >
+                      {isSavingPrice
+                        ? 'Сохранение цен...'
+                        : `Применить цену ${editPricePerM2} ${projectCurrency}/м² (${selectedUnitIds.length} кв.)`}
+                    </button>
+                  </div>
+                </div>
+              </form>
+            </div>
+          ) : (
+            /* MANAGER: Single Apartment Price Setting Modal */
+            <div className="relative w-full max-w-md rounded-3xl border border-slate-200 bg-white p-6 shadow-2xl space-y-4">
+              <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+                <div className="flex items-center gap-2.5">
+                  <div className="h-9 w-9 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center shadow-2xs">
+                    <Tag className="h-5 w-5" />
+                  </div>
+                  <div>
+                    <h3 className="text-base font-bold text-slate-900">
+                      Установка стартовой цены
+                    </h3>
+                    <p className="text-xs text-slate-400">
+                      Квартира №{unit?.unit_number} ({areaM2} м²) • {projectName}
+                    </p>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setIsPriceModalOpen(false)}
+                  className="p-1 rounded-lg text-slate-400 hover:bg-slate-100 hover:text-slate-600 cursor-pointer"
+                >
+                  <X className="h-5 w-5" />
+                </button>
               </div>
 
-              {/* Scrollable Visual Chessboard Area */}
-              <div className="flex-1 overflow-y-auto p-4 sm:p-5 space-y-6 bg-slate-100/60">
-                {loadingChessboard ? (
-                  <div className="h-48 flex flex-col items-center justify-center gap-2">
-                    <div className="h-7 w-7 animate-spin rounded-full border-3 border-blue-600 border-t-transparent" />
-                    <span className="text-xs text-slate-500 font-medium">Загрузка шахматки объекта...</span>
+              <form onSubmit={handleSaveBasePrice} className="space-y-4 text-xs">
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 mb-1">
+                    Стартовая цена за 1 м² ({projectCurrency}) *
+                  </label>
+                  <div className="relative">
+                    <input
+                      type="number"
+                      required
+                      min="1"
+                      step="1"
+                      value={editPricePerM2}
+                      onChange={(e) => setEditPricePerM2(e.target.value)}
+                      className="w-full rounded-xl border border-slate-300 bg-slate-50 px-3 py-2 text-sm font-black text-slate-900 outline-none focus:border-blue-500 focus:bg-white"
+                    />
+                    <span className="absolute right-3 top-1/2 -translate-y-1/2 font-bold text-slate-400">
+                      {projectCurrency}/м²
+                    </span>
                   </div>
-                ) : projectChessboard.length === 0 ? (
-                  <div className="p-8 text-center text-xs text-slate-400 bg-white rounded-2xl border">
-                    Данные шахматки объекта не найдены
+                  <div className="text-[11px] text-slate-500 font-semibold mt-2 flex items-center justify-between bg-blue-50/60 p-2.5 rounded-xl border border-blue-100">
+                    <span>Итоговая базовая стоимость:</span>
+                    <strong className="text-blue-700 font-black text-xs">
+                      {Math.round(areaM2 * (parseFloat(editPricePerM2) || 0)).toLocaleString()} {projectCurrency}
+                    </strong>
                   </div>
-                ) : (
-                  projectChessboard.map((building) => (
-                    <div key={building.id} className="space-y-4">
-                      <div className="flex items-center gap-2 font-black text-sm text-slate-900 bg-white p-2.5 rounded-xl border border-slate-200 shadow-2xs">
-                        <Building2 className="h-4 w-4 text-blue-600" />
-                        <span>{building.name || `Корпус ${building.id}`}</span>
-                      </div>
-
-                      {(building.sections || []).map((section) => {
-                        // Sort floors in descending order (top floor first)
-                        const sortedFloors = [...(section.floors || [])].sort(
-                          (a, b) => (b.floor_number || 0) - (a.floor_number || 0)
-                        );
-
-                        return (
-                          <div key={section.id} className="rounded-2xl bg-white border border-slate-200 p-4 shadow-2xs space-y-3">
-                            <div className="flex items-center justify-between border-b border-slate-100 pb-2">
-                              <span className="text-xs font-black text-slate-700">
-                                {section.name || `Подъезд ${section.id}`}
-                              </span>
-                              <span className="text-[11px] text-slate-400 font-semibold">
-                                Этажей: {sortedFloors.length}
-                              </span>
-                            </div>
-
-                            <div className="space-y-2">
-                              {sortedFloors.map((floor) => {
-                                const floorUnits = floor.units || [];
-                                const isFloorAllSelected =
-                                  floorUnits.length > 0 &&
-                                  floorUnits.every((u) => selectedUnitIds.includes(u.id));
-
-                                return (
-                                  <div
-                                    key={floor.id}
-                                    className="flex items-start sm:items-center gap-2.5 p-2 rounded-xl bg-slate-50 border border-slate-100"
-                                  >
-                                    {/* Floor Label & Selector Button */}
-                                    <button
-                                      type="button"
-                                      onClick={() => handleToggleFloor(floorUnits)}
-                                      title="Выбрать/снять весь этаж"
-                                      className={`w-24 shrink-0 py-1.5 px-2 rounded-lg text-left text-xs font-bold transition cursor-pointer border ${
-                                        isFloorAllSelected
-                                          ? 'bg-blue-600 text-white border-blue-700 shadow-xs'
-                                          : 'bg-white text-slate-700 border-slate-200 hover:bg-blue-50'
-                                      }`}
-                                    >
-                                      <div className="text-[11px] font-black">{floor.floor_number} этаж</div>
-                                      <div className={`text-[9px] font-semibold ${isFloorAllSelected ? 'text-blue-100' : 'text-slate-400'}`}>
-                                        {isFloorAllSelected ? '✓ Выбран' : 'Выбрать этаж'}
-                                      </div>
-                                    </button>
-
-                                    {/* Floor Units Grid */}
-                                    <div className="flex-1 grid grid-cols-2 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-8 gap-1.5">
-                                      {floorUnits.map((u) => {
-                                        const isUnitSelected = selectedUnitIds.includes(u.id);
-                                        const curPrice = u.price_per_m2_minor > 0 ? u.price_per_m2_minor / 100 : 0;
-
-                                        return (
-                                          <button
-                                            key={u.id}
-                                            type="button"
-                                            onClick={() => handleToggleUnit(u.id)}
-                                            className={`p-2 rounded-xl text-left transition cursor-pointer border flex flex-col justify-between ${
-                                              isUnitSelected
-                                                ? 'bg-blue-600 text-white border-blue-700 shadow-md ring-2 ring-blue-300 font-bold scale-[1.02]'
-                                                : 'bg-white text-slate-800 border-slate-200 hover:border-blue-300 hover:bg-blue-50/50'
-                                            }`}
-                                          >
-                                            <div className="flex items-center justify-between">
-                                              <span className="text-xs font-black truncate">
-                                                №{u.unit_number}
-                                              </span>
-                                              {isUnitSelected ? (
-                                                <CheckCircle2 className="h-3.5 w-3.5 text-white shrink-0" />
-                                              ) : (
-                                                <span className="h-3 w-3 rounded-full border border-slate-300 shrink-0" />
-                                              )}
-                                            </div>
-
-                                            <div className={`text-[10px] mt-1 ${isUnitSelected ? 'text-blue-100' : 'text-slate-500'}`}>
-                                              {u.rooms === 0 ? 'Студия' : `${u.rooms}к`} • {(u.area_m2_x100 / 100).toFixed(1)} м²
-                                            </div>
-
-                                            <div className={`text-[9px] font-bold mt-1 ${isUnitSelected ? 'text-blue-200' : 'text-slate-400'}`}>
-                                              {curPrice > 0 ? `${curPrice} $/м²` : 'Не задана'}
-                                            </div>
-                                          </button>
-                                        );
-                                      })}
-                                    </div>
-                                  </div>
-                                );
-                              })}
-                            </div>
-                          </div>
-                        );
-                      })}
-                    </div>
-                  ))
-                )}
-              </div>
-
-              {/* Modal Footer */}
-              <div className="flex items-center justify-between gap-3 p-4 sm:p-5 border-t border-slate-200 bg-white">
-                <div className="text-xs font-bold text-slate-600">
-                  Выбрано для применения: <strong className="text-blue-700 font-black">{selectedUnitIds.length}</strong> квартир
                 </div>
 
-                <div className="flex items-center gap-2">
+                <div className="p-3 rounded-xl bg-slate-50 border border-slate-200 text-slate-500 text-[11px] leading-relaxed">
+                  🔒 Изменение цены применяется <strong>только к квартире №{unit?.unit_number}</strong>. Массовое изменение цен на всем объекте доступно только Администратору.
+                </div>
+
+                <div className="flex items-center justify-end gap-2 pt-2 border-t border-slate-100">
                   <button
                     type="button"
                     onClick={() => setIsPriceModalOpen(false)}
-                    className="px-4 py-2 rounded-xl border border-slate-300 font-bold text-xs text-slate-600 hover:bg-slate-50 cursor-pointer"
+                    className="px-4 py-2 rounded-xl border border-slate-300 font-bold text-slate-600 hover:bg-slate-50 cursor-pointer text-xs"
                   >
                     Отмена
                   </button>
                   <button
                     type="submit"
-                    disabled={isSavingPrice || selectedUnitIds.length === 0}
-                    className="px-6 py-2.5 rounded-xl bg-blue-600 font-black text-xs text-white shadow-md hover:bg-blue-700 transition cursor-pointer disabled:opacity-50"
+                    disabled={isSavingPrice}
+                    className="px-5 py-2 rounded-xl bg-blue-600 font-bold text-white shadow-md hover:bg-blue-700 transition cursor-pointer text-xs disabled:opacity-50"
                   >
-                    {isSavingPrice
-                      ? 'Сохранение цен...'
-                      : `Применить цену ${editPricePerM2} ${projectCurrency}/м² (${selectedUnitIds.length} кв.)`}
+                    {isSavingPrice ? 'Сохранение...' : `Сохранить для кв. №${unit?.unit_number}`}
                   </button>
                 </div>
-              </div>
-            </form>
-          </div>
+              </form>
+            </div>
+          )}
         </div>
       )}
     </>
