@@ -149,29 +149,40 @@ export const ApartmentDetailModal = ({
   const basePricePerM2 = unit?.price_per_m2_minor > 0 ? (unit.price_per_m2_minor / 100) : 500;
   const baseTotalPrice = Math.round(areaM2 * basePricePerM2);
 
-  // Ladder steps: 10%, 20%, 30%, 40%, 50%, 60%, 70%, 80%, 90%, 100%
-  // Rule: "При 10 % предоплаты - минус $10/м², при 20 % - минус $20/м² и т.д. до 100 % взноса"
-  const ladderTiers = [10, 20, 30, 40, 50, 60, 70, 80, 90, 100].map((pct) => {
-    const discountPerM2 = pct; // $10 for 10%, $20 for 20%... $100 for 100%
+  // Ladder steps: 0% (Без ПВ), 5% (5% ПВ), 10%, 20%, 30%, 40%, 50%, 60%, 70%, 80%, 90%, 100%
+  // Rule:
+  // 0% -> скидка $0/м²
+  // 5% -> скидка $5/м²
+  // 10% -> скидка $10/м², 20% -> $20/м² ... 100% -> $100/м²
+  const ladderTiers = [0, 5, 10, 20, 30, 40, 50, 60, 70, 80, 90, 100].map((pct) => {
+    let discountPerM2 = 0;
+    if (pct === 0) discountPerM2 = 0;
+    else if (pct === 5) discountPerM2 = 5;
+    else discountPerM2 = pct;
+
     const tieredPricePerM2 = Math.max(0, basePricePerM2 - discountPerM2);
     const totalTierPrice = Math.round(areaM2 * tieredPricePerM2);
     const downPayment = Math.round(totalTierPrice * (pct / 100));
     const remaining = Math.max(0, totalTierPrice - downPayment);
     const discountTotal = Math.round(areaM2 * discountPerM2);
+    const savingPercent = baseTotalPrice > 0 ? ((discountTotal / baseTotalPrice) * 100).toFixed(1) : '0';
     const monthly12 = pct === 100 ? 0 : Math.round(remaining / 12);
+    const monthly24 = pct === 100 ? 0 : Math.round(remaining / 24);
     return {
       percent: pct,
       discountPerM2,
       discountTotal,
+      savingPercent,
       tieredPricePerM2,
       totalTierPrice,
       downPayment,
       remaining,
-      monthly12
+      monthly12,
+      monthly24
     };
   });
 
-  const activeTier = ladderTiers.find((t) => t.percent === selectedLadderPercent) || ladderTiers[2];
+  const activeTier = ladderTiers.find((t) => t.percent === selectedLadderPercent) || ladderTiers[4]; // Default 30%
 
   const handleOpenPriceModal = () => {
     setEditPricePerM2(basePricePerM2);
@@ -693,10 +704,10 @@ export const ApartmentDetailModal = ({
                       </div>
                       <div>
                         <h4 className="text-sm font-black text-slate-900">
-                          Лестничные условия цен в зависимости от первоначального взноса
+                          Лестничные условия цен и выгода от размера первоначального взноса
                         </h4>
                         <p className="text-[11px] text-indigo-700 font-medium">
-                          При 10% взноса — скидка $10/м², при 20% — скидка $20/м², при 100% — скидка $100/м²
+                          0% — базовая цена • 5% — скидка -$5/м² • 10%–100% — скидка от -$10 до -$100/м²
                         </p>
                       </div>
                     </div>
@@ -711,20 +722,25 @@ export const ApartmentDetailModal = ({
                     </button>
                   </div>
 
-                  {/* Quick Percentage Selector Pills */}
+                  {/* Quick Percentage Selector Pills (12 options) */}
                   <div className="space-y-1.5">
                     <div className="flex items-center justify-between">
                       <span className="text-[11px] font-bold text-slate-600 uppercase tracking-wider">
                         Выберите % первоначального взноса:
                       </span>
                       <span className="text-[11px] font-bold text-indigo-600">
-                        {activeTier.percent === 100 ? '⭐ 100% Оплата (Макс. выгода)' : `Выбран взнос: ${activeTier.percent}%`}
+                        {activeTier.percent === 0
+                          ? '0% (Без первоначального взноса)'
+                          : activeTier.percent === 100
+                          ? '⭐ 100% Оплата (Максимальная выгода)'
+                          : `Выбран взнос: ${activeTier.percent}% (Скидка -${activeTier.discountPerM2}$/м²)`}
                       </span>
                     </div>
 
-                    <div className="grid grid-cols-5 sm:grid-cols-10 gap-1.5">
+                    <div className="grid grid-cols-4 sm:grid-cols-6 md:grid-cols-12 gap-1.5">
                       {ladderTiers.map((tier) => {
                         const isSelected = tier.percent === selectedLadderPercent;
+                        const isZero = tier.percent === 0;
                         const isFull = tier.percent === 100;
                         return (
                           <button
@@ -733,15 +749,25 @@ export const ApartmentDetailModal = ({
                             onClick={() => setSelectedLadderPercent(tier.percent)}
                             className={`py-2 px-1 rounded-xl text-center font-black transition cursor-pointer border flex flex-col items-center justify-center ${
                               isSelected
-                                ? 'bg-indigo-600 text-white border-indigo-700 shadow-md scale-105 z-10'
+                                ? 'bg-indigo-600 text-white border-indigo-700 shadow-md scale-105 z-10 ring-2 ring-indigo-300'
                                 : isFull
                                 ? 'bg-emerald-50 text-emerald-800 border-emerald-300 hover:bg-emerald-100'
+                                : isZero
+                                ? 'bg-slate-100 text-slate-700 border-slate-300 hover:bg-slate-200'
                                 : 'bg-white text-slate-700 border-slate-200 hover:bg-indigo-50/50 hover:border-indigo-200'
                             }`}
                           >
                             <span className="text-xs">{tier.percent}%</span>
-                            <span className={`text-[9px] font-bold mt-0.5 ${isSelected ? 'text-indigo-200' : isFull ? 'text-emerald-600' : 'text-slate-400'}`}>
-                              -{tier.discountPerM2}$
+                            <span className={`text-[9px] font-bold mt-0.5 ${
+                              isSelected
+                                ? 'text-indigo-200'
+                                : isFull
+                                ? 'text-emerald-600'
+                                : isZero
+                                ? 'text-slate-500'
+                                : 'text-slate-400'
+                            }`}>
+                              {isZero ? '0$' : `-${tier.discountPerM2}$`}
                             </span>
                           </button>
                         );
@@ -751,13 +777,23 @@ export const ApartmentDetailModal = ({
 
                   {/* Active Selected Tier Highlight Card */}
                   <div className="rounded-2xl border border-indigo-200 bg-white p-4 shadow-sm grid grid-cols-2 sm:grid-cols-4 gap-3">
-                    <div className="rounded-xl bg-slate-50 p-2.5 border border-slate-100">
-                      <span className="text-[10px] font-bold text-slate-400 block uppercase">Скидка на 1 м²</span>
-                      <div className="text-sm font-black text-emerald-600 mt-0.5">
-                        -{activeTier.discountPerM2} {projectCurrency}/м²
+                    <div className={`rounded-xl p-2.5 border ${
+                      activeTier.percent > 0 ? 'bg-emerald-50/70 border-emerald-200' : 'bg-slate-50 border-slate-200'
+                    }`}>
+                      <span className="text-[10px] font-bold text-slate-500 block uppercase">
+                        {activeTier.percent > 0 ? 'Скидка и выгода' : 'Скидка на 1 м²'}
+                      </span>
+                      <div className={`text-sm font-black mt-0.5 ${
+                        activeTier.percent > 0 ? 'text-emerald-700' : 'text-slate-700'
+                      }`}>
+                        {activeTier.percent > 0 ? `-${activeTier.discountPerM2} ${projectCurrency}/м²` : `0 ${projectCurrency}/м²`}
                       </div>
-                      <div className="text-[10px] text-slate-500 font-semibold mt-0.5">
-                        Экономия: -{activeTier.discountTotal.toLocaleString()} {projectCurrency}
+                      <div className={`text-[10px] font-bold mt-0.5 ${
+                        activeTier.percent > 0 ? 'text-emerald-600' : 'text-slate-400'
+                      }`}>
+                        {activeTier.percent > 0
+                          ? `Экономия: +${activeTier.discountTotal.toLocaleString()} ${projectCurrency} (${activeTier.savingPercent}%)`
+                          : 'Стартовая цена (без скидки)'}
                       </div>
                     </div>
 
@@ -772,12 +808,18 @@ export const ApartmentDetailModal = ({
                     </div>
 
                     <div className="rounded-xl bg-emerald-50/80 p-2.5 border border-emerald-200">
-                      <span className="text-[10px] font-bold text-emerald-800 block uppercase">Первый взнос ({activeTier.percent}%)</span>
+                      <span className="text-[10px] font-bold text-emerald-800 block uppercase">
+                        Первый взнос ({activeTier.percent}%)
+                      </span>
                       <div className="text-sm font-black text-emerald-700 mt-0.5">
                         {activeTier.downPayment.toLocaleString()} {projectCurrency}
                       </div>
                       <div className="text-[10px] text-emerald-700 font-semibold mt-0.5">
-                        {activeTier.percent === 100 ? 'Полная сумма договора' : `Остаток: ${activeTier.remaining.toLocaleString()} ${projectCurrency}`}
+                        {activeTier.percent === 100
+                          ? 'Полная оплата договора'
+                          : activeTier.percent === 0
+                          ? '100% суммы в рассрочку'
+                          : `Остаток: ${activeTier.remaining.toLocaleString()} ${projectCurrency}`}
                       </div>
                     </div>
 
@@ -792,7 +834,7 @@ export const ApartmentDetailModal = ({
                     </div>
                   </div>
 
-                  {/* Toggle Detailed Comparison Table */}
+                  {/* Toggle Detailed Comparison Table with Customer Savings */}
                   <div className="pt-1">
                     <button
                       type="button"
@@ -800,65 +842,102 @@ export const ApartmentDetailModal = ({
                       className="text-xs font-bold text-indigo-700 hover:text-indigo-900 flex items-center gap-1 cursor-pointer"
                     >
                       {showFullLadderTable ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
-                      <span>{showFullLadderTable ? 'Скрыть подробную таблицу всех вариантов' : 'Показать сравнительную таблицу всех 10 вариантов предоплаты'}</span>
+                      <span>
+                        {showFullLadderTable
+                          ? 'Скрыть подробную таблицу всех вариантов'
+                          : 'Показать сравнительную таблицу всех 12 вариантов с расчетом выгоды покупателя'}
+                      </span>
                     </button>
 
                     {showFullLadderTable && (
-                      <div className="mt-2.5 overflow-x-auto rounded-2xl border border-slate-200 bg-white">
+                      <div className="mt-2.5 overflow-x-auto rounded-2xl border border-slate-200 bg-white shadow-xs">
                         <table className="w-full text-left text-xs">
-                          <thead className="bg-slate-50 border-b border-slate-200 text-slate-500 font-bold uppercase text-[10px]">
+                          <thead className="bg-slate-50 border-b border-slate-200 text-slate-600 font-bold uppercase text-[10px]">
                             <tr>
-                              <th className="py-2 px-3">Взнос</th>
-                              <th className="py-2 px-2.5">Скидка / м²</th>
-                              <th className="py-2 px-2.5">Цена за м²</th>
-                              <th className="py-2 px-2.5">1-й взнос</th>
-                              <th className="py-2 px-2.5">Итоговая цена</th>
-                              <th className="py-2 px-2.5 text-right">Действие</th>
+                              <th className="py-2.5 px-3">Взнос</th>
+                              <th className="py-2.5 px-2">Скидка / м²</th>
+                              <th className="py-2.5 px-2">Цена за м²</th>
+                              <th className="py-2.5 px-2.5">1-й взнос</th>
+                              <th className="py-2.5 px-2.5">Итоговая цена</th>
+                              <th className="py-2.5 px-2.5 text-emerald-800 bg-emerald-50/60 font-black">
+                                Выгода покупателя (Экономия)
+                              </th>
+                              <th className="py-2.5 px-2 text-slate-500">Рассрочка на 12 мес</th>
+                              <th className="py-2.5 px-2.5 text-right">Действие</th>
                             </tr>
                           </thead>
                           <tbody className="divide-y divide-slate-100 font-medium">
-                            {ladderTiers.map((tier) => (
-                              <tr
-                                key={tier.percent}
-                                onClick={() => setSelectedLadderPercent(tier.percent)}
-                                className={`cursor-pointer transition ${
-                                  tier.percent === selectedLadderPercent ? 'bg-indigo-50/80 font-bold text-indigo-950' : 'hover:bg-slate-50'
-                                }`}
-                              >
-                                <td className="py-2 px-3">
-                                  <span className={`px-2 py-0.5 rounded-md text-[11px] font-black ${
-                                    tier.percent === 100 ? 'bg-emerald-100 text-emerald-800' : 'bg-slate-100 text-slate-800'
-                                  }`}>
-                                    {tier.percent}%
-                                  </span>
-                                </td>
-                                <td className="py-2 px-2.5 text-emerald-600 font-bold">
-                                  -{tier.discountPerM2} {projectCurrency}
-                                </td>
-                                <td className="py-2 px-2.5 font-bold text-slate-900">
-                                  {tier.tieredPricePerM2} {projectCurrency}
-                                </td>
-                                <td className="py-2 px-2.5 font-bold text-emerald-700">
-                                  {tier.downPayment.toLocaleString()} {projectCurrency}
-                                </td>
-                                <td className="py-2 px-2.5 font-black text-slate-900">
-                                  {tier.totalTierPrice.toLocaleString()} {projectCurrency}
-                                </td>
-                                <td className="py-2 px-2.5 text-right">
-                                  <button
-                                    type="button"
-                                    onClick={(e) => {
-                                      e.stopPropagation();
-                                      setSelectedLadderPercent(tier.percent);
-                                      setIsDealWizardOpen(true);
-                                    }}
-                                    className="px-2.5 py-1 rounded-lg bg-indigo-600 text-white text-[10px] font-bold hover:bg-indigo-700 transition cursor-pointer"
-                                  >
-                                    Оформить
-                                  </button>
-                                </td>
-                              </tr>
-                            ))}
+                            {ladderTiers.map((tier) => {
+                              const isCurrent = tier.percent === selectedLadderPercent;
+                              const isZero = tier.percent === 0;
+                              const isFull = tier.percent === 100;
+                              return (
+                                <tr
+                                  key={tier.percent}
+                                  onClick={() => setSelectedLadderPercent(tier.percent)}
+                                  className={`cursor-pointer transition ${
+                                    isCurrent ? 'bg-indigo-50/80 font-bold text-indigo-950' : 'hover:bg-slate-50'
+                                  }`}
+                                >
+                                  <td className="py-2.5 px-3">
+                                    <span className={`px-2 py-0.5 rounded-md text-[11px] font-black ${
+                                      isFull
+                                        ? 'bg-emerald-100 text-emerald-800'
+                                        : isZero
+                                        ? 'bg-slate-100 text-slate-700'
+                                        : 'bg-indigo-50 text-indigo-800'
+                                    }`}>
+                                      {tier.percent}% {isZero ? '(Без взноса)' : isFull ? '(Полная)' : ''}
+                                    </span>
+                                  </td>
+                                  <td className="py-2.5 px-2 text-emerald-600 font-bold">
+                                    {isZero ? '0' : `-${tier.discountPerM2}`} {projectCurrency}
+                                  </td>
+                                  <td className="py-2.5 px-2 font-bold text-slate-900">
+                                    {tier.tieredPricePerM2} {projectCurrency}
+                                  </td>
+                                  <td className="py-2.5 px-2.5 font-bold text-emerald-700">
+                                    {tier.downPayment.toLocaleString()} {projectCurrency}
+                                  </td>
+                                  <td className="py-2.5 px-2.5 font-black text-slate-900">
+                                    {tier.totalTierPrice.toLocaleString()} {projectCurrency}
+                                  </td>
+                                  {/* CUSTOMER SAVINGS / BENEFIT COLUMN */}
+                                  <td className="py-2.5 px-2.5 bg-emerald-50/40">
+                                    {isZero ? (
+                                      <span className="text-slate-400 font-semibold text-[11px]">
+                                        Стартовая цена (0%)
+                                      </span>
+                                    ) : (
+                                      <div className="flex items-center gap-1.5">
+                                        <span className="px-2 py-0.5 rounded-md bg-emerald-100 text-emerald-800 font-black text-xs">
+                                          +{tier.discountTotal.toLocaleString()} {projectCurrency}
+                                        </span>
+                                        <span className="text-[10px] text-emerald-700 font-bold">
+                                          (–{tier.savingPercent}%)
+                                        </span>
+                                      </div>
+                                    )}
+                                  </td>
+                                  <td className="py-2.5 px-2 text-slate-600 text-[11px]">
+                                    {isFull ? '—' : `${tier.monthly12.toLocaleString()} ${projectCurrency}/мес`}
+                                  </td>
+                                  <td className="py-2.5 px-2.5 text-right">
+                                    <button
+                                      type="button"
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        setSelectedLadderPercent(tier.percent);
+                                        setIsDealWizardOpen(true);
+                                      }}
+                                      className="px-2.5 py-1 rounded-lg bg-indigo-600 text-white text-[10px] font-bold hover:bg-indigo-700 transition cursor-pointer shadow-2xs"
+                                    >
+                                      Оформить
+                                    </button>
+                                  </td>
+                                </tr>
+                              );
+                            })}
                           </tbody>
                         </table>
                       </div>
@@ -905,7 +984,10 @@ export const ApartmentDetailModal = ({
                       className="flex items-center gap-2 rounded-xl bg-gradient-to-r from-blue-600 via-indigo-600 to-indigo-700 px-6 py-2.5 text-xs font-black text-white shadow-lg shadow-indigo-600/30 hover:from-blue-700 hover:to-indigo-800 transition cursor-pointer"
                     >
                       <Plus className="h-4 w-4" />
-                      <span>Оформить сделку ({activeTier.percent}% взнос • {activeTier.tieredPricePerM2} $/м²)</span>
+                      <span>
+                        Оформить сделку ({activeTier.percent}% взнос • {activeTier.tieredPricePerM2} $/м²
+                        {activeTier.percent > 0 ? ` • Экономия: +${activeTier.discountTotal.toLocaleString()} $` : ''})
+                      </span>
                     </button>
                   </div>
                 </div>

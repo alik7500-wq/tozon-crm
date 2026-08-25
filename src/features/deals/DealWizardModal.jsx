@@ -792,14 +792,19 @@ export const DealWizardModal = ({
                       Лестничный ориентир скидки по % первого взноса:
                     </span>
                     <span className="text-[10px] text-indigo-600 font-bold">
-                      10% = -$10/м², 20% = -$20/м², 100% = -$100/м²
+                      0% (Без ПВ) • 5% = -$5/м² • 10%–100% = от -$10 до -$100/м²
                     </span>
                   </div>
 
-                  <div className="grid grid-cols-5 sm:grid-cols-10 gap-1">
-                    {[10, 20, 30, 40, 50, 60, 70, 80, 90, 100].map((pct) => {
+                  <div className="grid grid-cols-4 sm:grid-cols-6 md:grid-cols-12 gap-1">
+                    {[0, 5, 10, 20, 30, 40, 50, 60, 70, 80, 90, 100].map((pct) => {
                       const isSelected = downPaymentPercent === pct;
-                      const tierPrice = Math.max(0, basePricePerM2 - pct);
+                      let discount = 0;
+                      if (pct === 0) discount = 0;
+                      else if (pct === 5) discount = 5;
+                      else discount = pct;
+
+                      const tierPrice = Math.max(0, basePricePerM2 - discount);
                       return (
                         <button
                           key={pct}
