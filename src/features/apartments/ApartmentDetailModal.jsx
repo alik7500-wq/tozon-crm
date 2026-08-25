@@ -54,6 +54,8 @@ export const ApartmentDetailModal = ({
   const { user } = useAuth();
   const [unit, setUnit] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [isUpdatingStatus, setIsUpdatingStatus] = useState(false);
+
   // Price Configuration Modal state with Visual Chessboard Selection
   const [isPriceModalOpen, setIsPriceModalOpen] = useState(false);
   const [editPricePerM2, setEditPricePerM2] = useState(500);
