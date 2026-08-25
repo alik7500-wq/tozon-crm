@@ -29,6 +29,8 @@ export const DealWizardModal = ({
   onClose,
   unit: initialUnit = null,
   currency: initialCurrency = 'USD',
+  initialDownPaymentPercent = 30,
+  initialPricePerM2 = null,
   onDealCreated,
 }) => {
   // If unit is passed from outside, start from step 1 (Client). If not, start from step 0 (Unit Selection)
@@ -98,13 +100,18 @@ export const DealWizardModal = ({
     ? (selectedUnit.area_m2_x100 ? (selectedUnit.area_m2_x100 / 100) : (parseFloat(selectedUnit.area) || 50)) 
     : 50;
 
-  const calculatedBasePrice = Math.round(areaM2 * (parseFloat(pricePerM2) || 0));
+  const basePricePerM2 = selectedUnit
+    ? (selectedUnit.price_per_m2_minor > 0 ? selectedUnit.price_per_m2_minor / 100 : (parseFloat(selectedUnit.price_per_m2) || 500))
+    : 500;
+
+  const calculatedBasePrice = Math.round(areaM2 * (parseFloat(pricePerM2) || basePricePerM2));
 
   const actualDiscountMinor = discountType === 'PERCENT'
     ? Math.round(calculatedBasePrice * ((parseFloat(discountValue) || 0) / 100))
     : Math.round(parseFloat(discountValue) || 0);
 
   const finalPrice = Math.max(0, calculatedBasePrice - actualDiscountMinor);
+  const effectivePricePerM2 = areaM2 > 0 ? (finalPrice / areaM2).toFixed(2) : 0;
 
   const getUnitProjectName = (u) => {
     if (!u) return 'ЖК TOZON PLAZA';
@@ -114,20 +121,28 @@ export const DealWizardModal = ({
   // Update rates when unit is selected
   useEffect(() => {
     if (selectedUnit) {
-      const p = selectedUnit.price_per_m2_minor > 0 
+      const p = initialPricePerM2
+        ? parseFloat(initialPricePerM2)
+        : selectedUnit.price_per_m2_minor > 0 
         ? (selectedUnit.price_per_m2_minor / 100) 
         : (parseFloat(selectedUnit.price_per_m2) || 500);
+      
       setPricePerM2(p);
+      const pct = initialDownPaymentPercent || 30;
+      setDownPaymentPercent(pct);
       const total = Math.round(areaM2 * p);
-      setDownPaymentAmount(Math.round(total * (downPaymentPercent / 100)));
+      setDownPaymentAmount(Math.round(total * (pct / 100)));
     }
-  }, [selectedUnit]);
+  }, [selectedUnit, initialPricePerM2, initialDownPaymentPercent]);
 
   useEffect(() => {
     if (isOpen) {
       setSelectedUnit(initialUnit);
       setStep(initialUnit ? 1 : 0);
       setError('');
+      setInitialPaymentReference('');
+      setInitialPaymentDate(dealDate);
+      setInitialPaymentMethod('CASH');
       fetchProjects();
       fetchLeads();
       fetchAvailableUnits();
@@ -753,58 +768,119 @@ export const DealWizardModal = ({
                 </p>
               </div>
 
-              {/* Price per m2 */}
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1">
-                    Цена за 1 м² ({currency}) *
-                  </label>
-                  <input
-                    type="number"
-                    min="1"
-                    value={pricePerM2}
-                    onChange={(e) => setPricePerM2(e.target.value)}
-                    className="w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-xs font-bold outline-none focus:border-blue-500"
-                  />
-                  <span className="text-[11px] text-slate-500 mt-1 block">
-                    Базовая стоимость: {calculatedBasePrice.toLocaleString()} {currency}
+              {/* STEP 2: PRICING, LADDER DISCOUNT & BARGAINED FINAL PRICE */}
+              <div className="rounded-2xl border-2 border-indigo-200 bg-indigo-50/50 p-4 space-y-3.5">
+                <div className="flex items-center justify-between border-b border-indigo-200/80 pb-2.5">
+                  <div>
+                    <h4 className="text-xs font-black text-slate-900 uppercase tracking-wide flex items-center gap-1.5">
+                      <Tag className="h-4 w-4 text-indigo-600" />
+                      <span>Параметры стоимости и согласованная цена сделки</span>
+                    </h4>
+                    <p className="text-[11px] text-slate-500 mt-0.5">
+                      Стартовая цена: <strong className="text-slate-800 font-bold">{basePricePerM2} {currency}/м²</strong> ({Math.round(areaM2 * basePricePerM2).toLocaleString()} {currency})
+                    </p>
+                  </div>
+                  <span className="px-2.5 py-1 rounded-xl bg-white border border-indigo-200 text-indigo-700 font-extrabold text-xs shadow-2xs">
+                    {areaM2} м²
                   </span>
                 </div>
 
-                {/* Discount */}
+                {/* Ladder Discount Quick Selector */}
                 <div>
-                  <div className="flex items-center justify-between mb-1">
-                    <label className="block text-xs font-bold text-slate-700">Скидка</label>
-                    <div className="flex gap-1 text-[11px]">
-                      <button
-                        type="button"
-                        onClick={() => setDiscountType('AMOUNT')}
-                        className={`px-1.5 py-0.5 rounded font-semibold ${discountType === 'AMOUNT' ? 'bg-blue-600 text-white' : 'text-slate-500'}`}
-                      >
-                        {currency}
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => setDiscountType('PERCENT')}
-                        className={`px-1.5 py-0.5 rounded font-semibold ${discountType === 'PERCENT' ? 'bg-blue-600 text-white' : 'text-slate-500'}`}
-                      >
-                        %
-                      </button>
-                    </div>
-                  </div>
-                  <input
-                    type="number"
-                    min="0"
-                    value={discountValue}
-                    onChange={(e) => setDiscountValue(e.target.value)}
-                    placeholder="0"
-                    className="w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-xs outline-none focus:border-blue-500"
-                  />
-                  {actualDiscountMinor > 0 && (
-                    <span className="text-[11px] text-emerald-600 font-semibold mt-1 block">
-                      Скидка: -{actualDiscountMinor.toLocaleString()} {currency}
+                  <div className="flex items-center justify-between mb-1.5">
+                    <span className="text-[11px] font-bold text-slate-700">
+                      Лестничный ориентир скидки по % первого взноса:
                     </span>
-                  )}
+                    <span className="text-[10px] text-indigo-600 font-bold">
+                      10% = -$10/м², 20% = -$20/м², 100% = -$100/м²
+                    </span>
+                  </div>
+
+                  <div className="grid grid-cols-5 sm:grid-cols-10 gap-1">
+                    {[10, 20, 30, 40, 50, 60, 70, 80, 90, 100].map((pct) => {
+                      const isSelected = downPaymentPercent === pct;
+                      const tierPrice = Math.max(0, basePricePerM2 - pct);
+                      return (
+                        <button
+                          key={pct}
+                          type="button"
+                          onClick={() => {
+                            setDownPaymentPercent(pct);
+                            setPricePerM2(tierPrice);
+                            setDiscountType('AMOUNT');
+                            setDiscountValue(0);
+                            const total = Math.round(areaM2 * tierPrice);
+                            setDownPaymentAmount(Math.round(total * (pct / 100)));
+                          }}
+                          className={`py-1.5 px-1 rounded-lg text-center font-bold text-xs transition cursor-pointer border ${
+                            isSelected
+                              ? 'bg-indigo-600 text-white border-indigo-700 shadow-xs'
+                              : 'bg-white text-slate-700 border-slate-200 hover:bg-indigo-50'
+                          }`}
+                        >
+                          <div>{pct}%</div>
+                          <div className={`text-[9px] ${isSelected ? 'text-indigo-200' : 'text-slate-400'}`}>
+                            {tierPrice}$
+                          </div>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                {/* Bargained Final Price Inputs */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
+                  <div>
+                    <label className="block text-xs font-bold text-slate-800 mb-1">
+                      Окончательная цена сделки (после торга) ({currency}) *
+                    </label>
+                    <input
+                      type="number"
+                      min="1"
+                      value={finalPrice}
+                      onChange={(e) => {
+                        const val = parseFloat(e.target.value) || 0;
+                        const baseTot = Math.round(areaM2 * (parseFloat(pricePerM2) || basePricePerM2));
+                        const disc = Math.max(0, baseTot - val);
+                        setDiscountType('AMOUNT');
+                        setDiscountValue(disc);
+                        setDownPaymentAmount(Math.round(val * (downPaymentPercent / 100)));
+                      }}
+                      className="w-full rounded-xl border-2 border-indigo-300 bg-white px-3 py-2 text-sm font-black text-indigo-900 outline-none focus:border-indigo-600 shadow-xs"
+                    />
+                    <span className="text-[11px] text-slate-500 font-semibold mt-1 block">
+                      Фактически: <strong className="text-slate-800">{effectivePricePerM2} {currency}/м²</strong>
+                    </span>
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-bold text-slate-800 mb-1">
+                      Или цена за 1 м² ({currency}) *
+                    </label>
+                    <input
+                      type="number"
+                      min="1"
+                      value={pricePerM2}
+                      onChange={(e) => {
+                        const newP = parseFloat(e.target.value) || 0;
+                        setPricePerM2(newP);
+                        setDiscountType('AMOUNT');
+                        setDiscountValue(0);
+                        const newTot = Math.round(areaM2 * newP);
+                        setDownPaymentAmount(Math.round(newTot * (downPaymentPercent / 100)));
+                      }}
+                      className="w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm font-bold text-slate-900 outline-none focus:border-indigo-600"
+                    />
+                    {actualDiscountMinor > 0 ? (
+                      <span className="text-[11px] text-emerald-600 font-bold mt-1 block">
+                        Скидка от торга: -{actualDiscountMinor.toLocaleString()} {currency}
+                      </span>
+                    ) : (
+                      <span className="text-[11px] text-slate-400 mt-1 block">
+                        Без дополнительной скидки
+                      </span>
+                    )}
+                  </div>
                 </div>
               </div>
 
@@ -821,7 +897,13 @@ export const DealWizardModal = ({
                     <button
                       key={t.id}
                       type="button"
-                      onClick={() => setPaymentType(t.id)}
+                      onClick={() => {
+                        setPaymentType(t.id);
+                        if (t.id === 'FULL') {
+                          setDownPaymentPercent(100);
+                          setDownPaymentAmount(finalPrice);
+                        }
+                      }}
                       className={`p-3 rounded-xl border text-left transition cursor-pointer ${
                         paymentType === t.id
                           ? 'border-blue-600 bg-blue-50/70 shadow-xs ring-1 ring-blue-600'
