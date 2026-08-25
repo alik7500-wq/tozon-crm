@@ -113,6 +113,12 @@ export const DealWizardModal = ({
   const finalPrice = Math.max(0, calculatedBasePrice - actualDiscountMinor);
   const effectivePricePerM2 = areaM2 > 0 ? (finalPrice / areaM2).toFixed(2) : 0;
 
+  const remainingBalance = paymentType === 'BARTER'
+    ? 0
+    : paymentType === 'PARTIAL_BARTER'
+    ? Math.max(0, finalPrice - (parseFloat(barterAmount) || 0) - (parseFloat(downPaymentAmount) || 0))
+    : Math.max(0, finalPrice - (parseFloat(downPaymentAmount) || 0));
+
   const getUnitProjectName = (u) => {
     if (!u) return 'ЖК TOZON PLAZA';
     return u.project_name || u.floors?.sections?.buildings?.projects?.name || 'ЖК TOZON PLAZA';
