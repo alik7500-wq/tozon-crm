@@ -224,10 +224,77 @@ export const PassportOCRModal = ({
       const cleanDealId = (dealId && dealId !== 'ALL' && dealId !== 'all') ? Number(dealId) : null;
       const cleanLeadId = (leadId && leadId !== 'ALL' && leadId !== 'all') ? Number(leadId) : null;
 
+      let frontPath = null;
+      let backPath = null;
+
+      // 1. Upload Front File / Rotated Canvas Blob if present
+      if (frontFile) {
+        try {
+          const uploadInfo = await passportApi.getUploadUrl({
+            projectId: cleanProjectId,
+            dealId: cleanDealId,
+            leadId: cleanLeadId,
+            filename: frontFile.name || 'passport_front.jpg',
+            side: 'front'
+          });
+          const targetUrl = uploadInfo.data?.signedUploadUrl || uploadInfo.signedUploadUrl || uploadInfo.uploadUrl;
+          const storagePath = uploadInfo.data?.storagePath || uploadInfo.storagePath;
+
+          if (targetUrl && storagePath) {
+            let fileToUpload = frontFile;
+            if (frontRotation !== 0 && frontPreview?.startsWith('data:image/')) {
+              const res = await fetch(frontPreview);
+              fileToUpload = await res.blob();
+            }
+            await fetch(targetUrl, {
+              method: 'PUT',
+              headers: { 'Content-Type': 'image/jpeg' },
+              body: fileToUpload
+            });
+            frontPath = storagePath;
+          }
+        } catch (uploadErr) {
+          console.warn('[PassportOCR] Front upload error:', uploadErr.message);
+        }
+      }
+
+      // 2. Upload Back File / Rotated Canvas Blob if present
+      if (backFile) {
+        try {
+          const uploadInfo = await passportApi.getUploadUrl({
+            projectId: cleanProjectId,
+            dealId: cleanDealId,
+            leadId: cleanLeadId,
+            filename: backFile.name || 'passport_back.jpg',
+            side: 'back'
+          });
+          const targetUrl = uploadInfo.data?.signedUploadUrl || uploadInfo.signedUploadUrl || uploadInfo.uploadUrl;
+          const storagePath = uploadInfo.data?.storagePath || uploadInfo.storagePath;
+
+          if (targetUrl && storagePath) {
+            let fileToUpload = backFile;
+            if (backRotation !== 0 && backPreview?.startsWith('data:image/')) {
+              const res = await fetch(backPreview);
+              fileToUpload = await res.blob();
+            }
+            await fetch(targetUrl, {
+              method: 'PUT',
+              headers: { 'Content-Type': 'image/jpeg' },
+              body: fileToUpload
+            });
+            backPath = storagePath;
+          }
+        } catch (uploadErr) {
+          console.warn('[PassportOCR] Back upload error:', uploadErr.message);
+        }
+      }
+
       let combinedFrontText = directText.trim();
       let combinedBackText = directMrz.trim();
 
       const result = await passportApi.recognize({
+        frontPath,
+        backPath,
         frontText: combinedFrontText,
         backText: combinedBackText,
         projectId: cleanProjectId,
