@@ -11,10 +11,11 @@ import {
   Clock,
   ArrowRight,
   CheckCircle2,
-  XCircle
+  XCircle,
+  Pencil
 } from 'lucide-react';
 
-export const LeadKanbanView = ({ leads, onSelectLead, onStatusChange, onAddNewLead }) => {
+export const LeadKanbanView = ({ leads, onSelectLead, onEditLead, onStatusChange, onAddNewLead }) => {
   const columns = [
     { key: 'NEW', title: 'Новый', color: 'border-blue-500 bg-blue-50/40 text-blue-700', next: 'IN_PROGRESS', nextLabel: 'В работу' },
     { key: 'IN_PROGRESS', title: 'В работе', color: 'border-amber-500 bg-amber-50/40 text-amber-700', next: 'NEGOTIATION', nextLabel: 'Переговоры' },
@@ -52,10 +53,23 @@ export const LeadKanbanView = ({ leads, onSelectLead, onStatusChange, onAddNewLe
                   onClick={() => onSelectLead(lead)}
                   className="rounded-xl bg-white border border-slate-200 p-3.5 shadow-2xs hover:shadow-md hover:border-purple-300 transition cursor-pointer space-y-2.5 group"
                 >
-                  <div className="flex items-start justify-between">
+                  <div className="flex items-start justify-between gap-1">
                     <h5 className="text-xs font-bold text-slate-900 group-hover:text-purple-600 transition leading-snug line-clamp-1">
                       {lead.full_name}
                     </h5>
+                    {onEditLead && (
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          onEditLead(lead);
+                        }}
+                        className="opacity-0 group-hover:opacity-100 p-1 text-slate-400 hover:text-purple-600 hover:bg-purple-50 rounded-md transition cursor-pointer shrink-0"
+                        title="Редактировать лида"
+                      >
+                        <Pencil className="h-3 w-3" />
+                      </button>
+                    )}
                   </div>
 
                   <div className="flex items-center gap-1.5 text-[11px] text-slate-600">

@@ -28,10 +28,11 @@ import {
   Sparkles,
   UserPlus,
   Receipt,
-  Plus
+  Plus,
+  Pencil
 } from 'lucide-react';
 
-export const ClientDetailModal = ({ isOpen, onClose, client, onClientUpdated }) => {
+export const ClientDetailModal = ({ isOpen, onClose, client, onClientUpdated, onEditClient }) => {
   const [activeTab, setActiveTab] = useState('INFO'); // 'INFO' or 'HISTORY'
   const [fullLead, setFullLead] = useState(null);
   const [clientDeals, setClientDeals] = useState([]);
@@ -293,6 +294,18 @@ export const ClientDetailModal = ({ isOpen, onClose, client, onClientUpdated }) 
           </div>
 
           <div className="flex items-center gap-2">
+            {onEditClient && (
+              <button
+                type="button"
+                onClick={() => onEditClient(fullLead || client)}
+                className="flex items-center gap-1.5 rounded-xl border border-amber-400 bg-amber-500/15 text-amber-300 hover:bg-amber-500/25 px-3 py-1.5 text-xs font-bold transition cursor-pointer"
+                title="Редактировать данные клиента"
+              >
+                <Pencil className="h-3.5 w-3.5" />
+                <span>Изменить</span>
+              </button>
+            )}
+
             {client.phone && (
               <a
                 href={`tel:${client.phone}`}
@@ -396,10 +409,23 @@ export const ClientDetailModal = ({ isOpen, onClose, client, onClientUpdated }) 
 
               {/* Personal & Passport Details Grid */}
               <div className="rounded-2xl border border-slate-200 bg-white p-5 space-y-4 shadow-2xs">
-                <h3 className="text-xs font-bold uppercase tracking-wider text-slate-900 flex items-center gap-2 border-b border-slate-100 pb-2.5">
-                  <User className="h-4 w-4 text-blue-600" />
-                  <span>Паспортные и контактные данные</span>
-                </h3>
+                <div className="flex items-center justify-between border-b border-slate-100 pb-2.5">
+                  <h3 className="text-xs font-bold uppercase tracking-wider text-slate-900 flex items-center gap-2">
+                    <User className="h-4 w-4 text-blue-600" />
+                    <span>Паспортные и контактные данные</span>
+                  </h3>
+                  {onEditClient && (
+                    <button
+                      type="button"
+                      onClick={() => onEditClient(fullLead || client)}
+                      className="inline-flex items-center gap-1 rounded-lg text-amber-700 hover:bg-amber-50 px-2 py-1 text-xs font-bold transition cursor-pointer"
+                      title="Редактировать данные"
+                    >
+                      <Pencil className="h-3.5 w-3.5" />
+                      <span>Редактировать</span>
+                    </button>
+                  )}
+                </div>
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
                   <div className="space-y-1">

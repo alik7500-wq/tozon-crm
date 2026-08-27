@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { api } from '../../api/client';
 import { ClientDetailModal } from './ClientDetailModal';
+import { EditClientModal } from './EditClientModal';
 import {
   Users,
   Plus,
@@ -11,6 +12,7 @@ import {
   Calendar,
   Wallet,
   Eye,
+  Pencil,
   UserCheck,
   CheckCircle2,
   X,
@@ -25,6 +27,7 @@ export const ClientsPage = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [selectedClient, setSelectedClient] = useState(null);
+  const [clientToEdit, setClientToEdit] = useState(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [newClient, setNewClient] = useState({
@@ -305,6 +308,19 @@ export const ClientsPage = () => {
                           type="button"
                           onClick={(e) => {
                             e.stopPropagation();
+                            setClientToEdit(c);
+                          }}
+                          className="inline-flex items-center gap-1 rounded-xl bg-amber-50 text-amber-700 hover:bg-amber-100 border border-amber-200/80 px-2.5 py-1.5 text-xs font-bold transition cursor-pointer"
+                          title="Редактировать данные клиента"
+                        >
+                          <Pencil className="h-3 w-3" />
+                          <span>Изменить</span>
+                        </button>
+
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
                             setSelectedClient(c);
                           }}
                           className="inline-flex items-center gap-1 rounded-xl bg-slate-100 text-slate-700 px-3 py-1.5 text-xs font-bold hover:bg-slate-200 transition cursor-pointer"
@@ -322,6 +338,19 @@ export const ClientsPage = () => {
         </div>
       )}
 
+      {/* Edit Client Modal */}
+      {clientToEdit && (
+        <EditClientModal
+          isOpen={Boolean(clientToEdit)}
+          client={clientToEdit}
+          onClose={() => setClientToEdit(null)}
+          onClientUpdated={() => {
+            fetchClients();
+            setClientToEdit(null);
+          }}
+        />
+      )}
+
       {/* Client Details & History Modal */}
       {selectedClient && (
         <ClientDetailModal
@@ -329,6 +358,10 @@ export const ClientsPage = () => {
           client={selectedClient}
           onClose={() => setSelectedClient(null)}
           onClientUpdated={fetchClients}
+          onEditClient={(client) => {
+            setSelectedClient(null);
+            setClientToEdit(client);
+          }}
         />
       )}
 

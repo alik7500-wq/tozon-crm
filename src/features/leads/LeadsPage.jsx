@@ -233,6 +233,7 @@ export const LeadsPage = () => {
         <LeadKanbanView
           leads={leads}
           onSelectLead={handleSelectLead}
+          onEditLead={handleEditLead}
           onStatusChange={handleQuickStatusChange}
           onAddNewLead={() => setIsCreateModalOpen(true)}
         />
