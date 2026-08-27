@@ -38,13 +38,13 @@ import {
 } from 'lucide-react';
 
 import { hasPermission, hasAnyPermission } from '../utils/permissions';
+import { GlobalSearch } from '../components/GlobalSearch';
 
 export const MainLayout = () => {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
-  const [searchQuery, setSearchQuery] = useState('');
 
   // Expand state for nested menus
   const [expandedMenus, setExpandedMenus] = useState({
@@ -322,16 +322,7 @@ export const MainLayout = () => {
         {/* Topbar Header */}
         <header className="flex h-16 items-center justify-between border-b border-slate-200 bg-white px-6 z-20 shadow-2xs">
           {/* Global Search Bar */}
-          <div className="relative w-full max-w-md">
-            <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
-            <input
-              type="text"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="Поиск по ФИО, телефону, номеру договора или квартиры..."
-              className="w-full rounded-xl border border-slate-200 bg-slate-50 px-10 py-2 text-xs text-slate-900 placeholder-slate-400 outline-none transition focus:border-blue-500 focus:bg-white focus:ring-2 focus:ring-blue-500/10"
-            />
-          </div>
+          <GlobalSearch />
 
           {/* Quick Actions & Notifications */}
           <div className="flex items-center gap-3">
