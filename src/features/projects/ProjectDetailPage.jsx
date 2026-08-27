@@ -6,6 +6,7 @@ import { ChessboardTab } from './tabs/ChessboardTab';
 import { LayoutsTab } from './tabs/LayoutsTab';
 import { VisualMapsTab } from './tabs/VisualMapsTab';
 import { BatchGeneratorModal } from './tabs/BatchGeneratorModal';
+import { ErrorBoundary } from '../../components/ErrorBoundary';
 const Scene3DViewer = React.lazy(() => import('../visual3d').then(m => ({ default: m.Scene3DViewer })));
 const Tour360Viewer = React.lazy(() => import('../tour360').then(m => ({ default: m.Tour360Viewer })));
 const VisualAdminTab = React.lazy(() => import('../visualAdmin').then(m => ({ default: m.VisualAdminTab })));
@@ -210,59 +211,115 @@ export const ProjectDetailPage = () => {
         )}
 
         {activeTab === 'gallery' && (
-          <React.Suspense
+          <ErrorBoundary
             fallback={
-              <div className="flex h-72 items-center justify-center">
-                <div className="flex flex-col items-center gap-3">
-                  <div className="h-9 w-9 animate-spin rounded-full border-4 border-blue-600 border-t-transparent" />
-                  <span className="text-xs text-slate-500 font-medium">Загрузка визуализации...</span>
-                </div>
+              <div className="rounded-2xl bg-white border border-slate-200 p-8 text-center">
+                <h3 className="text-base font-bold text-slate-900">Галерея временно недоступна</h3>
+                <p className="text-xs text-slate-500 mt-1">Произошла ошибка при загрузке визуальных материалов.</p>
+                <button onClick={() => setActiveTab('chessboard')} className="mt-4 px-4 py-2 bg-blue-600 text-white rounded-xl text-xs font-bold">
+                  Вернуться к шахматке
+                </button>
               </div>
             }
           >
-            <ProjectGalleryTab
-              projectId={id}
-              onOpenAdminManager={() => setActiveTab('visual_admin')}
-            />
-          </React.Suspense>
+            <React.Suspense
+              fallback={
+                <div className="flex h-72 items-center justify-center">
+                  <div className="flex flex-col items-center gap-3">
+                    <div className="h-9 w-9 animate-spin rounded-full border-4 border-blue-600 border-t-transparent" />
+                    <span className="text-xs text-slate-500 font-medium">Загрузка визуализации...</span>
+                  </div>
+                </div>
+              }
+            >
+              <ProjectGalleryTab
+                projectId={id}
+                onOpenAdminManager={() => setActiveTab('visual_admin')}
+              />
+            </React.Suspense>
+          </ErrorBoundary>
         )}
 
         {activeTab === '3d' && (
-          <React.Suspense
+          <ErrorBoundary
             fallback={
-              <div className="flex h-72 items-center justify-center">
-                <div className="flex flex-col items-center gap-3">
-                  <div className="h-9 w-9 animate-spin rounded-full border-4 border-blue-600 border-t-transparent" />
-                  <span className="text-xs text-slate-500 font-medium">Загрузка 3D модуля...</span>
+              <div className="rounded-2xl bg-slate-950 border border-slate-800 p-8 text-center text-white">
+                <div className="w-12 h-12 rounded-2xl bg-slate-900 border border-slate-800 flex items-center justify-center mx-auto mb-3 text-amber-400">
+                  <Box className="w-6 h-6" />
+                </div>
+                <h3 className="text-base font-bold">3D-модель временно недоступна</h3>
+                <p className="text-xs text-slate-400 mt-1 max-w-md mx-auto">
+                  Не удалось инициализировать 3D холст или загрузить модель. Попробуйте обновить страницу.
+                </p>
+                <div className="flex items-center justify-center gap-3 mt-4">
+                  <button onClick={() => window.location.reload()} className="px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white rounded-xl text-xs font-bold cursor-pointer">
+                    Повторить
+                  </button>
+                  <button onClick={() => setActiveTab('chessboard')} className="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-xl text-xs font-medium cursor-pointer">
+                    К шахматке
+                  </button>
                 </div>
               </div>
             }
           >
-            <Scene3DViewer
-              projectId={id}
-              currency={project.currency}
-              onBackToChessboard={() => setActiveTab('chessboard')}
-            />
-          </React.Suspense>
+            <React.Suspense
+              fallback={
+                <div className="flex h-72 items-center justify-center">
+                  <div className="flex flex-col items-center gap-3">
+                    <div className="h-9 w-9 animate-spin rounded-full border-4 border-blue-600 border-t-transparent" />
+                    <span className="text-xs text-slate-500 font-medium">Загрузка 3D модуля...</span>
+                  </div>
+                </div>
+              }
+            >
+              <Scene3DViewer
+                projectId={id}
+                currency={project.currency}
+                onBackToChessboard={() => setActiveTab('chessboard')}
+              />
+            </React.Suspense>
+          </ErrorBoundary>
         )}
 
         {activeTab === '360' && (
-          <React.Suspense
+          <ErrorBoundary
             fallback={
-              <div className="flex h-72 items-center justify-center">
-                <div className="flex flex-col items-center gap-3">
-                  <div className="h-9 w-9 animate-spin rounded-full border-4 border-purple-600 border-t-transparent" />
-                  <span className="text-xs text-slate-500 font-medium">Загрузка 360° тура...</span>
+              <div className="rounded-2xl bg-slate-950 border border-slate-800 p-8 text-center text-white">
+                <div className="w-12 h-12 rounded-2xl bg-slate-900 border border-slate-800 flex items-center justify-center mx-auto mb-3 text-purple-400">
+                  <Compass className="w-6 h-6" />
+                </div>
+                <h3 className="text-base font-bold">360° тур временно недоступен</h3>
+                <p className="text-xs text-slate-400 mt-1 max-w-md mx-auto">
+                  Не удалось загрузить панорамные сферы. Попробуйте обновить страницу.
+                </p>
+                <div className="flex items-center justify-center gap-3 mt-4">
+                  <button onClick={() => window.location.reload()} className="px-4 py-2 bg-purple-600 hover:bg-purple-500 text-white rounded-xl text-xs font-bold cursor-pointer">
+                    Повторить
+                  </button>
+                  <button onClick={() => setActiveTab('chessboard')} className="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-xl text-xs font-medium cursor-pointer">
+                    К шахматке
+                  </button>
                 </div>
               </div>
             }
           >
-            <Tour360Viewer
-              projectId={id}
-              currency={project.currency}
-              onBack={() => setActiveTab('chessboard')}
-            />
-          </React.Suspense>
+            <React.Suspense
+              fallback={
+                <div className="flex h-72 items-center justify-center">
+                  <div className="flex flex-col items-center gap-3">
+                    <div className="h-9 w-9 animate-spin rounded-full border-4 border-purple-600 border-t-transparent" />
+                    <span className="text-xs text-slate-500 font-medium">Загрузка 360° тура...</span>
+                  </div>
+                </div>
+              }
+            >
+              <Tour360Viewer
+                projectId={id}
+                currency={project.currency}
+                onBack={() => setActiveTab('chessboard')}
+              />
+            </React.Suspense>
+          </ErrorBoundary>
         )}
 
         {activeTab === 'maps' && (
