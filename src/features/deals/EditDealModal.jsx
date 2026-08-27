@@ -22,7 +22,6 @@ export const EditDealModal = ({
   onDealUpdated
 }) => {
   const [users, setUsers] = useState([]);
-  const [isLoadingUsers, setIsLoadingUsers] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState('');
 
@@ -60,18 +59,9 @@ export const EditDealModal = ({
   // Fetch users for manager selector
   useEffect(() => {
     if (isOpen) {
-      const fetchUsers = async () => {
-        setIsLoadingUsers(true);
-        try {
-          const res = await api.get('/users');
-          setUsers(res.data?.users || res.users || []);
-        } catch (e) {
-          console.error('Failed to load users for manager selector:', e);
-        } finally {
-          setIsLoadingUsers(false);
-        }
-      };
-      fetchUsers();
+      api.get('/users')
+        .then(res => setUsers(res.data?.users || res.users || []))
+        .catch(err => console.error('Failed to load users for manager selector:', err));
     }
   }, [isOpen]);
 
@@ -141,23 +131,23 @@ export const EditDealModal = ({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs animate-in fade-in duration-200">
-      <div className="relative w-full max-w-2xl bg-white rounded-3xl shadow-2xl border border-slate-100 overflow-hidden flex flex-col max-h-[90vh]">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-5 bg-slate-900/60 backdrop-blur-xs animate-in fade-in duration-200">
+      <div className="relative w-full max-w-4xl bg-white rounded-3xl shadow-2xl border border-slate-100 overflow-hidden flex flex-col">
         
         {/* Header */}
-        <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100 bg-slate-50/50">
+        <div className="flex items-center justify-between px-6 py-3.5 border-b border-slate-100 bg-slate-50/70">
           <div className="flex items-center gap-3">
-            <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-amber-50 text-amber-600 border border-amber-200/60 shadow-2xs">
-              <Pencil className="h-5 w-5" />
+            <div className="flex h-9 w-9 items-center justify-center rounded-2xl bg-amber-50 text-amber-600 border border-amber-200/60 shadow-2xs">
+              <Pencil className="h-4 w-4" />
             </div>
             <div>
               <div className="flex items-center gap-2">
-                <h2 className="text-base font-bold text-slate-900">Редактирование сделки</h2>
-                <span className="inline-flex items-center gap-1 rounded-full bg-amber-100 px-2.5 py-0.5 text-[10px] font-extrabold text-amber-800 border border-amber-300/60 uppercase tracking-wide">
-                  <ShieldCheck className="h-3 w-3" /> Только Администратор
+                <h2 className="text-sm sm:text-base font-bold text-slate-900 leading-tight">Редактирование сделки</h2>
+                <span className="inline-flex items-center gap-1 rounded-full bg-amber-100 px-2 py-0.5 text-[9px] font-extrabold text-amber-800 border border-amber-300/60 uppercase tracking-wide">
+                  <ShieldCheck className="h-2.5 w-2.5" /> Только Администратор
                 </span>
               </div>
-              <p className="text-xs text-slate-500 mt-0.5">
+              <p className="text-[11px] text-slate-500">
                 Договор №{deal.contract_number} • Кв. №{deal.unit_number} ({deal.project_name})
               </p>
             </div>
@@ -165,164 +155,93 @@ export const EditDealModal = ({
           <button
             type="button"
             onClick={requestClose}
-            className="p-2 text-slate-400 hover:text-slate-600 rounded-xl hover:bg-slate-100 transition cursor-pointer"
+            className="p-1.5 text-slate-400 hover:text-slate-600 rounded-xl hover:bg-slate-100 transition cursor-pointer"
           >
             <X className="h-5 w-5" />
           </button>
         </div>
 
-        {/* Body */}
-        <form onSubmit={handleSubmit} className="p-6 overflow-y-auto space-y-5 flex-1 text-xs">
+        {/* Body Form - Unified 2-Column Layout */}
+        <form onSubmit={handleSubmit} className="p-5 space-y-4 text-xs">
           
           {error && (
-            <div className="flex items-center gap-2.5 rounded-2xl bg-rose-50 border border-rose-200 p-3.5 text-rose-700 font-medium">
+            <div className="flex items-center gap-2 rounded-xl bg-rose-50 border border-rose-200 p-2.5 text-rose-700 font-medium text-xs">
               <AlertCircle className="h-4 w-4 shrink-0" />
               <span>{error}</span>
             </div>
           )}
 
-          {/* Section 1: Dates & Contract Number */}
-          <div className="bg-amber-50/40 rounded-2xl p-4 border border-amber-200/50 space-y-3">
-            <div className="flex items-center gap-2 font-bold text-slate-900 text-xs">
-              <Calendar className="h-4 w-4 text-amber-600" />
-              <span>Основные реквизиты и дата сделки</span>
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <label className="block text-[11px] font-bold text-slate-700 mb-1">
-                  Дата договора / сделки <span className="text-rose-500">*</span>
-                </label>
-                <input
-                  type="date"
-                  value={dealDate}
-                  onChange={(e) => setDealDate(e.target.value)}
-                  className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-900 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition"
-                  required
-                />
-                <span className="text-[10px] text-slate-400 mt-1 block">
-                  Исправьте ошибочно введённую менеджером дату
-                </span>
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+            
+            {/* Left Card: Dates, Contract & Payment Terms */}
+            <div className="bg-amber-50/30 rounded-2xl p-4 border border-amber-200/60 space-y-3">
+              <div className="flex items-center gap-2 font-bold text-slate-900 text-xs pb-1 border-b border-amber-200/50">
+                <Calendar className="h-3.5 w-3.5 text-amber-600" />
+                <span>Дата, договор и условия</span>
               </div>
 
-              <div>
-                <label className="block text-[11px] font-bold text-slate-700 mb-1">
-                  Номер договора
-                </label>
-                <input
-                  type="text"
-                  value={contractNumber}
-                  onChange={(e) => setContractNumber(e.target.value)}
-                  placeholder="0010"
-                  className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-mono font-bold text-slate-900 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition"
-                />
-                <span className="text-[10px] text-slate-400 mt-1 block">
-                  Номер документа в реестре и печатных формах
-                </span>
-              </div>
-            </div>
-          </div>
+              <div className="grid grid-cols-2 gap-2.5">
+                <div>
+                  <label className="block text-[11px] font-bold text-slate-700 mb-1">
+                    Дата сделки <span className="text-rose-500">*</span>
+                  </label>
+                  <input
+                    type="date"
+                    value={dealDate}
+                    onChange={(e) => setDealDate(e.target.value)}
+                    className="w-full rounded-xl border border-slate-200 bg-white px-2.5 py-1.5 text-xs font-semibold text-slate-900 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition"
+                    required
+                  />
+                </div>
 
-          {/* Section 2: Buyer Details */}
-          <div className="bg-slate-50/70 rounded-2xl p-4 border border-slate-200 space-y-3">
-            <div className="flex items-center gap-2 font-bold text-slate-900 text-xs">
-              <User className="h-4 w-4 text-blue-600" />
-              <span>Данные покупателя</span>
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <label className="block text-[11px] font-bold text-slate-700 mb-1">
-                  ФИО Покупателя
-                </label>
-                <input
-                  type="text"
-                  value={leadName}
-                  onChange={(e) => setLeadName(e.target.value)}
-                  className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-900 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition"
-                />
+                <div>
+                  <label className="block text-[11px] font-bold text-slate-700 mb-1">
+                    Номер договора
+                  </label>
+                  <input
+                    type="text"
+                    value={contractNumber}
+                    onChange={(e) => setContractNumber(e.target.value)}
+                    placeholder="0010"
+                    className="w-full rounded-xl border border-slate-200 bg-white px-3 py-1.5 text-xs font-mono font-bold text-slate-900 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition"
+                  />
+                </div>
               </div>
 
-              <div>
-                <label className="block text-[11px] font-bold text-slate-700 mb-1">
-                  Телефон
-                </label>
-                <input
-                  type="text"
-                  value={leadPhone}
-                  onChange={(e) => setLeadPhone(e.target.value)}
-                  className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-900 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition"
-                />
-              </div>
+              <div className="grid grid-cols-2 gap-2.5">
+                <div>
+                  <label className="block text-[11px] font-bold text-slate-700 mb-1">
+                    Ответственный менеджер
+                  </label>
+                  <select
+                    value={responsibleUserId}
+                    onChange={(e) => setResponsibleUserId(e.target.value)}
+                    className="w-full rounded-xl border border-slate-200 bg-white px-2.5 py-1.5 text-xs font-semibold text-slate-900 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition cursor-pointer"
+                  >
+                    <option value="">Не назначен</option>
+                    {users.map(u => (
+                      <option key={u.id} value={u.id}>
+                        {u.name} ({u.role})
+                      </option>
+                    ))}
+                  </select>
+                </div>
 
-              <div>
-                <label className="block text-[11px] font-bold text-slate-700 mb-1">
-                  Паспорт (Серия)
-                </label>
-                <input
-                  type="text"
-                  value={passportSeries}
-                  onChange={(e) => setPassportSeries(e.target.value)}
-                  placeholder="А"
-                  className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-900 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition"
-                />
-              </div>
-
-              <div>
-                <label className="block text-[11px] font-bold text-slate-700 mb-1">
-                  Паспорт (Номер)
-                </label>
-                <input
-                  type="text"
-                  value={passportNumber}
-                  onChange={(e) => setPassportNumber(e.target.value)}
-                  placeholder="1234567"
-                  className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-900 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition"
-                />
-              </div>
-            </div>
-          </div>
-
-          {/* Section 3: Manager and Payment Terms */}
-          <div className="bg-slate-50/70 rounded-2xl p-4 border border-slate-200 space-y-3">
-            <div className="flex items-center gap-2 font-bold text-slate-900 text-xs">
-              <CreditCard className="h-4 w-4 text-emerald-600" />
-              <span>Менеджер и условия сделки</span>
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <label className="block text-[11px] font-bold text-slate-700 mb-1">
-                  Ответственный менеджер
-                </label>
-                <select
-                  value={responsibleUserId}
-                  onChange={(e) => setResponsibleUserId(e.target.value)}
-                  className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-900 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition cursor-pointer"
-                >
-                  <option value="">Не назначен</option>
-                  {users.map(u => (
-                    <option key={u.id} value={u.id}>
-                      {u.name} ({u.role})
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              <div>
-                <label className="block text-[11px] font-bold text-slate-700 mb-1">
-                  Форма оплаты
-                </label>
-                <select
-                  value={paymentType}
-                  onChange={(e) => setPaymentType(e.target.value)}
-                  className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-900 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition cursor-pointer"
-                >
-                  <option value="FULL">100% Оплата</option>
-                  <option value="INSTALLMENT">Рассрочка</option>
-                  <option value="BARTER">100% Бартер</option>
-                  <option value="PARTIAL_BARTER">Бартер + Доплата</option>
-                </select>
+                <div>
+                  <label className="block text-[11px] font-bold text-slate-700 mb-1">
+                    Форма оплаты
+                  </label>
+                  <select
+                    value={paymentType}
+                    onChange={(e) => setPaymentType(e.target.value)}
+                    className="w-full rounded-xl border border-slate-200 bg-white px-2.5 py-1.5 text-xs font-semibold text-slate-900 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition cursor-pointer"
+                  >
+                    <option value="FULL">100% Оплата</option>
+                    <option value="INSTALLMENT">Рассрочка</option>
+                    <option value="BARTER">100% Бартер</option>
+                    <option value="PARTIAL_BARTER">Бартер + Доплата</option>
+                  </select>
+                </div>
               </div>
 
               {paymentType === 'INSTALLMENT' && (
@@ -336,7 +255,7 @@ export const EditDealModal = ({
                     max="60"
                     value={installmentMonths}
                     onChange={(e) => setInstallmentMonths(e.target.value)}
-                    className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-900 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition"
+                    className="w-full rounded-xl border border-slate-200 bg-white px-3 py-1.5 text-xs font-semibold text-slate-900 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition"
                   />
                 </div>
               )}
@@ -350,41 +269,102 @@ export const EditDealModal = ({
                     type="date"
                     value={reservationExpiresAt}
                     onChange={(e) => setReservationExpiresAt(e.target.value)}
-                    className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-900 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition"
+                    className="w-full rounded-xl border border-slate-200 bg-white px-2.5 py-1.5 text-xs font-semibold text-slate-900 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition"
                   />
                 </div>
               )}
 
               {(paymentType === 'BARTER' || paymentType === 'PARTIAL_BARTER') && (
-                <div className="md:col-span-2">
+                <div>
                   <label className="block text-[11px] font-bold text-slate-700 mb-1">
                     Описание бартера
                   </label>
-                  <textarea
-                    rows={2}
+                  <input
+                    type="text"
                     value={barterDescription}
                     onChange={(e) => setBarterDescription(e.target.value)}
-                    placeholder="Например: Автомобиль Toyota Camry 2022 года в зачет..."
-                    className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-900 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition"
+                    placeholder="Toyota Camry 2022..."
+                    className="w-full rounded-xl border border-slate-200 bg-white px-3 py-1.5 text-xs font-semibold text-slate-900 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition"
                   />
                 </div>
               )}
             </div>
+
+            {/* Right Card: Buyer & Passport Info */}
+            <div className="bg-slate-50/70 rounded-2xl p-4 border border-slate-200/90 space-y-3">
+              <div className="flex items-center gap-2 font-bold text-slate-900 text-xs pb-1 border-b border-slate-200/60">
+                <User className="h-3.5 w-3.5 text-blue-600" />
+                <span>Данные покупателя</span>
+              </div>
+
+              <div>
+                <label className="block text-[11px] font-bold text-slate-700 mb-1">
+                  ФИО Покупателя
+                </label>
+                <input
+                  type="text"
+                  value={leadName}
+                  onChange={(e) => setLeadName(e.target.value)}
+                  className="w-full rounded-xl border border-slate-200 bg-white px-3 py-1.5 text-xs font-semibold text-slate-900 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition"
+                />
+              </div>
+
+              <div>
+                <label className="block text-[11px] font-bold text-slate-700 mb-1">
+                  Телефон
+                </label>
+                <input
+                  type="text"
+                  value={leadPhone}
+                  onChange={(e) => setLeadPhone(e.target.value)}
+                  className="w-full rounded-xl border border-slate-200 bg-white px-3 py-1.5 text-xs font-semibold text-slate-900 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition"
+                />
+              </div>
+
+              <div className="grid grid-cols-3 gap-2.5">
+                <div>
+                  <label className="block text-[11px] font-bold text-slate-700 mb-1">
+                    Серия
+                  </label>
+                  <input
+                    type="text"
+                    value={passportSeries}
+                    onChange={(e) => setPassportSeries(e.target.value)}
+                    placeholder="А"
+                    className="w-full rounded-xl border border-slate-200 bg-white px-3 py-1.5 text-xs font-semibold text-slate-900 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition"
+                  />
+                </div>
+
+                <div className="col-span-2">
+                  <label className="block text-[11px] font-bold text-slate-700 mb-1">
+                    Номер паспорта
+                  </label>
+                  <input
+                    type="text"
+                    value={passportNumber}
+                    onChange={(e) => setPassportNumber(e.target.value)}
+                    placeholder="1234567"
+                    className="w-full rounded-xl border border-slate-200 bg-white px-3 py-1.5 text-xs font-mono font-bold text-slate-900 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition"
+                  />
+                </div>
+              </div>
+            </div>
+
           </div>
 
           {/* Footer actions */}
-          <div className="flex items-center justify-end gap-3 pt-4 border-t border-slate-100">
+          <div className="flex items-center justify-end gap-3 pt-3 border-t border-slate-100">
             <button
               type="button"
               onClick={requestClose}
-              className="px-4 py-2.5 rounded-xl border border-slate-200 text-slate-700 font-semibold hover:bg-slate-50 transition cursor-pointer text-xs"
+              className="px-4 py-2 rounded-xl border border-slate-200 text-slate-700 font-semibold hover:bg-slate-50 transition cursor-pointer text-xs"
             >
               Отмена
             </button>
             <button
               type="submit"
               disabled={isSubmitting}
-              className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-amber-600 hover:bg-amber-500 text-white font-bold transition shadow-xs cursor-pointer text-xs disabled:opacity-50"
+              className="flex items-center gap-2 px-5 py-2 rounded-xl bg-amber-600 hover:bg-amber-500 text-white font-bold transition shadow-xs cursor-pointer text-xs disabled:opacity-50"
             >
               <Save className="h-4 w-4" />
               {isSubmitting ? 'Сохранение...' : 'Сохранить изменения'}
