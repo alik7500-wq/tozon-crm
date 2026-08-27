@@ -33,7 +33,7 @@ export function useScene3D(projectId) {
       }
 
       let target = scenesList.find(s => s.id === preferredSceneId);
-      if (!target) target = scenesList.find(s => s.is_active);
+      if (!target) target = scenesList.find(s => Boolean(s.is_active));
       if (!target) target = scenesList[0];
 
       setActiveSceneId(target.id);

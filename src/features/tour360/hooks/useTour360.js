@@ -36,7 +36,7 @@ export function useTour360(projectId, initialTourId = null, initialPanoramaId = 
         targetTour = toursList.find(t => String(t.id) === String(initialTourId));
       }
       if (!targetTour) {
-        targetTour = toursList.find(t => t.is_active) || toursList[0];
+        targetTour = toursList.find(t => Boolean(t.is_active)) || toursList[0];
       }
 
       setActiveTourId(targetTour.id);
