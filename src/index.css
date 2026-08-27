@@ -1,8 +1,42 @@
 @import "tailwindcss";
 
+@theme {
+  --color-tozon-red-50: #fff1f2;
+  --color-tozon-red-100: #ffe4e6;
+  --color-tozon-red-200: #fecdd3;
+  --color-tozon-red-300: #fda4af;
+  --color-tozon-red-400: #fb7185;
+  --color-tozon-red-500: #ff1738;
+  --color-tozon-red-600: #e10e2d;
+  --color-tozon-red-700: #be0822;
+  --color-tozon-red-800: #9d0c20;
+  --color-tozon-red-900: #831020;
+  --color-tozon-red: #ff1738;
+  --color-tozon-red-hover: #e10e2d;
+
+  --color-tozon-blue-50: #eff4ff;
+  --color-tozon-blue-100: #dbe6fe;
+  --color-tozon-blue-200: #bfd3fe;
+  --color-tozon-blue-300: #93b5fd;
+  --color-tozon-blue-400: #608efb;
+  --color-tozon-blue-500: #3154f5;
+  --color-tozon-blue-600: #2540d9;
+  --color-tozon-blue-700: #1e31af;
+  --color-tozon-blue-800: #1d2b8c;
+  --color-tozon-blue-900: #1c2770;
+  --color-tozon-blue: #3154f5;
+  --color-tozon-blue-hover: #2540d9;
+}
+
 @layer base {
   :root {
     --font-sans: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+    --tozon-red: #ff1738;
+    --tozon-red-hover: #e10e2d;
+    --tozon-red-soft: #fff1f2;
+    --tozon-blue: #3154f5;
+    --tozon-blue-hover: #2540d9;
+    --tozon-blue-soft: #eff4ff;
   }
 
   body {

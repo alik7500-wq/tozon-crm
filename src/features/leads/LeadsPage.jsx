@@ -119,7 +119,7 @@ export const LeadsPage = () => {
             setLeadToEdit(null);
             setIsCreateModalOpen(true);
           }}
-          className="flex items-center justify-center gap-2 rounded-xl bg-blue-600 hover:bg-blue-700 px-4 py-2.5 text-xs font-bold text-white shadow-md transition cursor-pointer"
+          className="flex items-center justify-center gap-2 rounded-xl bg-tozon-red hover:bg-tozon-red-hover px-4 py-2.5 text-xs font-black text-white shadow-md shadow-tozon-red/20 transition cursor-pointer"
         >
           <Plus className="h-4 w-4" />
           <span>Добавить лида</span>
@@ -129,23 +129,23 @@ export const LeadsPage = () => {
       {/* Metrics Row */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
         <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-2xs">
-          <span className="text-[11px] font-bold text-slate-500 uppercase">Всего лидов</span>
+          <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">Всего лидов</span>
           <div className="text-2xl font-black text-slate-900 mt-1">{totalLeads}</div>
         </div>
 
         <div className="rounded-2xl border border-amber-200 bg-amber-50/50 p-4 shadow-2xs">
-          <span className="text-[11px] font-bold text-amber-700 uppercase">В работе / Переговоры</span>
-          <div className="text-2xl font-black text-amber-700 mt-1">{inProgressLeads}</div>
+          <span className="text-[11px] font-bold text-amber-700 uppercase tracking-wider">В работе / Переговоры</span>
+          <div className="text-2xl font-black text-amber-800 mt-1">{inProgressLeads}</div>
         </div>
 
         <div className="rounded-2xl border border-emerald-200 bg-emerald-50/50 p-4 shadow-2xs">
-          <span className="text-[11px] font-bold text-emerald-700 uppercase">Сделки (WON)</span>
-          <div className="text-2xl font-black text-emerald-700 mt-1">{wonLeads}</div>
+          <span className="text-[11px] font-bold text-emerald-700 uppercase tracking-wider">Сделки (WON)</span>
+          <div className="text-2xl font-black text-emerald-800 mt-1">{wonLeads}</div>
         </div>
 
         <div className="rounded-2xl border border-rose-200 bg-rose-50/50 p-4 shadow-2xs">
-          <span className="text-[11px] font-bold text-rose-700 uppercase">Отказы (LOST)</span>
-          <div className="text-2xl font-black text-rose-700 mt-1">{lostLeads}</div>
+          <span className="text-[11px] font-bold text-rose-700 uppercase tracking-wider">Отказы (LOST)</span>
+          <div className="text-2xl font-black text-rose-800 mt-1">{lostLeads}</div>
         </div>
       </div>
 
@@ -160,7 +160,7 @@ export const LeadsPage = () => {
               placeholder="Поиск по ФИО, телефону, паспорту..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              className="w-full rounded-xl border border-slate-200 bg-slate-50 pl-9 pr-3.5 py-1.5 text-xs text-slate-900 outline-none focus:border-purple-500 focus:bg-white transition"
+              className="w-full rounded-xl border border-slate-200 bg-slate-50 pl-9 pr-3.5 py-1.5 text-xs text-slate-900 outline-none focus:border-tozon-blue focus:bg-white focus:ring-4 focus:ring-tozon-blue/10 transition"
             />
           </div>
 
@@ -168,7 +168,7 @@ export const LeadsPage = () => {
           <select
             value={projectFilter}
             onChange={(e) => setProjectFilter(e.target.value)}
-            className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs text-slate-800 outline-none focus:border-purple-500 cursor-pointer"
+            className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs text-slate-800 outline-none focus:border-tozon-blue cursor-pointer"
           >
             <option value="">Все объекты</option>
             {projects.map((p) => (
@@ -182,7 +182,7 @@ export const LeadsPage = () => {
           <select
             value={statusFilter}
             onChange={(e) => setStatusFilter(e.target.value)}
-            className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs text-slate-800 outline-none focus:border-purple-500 cursor-pointer"
+            className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs text-slate-800 outline-none focus:border-tozon-blue cursor-pointer"
           >
             <option value="">Все стадии</option>
             <option value="NEW">Новый</option>
@@ -199,7 +199,7 @@ export const LeadsPage = () => {
             onClick={() => setViewMode('kanban')}
             className={`flex items-center gap-1.5 rounded-lg px-3 py-1 text-xs font-bold transition cursor-pointer ${
               viewMode === 'kanban'
-                ? 'bg-white text-purple-700 shadow-2xs'
+                ? 'bg-tozon-blue text-white shadow-xs'
                 : 'text-slate-500 hover:text-slate-800'
             }`}
           >
@@ -211,7 +211,7 @@ export const LeadsPage = () => {
             onClick={() => setViewMode('table')}
             className={`flex items-center gap-1.5 rounded-lg px-3 py-1 text-xs font-bold transition cursor-pointer ${
               viewMode === 'table'
-                ? 'bg-white text-purple-700 shadow-2xs'
+                ? 'bg-tozon-blue text-white shadow-xs'
                 : 'text-slate-500 hover:text-slate-800'
             }`}
           >

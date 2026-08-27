@@ -140,11 +140,11 @@ export const DealsPage = () => {
       {/* Top Header Banner */}
       <div className="print:hidden flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-extrabold text-slate-900 tracking-tight flex items-center gap-2.5">
-            <FileCheck className="h-7 w-7 text-blue-600" />
+          <h1 className="text-2xl font-black text-slate-900 tracking-tight flex items-center gap-2.5">
+            <FileCheck className="h-7 w-7 text-tozon-blue" />
             <span>Сделки и договоры</span>
           </h1>
-          <p className="mt-1 text-xs sm:text-sm text-slate-500">
+          <p className="mt-1 text-xs sm:text-sm text-slate-500 font-medium">
             Оформление продаж, рассрочки, график платежей, договоры купли-продажи и учет поступлений
           </p>
         </div>
@@ -164,7 +164,7 @@ export const DealsPage = () => {
 
           <button
             onClick={() => setIsWizardOpen(true)}
-            className="flex items-center gap-2 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 px-4 py-2 text-xs font-bold text-white shadow-md hover:from-blue-700 hover:to-indigo-700 transition cursor-pointer"
+            className="flex items-center gap-2 rounded-xl bg-tozon-red hover:bg-tozon-red-hover px-4 py-2 text-xs font-black text-white shadow-md shadow-tozon-red/20 transition cursor-pointer"
           >
             <Plus className="h-4 w-4" />
             <span>Оформить сделку</span>
@@ -180,11 +180,11 @@ export const DealsPage = () => {
             <CheckCircle2 className="h-6 w-6" />
           </div>
           <div>
-            <span className="text-[11px] font-semibold text-slate-500 block">
+            <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider block">
               Продано договоров
             </span>
             <div className="flex items-baseline gap-1.5 mt-0.5">
-              <span className="text-xl font-extrabold text-slate-900">
+              <span className="text-xl font-black text-slate-900">
                 {stats ? stats.signed_count : 0}
               </span>
               <span className="text-[11px] font-bold text-emerald-700">
@@ -200,11 +200,11 @@ export const DealsPage = () => {
             <Clock className="h-6 w-6" />
           </div>
           <div>
-            <span className="text-[11px] font-semibold text-slate-500 block">
+            <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider block">
               Активные брони
             </span>
             <div className="flex items-baseline gap-1.5 mt-0.5">
-              <span className="text-xl font-extrabold text-slate-900">
+              <span className="text-xl font-black text-slate-900">
                 {stats ? stats.reserved_count : 0}
               </span>
               <span className="text-[11px] font-bold text-amber-700">
@@ -216,33 +216,32 @@ export const DealsPage = () => {
 
         {/* Installment Plans */}
         <div className="rounded-2xl border border-slate-200/90 bg-white p-4 shadow-xs flex items-center gap-3.5">
-          <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-blue-50 text-blue-600 border border-blue-100">
+          <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-tozon-blue-50 text-tozon-blue-600 border border-tozon-blue-100">
             <CreditCard className="h-6 w-6" />
           </div>
           <div>
-            <span className="text-[11px] font-semibold text-slate-500 block">
-              Действующие рассрочки
+            <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider block">
+              Действующих рассрочек
             </span>
-            <div className="flex items-baseline gap-1.5 mt-0.5">
-              <span className="text-xl font-extrabold text-slate-900">
-                {stats ? stats.installment_plans_count : 0}
+            <div className="flex items-baseline gap-1 mt-0.5">
+              <span className="text-xl font-black text-slate-900">
+                {stats ? stats.installment_count : 0}
               </span>
-              <span className="text-[11px] font-medium text-slate-400">планов</span>
             </div>
           </div>
         </div>
 
-        {/* Collected Money */}
+        {/* Total Collected Revenue */}
         <div className="rounded-2xl border border-slate-200/90 bg-white p-4 shadow-xs flex items-center gap-3.5">
           <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-teal-50 text-teal-600 border border-teal-100">
-            <Wallet className="h-6 w-6" />
+            <Coins className="h-6 w-6" />
           </div>
           <div>
-            <span className="text-[11px] font-semibold text-slate-500 block">
+            <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider block">
               Собрано оплат
             </span>
             <div className="flex items-baseline gap-1 mt-0.5">
-              <span className="text-base font-extrabold text-teal-900">
+              <span className="text-base font-black text-teal-900">
                 {stats ? ((stats.total_collected_minor || 0) / 100).toLocaleString() : 0}
               </span>
               <span className="text-[10px] text-slate-500">USD</span>
@@ -256,11 +255,11 @@ export const DealsPage = () => {
             <TrendingUp className="h-6 w-6" />
           </div>
           <div>
-            <span className="text-[11px] font-semibold text-slate-500 block">
+            <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider block">
               Остаток к получению
             </span>
             <div className="flex items-baseline gap-1 mt-0.5">
-              <span className="text-base font-extrabold text-rose-700">
+              <span className="text-base font-black text-rose-700">
                 {stats ? ((stats.outstanding_debt_minor || 0) / 100).toLocaleString() : 0}
               </span>
               <span className="text-[10px] text-slate-500">USD</span>
@@ -279,7 +278,7 @@ export const DealsPage = () => {
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder="Поиск по номеру договора, ФИО покупателя, телефону или кв. №..."
-            className="w-full rounded-xl border border-slate-300 bg-slate-50/70 pl-9.5 pr-3.5 py-2 text-xs outline-none focus:border-blue-500 focus:bg-white focus:ring-1 focus:ring-blue-500 transition"
+            className="w-full rounded-xl border border-slate-300 bg-slate-50/70 pl-9.5 pr-3.5 py-2 text-xs outline-none focus:border-tozon-blue focus:bg-white focus:ring-4 focus:ring-tozon-blue/10 transition"
           />
         </div>
 
@@ -289,7 +288,7 @@ export const DealsPage = () => {
           <select
             value={projectFilter}
             onChange={(e) => setProjectFilter(e.target.value)}
-            className="rounded-xl border border-slate-300 bg-white px-3 py-2 text-xs font-medium text-slate-700 outline-none focus:border-blue-500"
+            className="rounded-xl border border-slate-300 bg-white px-3 py-2 text-xs font-medium text-slate-700 outline-none focus:border-tozon-blue"
           >
             <option value="ALL">Все объекты</option>
             {projects.map((p) => (
@@ -303,7 +302,7 @@ export const DealsPage = () => {
           <select
             value={statusFilter}
             onChange={(e) => setStatusFilter(e.target.value)}
-            className="rounded-xl border border-slate-300 bg-white px-3 py-2 text-xs font-medium text-slate-700 outline-none focus:border-blue-500"
+            className="rounded-xl border border-slate-300 bg-white px-3 py-2 text-xs font-medium text-slate-700 outline-none focus:border-tozon-blue"
           >
             <option value="ALL">Все статусы сделок</option>
             <option value="SIGNED">🟢 Подписан (Продано)</option>
@@ -315,7 +314,7 @@ export const DealsPage = () => {
           <select
             value={paymentTypeFilter}
             onChange={(e) => setPaymentTypeFilter(e.target.value)}
-            className="rounded-xl border border-slate-300 bg-white px-3 py-2 text-xs font-medium text-slate-700 outline-none focus:border-blue-500"
+            className="rounded-xl border border-slate-300 bg-white px-3 py-2 text-xs font-medium text-slate-700 outline-none focus:border-tozon-blue"
           >
             <option value="ALL">Все формы оплаты</option>
             <option value="INSTALLMENT">Рассрочка</option>
@@ -330,7 +329,7 @@ export const DealsPage = () => {
               onClick={() => setViewMode('table')}
               className={`flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-bold transition cursor-pointer ${
                 viewMode === 'table'
-                  ? 'bg-white text-slate-900 shadow-xs'
+                  ? 'bg-tozon-blue text-white shadow-xs'
                   : 'text-slate-500 hover:text-slate-800'
               }`}
             >
@@ -341,7 +340,7 @@ export const DealsPage = () => {
               onClick={() => setViewMode('kanban')}
               className={`flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-bold transition cursor-pointer ${
                 viewMode === 'kanban'
-                  ? 'bg-white text-slate-900 shadow-xs'
+                  ? 'bg-tozon-blue text-white shadow-xs'
                   : 'text-slate-500 hover:text-slate-800'
               }`}
             >

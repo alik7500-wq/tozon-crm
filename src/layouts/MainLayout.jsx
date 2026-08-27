@@ -39,6 +39,7 @@ import {
 
 import { hasPermission, hasAnyPermission } from '../utils/permissions';
 import { GlobalSearch } from '../components/GlobalSearch';
+import { TozonLogo } from '../components/TozonLogo';
 
 export const MainLayout = () => {
   const { user, logout } = useAuth();
@@ -175,21 +176,11 @@ export const MainLayout = () => {
         }`}
       >
         {/* Brand */}
-        <div className="flex h-16 items-center justify-between px-4 border-b border-slate-200">
-          <div className="flex items-center gap-3 overflow-hidden">
-            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-gradient-to-tr from-blue-600 to-cyan-500 shadow-md shadow-blue-500/20">
-              <Building2 className="h-5 w-5 text-white" />
-            </div>
-            {isSidebarOpen && (
-              <div className="flex flex-col">
-                <span className="font-extrabold tracking-tight text-slate-900 leading-tight text-base">TOZON CRM</span>
-                <span className="text-[10px] text-slate-400 font-semibold tracking-wider uppercase">Real Estate</span>
-              </div>
-            )}
-          </div>
+        <div className="flex h-16 items-center justify-between px-3.5 border-b border-slate-200 bg-white">
+          <TozonLogo size={isSidebarOpen ? "md" : "sm"} collapsed={!isSidebarOpen} />
           <button
             onClick={() => setIsSidebarOpen(!isSidebarOpen)}
-            className="rounded-lg p-1.5 text-slate-400 hover:bg-slate-100 hover:text-slate-600 transition cursor-pointer"
+            className="rounded-lg p-1.5 text-slate-400 hover:bg-slate-100 hover:text-slate-600 transition cursor-pointer shrink-0"
           >
             <Menu className="h-4 w-4" />
           </button>
@@ -208,12 +199,12 @@ export const MainLayout = () => {
                   className={({ isActive }) =>
                     `flex items-center gap-3 rounded-xl px-3 py-2 text-xs font-semibold transition duration-150 group ${
                       isActive
-                        ? 'bg-blue-50 text-blue-700 font-bold border border-blue-200/80 shadow-2xs'
-                        : 'text-slate-600 hover:bg-slate-100/80 hover:text-slate-900'
+                        ? 'bg-tozon-blue text-white font-bold shadow-xs'
+                        : 'text-slate-600 hover:bg-tozon-blue-50/70 hover:text-tozon-blue-700'
                     }`
                   }
                 >
-                  <Icon className="h-4.5 w-4.5 shrink-0 transition-colors group-hover:text-blue-600" />
+                  <Icon className="h-4.5 w-4.5 shrink-0 transition-colors" />
                   {isSidebarOpen && <span className="truncate">{item.label}</span>}
                 </NavLink>
               );
@@ -236,12 +227,12 @@ export const MainLayout = () => {
                   }}
                   className={`w-full flex items-center justify-between rounded-xl px-3 py-2 text-xs font-semibold transition duration-150 group cursor-pointer ${
                     isGroupActive
-                      ? 'text-blue-700 bg-blue-50/50 font-bold'
-                      : 'text-slate-600 hover:bg-slate-100/80 hover:text-slate-900'
+                      ? 'text-tozon-blue-700 bg-tozon-blue-50 font-bold border border-tozon-blue-100'
+                      : 'text-slate-600 hover:bg-tozon-blue-50/70 hover:text-tozon-blue-700'
                   }`}
                 >
                   <div className="flex items-center gap-3 min-w-0">
-                    <Icon className={`h-4.5 w-4.5 shrink-0 ${isGroupActive ? 'text-blue-600' : 'text-slate-500'}`} />
+                    <Icon className={`h-4.5 w-4.5 shrink-0 ${isGroupActive ? 'text-tozon-blue-600' : 'text-slate-500 group-hover:text-tozon-blue-600'}`} />
                     {isSidebarOpen && <span className="truncate">{item.label}</span>}
                   </div>
                   {isSidebarOpen && (
@@ -263,12 +254,12 @@ export const MainLayout = () => {
                           className={({ isActive }) =>
                             `flex items-center gap-2.5 rounded-lg px-2.5 py-1.5 text-[11px] transition ${
                               isActive
-                                ? 'bg-blue-600 text-white font-bold shadow-2xs'
-                                : 'text-slate-500 hover:bg-slate-100 hover:text-slate-900 font-medium'
+                                ? 'bg-tozon-blue text-white font-bold shadow-xs'
+                                : 'text-slate-500 hover:bg-tozon-blue-50/80 hover:text-tozon-blue-800 font-medium'
                             }`
                           }
                         >
-                          <SubIcon className="h-3.5 w-3.5 shrink-0 opacity-80" />
+                          <SubIcon className="h-3.5 w-3.5 shrink-0 opacity-90" />
                           <span className="truncate">{sub.label}</span>
                         </NavLink>
                       );
@@ -284,13 +275,13 @@ export const MainLayout = () => {
         <div className="p-3 border-t border-slate-200 bg-slate-50/50">
           <div className="flex items-center justify-between rounded-xl bg-white p-2.5 border border-slate-200 shadow-2xs">
             <div className="flex items-center gap-2.5 overflow-hidden">
-              <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-blue-100 text-blue-700 font-bold text-xs border border-blue-200">
+              <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-tozon-blue-100 text-tozon-blue-700 font-bold text-xs border border-tozon-blue-200">
                 {user?.name?.charAt(0) || 'U'}
               </div>
               {isSidebarOpen && (
                 <div className="flex flex-col min-w-0">
                   <span className="text-xs font-semibold text-slate-900 truncate">{user?.name}</span>
-                  <span className="flex items-center gap-1 text-[11px] text-blue-600 font-medium">
+                  <span className="flex items-center gap-1 text-[11px] text-tozon-blue-600 font-medium">
                     {user?.role === 'ADMIN' ? (
                       <>
                         <ShieldCheck className="h-3 w-3" /> Администратор
@@ -329,10 +320,10 @@ export const MainLayout = () => {
             <NavLink
               to="/notifications"
               title="Уведомления"
-              className="relative rounded-xl border border-slate-200 bg-white p-2 text-slate-500 hover:bg-slate-100 hover:text-slate-800 transition cursor-pointer"
+              className="relative rounded-xl border border-slate-200 bg-white p-2 text-slate-500 hover:bg-tozon-blue-50 hover:text-tozon-blue-800 transition cursor-pointer"
             >
               <Bell className="h-4 w-4" />
-              <span className="absolute top-1.5 right-1.5 h-2 w-2 rounded-full bg-blue-600 ring-2 ring-white"></span>
+              <span className="absolute top-1.5 right-1.5 h-2 w-2 rounded-full bg-tozon-red ring-2 ring-white"></span>
             </NavLink>
           </div>
         </header>

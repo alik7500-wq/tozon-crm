@@ -126,19 +126,22 @@ export const ProjectDetailPage = () => {
 
           <div>
             <div className="flex items-center gap-2">
-              <span className="rounded-md bg-blue-50 px-2 py-0.5 text-xs font-bold text-blue-700 border border-blue-200 uppercase">
-                {project.code}
+              <span className="rounded-lg bg-tozon-blue-50 px-2.5 py-0.5 text-xs font-black text-tozon-blue-700 border border-tozon-blue-200 uppercase tracking-wider">
+                {project.code || `ID: ${project.id}`}
               </span>
-              <h1 className="text-2xl font-extrabold text-slate-900 tracking-tight">
+              <h1 className="text-2xl font-black text-slate-900 tracking-tight">
                 {project.name}
               </h1>
+              <span className="hidden sm:inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-extrabold bg-tozon-red-50 text-tozon-red border border-tozon-red-200">
+                ⭐ TOZON Real Estate
+              </span>
             </div>
             <div className="mt-1 flex items-center gap-4 text-xs text-slate-500">
-              <span className="flex items-center gap-1">
+              <span className="flex items-center gap-1 font-medium">
                 <Briefcase className="h-3.5 w-3.5 text-slate-400" />
                 {project.developer_name}
               </span>
-              <span className="flex items-center gap-1">
+              <span className="flex items-center gap-1 font-medium">
                 <MapPin className="h-3.5 w-3.5 text-slate-400" />
                 {project.address}
               </span>
@@ -151,35 +154,35 @@ export const ProjectDetailPage = () => {
       {/* Mini Stats Bar */}
       {stats && (
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
-          <div className="rounded-xl bg-white border border-slate-200 p-3 shadow-2xs">
-            <span className="text-[10px] font-semibold text-slate-400 uppercase">Всего квартир</span>
-            <div className="text-lg font-bold text-slate-900 mt-0.5">{stats.total_units}</div>
+          <div className="rounded-2xl bg-white border border-slate-200 p-3.5 shadow-2xs">
+            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Всего квартир</span>
+            <div className="text-lg font-black text-slate-900 mt-0.5">{stats.total_units}</div>
           </div>
 
-          <div className="rounded-xl bg-emerald-50/70 border border-emerald-200 p-3">
-            <span className="text-[10px] font-semibold text-emerald-700 uppercase">Свободно</span>
-            <div className="text-lg font-extrabold text-emerald-800 mt-0.5">{stats.available_units}</div>
+          <div className="rounded-2xl bg-emerald-50/70 border border-emerald-200 p-3.5 shadow-2xs">
+            <span className="text-[10px] font-bold text-emerald-700 uppercase tracking-wider">Свободно</span>
+            <div className="text-lg font-black text-emerald-800 mt-0.5">{stats.available_units}</div>
           </div>
 
-          <div className="rounded-xl bg-amber-50/70 border border-amber-200 p-3">
-            <span className="text-[10px] font-semibold text-amber-700 uppercase">В брони</span>
-            <div className="text-lg font-extrabold text-amber-800 mt-0.5">{stats.reserved_units}</div>
+          <div className="rounded-2xl bg-amber-50/70 border border-amber-200 p-3.5 shadow-2xs">
+            <span className="text-[10px] font-bold text-amber-700 uppercase tracking-wider">В брони</span>
+            <div className="text-lg font-black text-amber-800 mt-0.5">{stats.reserved_units}</div>
           </div>
 
-          <div className="rounded-xl bg-rose-50/70 border border-rose-200 p-3">
-            <span className="text-[10px] font-semibold text-rose-700 uppercase">Продано</span>
-            <div className="text-lg font-extrabold text-rose-800 mt-0.5">{stats.sold_units}</div>
+          <div className="rounded-2xl bg-rose-50/70 border border-rose-200 p-3.5 shadow-2xs">
+            <span className="text-[10px] font-bold text-rose-700 uppercase tracking-wider">Продано</span>
+            <div className="text-lg font-black text-rose-800 mt-0.5">{stats.sold_units}</div>
           </div>
 
-          <div className="rounded-xl bg-slate-100 border border-slate-200 p-3">
-            <span className="text-[10px] font-semibold text-slate-500 uppercase">Заблокировано</span>
-            <div className="text-lg font-bold text-slate-700 mt-0.5">{stats.blocked_units}</div>
+          <div className="rounded-2xl bg-slate-100/80 border border-slate-200 p-3.5 shadow-2xs">
+            <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Заблокировано</span>
+            <div className="text-lg font-black text-slate-700 mt-0.5">{stats.blocked_units}</div>
           </div>
         </div>
       )}
 
       {/* Tabs Navigation */}
-      <div className="flex border-b border-slate-200 gap-2">
+      <div className="flex border-b border-slate-200 gap-2 overflow-x-auto">
         {tabs.map((tab) => {
           const Icon = tab.icon;
           const isActive = activeTab === tab.id;
@@ -187,10 +190,10 @@ export const ProjectDetailPage = () => {
             <button
               key={tab.id}
               onClick={() => setActiveTab(tab.id)}
-              className={`flex items-center gap-2 border-b-2 px-4 py-3 text-xs font-bold transition cursor-pointer ${
+              className={`flex items-center gap-2 border-b-2 px-4 py-3 text-xs font-bold transition cursor-pointer whitespace-nowrap ${
                 isActive
-                  ? 'border-blue-600 text-blue-600'
-                  : 'border-transparent text-slate-500 hover:text-slate-900 hover:border-slate-300'
+                  ? 'border-tozon-blue text-tozon-blue'
+                  : 'border-transparent text-slate-500 hover:text-tozon-blue hover:border-tozon-blue-200'
               }`}
             >
               <Icon className="h-4 w-4" />

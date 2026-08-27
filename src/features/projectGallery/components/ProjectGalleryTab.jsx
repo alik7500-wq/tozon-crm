@@ -87,10 +87,10 @@ export const ProjectGalleryTab = ({ projectId, onOpenAdminManager }) => {
               <button
                 key={catKey}
                 onClick={() => setSelectedCategory(catKey)}
-                className={`px-3.5 py-1.5 rounded-xl text-xs font-semibold transition-all flex items-center gap-2 cursor-pointer ${
+                className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-2 cursor-pointer ${
                   isSelected
-                    ? 'bg-blue-600 text-white shadow-xs shadow-blue-500/30'
-                    : 'bg-slate-100/80 text-slate-600 hover:bg-slate-200 hover:text-slate-900'
+                    ? 'bg-tozon-blue text-white shadow-xs'
+                    : 'bg-slate-100/80 text-slate-600 hover:bg-tozon-blue-50 hover:text-tozon-blue-700'
                 }`}
               >
                 <span>{CATEGORY_NAMES[catKey] || catKey}</span>
@@ -116,9 +116,9 @@ export const ProjectGalleryTab = ({ projectId, onOpenAdminManager }) => {
           {canManage && onOpenAdminManager && (
             <button
               onClick={onOpenAdminManager}
-              className="inline-flex items-center gap-2 px-3.5 py-2 rounded-xl bg-slate-900 hover:bg-slate-800 text-white text-xs font-bold transition shadow-xs cursor-pointer"
+              className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-tozon-red hover:bg-tozon-red-hover text-white text-xs font-black transition shadow-md shadow-tozon-red/20 cursor-pointer"
             >
-              <Sliders className="w-3.5 h-3.5" />
+              <Sliders className="w-4 h-4" />
               <span>Управление медиа</span>
             </button>
           )}
