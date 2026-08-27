@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { api } from '../../api/client';
 import { useModalDismiss } from '../../hooks/useModalDismiss';
-import { PassportOCRModal } from '../documents/PassportOCRModal';
 import {
   X,
   User,
@@ -23,9 +22,7 @@ import {
   Building2,
   Home,
   Clock,
-  Tag,
-  Scan,
-  Sparkles
+  Tag
 } from 'lucide-react';
 
 export const DealWizardModal = ({
@@ -54,8 +51,6 @@ export const DealWizardModal = ({
   const [searchLead, setSearchLead] = useState('');
   const [selectedLead, setSelectedLead] = useState(null);
   const [isCreatingNewLead, setIsCreatingNewLead] = useState(false);
-  const [isPassportOcrOpen, setIsPassportOcrOpen] = useState(false);
-  const [ocrVerifiedInfo, setOcrVerifiedInfo] = useState(null);
 
   // New Lead Form state
   const [newLeadData, setNewLeadData] = useState({
@@ -69,35 +64,6 @@ export const DealWizardModal = ({
     registration_address: 'г. Душанбе, ул. Рудаки 100',
     inn: '',
   });
-
-  const handlePassportVerified = async (verified) => {
-    setOcrVerifiedInfo(verified);
-    const updated = {
-      full_name: verified.full_name || 'Покупатель',
-      phone: verified.phone || newLeadData.phone || '+992 900 00 00 00',
-      passport_series: verified.passport_series || 'A',
-      passport_number: verified.passport_number || '',
-      passport_issued_by: verified.passport_issued_by || verified.issuing_authority || 'МВД РТ',
-      passport_issue_date: verified.passport_issue_date || verified.issue_date || '2020-02-14',
-      birth_date: verified.birth_date || '1990-01-01',
-      registration_address: verified.registration_address || verified.address || 'г. Худжанд',
-      inn: verified.inn || ''
-    };
-    setNewLeadData(updated);
-    setIsCreatingNewLead(true);
-
-    try {
-      const res = await api.post('/leads', updated);
-      const created = res.data?.lead || res.lead || res;
-      if (created?.id) {
-        setSelectedLead(created);
-        setIsCreatingNewLead(false);
-        fetchLeads();
-      }
-    } catch (err) {
-      console.warn('Auto-create lead note:', err.message);
-    }
-  };
 
   // Deal Financials
   const [dealStatus, setDealStatus] = useState('SIGNED'); // 'SIGNED' or 'RESERVED'
@@ -581,34 +547,6 @@ export const DealWizardModal = ({
           {/* STEP 1: CLIENT SELECTION / CREATION */}
           {step === 1 && (
             <div className="space-y-4">
-              {/* Header Action Bar with OCR Fast Action */}
-              <div className="flex items-center justify-between pb-2 border-b border-slate-200">
-                <span className="text-xs font-bold text-slate-700">Покупатель недвижимости:</span>
-                <button
-                  type="button"
-                  onClick={() => setIsPassportOcrOpen(true)}
-                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-tozon-red hover:bg-tozon-red-hover text-white text-xs font-black transition shadow-xs shadow-tozon-red/20 cursor-pointer"
-                >
-                  <Sparkles className="h-3.5 w-3.5" />
-                  <span>⚡ Распознать паспорт (OCR)</span>
-                </button>
-              </div>
-
-              {ocrVerifiedInfo && (
-                <div className="flex items-center justify-between p-3 rounded-2xl bg-emerald-50 border border-emerald-200 text-xs text-emerald-900 animate-in fade-in">
-                  <div className="flex items-center gap-2">
-                    <CheckCircle2 className="h-4 w-4 text-emerald-600 shrink-0" />
-                    <div>
-                      <strong className="font-bold">Паспорт верифицирован через OCR:</strong>{' '}
-                      <span>{ocrVerifiedInfo.full_name} ({ocrVerifiedInfo.passport_series} {ocrVerifiedInfo.passport_number})</span>
-                    </div>
-                  </div>
-                  <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-200/80 text-emerald-800">
-                    ICAO 9303 Verified
-                  </span>
-                </div>
-              )}
-
               {!isCreatingNewLead ? (
                 <>
                   <div className="flex items-center justify-between">
@@ -637,7 +575,7 @@ export const DealWizardModal = ({
                   <div className="max-h-60 overflow-y-auto space-y-2 pr-1">
                     {filteredLeads.length === 0 ? (
                       <div className="p-6 text-center text-xs text-slate-400 bg-slate-50 rounded-xl">
-                        Клиенты не найдены. Нажмите «+ Создать вручную» или «⚡ Распознать паспорт (OCR)».
+                        Клиенты не найдены. Нажмите «+ Создать вручную».
                       </div>
                     ) : (
                       filteredLeads.map((lead) => {
@@ -670,24 +608,13 @@ export const DealWizardModal = ({
                 <div className="space-y-3 p-4 rounded-xl bg-slate-50 border border-slate-200">
                   <div className="flex items-center justify-between pb-2 border-b border-slate-200">
                     <span className="text-xs font-bold text-slate-900">Новый покупатель (с паспортом для договора)</span>
-                    <div className="flex items-center gap-2">
-                      <button
-                        type="button"
-                        onClick={() => setIsPassportOcrOpen(true)}
-                        className="text-xs font-bold text-tozon-red hover:underline flex items-center gap-1"
-                      >
-                        <Sparkles className="h-3 w-3" />
-                        <span>OCR сканирование</span>
-                      </button>
-                      <span className="text-slate-300">•</span>
-                      <button
-                        type="button"
-                        onClick={() => setIsCreatingNewLead(false)}
-                        className="text-xs text-slate-500 hover:text-slate-800"
-                      >
-                        Отмена
-                      </button>
-                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setIsCreatingNewLead(false)}
+                      className="text-xs text-slate-500 hover:text-slate-800"
+                    >
+                      Отмена
+                    </button>
                   </div>
 
                   <div className="grid grid-cols-2 gap-3">
@@ -1364,15 +1291,6 @@ export const DealWizardModal = ({
           </div>
         </div>
       </div>
-
-      {/* Passport OCR Modal */}
-      <PassportOCRModal
-        isOpen={isPassportOcrOpen}
-        onClose={() => setIsPassportOcrOpen(false)}
-        projectId={selectedUnit?.project_id || (selectedProjectId !== 'ALL' ? Number(selectedProjectId) : null)}
-        leadId={selectedLead?.id}
-        onVerified={handlePassportVerified}
-      />
     </div>
   );
 };

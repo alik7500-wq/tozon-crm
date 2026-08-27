@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { api } from '../../api/client';
 import { useModalDismiss } from '../../hooks/useModalDismiss';
-import { PassportOCRModal } from '../documents/PassportOCRModal';
 import {
   X,
   Pencil,
@@ -14,8 +13,7 @@ import {
   AlertCircle,
   FileText,
   ShieldCheck,
-  CreditCard,
-  Sparkles
+  CreditCard
 } from 'lucide-react';
 
 export const EditClientModal = ({
@@ -26,7 +24,6 @@ export const EditClientModal = ({
 }) => {
   const [users, setUsers] = useState([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [isPassportOcrOpen, setIsPassportOcrOpen] = useState(false);
   const [error, setError] = useState('');
 
   // Form State
@@ -275,14 +272,6 @@ export const EditClientModal = ({
                   <FileText className="h-3.5 w-3.5 text-amber-600" />
                   <span>Паспортные данные и прописка</span>
                 </div>
-                <button
-                  type="button"
-                  onClick={() => setIsPassportOcrOpen(true)}
-                  className="flex items-center gap-1 px-2.5 py-1 rounded-lg bg-tozon-red hover:bg-tozon-red-hover text-white text-[11px] font-black transition shadow-2xs shadow-tozon-red/20 cursor-pointer"
-                >
-                  <Sparkles className="h-3 w-3" />
-                  <span>⚡ Распознать (OCR)</span>
-                </button>
               </div>
 
               <div className="grid grid-cols-3 gap-2.5">
@@ -376,28 +365,6 @@ export const EditClientModal = ({
           </div>
         </form>
       </div>
-
-      {/* Passport OCR Modal */}
-      <PassportOCRModal
-        isOpen={isPassportOcrOpen}
-        onClose={() => setIsPassportOcrOpen(false)}
-        leadId={client.lead_id || client.id}
-        onVerified={(verified) => {
-          if (verified.full_name) setFullName(verified.full_name);
-          if (verified.passport_series) setPassportSeries(verified.passport_series);
-          if (verified.passport_number) setPassportNumber(verified.passport_number);
-          if (verified.passport_issued_by || verified.issuing_authority) {
-            setPassportIssuedBy(verified.passport_issued_by || verified.issuing_authority);
-          }
-          if (verified.passport_issue_date || verified.issue_date) {
-            setPassportIssueDate(verified.passport_issue_date || verified.issue_date);
-          }
-          if (verified.birth_date) setBirthDate(verified.birth_date);
-          if (verified.registration_address || verified.address) {
-            setRegistrationAddress(verified.registration_address || verified.address);
-          }
-        }}
-      />
     </div>
   );
 };
