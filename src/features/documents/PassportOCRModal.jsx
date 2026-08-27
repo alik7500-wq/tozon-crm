@@ -129,13 +129,18 @@ export const PassportOCRModal = ({
       let frontText = '';
       let backText = '';
 
+      // Clean any potential sentinel strings (e.g. 'ALL', '') before sending
+      const cleanProjectId = (projectId && projectId !== 'ALL' && projectId !== 'all') ? Number(projectId) : null;
+      const cleanDealId = (dealId && dealId !== 'ALL' && dealId !== 'all') ? Number(dealId) : null;
+      const cleanLeadId = (leadId && leadId !== 'ALL' && leadId !== 'all') ? Number(leadId) : null;
+
       // If text or image, send to backend recognition endpoint
       const result = await passportApi.recognize({
         frontText: frontText || (frontFile ? `ШИНОСНОМА\nФайл: ${frontFile.name}\nНасаб: Муҳаммадизода\nНом: Мирзокарим\nНоми падар: Мирзоғафур\nРақами шиноснома: A 03195738\nСанаи таваллуд: 14.05.1990\nСанаи додани шиноснома: 14.02.2020\nМақоми додани шиноснома: ШВКД дар ноҳияи Кӯҳистони Мастчоҳ\nРМА: 665151074\nСуроға: В.Суғд, Кӯҳистони Мастчоҳ, деҳаи Ревомутк` : ''),
         backText: backText || (backFile ? `P<TJKMUHAMMADIZODA<<MIRZOKARIM<MIRZOGHAFUR<<<\nA031957380TJK9005148M3002142665151074<<<<<<4` : ''),
-        projectId,
-        dealId,
-        leadId,
+        projectId: cleanProjectId,
+        dealId: cleanDealId,
+        leadId: cleanLeadId,
         documentType: 'PASSPORT_TJ'
       });
 

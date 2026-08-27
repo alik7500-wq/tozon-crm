@@ -1369,7 +1369,7 @@ export const DealWizardModal = ({
       <PassportOCRModal
         isOpen={isPassportOcrOpen}
         onClose={() => setIsPassportOcrOpen(false)}
-        projectId={selectedUnit?.project_id || selectedProjectId}
+        projectId={selectedUnit?.project_id || (selectedProjectId !== 'ALL' ? Number(selectedProjectId) : null)}
         leadId={selectedLead?.id}
         onVerified={handlePassportVerified}
       />
