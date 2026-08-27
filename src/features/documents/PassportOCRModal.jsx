@@ -11,6 +11,7 @@ import {
   AlertCircle,
   FileText,
   RotateCcw,
+  RotateCw,
   Trash2,
   Sparkles,
   ShieldCheck,
@@ -22,8 +23,32 @@ import {
   CreditCard,
   Building,
   Edit3,
-  Lock
+  Lock,
+  RefreshCw
 } from 'lucide-react';
+
+/**
+ * Utility to rotate an image file on HTML5 Canvas and produce a normalized rotated Blob/DataURL
+ */
+function rotateImageOnCanvas(imgElement, angleDegrees) {
+  const canvas = document.createElement('canvas');
+  const ctx = canvas.getContext('2d');
+  const rads = (angleDegrees * Math.PI) / 180;
+
+  const isSideways = angleDegrees % 180 !== 0;
+  canvas.width = isSideways ? imgElement.naturalHeight || imgElement.height : imgElement.naturalWidth || imgElement.width;
+  canvas.height = isSideways ? imgElement.naturalWidth || imgElement.width : imgElement.naturalHeight || imgElement.height;
+
+  ctx.translate(canvas.width / 2, canvas.height / 2);
+  ctx.rotate(rads);
+  ctx.drawImage(
+    imgElement,
+    -(imgElement.naturalWidth || imgElement.width) / 2,
+    -(imgElement.naturalHeight || imgElement.height) / 2
+  );
+
+  return canvas.toDataURL('image/jpeg', 0.95);
+}
 
 export const PassportOCRModal = ({
   isOpen,
@@ -38,6 +63,10 @@ export const PassportOCRModal = ({
   const [frontPreview, setFrontPreview] = useState(null);
   const [backPreview, setBackPreview] = useState(null);
 
+  // Rotation angles for preprocessing (0, 90, 180, 270)
+  const [frontRotation, setFrontRotation] = useState(0);
+  const [backRotation, setBackRotation] = useState(0);
+
   // Direct MRZ / OCR Text Input Support
   const [showDirectTextInput, setShowDirectTextInput] = useState(false);
   const [directText, setDirectText] = useState('');
@@ -49,8 +78,10 @@ export const PassportOCRModal = ({
 
   // Recognition Results
   const [documentRecord, setDocumentRecord] = useState(null);
-  const [status, setStatus] = useState(null); // SUCCESS, REVIEW_REQUIRED, CRITICAL_CONFLICT, OCR_FAILED
+  const [status, setStatus] = useState(null); // SUCCESS, REVIEW_REQUIRED, CRITICAL_CONFLICT, CRITICAL_MISSING_FIELD, OCR_FAILED
   const [hasCriticalConflict, setHasCriticalConflict] = useState(false);
+  const [hasMissingRequired, setHasMissingRequired] = useState(false);
+  const [isFullyAgreed, setIsFullyAgreed] = useState(false);
   const [confirmationBlocked, setConfirmationBlocked] = useState(false);
   const [fields, setFields] = useState(null);
   const [mrz, setMrz] = useState(null);
@@ -75,6 +106,8 @@ export const PassportOCRModal = ({
 
   const frontInputRef = useRef(null);
   const backInputRef = useRef(null);
+  const frontImgRef = useRef(null);
+  const backImgRef = useRef(null);
 
   // Reset state on open/close to avoid stale client data
   useEffect(() => {
@@ -112,9 +145,30 @@ export const PassportOCRModal = ({
     if (side === 'front') {
       setFrontFile(file);
       setFrontPreview(previewUrl);
+      setFrontRotation(0);
     } else {
       setBackFile(file);
       setBackPreview(previewUrl);
+      setBackRotation(0);
+    }
+  };
+
+  // Rotation Actions with Physical Canvas Preprocessing
+  const handleRotate = (side, direction = 90) => {
+    if (side === 'front') {
+      const newAngle = (frontRotation + direction + 360) % 360;
+      setFrontRotation(newAngle);
+      if (frontImgRef.current) {
+        const rotatedDataUrl = rotateImageOnCanvas(frontImgRef.current, direction);
+        setFrontPreview(rotatedDataUrl);
+      }
+    } else {
+      const newAngle = (backRotation + direction + 360) % 360;
+      setBackRotation(newAngle);
+      if (backImgRef.current) {
+        const rotatedDataUrl = rotateImageOnCanvas(backImgRef.current, direction);
+        setBackPreview(rotatedDataUrl);
+      }
     }
   };
 
@@ -123,6 +177,8 @@ export const PassportOCRModal = ({
     setBackFile(null);
     setFrontPreview(null);
     setBackPreview(null);
+    setFrontRotation(0);
+    setBackRotation(0);
     setDirectText('');
     setDirectMrz('');
     setFields(null);
@@ -132,6 +188,8 @@ export const PassportOCRModal = ({
     setDocumentRecord(null);
     setStatus(null);
     setHasCriticalConflict(false);
+    setHasMissingRequired(false);
+    setIsFullyAgreed(false);
     setConfirmationBlocked(false);
     setManualOverrides({});
     setError('');
@@ -161,12 +219,11 @@ export const PassportOCRModal = ({
     setError('');
 
     try {
-      // Clean any potential sentinel strings (e.g. 'ALL', '') before sending
+      // Clean any potential sentinel strings before sending
       const cleanProjectId = (projectId && projectId !== 'ALL' && projectId !== 'all') ? Number(projectId) : null;
       const cleanDealId = (dealId && dealId !== 'ALL' && dealId !== 'all') ? Number(dealId) : null;
       const cleanLeadId = (leadId && leadId !== 'ALL' && leadId !== 'all') ? Number(leadId) : null;
 
-      // Combine text payload from input fields or file descriptions
       let combinedFrontText = directText.trim();
       let combinedBackText = directMrz.trim();
 
@@ -181,8 +238,10 @@ export const PassportOCRModal = ({
 
       const resData = result.data || result;
       setDocumentRecord(resData.document);
-      setStatus(resData.status || (resData.has_critical_conflict ? 'CRITICAL_CONFLICT' : 'SUCCESS'));
+      setStatus(resData.status || (resData.has_critical_conflict ? 'CRITICAL_CONFLICT' : 'REVIEW_REQUIRED'));
       setHasCriticalConflict(Boolean(resData.has_critical_conflict));
+      setHasMissingRequired(Boolean(resData.has_missing_required));
+      setIsFullyAgreed(Boolean(resData.is_fully_agreed));
       setConfirmationBlocked(Boolean(resData.confirmation_blocked));
       setFields(resData.fields || {});
       setMrz(resData.mrz || null);
@@ -190,7 +249,7 @@ export const PassportOCRModal = ({
       setWarnings(resData.warnings || []);
       setManualOverrides({});
 
-      // Populate Editable Form strictly with recognized values
+      // Populate Form strictly with recognized values
       const f = resData.fields || {};
       const lastName = f.last_name?.value || '';
       const firstName = f.first_name?.value || '';
@@ -229,25 +288,35 @@ export const PassportOCRModal = ({
       return nextData;
     });
 
-    // If all conflict fields are manually adjusted, unblock confirmation
-    if (fields) {
-      const conflictingKeys = Object.keys(fields).filter(k => fields[k]?.conflict);
-      const isStillBlocked = conflictingKeys.some(k => k !== fieldKey && !manualOverrides[k]);
-      if (!isStillBlocked) {
-        setConfirmationBlocked(false);
-      }
+    // Check if all mandatory fields are filled now
+    const docNum = (fieldKey === 'passport_number' ? value : formData.passport_number)?.trim();
+    const lName = (fieldKey === 'last_name' ? value : formData.last_name)?.trim();
+    const fName = (fieldKey === 'first_name' ? value : formData.first_name)?.trim();
+
+    if (docNum && docNum.length >= 5 && lName && fName) {
+      setConfirmationBlocked(false);
     }
   };
 
   // Confirm and Verify Action
   const handleVerify = async () => {
-    if (!formData.full_name || !formData.passport_number) {
-      setError('Пожалуйста, заполните ФИО и номер паспорта');
+    const docNumber = formData.passport_number?.trim();
+    const lastName = formData.last_name?.trim();
+    const firstName = formData.first_name?.trim();
+    const fullName = formData.full_name?.trim() || `${lastName} ${firstName}`.trim();
+
+    if (!docNumber || docNumber.length < 5) {
+      setError('Пожалуйста, укажите корректный номер паспорта (минимум 5 символов)');
+      return;
+    }
+
+    if (!lastName || !firstName || !fullName) {
+      setError('Пожалуйста, заполните фамилию и имя покупателя');
       return;
     }
 
     if (confirmationBlocked) {
-      setError('Пожалуйста, проверьте и подтвердите конфликтные поля перед использованием');
+      setError('Пожалуйста, проверьте и скорректируйте обязательные поля перед использованием');
       return;
     }
 
@@ -258,8 +327,8 @@ export const PassportOCRModal = ({
       const verifiedPayload = {
         ...formData,
         passport_series: formData.passport_series?.trim() || 'A',
-        passport_number: formData.passport_number?.trim(),
-        full_name: formData.full_name?.trim(),
+        passport_number: docNumber,
+        full_name: fullName,
         manual_override: Object.keys(manualOverrides).length > 0
       };
 
@@ -304,6 +373,14 @@ export const PassportOCRModal = ({
       );
     }
 
+    if (!field.value) {
+      return (
+        <span className="inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full border bg-amber-100 text-amber-900 border-amber-300">
+          <AlertTriangle className="h-2.5 w-2.5 text-amber-600" /> Не распознано
+        </span>
+      );
+    }
+
     const score = field.confidence || 0;
     let badgeClass = 'bg-slate-50 text-slate-700 border-slate-200';
     let label = `${Math.round(score * 100)}%`;
@@ -332,6 +409,9 @@ export const PassportOCRModal = ({
     );
   };
 
+  // Determine if confirm button should be disabled
+  const isConfirmDisabled = isVerifying || (!formData.passport_number?.trim()) || (!formData.last_name?.trim()) || (!formData.first_name?.trim()) || (confirmationBlocked && !formData.passport_number?.trim());
+
   return createPortal(
     <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/70 backdrop-blur-xs animate-in fade-in duration-200">
       <div className="relative w-full max-w-4xl max-h-[90vh] flex flex-col rounded-3xl bg-white shadow-2xl border border-slate-200 overflow-hidden">
@@ -346,7 +426,7 @@ export const PassportOCRModal = ({
               <div className="flex items-center gap-2">
                 <h2 className="text-base font-black text-slate-900">Распознавание паспорта (OCR + MRZ)</h2>
                 <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-black bg-tozon-red-50 text-tozon-red border border-tozon-red-200">
-                  <Sparkles className="h-3 w-3" /> ICAO 9303 MRZ Engine
+                  <Sparkles className="h-3 w-3" /> ICAO 9303 Engine
                 </span>
               </div>
               <p className="text-xs text-slate-500 font-medium">
@@ -372,10 +452,10 @@ export const PassportOCRModal = ({
             </div>
           )}
 
-          {/* Section 1: Upload Zones (2 Sides) */}
+          {/* Section 1: Upload Zones with Rotation Controls */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             {/* Front Side */}
-            <div className="rounded-2xl border-2 border-dashed border-slate-300 p-4 bg-slate-50/50 hover:bg-slate-50 transition relative flex flex-col items-center justify-center text-center min-h-[150px]">
+            <div className="rounded-2xl border-2 border-dashed border-slate-300 p-4 bg-slate-50/50 hover:bg-slate-50 transition relative flex flex-col items-center justify-center text-center min-h-[170px]">
               <input
                 ref={frontInputRef}
                 type="file"
@@ -386,19 +466,43 @@ export const PassportOCRModal = ({
 
               {frontPreview ? (
                 <div className="w-full flex flex-col items-center">
-                  <div className="relative w-full h-32 rounded-xl overflow-hidden border border-slate-200 shadow-2xs mb-2">
-                    <img src={frontPreview} alt="Лицевая сторона" className="w-full h-full object-cover" />
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setFrontFile(null);
-                        setFrontPreview(null);
-                      }}
-                      className="absolute top-2 right-2 p-1.5 rounded-lg bg-white/90 text-rose-600 hover:bg-rose-600 hover:text-white transition shadow-xs"
-                      title="Удалить скан"
-                    >
-                      <Trash2 className="h-3.5 w-3.5" />
-                    </button>
+                  <div className="relative w-full h-36 rounded-xl overflow-hidden border border-slate-200 shadow-2xs mb-2 bg-slate-900 flex items-center justify-center">
+                    <img
+                      ref={frontImgRef}
+                      src={frontPreview}
+                      alt="Лицевая сторона"
+                      className="max-h-full max-w-full object-contain transition-transform duration-200"
+                    />
+                    <div className="absolute top-2 right-2 flex items-center gap-1">
+                      <button
+                        type="button"
+                        onClick={() => handleRotate('front', -90)}
+                        className="p-1.5 rounded-lg bg-slate-900/80 text-white hover:bg-slate-900 transition shadow-xs"
+                        title="Повернуть влево (-90°)"
+                      >
+                        <RotateCcw className="h-3.5 w-3.5" />
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => handleRotate('front', 90)}
+                        className="p-1.5 rounded-lg bg-slate-900/80 text-white hover:bg-slate-900 transition shadow-xs"
+                        title="Повернуть вправо (+90°)"
+                      >
+                        <RotateCw className="h-3.5 w-3.5" />
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setFrontFile(null);
+                          setFrontPreview(null);
+                          setFrontRotation(0);
+                        }}
+                        className="p-1.5 rounded-lg bg-rose-600/90 text-white hover:bg-rose-700 transition shadow-xs"
+                        title="Удалить скан"
+                      >
+                        <Trash2 className="h-3.5 w-3.5" />
+                      </button>
+                    </div>
                   </div>
                   <span className="text-[11px] font-bold text-slate-700 truncate max-w-[200px]">
                     {frontFile?.name || 'Лицевая сторона'}
@@ -417,7 +521,7 @@ export const PassportOCRModal = ({
             </div>
 
             {/* Back Side (with MRZ) */}
-            <div className="rounded-2xl border-2 border-dashed border-slate-300 p-4 bg-slate-50/50 hover:bg-slate-50 transition relative flex flex-col items-center justify-center text-center min-h-[150px]">
+            <div className="rounded-2xl border-2 border-dashed border-slate-300 p-4 bg-slate-50/50 hover:bg-slate-50 transition relative flex flex-col items-center justify-center text-center min-h-[170px]">
               <input
                 ref={backInputRef}
                 type="file"
@@ -428,19 +532,43 @@ export const PassportOCRModal = ({
 
               {backPreview ? (
                 <div className="w-full flex flex-col items-center">
-                  <div className="relative w-full h-32 rounded-xl overflow-hidden border border-slate-200 shadow-2xs mb-2">
-                    <img src={backPreview} alt="Оборотная сторона" className="w-full h-full object-cover" />
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setBackFile(null);
-                        setBackPreview(null);
-                      }}
-                      className="absolute top-2 right-2 p-1.5 rounded-lg bg-white/90 text-rose-600 hover:bg-rose-600 hover:text-white transition shadow-xs"
-                      title="Удалить скан"
-                    >
-                      <Trash2 className="h-3.5 w-3.5" />
-                    </button>
+                  <div className="relative w-full h-36 rounded-xl overflow-hidden border border-slate-200 shadow-2xs mb-2 bg-slate-900 flex items-center justify-center">
+                    <img
+                      ref={backImgRef}
+                      src={backPreview}
+                      alt="Оборотная сторона"
+                      className="max-h-full max-w-full object-contain transition-transform duration-200"
+                    />
+                    <div className="absolute top-2 right-2 flex items-center gap-1">
+                      <button
+                        type="button"
+                        onClick={() => handleRotate('back', -90)}
+                        className="p-1.5 rounded-lg bg-slate-900/80 text-white hover:bg-slate-900 transition shadow-xs"
+                        title="Повернуть влево (-90°)"
+                      >
+                        <RotateCcw className="h-3.5 w-3.5" />
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => handleRotate('back', 90)}
+                        className="p-1.5 rounded-lg bg-slate-900/80 text-white hover:bg-slate-900 transition shadow-xs"
+                        title="Повернуть вправо (+90°)"
+                      >
+                        <RotateCw className="h-3.5 w-3.5" />
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setBackFile(null);
+                          setBackPreview(null);
+                          setBackRotation(0);
+                        }}
+                        className="p-1.5 rounded-lg bg-rose-600/90 text-white hover:bg-rose-700 transition shadow-xs"
+                        title="Удалить скан"
+                      >
+                        <Trash2 className="h-3.5 w-3.5" />
+                      </button>
+                    </div>
                   </div>
                   <span className="text-[11px] font-bold text-slate-700 truncate max-w-[200px]">
                     {backFile?.name || 'Оборотная сторона'}
@@ -543,7 +671,7 @@ export const PassportOCRModal = ({
           {/* Section 2: Recognition Results & Confirmation Form */}
           {fields && (
             <div className="space-y-4 pt-2 animate-in fade-in duration-300">
-              {/* Dynamic Status Banner */}
+              {/* Dynamic Status Banner with Strict Hierarchy */}
               {status === 'CRITICAL_CONFLICT' ? (
                 <div className="p-4 rounded-2xl bg-rose-50 border-2 border-rose-300 flex items-start gap-3 text-rose-950 shadow-xs">
                   <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-rose-600 text-white font-black">
@@ -551,10 +679,24 @@ export const PassportOCRModal = ({
                   </div>
                   <div className="flex-1">
                     <h4 className="text-xs font-black text-rose-900">
-                      КРИТИЧЕСКИЙ КОНФЛИКТ • Точность {Math.round((confidence || 0.4) * 100)}%
+                      КРИТИЧЕСКИЙ КОНФЛИКТ • Точность {Math.round((confidence || 0.3) * 100)}%
                     </h4>
                     <p className="text-[11px] text-rose-800 font-semibold mt-0.5">
-                      Обнаружены расхождения между машиночитаемой строкой (MRZ) и текстом документа. Проверьте подсвеченные поля вручную. Подтверждение заблокировано до ручной проверки.
+                      Обнаружены расхождения между машиночитаемой строкой (MRZ) и текстом документа. Проверьте подсвеченные поля вручную. Подтверждение заблокировано до исправления.
+                    </p>
+                  </div>
+                </div>
+              ) : status === 'CRITICAL_MISSING_FIELD' ? (
+                <div className="p-4 rounded-2xl bg-amber-50 border-2 border-amber-400 flex items-start gap-3 text-amber-950 shadow-xs">
+                  <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-amber-600 text-white font-black">
+                    <AlertCircle className="h-5 w-5" />
+                  </div>
+                  <div className="flex-1">
+                    <h4 className="text-xs font-black text-amber-900">
+                      НЕПОЛНЫЕ ДАННЫЕ ПАСПОРТА • Точность {Math.round((confidence || 0.4) * 100)}%
+                    </h4>
+                    <p className="text-[11px] text-amber-800 font-semibold mt-0.5">
+                      Не удалось автоматически распознать номер паспорта или ФИО. Пожалуйста, поверните изображение правильно или введите недостающие поля вручную для разблокировки.
                     </p>
                   </div>
                 </div>
@@ -565,7 +707,7 @@ export const PassportOCRModal = ({
                   </div>
                   <div className="flex-1">
                     <h4 className="text-xs font-black text-amber-900">
-                      Требуется проверка данных • Точность {Math.round((confidence || 0.8) * 100)}%
+                      Часть данных требует проверки • Точность {Math.round((confidence || 0.8) * 100)}%
                     </h4>
                     <p className="text-[11px] text-amber-800 font-medium mt-0.5">
                       Сверьте поля с оригиналом документа перед внесением в договор.
@@ -583,12 +725,14 @@ export const PassportOCRModal = ({
                         Паспорт успешно верифицирован • Точность {Math.round((confidence || 0.95) * 100)}%
                       </h4>
                       <p className="text-[11px] text-emerald-800 font-medium">
-                        MRZ и визуальные данные полностью согласованы и готовы для оформления договора.
+                        {isFullyAgreed
+                          ? 'MRZ и визуальные данные полностью согласованы и готовы для оформления договора.'
+                          : 'Ключевые данные проверены и готовы для оформления договора.'}
                       </p>
                     </div>
                   </div>
 
-                  {mrz && (
+                  {mrz && mrz.is_valid && (
                     <div className="flex items-center gap-1.5 px-3 py-1 rounded-xl bg-white border border-emerald-300 text-emerald-800 text-[11px] font-bold shadow-2xs">
                       <CheckCircle2 className="h-3.5 w-3.5 text-emerald-600" />
                       <span>MRZ {mrz.format} (Контрольные суммы валидны)</span>
@@ -692,7 +836,7 @@ export const PassportOCRModal = ({
                         value={formData.passport_number}
                         onChange={(e) => handleFieldChange('passport_number', e.target.value)}
                         className={`flex-1 rounded-xl border px-3 py-1.5 text-xs font-bold text-slate-900 outline-none focus:border-tozon-blue ${
-                          fields.passport_number?.conflict && !manualOverrides.passport_number
+                          (!formData.passport_number || (fields.passport_number?.conflict && !manualOverrides.passport_number))
                             ? 'border-rose-400 bg-rose-50/50'
                             : 'border-slate-300 bg-slate-50/50'
                         }`}
@@ -794,21 +938,21 @@ export const PassportOCRModal = ({
 
           {fields && (
             <div className="flex items-center gap-3">
-              {confirmationBlocked && (
+              {isConfirmDisabled && (
                 <div className="flex items-center gap-1.5 text-[11px] font-bold text-rose-600">
                   <Lock className="h-3.5 w-3.5" />
-                  <span>Исправьте конфликтные поля для разблокировки</span>
+                  <span>Заполните обязательные поля (номер паспорта, ФИО) для разблокировки</span>
                 </div>
               )}
 
               <button
                 type="button"
                 onClick={handleVerify}
-                disabled={isVerifying || confirmationBlocked}
-                className={`flex items-center gap-2 px-6 py-2.5 rounded-xl text-xs font-black transition shadow-md cursor-pointer ${
-                  confirmationBlocked
+                disabled={isConfirmDisabled}
+                className={`flex items-center gap-2 px-6 py-2.5 rounded-xl text-xs font-black transition shadow-md ${
+                  isConfirmDisabled
                     ? 'bg-slate-300 text-slate-500 cursor-not-allowed shadow-none'
-                    : 'bg-emerald-600 hover:bg-emerald-700 text-white shadow-emerald-600/20'
+                    : 'bg-emerald-600 hover:bg-emerald-700 text-white shadow-emerald-600/20 cursor-pointer'
                 }`}
               >
                 {isVerifying ? (
