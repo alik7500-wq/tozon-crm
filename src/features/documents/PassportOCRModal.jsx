@@ -485,7 +485,7 @@ export const PassportOCRModal = ({
                     rows={4}
                     value={directText}
                     onChange={(e) => setDirectText(e.target.value)}
-                    placeholder="Насаб: МАЧИДОВ&#10;Ном: ДИЛШОД&#10;Номи падар: ХАЛИМЧОНОВИЧ&#10;Рақами шиноснома: A04747883..."
+                    placeholder="Насаб: [Фамилия]&#10;Ном: [Имя]&#10;Номи падар: [Отчество]&#10;Рақами шиноснома: A00000000..."
                     className="w-full rounded-xl border border-slate-300 bg-white p-2.5 text-xs font-mono text-slate-800 outline-none focus:border-tozon-blue"
                   />
                 </div>
@@ -497,7 +497,7 @@ export const PassportOCRModal = ({
                     rows={4}
                     value={directMrz}
                     onChange={(e) => setDirectMrz(e.target.value)}
-                    placeholder="IDTJKA0474788353500119825806<<&#10;9701078M3301292TJK<<<<<<<<<<<0&#10;MAJIDOV<<DILSHOD<<<<<<<<<<<<"
+                    placeholder="IDTJK...&#10;970107...&#10;SURNAME<<GIVENNAME<<<<<<<<<<<<"
                     className="w-full rounded-xl border border-slate-300 bg-white p-2.5 text-xs font-mono text-slate-800 outline-none focus:border-tozon-blue uppercase"
                   />
                 </div>
@@ -688,7 +688,7 @@ export const PassportOCRModal = ({
                       />
                       <input
                         type="text"
-                        placeholder="04747883"
+                        placeholder="00000000"
                         value={formData.passport_number}
                         onChange={(e) => handleFieldChange('passport_number', e.target.value)}
                         className={`flex-1 rounded-xl border px-3 py-1.5 text-xs font-bold text-slate-900 outline-none focus:border-tozon-blue ${
@@ -756,7 +756,7 @@ export const PassportOCRModal = ({
                     </div>
                     <input
                       type="text"
-                      placeholder="636991271"
+                      placeholder="000000000"
                       value={formData.inn}
                       onChange={(e) => handleFieldChange('inn', e.target.value)}
                       className="w-full rounded-xl border border-slate-300 bg-slate-50/50 px-3 py-1.5 text-xs font-semibold text-slate-900 outline-none focus:border-tozon-blue focus:bg-white"
