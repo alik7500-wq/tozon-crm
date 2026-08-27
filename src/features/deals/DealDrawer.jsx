@@ -14,6 +14,7 @@ import {
   DollarSign,
   CreditCard,
   Printer,
+  Pencil,
   CheckCircle2,
   Clock,
   AlertCircle,
@@ -27,6 +28,7 @@ import {
   TrendingUp,
   MapPin
 } from 'lucide-react';
+import { useAuth } from '../auth/AuthContext';
 
 export const DealDrawer = ({
   isOpen,
@@ -34,7 +36,10 @@ export const DealDrawer = ({
   dealId,
   onDealUpdated,
   onOpenContractPrint,
+  onEditDeal,
 }) => {
+  const { user } = useAuth();
+  const isAdmin = user?.role === 'ADMIN';
   const [deal, setDeal] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState('');
@@ -241,6 +246,17 @@ export const DealDrawer = ({
           </div>
 
           <div className="flex items-center gap-2">
+            {deal && isAdmin && onEditDeal && (
+              <button
+                onClick={() => onEditDeal(deal)}
+                className="flex items-center gap-1.5 rounded-xl border border-amber-300 bg-amber-50 px-3 py-1.5 text-xs font-bold text-amber-800 hover:bg-amber-100 shadow-xs transition cursor-pointer"
+                title="Редактировать сделку (Администратор)"
+              >
+                <Pencil className="h-3.5 w-3.5 text-amber-600" />
+                <span>Редактировать</span>
+              </button>
+            )}
+
             {deal && onOpenContractPrint && (
               <button
                 onClick={() => onOpenContractPrint(deal)}

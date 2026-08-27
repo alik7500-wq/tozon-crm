@@ -7,6 +7,7 @@ import {
   Calendar,
   CreditCard,
   Printer,
+  Pencil,
   CheckCircle2,
   Clock,
   AlertCircle,
@@ -15,15 +16,19 @@ import {
   ChevronRight
 } from 'lucide-react';
 import { formatContractNumber } from '../../utils/formatters';
+import { useAuth } from '../auth/AuthContext';
 
 export const DealsKanbanView = ({
   deals = [],
   isLoading,
   onSelectDeal,
+  onEditDeal,
   onOpenContractPrint,
   onOpenPayment,
   onSignDeal,
 }) => {
+  const { user } = useAuth();
+  const isAdmin = user?.role === 'ADMIN';
   if (isLoading) {
     return (
       <div className="flex items-center justify-center p-16 rounded-2xl border border-slate-200 bg-white">
@@ -198,6 +203,16 @@ export const DealsKanbanView = ({
                         </span>
 
                         <div className="flex items-center gap-1">
+                          {isAdmin && onEditDeal && (
+                            <button
+                              onClick={() => onEditDeal(deal)}
+                              className="rounded p-1 text-amber-600 hover:text-amber-700 hover:bg-amber-50 transition cursor-pointer"
+                              title="Редактировать сделку (Администратор)"
+                            >
+                              <Pencil className="h-3.5 w-3.5" />
+                            </button>
+                          )}
+
                           {onOpenContractPrint && (
                             <button
                               onClick={() => onOpenContractPrint(deal)}

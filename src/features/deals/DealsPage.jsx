@@ -4,6 +4,7 @@ import { DealsTableView } from './DealsTableView';
 import { DealsKanbanView } from './DealsKanbanView';
 import { DealDrawer } from './DealDrawer';
 import { DealWizardModal } from './DealWizardModal';
+import { EditDealModal } from './EditDealModal';
 import { ContractPrintView } from './ContractPrintView';
 import { PaymentRecordModal } from './PaymentRecordModal';
 import { formatContractNumber } from '../../utils/formatters';
@@ -44,6 +45,7 @@ export const DealsPage = () => {
   const [selectedDealId, setSelectedDealId] = useState(null);
   const [dealToPrint, setDealToPrint] = useState(null);
   const [dealForPayment, setDealForPayment] = useState(null);
+  const [dealToEdit, setDealToEdit] = useState(null);
 
   const fetchDeals = async () => {
     setIsLoading(true);
@@ -356,6 +358,7 @@ export const DealsPage = () => {
           deals={deals}
           isLoading={isLoading}
           onSelectDeal={handleSelectDeal}
+          onEditDeal={(deal) => setDealToEdit(deal)}
           onOpenContractPrint={handleOpenPrint}
           onOpenPayment={handleOpenPayment}
           onSignDeal={handleSignDeal}
@@ -366,6 +369,7 @@ export const DealsPage = () => {
           deals={deals}
           isLoading={isLoading}
           onSelectDeal={handleSelectDeal}
+          onEditDeal={(deal) => setDealToEdit(deal)}
           onOpenContractPrint={handleOpenPrint}
           onOpenPayment={handleOpenPayment}
           onSignDeal={handleSignDeal}
@@ -386,6 +390,19 @@ export const DealsPage = () => {
         />
       )}
 
+      {/* Admin Deal Edit & Correction Modal */}
+      {dealToEdit && (
+        <EditDealModal
+          isOpen={Boolean(dealToEdit)}
+          deal={dealToEdit}
+          onClose={() => setDealToEdit(null)}
+          onDealUpdated={(updatedDeal) => {
+            handleDealSavedOrUpdated();
+            setDealToEdit(null);
+          }}
+        />
+      )}
+
       {/* Deal Detail Drawer */}
       {selectedDealId && (
         <DealDrawer
@@ -394,6 +411,10 @@ export const DealsPage = () => {
           dealId={selectedDealId}
           onDealUpdated={handleDealSavedOrUpdated}
           onOpenContractPrint={handleOpenPrint}
+          onEditDeal={(deal) => {
+            setSelectedDealId(null);
+            setDealToEdit(deal);
+          }}
         />
       )}
 

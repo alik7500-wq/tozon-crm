@@ -8,6 +8,7 @@ import {
   CreditCard,
   Printer,
   Eye,
+  Pencil,
   CheckCircle2,
   Clock,
   AlertCircle,
@@ -16,16 +17,20 @@ import {
   ChevronRight
 } from 'lucide-react';
 import { formatContractNumber } from '../../utils/formatters';
+import { useAuth } from '../auth/AuthContext';
 
 export const DealsTableView = ({
   deals = [],
   isLoading,
   onSelectDeal,
+  onEditDeal,
   onOpenContractPrint,
   onOpenPayment,
   onSignDeal,
   onCancelDeal,
 }) => {
+  const { user } = useAuth();
+  const isAdmin = user?.role === 'ADMIN';
   if (isLoading) {
     return (
       <div className="flex items-center justify-center p-16 rounded-2xl border border-slate-200 bg-white">
@@ -223,6 +228,16 @@ export const DealsTableView = ({
                       >
                         <Eye className="h-4 w-4" />
                       </button>
+
+                      {isAdmin && onEditDeal && (
+                        <button
+                          onClick={() => onEditDeal(deal)}
+                          className="rounded-lg p-1.5 text-amber-600 hover:bg-amber-50 hover:text-amber-700 transition cursor-pointer"
+                          title="Редактировать сделку (Администратор)"
+                        >
+                          <Pencil className="h-4 w-4" />
+                        </button>
+                      )}
 
                       {onOpenContractPrint && (
                         <button
