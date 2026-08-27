@@ -6,6 +6,10 @@ import { ChessboardTab } from './tabs/ChessboardTab';
 import { LayoutsTab } from './tabs/LayoutsTab';
 import { VisualMapsTab } from './tabs/VisualMapsTab';
 import { BatchGeneratorModal } from './tabs/BatchGeneratorModal';
+const Scene3DViewer = React.lazy(() => import('../visual3d').then(m => ({ default: m.Scene3DViewer })));
+const Tour360Viewer = React.lazy(() => import('../tour360').then(m => ({ default: m.Tour360Viewer })));
+const VisualAdminTab = React.lazy(() => import('../visualAdmin').then(m => ({ default: m.VisualAdminTab })));
+const ProjectGalleryTab = React.lazy(() => import('../projectGallery').then(m => ({ default: m.ProjectGalleryTab })));
 import {
   Building2,
   ChevronLeft,
@@ -20,7 +24,10 @@ import {
   Clock,
   CheckCircle2,
   Lock,
-  Plus
+  Plus,
+  Box,
+  Compass,
+  Sliders
 } from 'lucide-react';
 
 export const ProjectDetailPage = () => {
@@ -93,9 +100,15 @@ export const ProjectDetailPage = () => {
 
   const tabs = [
     { id: 'chessboard', label: 'Шахматка квартир', icon: Layers },
+    { id: 'gallery', label: 'Визуализация', icon: Sparkles },
+    { id: '3d', label: '3D Модель', icon: Box },
+    { id: '360', label: '360° Тур', icon: Compass },
     { id: 'maps', label: 'Генплан и Фасады', icon: Map },
     { id: 'layouts', label: 'Типовые планировки', icon: Maximize2 },
     { id: 'overview', label: 'Сводка и метрики', icon: Building2 },
+    ...((user?.role === 'ADMIN' || user?.role === 'DIRECTOR') ? [
+      { id: 'visual_admin', label: 'Управление 3D/360', icon: Sliders }
+    ] : [])
   ];
 
   return (
@@ -196,6 +209,62 @@ export const ProjectDetailPage = () => {
           />
         )}
 
+        {activeTab === 'gallery' && (
+          <React.Suspense
+            fallback={
+              <div className="flex h-72 items-center justify-center">
+                <div className="flex flex-col items-center gap-3">
+                  <div className="h-9 w-9 animate-spin rounded-full border-4 border-blue-600 border-t-transparent" />
+                  <span className="text-xs text-slate-500 font-medium">Загрузка визуализации...</span>
+                </div>
+              </div>
+            }
+          >
+            <ProjectGalleryTab
+              projectId={id}
+              onOpenAdminManager={() => setActiveTab('visual_admin')}
+            />
+          </React.Suspense>
+        )}
+
+        {activeTab === '3d' && (
+          <React.Suspense
+            fallback={
+              <div className="flex h-72 items-center justify-center">
+                <div className="flex flex-col items-center gap-3">
+                  <div className="h-9 w-9 animate-spin rounded-full border-4 border-blue-600 border-t-transparent" />
+                  <span className="text-xs text-slate-500 font-medium">Загрузка 3D модуля...</span>
+                </div>
+              </div>
+            }
+          >
+            <Scene3DViewer
+              projectId={id}
+              currency={project.currency}
+              onBackToChessboard={() => setActiveTab('chessboard')}
+            />
+          </React.Suspense>
+        )}
+
+        {activeTab === '360' && (
+          <React.Suspense
+            fallback={
+              <div className="flex h-72 items-center justify-center">
+                <div className="flex flex-col items-center gap-3">
+                  <div className="h-9 w-9 animate-spin rounded-full border-4 border-purple-600 border-t-transparent" />
+                  <span className="text-xs text-slate-500 font-medium">Загрузка 360° тура...</span>
+                </div>
+              </div>
+            }
+          >
+            <Tour360Viewer
+              projectId={id}
+              currency={project.currency}
+              onBack={() => setActiveTab('chessboard')}
+            />
+          </React.Suspense>
+        )}
+
         {activeTab === 'maps' && (
           <VisualMapsTab projectId={id} />
         )}
@@ -234,6 +303,24 @@ export const ProjectDetailPage = () => {
               </div>
             </div>
           </div>
+        )}
+
+        {activeTab === 'visual_admin' && (
+          <React.Suspense
+            fallback={
+              <div className="flex h-72 items-center justify-center">
+                <div className="flex flex-col items-center gap-3">
+                  <div className="h-9 w-9 animate-spin rounded-full border-4 border-slate-600 border-t-transparent" />
+                  <span className="text-xs text-slate-500 font-medium">Загрузка панели управления 3D/360...</span>
+                </div>
+              </div>
+            }
+          >
+            <VisualAdminTab
+              projectId={id}
+              currency={project.currency}
+            />
+          </React.Suspense>
         )}
       </div>
 
