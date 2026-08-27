@@ -367,32 +367,32 @@ export const ApartmentDetailModal = ({
 
   return (
     <>
-      <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-xs animate-in fade-in overflow-y-auto">
-        <div className="relative w-full max-w-3xl max-h-[92vh] overflow-y-auto rounded-3xl border border-slate-200 bg-white p-6 shadow-2xl space-y-6">
+      <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-5 bg-slate-900/60 backdrop-blur-xs animate-in fade-in overflow-y-auto">
+        <div className="relative w-full max-w-4xl rounded-3xl border border-slate-100 bg-white p-4 sm:p-5 shadow-2xl space-y-3.5 flex flex-col">
         {/* Modal Header */}
-        <div className="flex items-start justify-between border-b border-slate-100 pb-4">
+        <div className="flex items-center justify-between border-b border-slate-100 pb-3">
           <div className="flex items-center gap-3">
-            <div className={`flex h-12 w-12 items-center justify-center rounded-2xl text-white shadow-md ${
+            <div className={`flex h-10 w-10 items-center justify-center rounded-2xl text-white shadow-xs ${
               isReserved
-                ? 'bg-gradient-to-tr from-amber-500 to-orange-600 shadow-amber-500/20'
+                ? 'bg-gradient-to-tr from-amber-500 to-orange-600'
                 : isSold
-                ? 'bg-gradient-to-tr from-rose-600 to-red-600 shadow-rose-500/20'
-                : 'bg-gradient-to-tr from-blue-600 to-indigo-600 shadow-blue-500/20'
+                ? 'bg-gradient-to-tr from-rose-600 to-red-600'
+                : 'bg-gradient-to-tr from-blue-600 to-indigo-600'
             }`}>
-              <Home className="h-6 w-6" />
+              <Home className="h-5 w-5" />
             </div>
             <div>
               <div className="flex items-center gap-2">
-                <h2 className="text-xl font-black text-slate-900">
+                <h2 className="text-base sm:text-lg font-black text-slate-900 leading-tight">
                   Квартира №{unit?.unit_number}
                 </h2>
                 {unit && (
-                  <span className={`px-2.5 py-0.5 rounded-full text-xs font-bold border ${getStatusBadge(unit.status).bg}`}>
+                  <span className={`px-2.5 py-0.5 rounded-full text-[11px] font-bold border ${getStatusBadge(unit.status).bg}`}>
                     {getStatusBadge(unit.status).label}
                   </span>
                 )}
               </div>
-              <p className="text-xs text-slate-500 mt-0.5">
+              <p className="text-[11px] text-slate-500">
                 {projectName} • {buildingName} • {sectionName} • {floorNumber} этаж
               </p>
             </div>
@@ -400,14 +400,14 @@ export const ApartmentDetailModal = ({
 
           <button
             onClick={requestClose}
-            className="rounded-xl p-2 text-slate-400 hover:bg-slate-100 hover:text-slate-700 transition cursor-pointer"
+            className="p-1.5 text-slate-400 hover:bg-slate-100 hover:text-slate-700 rounded-xl transition cursor-pointer"
           >
             <X className="h-5 w-5" />
           </button>
         </div>
 
         {isLoading ? (
-          <div className="h-64 flex flex-col items-center justify-center gap-3">
+          <div className="h-48 flex flex-col items-center justify-center gap-3">
             <div className="h-8 w-8 animate-spin rounded-full border-4 border-blue-600 border-t-transparent" />
             <span className="text-xs text-slate-500">Загрузка информации о квартире...</span>
           </div>
@@ -416,39 +416,39 @@ export const ApartmentDetailModal = ({
             Информация о квартире не найдена.
           </div>
         ) : (
-          <div className="space-y-6">
+          <div className="space-y-3.5">
             {/* Quick Specs Grid */}
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-              <div className="rounded-2xl bg-slate-50 p-3.5 border border-slate-200/80">
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
+              <div className="rounded-xl bg-slate-50 p-2.5 border border-slate-200/80">
                 <span className="text-[10px] font-bold uppercase text-slate-400 block">Комнатность</span>
-                <div className="text-base font-black text-slate-900 mt-0.5">
+                <div className="text-sm sm:text-base font-black text-slate-900 mt-0.5">
                   {unit.rooms === 0 ? 'Студия' : `${unit.rooms}-комнатная`}
                 </div>
               </div>
 
-              <div className="rounded-2xl bg-slate-50 p-3.5 border border-slate-200/80">
+              <div className="rounded-xl bg-slate-50 p-2.5 border border-slate-200/80">
                 <span className="text-[10px] font-bold uppercase text-slate-400 block">Общая площадь</span>
-                <div className="text-base font-black text-slate-900 mt-0.5">
+                <div className="text-sm sm:text-base font-black text-slate-900 mt-0.5">
                   {(unit.area_m2_x100 / 100).toFixed(2)} м²
                 </div>
               </div>
 
               {isSold && activeDeal ? (
                 <>
-                  <div className="rounded-2xl bg-slate-50 p-3.5 border border-slate-200/80">
+                  <div className="rounded-xl bg-slate-50 p-2.5 border border-slate-200/80">
                     <span className="text-[10px] font-bold uppercase text-slate-400 block">
                       Сумма по договору
                     </span>
-                    <div className="text-base font-black text-blue-700 mt-0.5">
+                    <div className="text-sm sm:text-base font-black text-blue-700 mt-0.5">
                       {(activeDeal.final_price_minor / 100).toLocaleString()} {projectCurrency}
                     </div>
                   </div>
 
-                  <div className="rounded-2xl bg-slate-50 p-3.5 border border-slate-200/80">
+                  <div className="rounded-xl bg-slate-50 p-2.5 border border-slate-200/80">
                     <span className="text-[10px] font-bold uppercase text-slate-400 block">
                       Оплачено / Остаток
                     </span>
-                    <div className="text-sm font-black text-emerald-700 mt-1">
+                    <div className="text-xs font-black text-emerald-700 mt-0.5">
                       <span className="flex flex-col">
                         <span>{(activeDeal.total_paid_minor / 100).toLocaleString()} {projectCurrency}</span>
                         <span className="text-[10px] text-rose-600 font-semibold">
@@ -460,16 +460,16 @@ export const ApartmentDetailModal = ({
                 </>
               ) : isReserved && activeDeal ? (
                 <>
-                  <div className="rounded-2xl bg-amber-50/60 p-3.5 border border-amber-200/80">
+                  <div className="rounded-xl bg-amber-50/60 p-2.5 border border-amber-200/80">
                     <span className="text-[10px] font-bold uppercase text-amber-700 block">
                       Зафиксированная цена
                     </span>
-                    <div className="text-base font-black text-amber-950 mt-0.5">
+                    <div className="text-sm sm:text-base font-black text-amber-950 mt-0.5">
                       {(activeDeal.final_price_minor / 100).toLocaleString()} {projectCurrency}
                     </div>
                   </div>
 
-                  <div className="rounded-2xl bg-amber-50/60 p-3.5 border border-amber-200/80">
+                  <div className="rounded-xl bg-amber-50/60 p-2.5 border border-amber-200/80">
                     <span className="text-[10px] font-bold uppercase text-amber-700 block">
                       Срок брони
                     </span>
@@ -480,11 +480,11 @@ export const ApartmentDetailModal = ({
                 </>
               ) : (
                 <>
-                  <div className="rounded-2xl bg-blue-50/70 p-3.5 border border-blue-200/80 relative group">
+                  <div className="rounded-xl bg-blue-50/70 p-2.5 border border-blue-200/80 relative group">
                     <span className="text-[10px] font-bold uppercase text-blue-600 block">
                       Стартовая цена м²
                     </span>
-                    <div className="text-base font-black text-blue-900 mt-0.5 flex items-center justify-between">
+                    <div className="text-sm sm:text-base font-black text-blue-900 mt-0.5 flex items-center justify-between">
                       <span>{basePricePerM2.toLocaleString()} {projectCurrency}</span>
                       {/* Discrete subtle pencil icon (незаметный карандашик для менеджера) */}
                       <button
@@ -498,9 +498,9 @@ export const ApartmentDetailModal = ({
                     </div>
                   </div>
 
-                  <div className="rounded-2xl bg-slate-50 p-3.5 border border-slate-200/80">
+                  <div className="rounded-xl bg-slate-50 p-2.5 border border-slate-200/80">
                     <span className="text-[10px] font-bold uppercase text-slate-400 block">Базовая стоимость</span>
-                    <div className="text-base font-black text-slate-900 mt-0.5">
+                    <div className="text-sm sm:text-base font-black text-slate-900 mt-0.5">
                       {baseTotalPrice.toLocaleString()} {projectCurrency}
                     </div>
                   </div>
@@ -803,27 +803,27 @@ export const ApartmentDetailModal = ({
 
             {/* SECTION 3: IF UNIT IS AVAILABLE (🟢 СВОБОДНА) */}
             {!isReserved && !isSold && (
-              <div className="space-y-4">
+              <div className="space-y-3">
                 {/* LADDER PRICING SCALE (ЛЕСТНИЧНАЯ ШКАЛА ЦЕН) */}
-                <div className="rounded-3xl border-2 border-indigo-100 bg-gradient-to-b from-indigo-50/60 via-white to-slate-50/80 p-5 space-y-4 shadow-sm">
+                <div className="rounded-2xl border border-indigo-100 bg-gradient-to-b from-indigo-50/50 via-white to-slate-50/70 p-3.5 space-y-3 shadow-2xs">
                   {/* Header */}
-                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-indigo-100/80 pb-3">
-                    <div className="flex items-center gap-2.5">
-                      <div className="h-9 w-9 rounded-xl bg-indigo-600 text-white flex items-center justify-center shadow-xs">
-                        <TrendingUp className="h-5 w-5" />
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1.5 border-b border-indigo-100/70 pb-2">
+                    <div className="flex items-center gap-2">
+                      <div className="h-7 w-7 rounded-lg bg-indigo-600 text-white flex items-center justify-center shadow-xs">
+                        <TrendingUp className="h-4 w-4" />
                       </div>
                       <div>
-                        <h4 className="text-sm font-black text-slate-900">
+                        <h4 className="text-xs font-black text-slate-900 leading-tight">
                           Лестничные условия цен и выгода от размера первоначального взноса
                         </h4>
-                        <p className="text-[11px] text-indigo-700 font-medium">
+                        <p className="text-[10px] text-indigo-700 font-medium">
                           0% — базовая цена • 5% — скидка -$5/м² • 10%–100% — скидка от -$10 до -$100/м²
                         </p>
                       </div>
                     </div>
 
-                    <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white border border-slate-200 text-xs font-bold text-slate-700 self-start sm:self-auto shadow-2xs">
-                      <Tag className="h-3.5 w-3.5 text-slate-400" />
+                    <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-xl bg-white border border-slate-200 text-[11px] font-bold text-slate-700 self-start sm:self-auto shadow-2xs">
+                      <Tag className="h-3 w-3 text-slate-400" />
                       <span>Стартовая цена: {basePricePerM2} {projectCurrency}/м²</span>
                       {/* Discrete subtle pencil */}
                       <button
@@ -838,21 +838,21 @@ export const ApartmentDetailModal = ({
                   </div>
 
                   {/* Quick Percentage Selector Pills (12 options) */}
-                  <div className="space-y-1.5">
-                    <div className="flex items-center justify-between">
-                      <span className="text-[11px] font-bold text-slate-600 uppercase tracking-wider">
-                        Выберите % первоначального взноса:
+                  <div className="space-y-1">
+                    <div className="flex items-center justify-between text-[11px]">
+                      <span className="font-bold text-slate-600 uppercase tracking-wider text-[10px]">
+                        ВЫБЕРИТЕ % ПЕРВОНАЧАЛЬНОГО ВЗНОСА:
                       </span>
-                      <span className="text-[11px] font-bold text-indigo-600">
+                      <span className="font-bold text-indigo-600">
                         {activeTier.percent === 0
-                          ? '0% (Без первоначального взноса)'
+                          ? '0% (Без взноса)'
                           : activeTier.percent === 100
                           ? '⭐ 100% Оплата (Максимальная выгода)'
                           : `Выбран взнос: ${activeTier.percent}% (Скидка -${activeTier.discountPerM2}$/м²)`}
                       </span>
                     </div>
 
-                    <div className="grid grid-cols-4 sm:grid-cols-6 md:grid-cols-12 gap-1.5">
+                    <div className="grid grid-cols-6 sm:grid-cols-12 gap-1">
                       {ladderTiers.map((tier) => {
                         const isSelected = tier.percent === selectedLadderPercent;
                         const isZero = tier.percent === 0;
@@ -862,9 +862,9 @@ export const ApartmentDetailModal = ({
                             key={tier.percent}
                             type="button"
                             onClick={() => setSelectedLadderPercent(tier.percent)}
-                            className={`py-2 px-1 rounded-xl text-center font-black transition cursor-pointer border flex flex-col items-center justify-center ${
+                            className={`py-1.5 px-0.5 rounded-lg text-center font-black transition cursor-pointer border flex flex-col items-center justify-center ${
                               isSelected
-                                ? 'bg-indigo-600 text-white border-indigo-700 shadow-md scale-105 z-10 ring-2 ring-indigo-300'
+                                ? 'bg-indigo-600 text-white border-indigo-700 shadow-sm scale-105 z-10 ring-2 ring-indigo-300'
                                 : isFull
                                 ? 'bg-emerald-50 text-emerald-800 border-emerald-300 hover:bg-emerald-100'
                                 : isZero
@@ -872,8 +872,8 @@ export const ApartmentDetailModal = ({
                                 : 'bg-white text-slate-700 border-slate-200 hover:bg-indigo-50/50 hover:border-indigo-200'
                             }`}
                           >
-                            <span className="text-xs">{tier.percent}%</span>
-                            <span className={`text-[9px] font-bold mt-0.5 ${
+                            <span className="text-[11px] leading-tight">{tier.percent}%</span>
+                            <span className={`text-[8px] font-bold ${
                               isSelected
                                 ? 'text-indigo-200'
                                 : isFull
@@ -891,227 +891,225 @@ export const ApartmentDetailModal = ({
                   </div>
 
                   {/* Active Selected Tier Highlight Cards */}
-                  <div className="rounded-2xl border-2 border-indigo-200/80 bg-white p-4 shadow-sm grid grid-cols-2 sm:grid-cols-4 gap-3">
-                    {/* CARD 1: ВЫГОДА ПОКУПАТЕЛЯ / ЭКОНОМИЯ (БОЛЬШИМИ ЦИФРАМИ) */}
-                    <div className={`rounded-2xl p-3 border shadow-2xs flex flex-col justify-between ${
+                  <div className="rounded-xl border border-indigo-200/80 bg-white p-3 shadow-2xs grid grid-cols-2 sm:grid-cols-4 gap-2.5">
+                    {/* CARD 1: ВЫГОДА ПОКУПАТЕЛЯ */}
+                    <div className={`rounded-xl p-2.5 border shadow-2xs flex flex-col justify-between ${
                       activeTier.percent > 0
-                        ? 'bg-gradient-to-br from-emerald-50 via-emerald-100/60 to-emerald-50 border-emerald-300 ring-2 ring-emerald-400/30'
+                        ? 'bg-gradient-to-br from-emerald-50 via-emerald-100/50 to-emerald-50 border-emerald-300 ring-2 ring-emerald-400/20'
                         : 'bg-slate-50 border-slate-200'
                     }`}>
-                      <span className="text-[10px] font-black uppercase tracking-wider block text-emerald-800">
+                      <span className="text-[9px] font-black uppercase tracking-wider block text-emerald-800">
                         {activeTier.percent > 0 ? '🔥 Выгода покупателя' : 'Выгода покупателя'}
                       </span>
-                      <div className={`text-base sm:text-lg font-black tracking-tight mt-1 ${
+                      <div className={`text-sm sm:text-base font-black tracking-tight mt-0.5 ${
                         activeTier.percent > 0 ? 'text-emerald-700' : 'text-slate-700'
                       }`}>
                         {activeTier.percent > 0
                           ? `+${activeTier.discountTotal.toLocaleString()} ${projectCurrency}`
                           : `0 ${projectCurrency}`}
                       </div>
-                      <div className={`text-[10px] font-bold mt-1 ${
+                      <div className={`text-[9px] font-bold mt-0.5 ${
                         activeTier.percent > 0 ? 'text-emerald-700' : 'text-slate-400'
                       }`}>
                         {activeTier.percent > 0
                           ? `Скидка -${activeTier.discountPerM2} $/м² (–${activeTier.savingPercent}%)`
-                          : 'Базовая цена (0% скидки)'}
+                          : 'Базовая цена (0%)'}
                       </div>
                     </div>
 
                     {/* CARD 2: ЦЕНА ЗА 1 М² */}
-                    <div className="rounded-2xl bg-slate-50 p-3 border border-slate-200/80 shadow-2xs flex flex-col justify-between">
-                      <span className="text-[10px] font-black text-slate-500 uppercase tracking-wider block">Цена за 1 м²</span>
-                      <div className="text-base sm:text-lg font-black text-indigo-950 mt-1">
+                    <div className="rounded-xl bg-slate-50 p-2.5 border border-slate-200/80 shadow-2xs flex flex-col justify-between">
+                      <span className="text-[9px] font-black text-slate-500 uppercase tracking-wider block">Цена за 1 м²</span>
+                      <div className="text-sm sm:text-base font-black text-indigo-950 mt-0.5">
                         {activeTier.tieredPricePerM2.toLocaleString()} {projectCurrency}/м²
                       </div>
-                      <div className="text-[10px] text-slate-400 font-semibold mt-1">
+                      <div className="text-[9px] text-slate-400 font-semibold mt-0.5">
                         (Базовая: {basePricePerM2} {projectCurrency})
                       </div>
                     </div>
 
                     {/* CARD 3: ПЕРВЫЙ ВЗНОС */}
-                    <div className="rounded-2xl bg-emerald-50/70 p-3 border border-emerald-200 shadow-2xs flex flex-col justify-between">
-                      <span className="text-[10px] font-black text-emerald-800 uppercase tracking-wider block">
+                    <div className="rounded-xl bg-emerald-50/70 p-2.5 border border-emerald-200 shadow-2xs flex flex-col justify-between">
+                      <span className="text-[9px] font-black text-emerald-800 uppercase tracking-wider block">
                         Первый взнос ({activeTier.percent}%)
                       </span>
-                      <div className="text-base sm:text-lg font-black text-emerald-800 mt-1">
+                      <div className="text-sm sm:text-base font-black text-emerald-800 mt-0.5">
                         {activeTier.downPayment.toLocaleString()} {projectCurrency}
                       </div>
-                      <div className="text-[10px] text-emerald-700 font-semibold mt-1">
+                      <div className="text-[9px] text-emerald-700 font-semibold mt-0.5">
                         {activeTier.percent === 100
-                          ? 'Полная оплата договора'
+                          ? '100% оплата'
                           : activeTier.percent === 0
-                          ? '100% суммы в рассрочку'
+                          ? '100% в рассрочку'
                           : `Остаток: ${activeTier.remaining.toLocaleString()} ${projectCurrency}`}
                       </div>
                     </div>
 
                     {/* CARD 4: ИТОГОВАЯ СТОИМОСТЬ */}
-                    <div className="rounded-2xl bg-blue-50/80 p-3 border border-blue-200 shadow-2xs flex flex-col justify-between">
-                      <span className="text-[10px] font-black text-blue-900 uppercase tracking-wider block">Итоговая стоимость</span>
-                      <div className="text-base sm:text-lg font-black text-blue-950 mt-1">
+                    <div className="rounded-xl bg-blue-50/80 p-2.5 border border-blue-200 shadow-2xs flex flex-col justify-between">
+                      <span className="text-[9px] font-black text-blue-900 uppercase tracking-wider block">Итоговая стоимость</span>
+                      <div className="text-sm sm:text-base font-black text-blue-950 mt-0.5">
                         {activeTier.totalTierPrice.toLocaleString()} {projectCurrency}
                       </div>
-                      <div className="text-[10px] text-blue-700 font-semibold mt-1">
+                      <div className="text-[9px] text-blue-700 font-semibold mt-0.5">
                         {areaM2} м² × {activeTier.tieredPricePerM2} {projectCurrency}
                       </div>
                     </div>
                   </div>
 
-                  {/* Toggle Detailed Comparison Table with Customer Savings */}
-                  <div className="pt-1">
-                    <button
-                      type="button"
-                      onClick={() => setShowFullLadderTable(!showFullLadderTable)}
-                      className="text-xs font-bold text-indigo-700 hover:text-indigo-900 flex items-center gap-1 cursor-pointer"
-                    >
-                      {showFullLadderTable ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
-                      <span>
-                        {showFullLadderTable
-                          ? 'Скрыть подробную таблицу всех вариантов'
-                          : 'Показать сравнительную таблицу всех 12 вариантов с расчетом выгоды покупателя'}
-                      </span>
-                    </button>
-
-                    {showFullLadderTable && (
-                      <div className="mt-2.5 overflow-x-auto rounded-2xl border border-slate-200 bg-white shadow-xs">
-                        <table className="w-full text-left text-xs">
-                          <thead className="bg-slate-50 border-b border-slate-200 text-slate-600 font-bold uppercase text-[10px]">
-                            <tr>
-                              <th className="py-2.5 px-3">Взнос</th>
-                              <th className="py-2.5 px-2">Скидка / м²</th>
-                              <th className="py-2.5 px-2">Цена за м²</th>
-                              <th className="py-2.5 px-2.5">1-й взнос</th>
-                              <th className="py-2.5 px-2.5">Итоговая цена</th>
-                              <th className="py-2.5 px-2.5 text-emerald-800 bg-emerald-50/60 font-black">
-                                Выгода покупателя (Экономия)
-                              </th>
-                              <th className="py-2.5 px-2 text-slate-500">Рассрочка на 12 мес</th>
-                              <th className="py-2.5 px-2.5 text-right">Действие</th>
-                            </tr>
-                          </thead>
-                          <tbody className="divide-y divide-slate-100 font-medium">
-                            {ladderTiers.map((tier) => {
-                              const isCurrent = tier.percent === selectedLadderPercent;
-                              const isZero = tier.percent === 0;
-                              const isFull = tier.percent === 100;
-                              return (
-                                <tr
-                                  key={tier.percent}
-                                  onClick={() => setSelectedLadderPercent(tier.percent)}
-                                  className={`cursor-pointer transition ${
-                                    isCurrent ? 'bg-indigo-50/80 font-bold text-indigo-950' : 'hover:bg-slate-50'
-                                  }`}
-                                >
-                                  <td className="py-2.5 px-3">
-                                    <span className={`px-2 py-0.5 rounded-md text-[11px] font-black ${
-                                      isFull
-                                        ? 'bg-emerald-100 text-emerald-800'
-                                        : isZero
-                                        ? 'bg-slate-100 text-slate-700'
-                                        : 'bg-indigo-50 text-indigo-800'
-                                    }`}>
-                                      {tier.percent}% {isZero ? '(Без взноса)' : isFull ? '(Полная)' : ''}
-                                    </span>
-                                  </td>
-                                  <td className="py-2.5 px-2 text-emerald-600 font-bold">
-                                    {isZero ? '0' : `-${tier.discountPerM2}`} {projectCurrency}
-                                  </td>
-                                  <td className="py-2.5 px-2 font-bold text-slate-900">
-                                    {tier.tieredPricePerM2} {projectCurrency}
-                                  </td>
-                                  <td className="py-2.5 px-2.5 font-bold text-emerald-700">
-                                    {tier.downPayment.toLocaleString()} {projectCurrency}
-                                  </td>
-                                  <td className="py-2.5 px-2.5 font-black text-slate-900">
-                                    {tier.totalTierPrice.toLocaleString()} {projectCurrency}
-                                  </td>
-                                  {/* CUSTOMER SAVINGS / BENEFIT COLUMN */}
-                                  <td className="py-2.5 px-2.5 bg-emerald-50/40">
-                                    {isZero ? (
-                                      <span className="text-slate-400 font-semibold text-[11px]">
-                                        Стартовая цена (0%)
-                                      </span>
-                                    ) : (
-                                      <div className="flex items-center gap-1.5">
-                                        <span className="px-2 py-0.5 rounded-md bg-emerald-100 text-emerald-800 font-black text-xs">
-                                          +{tier.discountTotal.toLocaleString()} {projectCurrency}
-                                        </span>
-                                        <span className="text-[10px] text-emerald-700 font-bold">
-                                          (–{tier.savingPercent}%)
-                                        </span>
-                                      </div>
-                                    )}
-                                  </td>
-                                  <td className="py-2.5 px-2 text-slate-600 text-[11px]">
-                                    {isFull ? '—' : `${tier.monthly12.toLocaleString()} ${projectCurrency}/мес`}
-                                  </td>
-                                  <td className="py-2.5 px-2.5 text-right">
-                                    <button
-                                      type="button"
-                                      onClick={(e) => {
-                                        e.stopPropagation();
-                                        setSelectedLadderPercent(tier.percent);
-                                        setIsDealWizardOpen(true);
-                                      }}
-                                      className="px-2.5 py-1 rounded-lg bg-indigo-600 text-white text-[10px] font-bold hover:bg-indigo-700 transition cursor-pointer shadow-2xs"
-                                    >
-                                      Оформить
-                                    </button>
-                                  </td>
-                                </tr>
-                              );
-                            })}
-                          </tbody>
-                        </table>
-                      </div>
-                    )}
-                  </div>
-
-                  {/* Main Action Buttons */}
-                  <div className="flex flex-wrap items-center justify-between gap-3 pt-3 border-t border-indigo-100">
-                    <div className="flex items-center gap-2">
-                      <button
-                        type="button"
-                        onClick={() => setIsReserveModalOpen(true)}
-                        className="flex items-center gap-2 rounded-xl bg-gradient-to-r from-amber-500 to-orange-600 px-4 py-2.5 text-xs font-bold text-white shadow-md shadow-amber-500/20 hover:from-amber-600 hover:to-orange-700 transition cursor-pointer"
-                      >
-                        <Clock className="h-4 w-4" />
-                        <span>Забронировать квартиру</span>
-                      </button>
-
-                      {user?.role === 'ADMIN' && (
+                  {/* Main Action Buttons & Comparative Table Accordion */}
+                  <div className="space-y-2">
+                    <div className="flex flex-wrap items-center justify-between gap-2 pt-2 border-t border-indigo-100">
+                      <div className="flex items-center gap-2">
                         <button
                           type="button"
-                          onClick={handleToggleBlock}
-                          disabled={isUpdatingStatus}
-                          className="flex items-center gap-1.5 rounded-xl border border-slate-300 bg-white px-3 py-2.5 text-xs font-bold text-slate-700 hover:bg-slate-50 transition cursor-pointer"
+                          onClick={() => setIsReserveModalOpen(true)}
+                          className="flex items-center gap-1.5 rounded-xl bg-gradient-to-r from-amber-500 to-orange-600 px-3.5 py-2 text-xs font-bold text-white shadow-xs hover:from-amber-600 hover:to-orange-700 transition cursor-pointer"
                         >
-                          {unit.status === 'BLOCKED' ? (
-                            <>
-                              <Unlock className="h-4 w-4 text-emerald-600" />
-                              <span>Разблокировать</span>
-                            </>
-                          ) : (
-                            <>
-                              <Lock className="h-4 w-4 text-slate-500" />
-                              <span>Заблокировать</span>
-                            </>
-                          )}
+                          <Clock className="h-3.5 w-3.5" />
+                          <span>Забронировать</span>
                         </button>
-                      )}
+
+                        {user?.role === 'ADMIN' && (
+                          <button
+                            type="button"
+                            onClick={handleToggleBlock}
+                            disabled={isUpdatingStatus}
+                            className="flex items-center gap-1 rounded-xl border border-slate-300 bg-white px-2.5 py-2 text-xs font-bold text-slate-700 hover:bg-slate-50 transition cursor-pointer"
+                          >
+                            {unit.status === 'BLOCKED' ? (
+                              <>
+                                <Unlock className="h-3.5 w-3.5 text-emerald-600" />
+                                <span>Разблокировать</span>
+                              </>
+                            ) : (
+                              <>
+                                <Lock className="h-3.5 w-3.5 text-slate-500" />
+                                <span>Заблокировать</span>
+                              </>
+                            )}
+                          </button>
+                        )}
+                      </div>
+
+                      <button
+                        type="button"
+                        onClick={() => setIsDealWizardOpen(true)}
+                        className="flex items-center gap-2 rounded-xl bg-gradient-to-r from-blue-600 via-indigo-600 to-indigo-700 px-5 py-2 text-xs font-black text-white shadow-md shadow-indigo-600/25 hover:from-blue-700 hover:to-indigo-800 transition cursor-pointer"
+                      >
+                        <Plus className="h-4 w-4" />
+                        <span>
+                          Оформить сделку ({activeTier.percent}% взнос • {activeTier.tieredPricePerM2} $/м²
+                          {activeTier.percent > 0 ? ` • Выгода: +${activeTier.discountTotal.toLocaleString()} $` : ''})
+                        </span>
+                      </button>
                     </div>
 
-                    <button
-                      type="button"
-                      onClick={() => setIsDealWizardOpen(true)}
-                      className="flex items-center gap-2 rounded-xl bg-gradient-to-r from-blue-600 via-indigo-600 to-indigo-700 px-6 py-2.5 text-xs font-black text-white shadow-lg shadow-indigo-600/30 hover:from-blue-700 hover:to-indigo-800 transition cursor-pointer"
-                    >
-                      <Plus className="h-4 w-4" />
-                      <span>
-                        Оформить сделку ({activeTier.percent}% взнос • {activeTier.tieredPricePerM2} $/м²
-                        {activeTier.percent > 0 ? ` • Экономия: +${activeTier.discountTotal.toLocaleString()} $` : ''})
-                      </span>
-                    </button>
+                    {/* Toggle Detailed Comparison Table */}
+                    <div className="pt-0.5">
+                      <button
+                        type="button"
+                        onClick={() => setShowFullLadderTable(!showFullLadderTable)}
+                        className="text-[11px] font-bold text-indigo-700 hover:text-indigo-900 flex items-center gap-1 cursor-pointer"
+                      >
+                        {showFullLadderTable ? <ChevronUp className="h-3.5 w-3.5" /> : <ChevronDown className="h-3.5 w-3.5" />}
+                        <span>
+                          {showFullLadderTable
+                            ? 'Скрыть таблицу всех вариантов'
+                            : 'Показать сравнительную таблицу всех 12 вариантов с расчетом выгоды'}
+                        </span>
+                      </button>
+
+                      {showFullLadderTable && (
+                        <div className="mt-2 max-h-48 overflow-y-auto rounded-xl border border-slate-200 bg-white shadow-xs">
+                          <table className="w-full text-left text-[11px]">
+                            <thead className="bg-slate-50 border-b border-slate-200 text-slate-600 font-bold uppercase text-[9px] sticky top-0">
+                              <tr>
+                                <th className="py-2 px-2.5">Взнос</th>
+                                <th className="py-2 px-2">Скидка/м²</th>
+                                <th className="py-2 px-2">Цена за м²</th>
+                                <th className="py-2 px-2">1-й взнос</th>
+                                <th className="py-2 px-2">Итоговая цена</th>
+                                <th className="py-2 px-2 text-emerald-800 bg-emerald-50/60 font-black">
+                                  Выгода (Экономия)
+                                </th>
+                                <th className="py-2 px-2 text-slate-500">12 мес</th>
+                                <th className="py-2 px-2 text-right">Действие</th>
+                              </tr>
+                            </thead>
+                            <tbody className="divide-y divide-slate-100 font-medium">
+                              {ladderTiers.map((tier) => {
+                                const isCurrent = tier.percent === selectedLadderPercent;
+                                const isZero = tier.percent === 0;
+                                const isFull = tier.percent === 100;
+                                return (
+                                  <tr
+                                    key={tier.percent}
+                                    onClick={() => setSelectedLadderPercent(tier.percent)}
+                                    className={`cursor-pointer transition ${
+                                      isCurrent ? 'bg-indigo-50/80 font-bold text-indigo-950' : 'hover:bg-slate-50'
+                                    }`}
+                                  >
+                                    <td className="py-1.5 px-2.5">
+                                      <span className={`px-1.5 py-0.2 rounded text-[10px] font-black ${
+                                        isFull
+                                          ? 'bg-emerald-100 text-emerald-800'
+                                          : isZero
+                                          ? 'bg-slate-100 text-slate-700'
+                                          : 'bg-indigo-50 text-indigo-800'
+                                      }`}>
+                                        {tier.percent}%
+                                      </span>
+                                    </td>
+                                    <td className="py-1.5 px-2 text-emerald-600 font-bold">
+                                      {isZero ? '0' : `-${tier.discountPerM2}`} {projectCurrency}
+                                    </td>
+                                    <td className="py-1.5 px-2 font-bold text-slate-900">
+                                      {tier.tieredPricePerM2} {projectCurrency}
+                                    </td>
+                                    <td className="py-1.5 px-2 font-bold text-emerald-700">
+                                      {tier.downPayment.toLocaleString()} {projectCurrency}
+                                    </td>
+                                    <td className="py-1.5 px-2 font-black text-slate-900">
+                                      {tier.totalTierPrice.toLocaleString()} {projectCurrency}
+                                    </td>
+                                    <td className="py-1.5 px-2 bg-emerald-50/40">
+                                      {isZero ? (
+                                        <span className="text-slate-400 font-semibold text-[10px]">
+                                          0%
+                                        </span>
+                                      ) : (
+                                        <div className="flex items-center gap-1">
+                                          <span className="px-1.5 py-0.2 rounded bg-emerald-100 text-emerald-800 font-black text-[10px]">
+                                            +{tier.discountTotal.toLocaleString()} {projectCurrency}
+                                          </span>
+                                        </div>
+                                      )}
+                                    </td>
+                                    <td className="py-1.5 px-2 text-slate-600 text-[10px]">
+                                      {isFull ? '—' : `${tier.monthly12.toLocaleString()} $/м`}
+                                    </td>
+                                    <td className="py-1.5 px-2 text-right">
+                                      <button
+                                        type="button"
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+                                          setSelectedLadderPercent(tier.percent);
+                                          setIsDealWizardOpen(true);
+                                        }}
+                                        className="px-2 py-0.5 rounded bg-indigo-600 text-white text-[9px] font-bold hover:bg-indigo-700 transition cursor-pointer"
+                                      >
+                                        Выбрать
+                                      </button>
+                                    </td>
+                                  </tr>
+                                );
+                              })}
+                            </tbody>
+                          </table>
+                        </div>
+                      )}
+                    </div>
                   </div>
                 </div>
               </div>
