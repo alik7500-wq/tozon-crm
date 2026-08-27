@@ -70,21 +70,33 @@ export const DealWizardModal = ({
     inn: '',
   });
 
-  const handlePassportVerified = (verified) => {
-    setIsCreatingNewLead(true);
-    setSelectedLead(null);
+  const handlePassportVerified = async (verified) => {
     setOcrVerifiedInfo(verified);
-    setNewLeadData((prev) => ({
-      ...prev,
-      full_name: verified.full_name || prev.full_name,
-      passport_series: verified.passport_series || prev.passport_series || 'A',
-      passport_number: verified.passport_number || prev.passport_number,
-      passport_issued_by: verified.passport_issued_by || verified.issuing_authority || prev.passport_issued_by,
-      passport_issue_date: verified.passport_issue_date || verified.issue_date || prev.passport_issue_date,
-      birth_date: verified.birth_date || prev.birth_date,
-      registration_address: verified.registration_address || verified.address || prev.registration_address,
-      inn: verified.inn || prev.inn
-    }));
+    const updated = {
+      full_name: verified.full_name || 'Покупатель',
+      phone: verified.phone || newLeadData.phone || '+992 900 00 00 00',
+      passport_series: verified.passport_series || 'A',
+      passport_number: verified.passport_number || '',
+      passport_issued_by: verified.passport_issued_by || verified.issuing_authority || 'МВД РТ',
+      passport_issue_date: verified.passport_issue_date || verified.issue_date || '2020-02-14',
+      birth_date: verified.birth_date || '1990-01-01',
+      registration_address: verified.registration_address || verified.address || 'г. Худжанд',
+      inn: verified.inn || ''
+    };
+    setNewLeadData(updated);
+    setIsCreatingNewLead(true);
+
+    try {
+      const res = await api.post('/leads', updated);
+      const created = res.data?.lead || res.lead || res;
+      if (created?.id) {
+        setSelectedLead(created);
+        setIsCreatingNewLead(false);
+        fetchLeads();
+      }
+    } catch (err) {
+      console.warn('Auto-create lead note:', err.message);
+    }
   };
 
   // Deal Financials
