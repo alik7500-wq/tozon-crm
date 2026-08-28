@@ -1,9 +1,15 @@
 import React, { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { api } from '../../api/client';
 import { financeApi } from '../../api/finance.api';
 import { useModalDismiss } from '../../hooks/useModalDismiss';
 import { FinanceTabs } from '../../components/FinanceTabs';
 import { useAuth } from '../auth/AuthContext';
+import { 
+  DEFAULT_CASH_DESKS, 
+  extractCashDeskFromComment, 
+  updateCommentWithCashDesk 
+} from '../../utils/cashDesks';
 import { 
   Wallet, TrendingUp, TrendingDown, RefreshCw, Calendar, ArrowUpRight, 
   ArrowDownRight, FileText, Search, CreditCard, Filter, ArrowRightLeft,
@@ -27,6 +33,25 @@ export const CashflowPage = () => {
   const [editingItem, setEditingItem] = useState(null);
 
   const queryClient = useQueryClient();
+
+  const { data: usersList = [] } = useQuery({
+    queryKey: ['users-for-cashflow-desks'],
+    queryFn: async () => {
+      const res = await api.get('/users');
+      return res.data?.users || res.users || [];
+    }
+  });
+
+  const allCashDesks = [
+    ...DEFAULT_CASH_DESKS,
+    ...usersList
+      .filter(u => u.role === 'SALES_MANAGER' || u.role === 'MANAGER' || u.role === 'DIRECTOR')
+      .map(u => ({
+        id: `USER_${u.id}`,
+        name: `Касса Менеджера: ${u.name}`,
+        icon: '💼'
+      }))
+  ];
 
   const { data: eskhataRateData } = useQuery({
     queryKey: ['eskhata-rate'],
@@ -168,6 +193,8 @@ export const CashflowPage = () => {
   };
 
   const handleEditClick = (t) => {
+    const isIncome = t.type === 'INCOME';
+    const desk = isIncome ? (extractCashDeskFromComment(t.comment) || 'Главная касса компании (Бухгалтерия)') : '';
     setEditingItem({
       id: t.rawId,
       type: t.type,
@@ -177,6 +204,7 @@ export const CashflowPage = () => {
       method: t.method || 'CASH',
       reference: t.reference || '',
       comment: t.comment || '',
+      cash_desk: desk,
       category: t.category || 'Прочее',
       recipient: t.counterparty || '',
       payer_name: t.counterparty || ''
@@ -832,6 +860,49 @@ export const CashflowPage = () => {
                 </div>
               )}
 
+              {/* Выбор кассы для ПКО */}
+              {editingItem.type === 'INCOME' && (
+                <div>
+                  <label className="block font-bold text-slate-700 mb-1 flex items-center justify-between">
+                    <span className="flex items-center gap-1.5">
+                      <Wallet className="h-3.5 w-3.5 text-blue-600" />
+                      <span>Касса зачисления средств *</span>
+                    </span>
+                    {editingItem.cash_desk && (
+                      <span className="text-[10px] text-blue-600 font-bold bg-blue-50 px-2 py-0.5 rounded-md border border-blue-100">
+                        Выбрана касса
+                      </span>
+                    )}
+                  </label>
+                  <select
+                    value={editingItem.cash_desk || ''}
+                    onChange={(e) => {
+                      const newDesk = e.target.value;
+                      const updatedComment = updateCommentWithCashDesk(editingItem.comment, newDesk);
+                      setEditingItem({
+                        ...editingItem,
+                        cash_desk: newDesk,
+                        comment: updatedComment
+                      });
+                    }}
+                    className="w-full rounded-xl border border-slate-300 bg-slate-50 px-3 py-2 text-xs font-bold text-slate-800 outline-none focus:border-blue-500 focus:bg-white transition cursor-pointer"
+                  >
+                    {(() => {
+                      const customOption = editingItem.cash_desk && !allCashDesks.some(c => c.name === editingItem.cash_desk) ? [{
+                        id: 'CUSTOM_DESK',
+                        name: editingItem.cash_desk,
+                        icon: '🏷️'
+                      }] : [];
+                      return [...customOption, ...allCashDesks].map((c) => (
+                        <option key={c.id || c.name} value={c.name}>
+                          {c.icon} {c.name}
+                        </option>
+                      ));
+                    })()}
+                  </select>
+                </div>
+              )}
+
               <div>
                 <label className="block font-bold text-slate-700 mb-1">
                   {editingItem.type === 'INCOME' ? 'Плательщик / Клиент' : 'Получатель / Контрагент'}
@@ -855,8 +926,17 @@ export const CashflowPage = () => {
                 <textarea
                   rows="2"
                   value={editingItem.comment}
-                  onChange={e => setEditingItem({ ...editingItem, comment: e.target.value, description: e.target.value })}
-                  className="w-full rounded-xl border border-slate-300 bg-slate-50 px-3 py-1.5 outline-none resize-none"
+                  onChange={(e) => {
+                    const val = e.target.value;
+                    const parsedDesk = editingItem.type === 'INCOME' ? extractCashDeskFromComment(val) : '';
+                    setEditingItem({
+                      ...editingItem,
+                      comment: val,
+                      description: val,
+                      cash_desk: parsedDesk || editingItem.cash_desk
+                    });
+                  }}
+                  className="w-full rounded-xl border border-slate-300 bg-slate-50 px-3 py-1.5 outline-none resize-none font-medium text-slate-700"
                 />
               </div>
 
