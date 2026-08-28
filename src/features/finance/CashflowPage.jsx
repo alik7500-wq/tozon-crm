@@ -32,6 +32,7 @@ export const CashflowPage = () => {
   const [search, setSearch] = useState('');
   const [globalRate, setGlobalRate] = useState('9.27');
   const [showConvertModal, setShowConvertModal] = useState(false);
+  const [showAllDesks, setShowAllDesks] = useState(false);
   const [editingItem, setEditingItem] = useState(null);
 
   const queryClient = useQueryClient();
@@ -344,7 +345,7 @@ export const CashflowPage = () => {
               </p>
             </div>
 
-            {/* Cash desks breakdown pills - All Cash Desks with individual Balances */}
+            {/* Cash desks breakdown pills - Only Cash Desks with Active Balances */}
             <div className="mt-4 space-y-2 pt-2 border-t border-white/10">
               <div className="flex items-center justify-between gap-2">
                 <span className="text-[11px] font-bold text-indigo-200 uppercase tracking-wider flex items-center gap-1.5">
@@ -363,64 +364,65 @@ export const CashflowPage = () => {
               </div>
 
               <div className="flex items-center gap-2.5 flex-wrap text-xs">
-                {cashDesksListWithBalances.map((desk) => {
-                  const isFiltered = search.toLowerCase() === desk.name.toLowerCase();
-                  const hasUsd = Math.abs(desk.balanceUsd) > 0.001;
-                  const hasTjs = Math.abs(desk.balanceTjs) > 0.001;
-                  const hasRub = Math.abs(desk.balanceRub) > 0.001;
+                {cashDesksListWithBalances.filter(d => d.hasBalance).length === 0 ? (
+                  <div className="text-xs text-indigo-300/80 bg-white/5 px-3 py-1.5 rounded-xl border border-white/10">
+                    Во всех кассах остаток 0
+                  </div>
+                ) : (
+                  cashDesksListWithBalances
+                    .filter(d => d.hasBalance)
+                    .map((desk) => {
+                      const isFiltered = search.toLowerCase() === desk.name.toLowerCase();
+                      const hasUsd = Math.abs(desk.balanceUsd) > 0.001;
+                      const hasTjs = Math.abs(desk.balanceTjs) > 0.001;
+                      const hasRub = Math.abs(desk.balanceRub) > 0.001;
 
-                  return (
-                    <button
-                      key={desk.name}
-                      type="button"
-                      onClick={() => setSearch(isFiltered ? '' : desk.name)}
-                      className={`flex items-center gap-2 px-3.5 py-2 rounded-2xl border backdrop-blur-md transition cursor-pointer text-left ${
-                        isFiltered
-                          ? 'bg-white text-slate-900 border-white shadow-lg scale-105 ring-2 ring-amber-400'
-                          : desk.hasBalance
-                            ? 'bg-white/15 hover:bg-white/25 border-white/20 text-white shadow-sm'
-                            : 'bg-white/5 hover:bg-white/10 border-white/10 text-indigo-200/60'
-                      }`}
-                      title="Нажмите для фильтрации операций по этой кассе"
-                    >
-                      <span className="text-base">{desk.icon}</span>
-                      <div>
-                        <div className="flex items-center gap-1.5">
-                          <span className={`text-[11px] font-bold ${isFiltered ? 'text-slate-900' : 'text-indigo-100'}`}>
-                            {desk.displayName}
-                          </span>
-                          {isFiltered && (
-                            <span className="text-[9px] bg-blue-600 text-white px-1.5 py-0.2 rounded font-bold">
-                              выбрано
-                            </span>
-                          )}
-                        </div>
-                        <div className="flex items-center gap-2 font-mono font-black text-xs mt-0.5">
-                          {hasUsd && (
-                            <span className={isFiltered ? 'text-emerald-700' : 'text-emerald-300'}>
-                              ${desk.balanceUsd.toLocaleString('ru-RU', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                            </span>
-                          )}
-                          {hasTjs && (
-                            <span className={isFiltered ? 'text-blue-700' : 'text-amber-300'}>
-                              {desk.balanceTjs.toLocaleString('ru-RU', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} TJS
-                            </span>
-                          )}
-                          {hasRub && (
-                            <span className={isFiltered ? 'text-purple-700' : 'text-purple-300'}>
-                              {desk.balanceRub.toLocaleString('ru-RU', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ₽
-                            </span>
-                          )}
-                          {!hasUsd && !hasTjs && !hasRub && (
-                            <span className={isFiltered ? 'text-slate-400' : 'text-indigo-300/50 text-[11px]'}>
-                              0 $ / 0 TJS
-                            </span>
-                          )}
-                        </div>
-                      </div>
-                    </button>
-                  );
-                })}
+                      return (
+                        <button
+                          key={desk.name}
+                          type="button"
+                          onClick={() => setSearch(isFiltered ? '' : desk.name)}
+                          className={`flex items-center gap-2.5 px-3.5 py-2 rounded-2xl border backdrop-blur-md transition cursor-pointer text-left ${
+                            isFiltered
+                              ? 'bg-white text-slate-900 border-white shadow-lg scale-105 ring-2 ring-amber-400'
+                              : 'bg-white/15 hover:bg-white/25 border-white/20 text-white shadow-sm'
+                          }`}
+                          title="Нажмите для фильтрации операций по этой кассе"
+                        >
+                          <span className="text-base">{desk.icon}</span>
+                          <div>
+                            <div className="flex items-center gap-1.5">
+                              <span className={`text-[11px] font-bold ${isFiltered ? 'text-slate-900' : 'text-indigo-100'}`}>
+                                {desk.displayName}
+                              </span>
+                              {isFiltered && (
+                                <span className="text-[9px] bg-blue-600 text-white px-1.5 py-0.2 rounded font-bold">
+                                  выбрано
+                                </span>
+                              )}
+                            </div>
+                            <div className="flex items-center gap-2 font-mono font-black text-xs mt-0.5">
+                              {hasUsd && (
+                                <span className={isFiltered ? 'text-emerald-700' : 'text-emerald-300'}>
+                                  ${desk.balanceUsd.toLocaleString('ru-RU', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                                </span>
+                              )}
+                              {hasTjs && (
+                                <span className={isFiltered ? 'text-blue-700' : 'text-amber-300'}>
+                                  {desk.balanceTjs.toLocaleString('ru-RU', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} TJS
+                                </span>
+                              )}
+                              {hasRub && (
+                                <span className={isFiltered ? 'text-purple-700' : 'text-purple-300'}>
+                                  {desk.balanceRub.toLocaleString('ru-RU', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ₽
+                                </span>
+                              )}
+                            </div>
+                          </div>
+                        </button>
+                      );
+                    })
+                )}
               </div>
             </div>
           </div>
@@ -650,7 +652,7 @@ export const CashflowPage = () => {
 
       {/* Cash Desks Detailed Overview Section */}
       <div className="rounded-3xl bg-white border border-slate-200 p-6 shadow-2xs space-y-4">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-100 pb-4">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-100 pb-4">
           <div>
             <h3 className="text-base font-black text-slate-900 flex items-center gap-2">
               <Wallet className="h-5 w-5 text-blue-600" />
@@ -660,83 +662,111 @@ export const CashflowPage = () => {
               Текущие фактические средства в распоряжении бухгалтерии, руководства и менеджеров продаж
             </p>
           </div>
-          <div className="text-xs font-bold text-slate-500 bg-slate-50 px-3 py-1.5 rounded-xl border border-slate-200 self-start sm:self-auto">
-            Всего касс: <span className="text-slate-900 font-black">{cashDesksListWithBalances.length}</span>
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={() => setShowAllDesks(!showAllDesks)}
+              className="text-xs font-bold text-slate-600 hover:text-blue-600 bg-slate-50 hover:bg-slate-100 px-3 py-1.5 rounded-xl border border-slate-200 transition cursor-pointer"
+            >
+              {showAllDesks ? 'Скрыть кассы с нулевым остатком' : `Показать все кассы (${cashDesksListWithBalances.length})`}
+            </button>
+            <div className="text-xs font-bold text-emerald-700 bg-emerald-50 px-3 py-1.5 rounded-xl border border-emerald-100">
+              С остатком: <span className="font-black">{cashDesksListWithBalances.filter(d => d.hasBalance).length}</span>
+            </div>
           </div>
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-3.5">
-          {cashDesksListWithBalances.map((desk) => {
-            const isFiltered = search.toLowerCase() === desk.name.toLowerCase();
+        {(() => {
+          const displayedDesks = showAllDesks ? cashDesksListWithBalances : cashDesksListWithBalances.filter(d => d.hasBalance);
+          if (displayedDesks.length === 0) {
             return (
-              <div
-                key={desk.name}
-                className={`p-4 rounded-2xl border transition relative flex flex-col justify-between gap-3 ${
-                  isFiltered
-                    ? 'border-blue-500 bg-blue-50/50 shadow-md ring-2 ring-blue-500/20'
-                    : desk.hasBalance
-                      ? 'border-slate-200 bg-white hover:border-slate-300 hover:shadow-xs'
-                      : 'border-slate-100 bg-slate-50/60 opacity-85'
-                }`}
-              >
-                <div>
-                  <div className="flex items-center justify-between gap-2 mb-2">
-                    <span className="text-2xl">{desk.icon}</span>
-                    <span className={`text-[10px] font-extrabold px-2 py-0.5 rounded-md uppercase tracking-wider ${
-                      desk.hasBalance
-                        ? 'bg-emerald-50 text-emerald-700 border border-emerald-100'
-                        : 'bg-slate-100 text-slate-400'
-                    }`}>
-                      {desk.hasBalance ? 'Есть средства' : 'Пусто'}
-                    </span>
-                  </div>
-
-                  <h4 className="text-xs font-black text-slate-900 line-clamp-2 leading-tight">
-                    {desk.displayName}
-                  </h4>
-                </div>
-
-                <div className="space-y-1.5 pt-2 border-t border-slate-100">
-                  <div className="flex items-center justify-between text-xs font-mono">
-                    <span className="text-slate-400 font-sans text-[11px]">USD ($):</span>
-                    <span className={`font-black ${desk.balanceUsd > 0 ? 'text-emerald-600' : desk.balanceUsd < 0 ? 'text-rose-600' : 'text-slate-400'}`}>
-                      ${desk.balanceUsd.toLocaleString('ru-RU', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                    </span>
-                  </div>
-
-                  <div className="flex items-center justify-between text-xs font-mono">
-                    <span className="text-slate-400 font-sans text-[11px]">TJS (Сомони):</span>
-                    <span className={`font-black ${desk.balanceTjs > 0 ? 'text-blue-600' : desk.balanceTjs < 0 ? 'text-rose-600' : 'text-slate-400'}`}>
-                      {desk.balanceTjs.toLocaleString('ru-RU', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                    </span>
-                  </div>
-
-                  {desk.balanceRub !== 0 && (
-                    <div className="flex items-center justify-between text-xs font-mono">
-                      <span className="text-slate-400 font-sans text-[11px]">RUB (₽):</span>
-                      <span className="font-black text-purple-600">
-                        {desk.balanceRub.toLocaleString('ru-RU', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ₽
-                      </span>
-                    </div>
-                  )}
-                </div>
-
+              <div className="p-8 text-center text-slate-400 text-xs bg-slate-50 rounded-2xl border border-slate-100">
+                <p className="font-bold text-slate-600">Нет касс с ненулевым остатком</p>
                 <button
-                  type="button"
-                  onClick={() => setSearch(isFiltered ? '' : desk.name)}
-                  className={`w-full py-1.5 rounded-xl text-[11px] font-bold transition flex items-center justify-center gap-1.5 cursor-pointer ${
-                    isFiltered
-                      ? 'bg-blue-600 text-white shadow-xs'
-                      : 'bg-slate-100 hover:bg-slate-200 text-slate-700'
-                  }`}
+                  onClick={() => setShowAllDesks(true)}
+                  className="mt-2 text-blue-600 font-bold hover:underline cursor-pointer"
                 >
-                  <Search className="h-3 w-3" />
-                  <span>{isFiltered ? 'Сбросить фильтр' : 'Показать проводки'}</span>
+                  Показать все зарегистрированные кассы компании
                 </button>
               </div>
             );
-          })}
-        </div>
+          }
+
+          return (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-3.5">
+              {displayedDesks.map((desk) => {
+                const isFiltered = search.toLowerCase() === desk.name.toLowerCase();
+                return (
+                  <div
+                    key={desk.name}
+                    className={`p-4 rounded-2xl border transition relative flex flex-col justify-between gap-3 ${
+                      isFiltered
+                        ? 'border-blue-500 bg-blue-50/50 shadow-md ring-2 ring-blue-500/20'
+                        : desk.hasBalance
+                          ? 'border-slate-200 bg-white hover:border-slate-300 hover:shadow-xs'
+                          : 'border-slate-100 bg-slate-50/60 opacity-80'
+                    }`}
+                  >
+                    <div>
+                      <div className="flex items-center justify-between gap-2 mb-2">
+                        <span className="text-2xl">{desk.icon}</span>
+                        <span className={`text-[10px] font-extrabold px-2 py-0.5 rounded-md uppercase tracking-wider ${
+                          desk.hasBalance
+                            ? 'bg-emerald-50 text-emerald-700 border border-emerald-100'
+                            : 'bg-slate-100 text-slate-400'
+                        }`}>
+                          {desk.hasBalance ? 'Есть средства' : 'Пусто'}
+                        </span>
+                      </div>
+
+                      <h4 className="text-xs font-black text-slate-900 line-clamp-2 leading-tight">
+                        {desk.displayName}
+                      </h4>
+                    </div>
+
+                    <div className="space-y-1.5 pt-2 border-t border-slate-100">
+                      <div className="flex items-center justify-between text-xs font-mono">
+                        <span className="text-slate-400 font-sans text-[11px]">USD ($):</span>
+                        <span className={`font-black ${desk.balanceUsd > 0 ? 'text-emerald-600' : desk.balanceUsd < 0 ? 'text-rose-600' : 'text-slate-400'}`}>
+                          ${desk.balanceUsd.toLocaleString('ru-RU', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                        </span>
+                      </div>
+
+                      <div className="flex items-center justify-between text-xs font-mono">
+                        <span className="text-slate-400 font-sans text-[11px]">TJS (Сомони):</span>
+                        <span className={`font-black ${desk.balanceTjs > 0 ? 'text-blue-600' : desk.balanceTjs < 0 ? 'text-rose-600' : 'text-slate-400'}`}>
+                          {desk.balanceTjs.toLocaleString('ru-RU', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                        </span>
+                      </div>
+
+                      {desk.balanceRub !== 0 && (
+                        <div className="flex items-center justify-between text-xs font-mono">
+                          <span className="text-slate-400 font-sans text-[11px]">RUB (₽):</span>
+                          <span className="font-black text-purple-600">
+                            {desk.balanceRub.toLocaleString('ru-RU', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ₽
+                          </span>
+                        </div>
+                      )}
+                    </div>
+
+                    <button
+                      type="button"
+                      onClick={() => setSearch(isFiltered ? '' : desk.name)}
+                      className={`w-full py-1.5 rounded-xl text-[11px] font-bold transition flex items-center justify-center gap-1.5 cursor-pointer ${
+                        isFiltered
+                          ? 'bg-blue-600 text-white shadow-xs'
+                          : 'bg-slate-100 hover:bg-slate-200 text-slate-700'
+                      }`}
+                    >
+                      <Search className="h-3 w-3" />
+                      <span>{isFiltered ? 'Сбросить фильтр' : 'Показать проводки'}</span>
+                    </button>
+                  </div>
+                );
+              })}
+            </div>
+          );
+        })()}
       </div>
 
       {/* Filter and Currency Toolbar */}
