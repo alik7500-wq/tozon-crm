@@ -231,32 +231,81 @@ export const CashflowPage = () => {
     }
   };
 
+  const serverDesks = cashflowData.cashDesksSummary || [];
+  
+  // Объединяем со всеми кассами из allCashDesks
+  const cashDesksListWithBalances = allCashDesks.map(desk => {
+    const found = serverDesks.find(sd => sd.name.toLowerCase() === desk.name.toLowerCase());
+    return {
+      name: desk.name,
+      displayName: desk.name.replace(/^Касса Менеджера:\s*/i, 'Менеджер '),
+      icon: desk.icon || '🏢',
+      balanceUsd: found ? found.balanceUsd : 0,
+      balanceTjs: found ? found.balanceTjs : 0,
+      balanceRub: found ? found.balanceRub : 0,
+      totalIncomeUsd: found ? found.totalIncomeUsd : 0,
+      totalExpenseUsd: found ? found.totalExpenseUsd : 0,
+      totalIncomeTjs: found ? found.totalIncomeTjs : 0,
+      totalExpenseTjs: found ? found.totalExpenseTjs : 0,
+      hasBalance: found ? found.hasBalance : false
+    };
+  });
+
+  // Добавляем кассы из сервера, которых не было в allCashDesks
+  serverDesks.forEach(sd => {
+    if (!cashDesksListWithBalances.some(cd => cd.name.toLowerCase() === sd.name.toLowerCase())) {
+      cashDesksListWithBalances.push({
+        name: sd.name,
+        displayName: sd.name.replace(/^Касса Менеджера:\s*/i, 'Менеджер '),
+        icon: '💼',
+        balanceUsd: sd.balanceUsd,
+        balanceTjs: sd.balanceTjs,
+        balanceRub: sd.balanceRub || 0,
+        totalIncomeUsd: sd.totalIncomeUsd || 0,
+        totalExpenseUsd: sd.totalExpenseUsd || 0,
+        totalIncomeTjs: sd.totalIncomeTjs || 0,
+        totalExpenseTjs: sd.totalExpenseTjs || 0,
+        hasBalance: sd.hasBalance
+      });
+    }
+  });
+
+  // Calculate Consolidated Equivalent Balance
+  const totalUsdEquivalent = (summary.USD?.netCashflow || 0) + ((summary.TJS?.netCashflow || 0) / rateNum);
+  const totalTjsEquivalent = (summary.TJS?.netCashflow || 0) + ((summary.USD?.netCashflow || 0) * rateNum);
+
   return (
-    <div className="space-y-6 max-w-7xl mx-auto pb-16">
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+    <div className="space-y-6 animate-in fade-in duration-200">
+      {/* Header and Quick Navigation Tabs */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-extrabold text-slate-900 tracking-tight flex items-center gap-2.5">
-            <Wallet className="h-7 w-7 text-blue-600" />
-            <span>Движение денежных средств (ДДС)</span>
-          </h1>
-          <p className="mt-1 text-xs sm:text-sm text-slate-500">
-            Сводный баланс касс, чистый денежный поток, валютообмен и единый журнал кассовых операций
-          </p>
+          <div className="flex items-center gap-3">
+            <div className="p-2.5 rounded-2xl bg-blue-600 text-white shadow-md shadow-blue-500/20">
+              <Wallet className="h-6 w-6" />
+            </div>
+            <div>
+              <h1 className="text-xl font-black text-slate-900 tracking-tight flex items-center gap-2.5">
+                <span>Движение денежных средств (ДДС)</span>
+              </h1>
+              <p className="text-xs text-slate-500 font-medium mt-0.5">
+                Сводный баланс касс, чистый денежный поток, валютообмен и единый журнал кассовых операций
+              </p>
+            </div>
+          </div>
         </div>
 
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2 flex-wrap">
           <button
             onClick={() => refetch()}
-            title="Обновить"
-            className="p-2 rounded-xl bg-white border border-slate-200 text-slate-600 hover:text-blue-600 transition shadow-2xs cursor-pointer"
+            className="flex items-center gap-1.5 rounded-2xl border border-slate-200 bg-white px-3.5 py-2 text-xs font-bold text-slate-700 hover:bg-slate-50 transition shadow-2xs cursor-pointer"
+            title="Обновить данные"
           >
-            <RefreshCw className={`h-4 w-4 ${isLoading ? 'animate-spin' : ''}`} />
+            <RefreshCw className="h-3.5 w-3.5" />
           </button>
 
           <button
             onClick={() => setShowConvertModal(true)}
-            className="flex items-center gap-2 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 px-4 py-2.5 text-xs font-bold text-white shadow-md shadow-blue-600/20 hover:from-blue-700 hover:to-indigo-700 transition cursor-pointer"
+            className="flex items-center gap-2 rounded-2xl bg-blue-600 hover:bg-blue-700 px-4 py-2 text-xs font-bold text-white transition shadow-sm cursor-pointer"
           >
             <ArrowRightLeft className="h-4 w-4" />
             <span>Конвертация / Обмен валют</span>
@@ -264,63 +313,115 @@ export const CashflowPage = () => {
         </div>
       </div>
 
-      {/* Finance Navigation Tabs */}
+      {/* Tabs */}
       <FinanceTabs />
 
-      {/* Consolidated Equivalent Banner */}
-      <div className="rounded-3xl border border-indigo-100 bg-gradient-to-r from-slate-900 via-indigo-950 to-slate-900 text-white p-6 shadow-md relative overflow-hidden space-y-6">
-        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6 relative z-10">
-          <div>
-            <div className="flex items-center gap-2">
-              <span className="px-2.5 py-1 rounded-lg text-[10px] font-black uppercase tracking-wider bg-indigo-500/30 text-indigo-200 border border-indigo-400/30">
-                Сводный капитал компании (Фактический остаток средств)
+      {/* Main Consolidated KPI Hero Banner */}
+      <div className="relative overflow-hidden rounded-3xl bg-linear-to-br from-slate-950 via-indigo-950 to-slate-900 text-white p-6 md:p-8 shadow-xl border border-indigo-900/50">
+        <div className="relative z-10 flex flex-col md:flex-row md:items-start justify-between gap-6 pb-6">
+          <div className="space-y-3 max-w-2xl">
+            <div className="flex items-center gap-2.5 flex-wrap">
+              <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-black uppercase tracking-wider bg-indigo-500/20 text-indigo-200 border border-indigo-500/30 backdrop-blur-md">
+                СВОДНЫЙ КАПИТАЛ КОМПАНИИ (ФАКТИЧЕСКИЙ ОСТАТОК СРЕДСТВ)
               </span>
-              <div className="flex items-center gap-1.5 text-xs text-indigo-200">
-                <span className="font-semibold text-indigo-300">🏦 Курс Эсхата (Продажа): 1 USD =</span>
-                <input
-                  type="number"
-                  step="0.01"
-                  value={globalRate}
-                  onChange={e => setGlobalRate(e.target.value)}
-                  className="w-16 rounded-md border border-indigo-400/40 bg-white/10 px-1.5 py-0.5 text-xs font-black text-white outline-none text-center"
-                />
-                <span className="font-bold">TJS</span>
-              </div>
-            </div>
-
-            <div className="mt-3 flex items-baseline gap-3 flex-wrap">
-              <span className="text-3xl sm:text-4xl font-black text-white tracking-tight">
-                ${totalEquivalentInUsd.toLocaleString('ru-RU', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                <span className="text-lg font-bold text-indigo-300 ml-1.5">USD</span>
-              </span>
-              <span className="text-sm font-semibold text-indigo-200/80">
-                (≈ {totalEquivalentInTjs.toLocaleString('ru-RU', { minimumFractionDigits: 0, maximumFractionDigits: 2 })} сомони (TJS))
+              <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-semibold bg-white/10 text-white border border-white/10 backdrop-blur-md">
+                <span>🏦 Курс Эсхата (Продажа): 1 USD =</span>
+                <strong className="text-amber-300 font-black">{liveEskhataRate}</strong>
+                <span>TJS</span>
               </span>
             </div>
-            <p className="text-xs text-indigo-300/80 mt-1">
-              Фактический общий остаток денежных средств во всех кассах компании
-            </p>
 
-            {/* Cash desks breakdown pills */}
-            <div className="mt-3.5 flex items-center gap-2.5 flex-wrap text-xs">
-              <span className="text-[11px] font-bold text-indigo-300">Фактический остаток в кассах:</span>
-              <div className="flex items-center gap-1.5 bg-white/10 hover:bg-white/15 px-3 py-1.5 rounded-xl border border-white/15 backdrop-blur-xs transition">
-                <span>💵</span>
-                <span className="text-indigo-200 font-medium">Касса USD:</span>
-                <strong className="text-white font-black">${(summary.USD?.netCashflow || 0).toLocaleString('ru-RU', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</strong>
+            <div className="pt-1">
+              <div className="text-3xl sm:text-4xl lg:text-5xl font-black tracking-tight text-white flex items-baseline gap-2 flex-wrap">
+                <span>${totalUsdEquivalent.toLocaleString('ru-RU', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                <span className="text-xl font-bold text-indigo-300">USD</span>
+                <span className="text-base sm:text-lg font-bold text-indigo-200/90 ml-1">
+                  (≈ {totalTjsEquivalent.toLocaleString('ru-RU', { minimumFractionDigits: 1, maximumFractionDigits: 1 })} сомони (TJS))
+                </span>
               </div>
-              <div className="flex items-center gap-1.5 bg-white/10 hover:bg-white/15 px-3 py-1.5 rounded-xl border border-white/15 backdrop-blur-xs transition">
-                <span>🇹🇯</span>
-                <span className="text-indigo-200 font-medium">Касса TJS:</span>
-                <strong className="text-white font-black">{(summary.TJS?.netCashflow || 0).toLocaleString('ru-RU', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} сомони</strong>
+              <p className="text-xs text-indigo-300/80 mt-1">
+                Фактический общий остаток денежных средств во всех кассах компании
+              </p>
+            </div>
+
+            {/* Cash desks breakdown pills - All Cash Desks with individual Balances */}
+            <div className="mt-4 space-y-2 pt-2 border-t border-white/10">
+              <div className="flex items-center justify-between gap-2">
+                <span className="text-[11px] font-bold text-indigo-200 uppercase tracking-wider flex items-center gap-1.5">
+                  <Wallet className="h-3.5 w-3.5 text-amber-300" />
+                  <span>Фактический остаток в кассах (у кого сколько средств):</span>
+                </span>
+                {search && (
+                  <button
+                    onClick={() => setSearch('')}
+                    className="text-[10px] text-amber-300 hover:underline flex items-center gap-1 cursor-pointer"
+                  >
+                    <span>Сбросить фильтр кассы ({search})</span>
+                    <X className="h-3 w-3" />
+                  </button>
+                )}
               </div>
-              {summary.RUB && (summary.RUB?.netCashflow !== 0) && (
-                <div className="flex items-center gap-1.5 bg-white/10 hover:bg-white/15 px-3 py-1.5 rounded-xl border border-white/15 backdrop-blur-xs transition">
-                  <span>🇷🇺</span>
-                  <span className="text-indigo-200 font-medium">Касса RUB:</span>
-                  <strong className="text-white font-black">{(summary.RUB?.netCashflow || 0).toLocaleString('ru-RU', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ₽</strong>
-                </div>
-              )}
+
+              <div className="flex items-center gap-2.5 flex-wrap text-xs">
+                {cashDesksListWithBalances.map((desk) => {
+                  const isFiltered = search.toLowerCase() === desk.name.toLowerCase();
+                  const hasUsd = Math.abs(desk.balanceUsd) > 0.001;
+                  const hasTjs = Math.abs(desk.balanceTjs) > 0.001;
+                  const hasRub = Math.abs(desk.balanceRub) > 0.001;
+
+                  return (
+                    <button
+                      key={desk.name}
+                      type="button"
+                      onClick={() => setSearch(isFiltered ? '' : desk.name)}
+                      className={`flex items-center gap-2 px-3.5 py-2 rounded-2xl border backdrop-blur-md transition cursor-pointer text-left ${
+                        isFiltered
+                          ? 'bg-white text-slate-900 border-white shadow-lg scale-105 ring-2 ring-amber-400'
+                          : desk.hasBalance
+                            ? 'bg-white/15 hover:bg-white/25 border-white/20 text-white shadow-sm'
+                            : 'bg-white/5 hover:bg-white/10 border-white/10 text-indigo-200/60'
+                      }`}
+                      title="Нажмите для фильтрации операций по этой кассе"
+                    >
+                      <span className="text-base">{desk.icon}</span>
+                      <div>
+                        <div className="flex items-center gap-1.5">
+                          <span className={`text-[11px] font-bold ${isFiltered ? 'text-slate-900' : 'text-indigo-100'}`}>
+                            {desk.displayName}
+                          </span>
+                          {isFiltered && (
+                            <span className="text-[9px] bg-blue-600 text-white px-1.5 py-0.2 rounded font-bold">
+                              выбрано
+                            </span>
+                          )}
+                        </div>
+                        <div className="flex items-center gap-2 font-mono font-black text-xs mt-0.5">
+                          {hasUsd && (
+                            <span className={isFiltered ? 'text-emerald-700' : 'text-emerald-300'}>
+                              ${desk.balanceUsd.toLocaleString('ru-RU', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                            </span>
+                          )}
+                          {hasTjs && (
+                            <span className={isFiltered ? 'text-blue-700' : 'text-amber-300'}>
+                              {desk.balanceTjs.toLocaleString('ru-RU', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} TJS
+                            </span>
+                          )}
+                          {hasRub && (
+                            <span className={isFiltered ? 'text-purple-700' : 'text-purple-300'}>
+                              {desk.balanceRub.toLocaleString('ru-RU', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ₽
+                            </span>
+                          )}
+                          {!hasUsd && !hasTjs && !hasRub && (
+                            <span className={isFiltered ? 'text-slate-400' : 'text-indigo-300/50 text-[11px]'}>
+                              0 $ / 0 TJS
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                    </button>
+                  );
+                })}
+              </div>
             </div>
           </div>
 
@@ -544,6 +645,97 @@ export const CashflowPage = () => {
             <TrendingUp className="h-3 w-3" />
             <span>Сквозной кассовый учет</span>
           </div>
+        </div>
+      </div>
+
+      {/* Cash Desks Detailed Overview Section */}
+      <div className="rounded-3xl bg-white border border-slate-200 p-6 shadow-2xs space-y-4">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-100 pb-4">
+          <div>
+            <h3 className="text-base font-black text-slate-900 flex items-center gap-2">
+              <Wallet className="h-5 w-5 text-blue-600" />
+              <span>Остатки наличных средств по кассам и сотрудникам</span>
+            </h3>
+            <p className="text-xs text-slate-500 mt-0.5">
+              Текущие фактические средства в распоряжении бухгалтерии, руководства и менеджеров продаж
+            </p>
+          </div>
+          <div className="text-xs font-bold text-slate-500 bg-slate-50 px-3 py-1.5 rounded-xl border border-slate-200 self-start sm:self-auto">
+            Всего касс: <span className="text-slate-900 font-black">{cashDesksListWithBalances.length}</span>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-3.5">
+          {cashDesksListWithBalances.map((desk) => {
+            const isFiltered = search.toLowerCase() === desk.name.toLowerCase();
+            return (
+              <div
+                key={desk.name}
+                className={`p-4 rounded-2xl border transition relative flex flex-col justify-between gap-3 ${
+                  isFiltered
+                    ? 'border-blue-500 bg-blue-50/50 shadow-md ring-2 ring-blue-500/20'
+                    : desk.hasBalance
+                      ? 'border-slate-200 bg-white hover:border-slate-300 hover:shadow-xs'
+                      : 'border-slate-100 bg-slate-50/60 opacity-85'
+                }`}
+              >
+                <div>
+                  <div className="flex items-center justify-between gap-2 mb-2">
+                    <span className="text-2xl">{desk.icon}</span>
+                    <span className={`text-[10px] font-extrabold px-2 py-0.5 rounded-md uppercase tracking-wider ${
+                      desk.hasBalance
+                        ? 'bg-emerald-50 text-emerald-700 border border-emerald-100'
+                        : 'bg-slate-100 text-slate-400'
+                    }`}>
+                      {desk.hasBalance ? 'Есть средства' : 'Пусто'}
+                    </span>
+                  </div>
+
+                  <h4 className="text-xs font-black text-slate-900 line-clamp-2 leading-tight">
+                    {desk.displayName}
+                  </h4>
+                </div>
+
+                <div className="space-y-1.5 pt-2 border-t border-slate-100">
+                  <div className="flex items-center justify-between text-xs font-mono">
+                    <span className="text-slate-400 font-sans text-[11px]">USD ($):</span>
+                    <span className={`font-black ${desk.balanceUsd > 0 ? 'text-emerald-600' : desk.balanceUsd < 0 ? 'text-rose-600' : 'text-slate-400'}`}>
+                      ${desk.balanceUsd.toLocaleString('ru-RU', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                    </span>
+                  </div>
+
+                  <div className="flex items-center justify-between text-xs font-mono">
+                    <span className="text-slate-400 font-sans text-[11px]">TJS (Сомони):</span>
+                    <span className={`font-black ${desk.balanceTjs > 0 ? 'text-blue-600' : desk.balanceTjs < 0 ? 'text-rose-600' : 'text-slate-400'}`}>
+                      {desk.balanceTjs.toLocaleString('ru-RU', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                    </span>
+                  </div>
+
+                  {desk.balanceRub !== 0 && (
+                    <div className="flex items-center justify-between text-xs font-mono">
+                      <span className="text-slate-400 font-sans text-[11px]">RUB (₽):</span>
+                      <span className="font-black text-purple-600">
+                        {desk.balanceRub.toLocaleString('ru-RU', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ₽
+                      </span>
+                    </div>
+                  )}
+                </div>
+
+                <button
+                  type="button"
+                  onClick={() => setSearch(isFiltered ? '' : desk.name)}
+                  className={`w-full py-1.5 rounded-xl text-[11px] font-bold transition flex items-center justify-center gap-1.5 cursor-pointer ${
+                    isFiltered
+                      ? 'bg-blue-600 text-white shadow-xs'
+                      : 'bg-slate-100 hover:bg-slate-200 text-slate-700'
+                  }`}
+                >
+                  <Search className="h-3 w-3" />
+                  <span>{isFiltered ? 'Сбросить фильтр' : 'Показать проводки'}</span>
+                </button>
+              </div>
+            );
+          })}
         </div>
       </div>
 
