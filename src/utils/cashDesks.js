@@ -7,27 +7,17 @@ export const DEFAULT_CASH_DESKS = [
 ];
 
 /**
- * Собирает итоговый список касс на основе справочника из БД и списка пользователей
+ * Собирает список касс исключительно на основе справочника "Кассы компании" из Настроек
  */
-export const buildCashDesksList = (dictionaryItems = [], usersList = []) => {
-  const baseDesks = (dictionaryItems && dictionaryItems.length > 0)
-    ? dictionaryItems.map(d => ({
-        id: d.code || `CASH_DESK_${d.id}`,
-        name: d.name,
-        icon: d.icon || '🏢'
-      }))
-    : DEFAULT_CASH_DESKS;
-
-  const userDesks = (usersList || [])
-    .filter(u => u.role === 'SALES_MANAGER' || u.role === 'MANAGER' || u.role === 'DIRECTOR')
-    .map(u => ({
-      id: `USER_${u.id}`,
-      name: `Касса Менеджера: ${u.name}`,
-      icon: '💼'
-    }))
-    .filter(ud => !baseDesks.some(bd => bd.name.toLowerCase() === ud.name.toLowerCase()));
-
-  return [...baseDesks, ...userDesks];
+export const buildCashDesksList = (dictionaryItems = []) => {
+  if (dictionaryItems && dictionaryItems.length > 0) {
+    return dictionaryItems.map(d => ({
+      id: d.code || `CASH_DESK_${d.id}`,
+      name: d.name,
+      icon: d.icon || '🏢'
+    }));
+  }
+  return DEFAULT_CASH_DESKS;
 };
 
 /**

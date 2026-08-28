@@ -42,15 +42,7 @@ export const IncomePage = () => {
     queryFn: () => dictionariesApi.getItems('CASH_DESK')
   });
 
-  const { data: usersList = [] } = useQuery({
-    queryKey: ['users-for-cashdesks'],
-    queryFn: async () => {
-      const res = await api.get('/users');
-      return res.data?.users || res.users || [];
-    }
-  });
-
-  const allCashDesks = buildCashDesksList(cashDesksDict, usersList);
+  const allCashDesks = buildCashDesksList(cashDesksDict);
 
   const { data: paymentMethods = [] } = useQuery({
     queryKey: ['dictionaries', 'PAYMENT_METHOD'],

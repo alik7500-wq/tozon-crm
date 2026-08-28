@@ -7,6 +7,11 @@ import { ExpenseReceiptPrintModal } from './ExpenseReceiptPrintModal';
 import { FinanceTabs } from '../../components/FinanceTabs';
 import { useAuth } from '../auth/AuthContext';
 import { 
+  buildCashDesksList, 
+  extractCashDeskFromComment, 
+  updateCommentWithCashDesk 
+} from '../../utils/cashDesks';
+import { 
   TrendingDown, Plus, Search, Calendar, Tag, FileText, Wallet, RefreshCw,
   DollarSign, CheckCircle2, User, CreditCard, X, Edit, Trash2, Save, Printer
 } from 'lucide-react';
@@ -31,6 +36,13 @@ export const ExpensesPage = () => {
 
   const queryClient = useQueryClient();
 
+  const { data: cashDesksDict = [] } = useQuery({
+    queryKey: ['dictionaries', 'CASH_DESK'],
+    queryFn: () => dictionariesApi.getItems('CASH_DESK')
+  });
+
+  const allCashDesks = buildCashDesksList(cashDesksDict);
+
   const { data: expenseCategories = [] } = useQuery({
     queryKey: ['dictionaries', 'EXPENSE_CATEGORY'],
     queryFn: () => dictionariesApi.getItems('EXPENSE_CATEGORY')
@@ -54,6 +66,7 @@ export const ExpensesPage = () => {
     currency: 'TJS',
     date: dayjs().format('YYYY-MM-DD'),
     category: 'Строительные материалы',
+    cash_desk: 'Главная касса компании (Бухгалтерия)',
     method: 'CASH',
     reference: '',
     recipient: '',
@@ -63,6 +76,12 @@ export const ExpensesPage = () => {
     exchange_rate: '9.27',
     source_currency: 'USD'
   });
+
+  useEffect(() => {
+    if (allCashDesks.length > 0 && !formData.cash_desk) {
+      setFormData(prev => ({ ...prev, cash_desk: allCashDesks[0].name }));
+    }
+  }, [allCashDesks]);
 
   useEffect(() => {
     if (expenseCategories.length > 0 && !formData.category) {
@@ -167,7 +186,11 @@ export const ExpensesPage = () => {
   const handleSubmit = (e) => {
     e.preventDefault();
     if (!formData.amount || Number(formData.amount) <= 0) return;
-    addMutation.mutate(formData);
+    const finalDesc = updateCommentWithCashDesk(formData.description, formData.cash_desk);
+    addMutation.mutate({
+      ...formData,
+      description: finalDesc
+    });
   };
 
   return (
@@ -479,17 +502,21 @@ export const ExpensesPage = () => {
                       {isAdmin && (
                         <>
                           <button
-                            onClick={() => setEditingItem({
-                              id: item.id,
-                              amount: item.amount,
-                              currency: item.currency,
-                              date: item.date,
-                              method: item.method || 'CASH',
-                              category: item.category || 'Прочее',
-                              recipient: item.recipient || '',
-                              reference: item.reference || '',
-                              description: item.description || ''
-                            })}
+                            onClick={() => {
+                              const desk = extractCashDeskFromComment(item.description) || (allCashDesks[0]?.name || 'Главная касса компании (Бухгалтерия)');
+                              setEditingItem({
+                                id: item.id,
+                                amount: item.amount,
+                                currency: item.currency,
+                                date: item.date,
+                                method: item.method || 'CASH',
+                                category: item.category || 'Прочее',
+                                recipient: item.recipient || '',
+                                reference: item.reference || '',
+                                description: item.description || '',
+                                cash_desk: desk
+                              });
+                            }}
                             title="Редактировать РКО (Админ)"
                             className="p-1.5 rounded-lg text-slate-400 hover:text-blue-600 hover:bg-blue-50 transition cursor-pointer"
                           >
@@ -546,7 +573,11 @@ export const ExpensesPage = () => {
 
             <form onSubmit={(e) => {
               e.preventDefault();
-              updateMutation.mutate(editingItem);
+              const finalDesc = updateCommentWithCashDesk(editingItem.description, editingItem.cash_desk);
+              updateMutation.mutate({
+                ...editingItem,
+                description: finalDesc
+              });
             }} className="p-6 space-y-3.5 text-xs">
               <div className="grid grid-cols-3 gap-3">
                 <div className="col-span-2">
@@ -572,6 +603,34 @@ export const ExpensesPage = () => {
                     <option value="RUB">RUB</option>
                   </select>
                 </div>
+              </div>
+
+              <div>
+                <label className="block font-bold text-slate-700 mb-1 flex items-center justify-between">
+                  <span className="flex items-center gap-1.5">
+                    <Wallet className="h-3.5 w-3.5 text-rose-600" />
+                    <span>Касса списания средств *</span>
+                  </span>
+                </label>
+                <select
+                  value={editingItem.cash_desk || ''}
+                  onChange={(e) => {
+                    const newDesk = e.target.value;
+                    const updatedDesc = updateCommentWithCashDesk(editingItem.description, newDesk);
+                    setEditingItem({
+                      ...editingItem,
+                      cash_desk: newDesk,
+                      description: updatedDesc
+                    });
+                  }}
+                  className="w-full rounded-xl border border-slate-300 bg-slate-50 px-3 py-2 text-xs font-bold text-slate-800 outline-none focus:border-rose-500 focus:bg-white transition cursor-pointer"
+                >
+                  {allCashDesks.map((c) => (
+                    <option key={c.id || c.name} value={c.name}>
+                      {c.icon} {c.name}
+                    </option>
+                  ))}
+                </select>
               </div>
 
               <div className="grid grid-cols-2 gap-3">
@@ -716,6 +775,25 @@ export const ExpensesPage = () => {
                   >
                     {expenseCategories.map(cat => (
                       <option key={cat.id || cat.name} value={cat.name}>{cat.name}</option>
+                    ))}
+                  </select>
+                </div>
+
+                {/* Cash Desk */}
+                <div>
+                  <label className="block text-[11px] font-bold text-slate-700 mb-1 flex items-center gap-1">
+                    <Wallet className="h-3.5 w-3.5 text-rose-600" />
+                    <span>Касса списания средств *</span>
+                  </label>
+                  <select
+                    value={formData.cash_desk || ''}
+                    onChange={e => setFormData({ ...formData, cash_desk: e.target.value })}
+                    className="w-full rounded-xl border border-slate-300 bg-slate-50 px-3 py-1.5 text-xs font-bold text-slate-800 outline-none focus:border-rose-500 cursor-pointer"
+                  >
+                    {allCashDesks.map(c => (
+                      <option key={c.id || c.name} value={c.name}>
+                        {c.icon} {c.name}
+                      </option>
                     ))}
                   </select>
                 </div>
