@@ -2,11 +2,13 @@ import React, { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { api } from '../../api/client';
 import { financeApi } from '../../api/finance.api';
+import { dictionariesApi } from '../../api/dictionaries.api';
 import { useModalDismiss } from '../../hooks/useModalDismiss';
 import { FinanceTabs } from '../../components/FinanceTabs';
 import { useAuth } from '../auth/AuthContext';
 import { 
   DEFAULT_CASH_DESKS, 
+  buildCashDesksList,
   extractCashDeskFromComment, 
   updateCommentWithCashDesk 
 } from '../../utils/cashDesks';
@@ -34,6 +36,11 @@ export const CashflowPage = () => {
 
   const queryClient = useQueryClient();
 
+  const { data: cashDesksDict = [] } = useQuery({
+    queryKey: ['dictionaries', 'CASH_DESK'],
+    queryFn: () => dictionariesApi.getItems('CASH_DESK')
+  });
+
   const { data: usersList = [] } = useQuery({
     queryKey: ['users-for-cashflow-desks'],
     queryFn: async () => {
@@ -42,16 +49,7 @@ export const CashflowPage = () => {
     }
   });
 
-  const allCashDesks = [
-    ...DEFAULT_CASH_DESKS,
-    ...usersList
-      .filter(u => u.role === 'SALES_MANAGER' || u.role === 'MANAGER' || u.role === 'DIRECTOR')
-      .map(u => ({
-        id: `USER_${u.id}`,
-        name: `Касса Менеджера: ${u.name}`,
-        icon: '💼'
-      }))
-  ];
+  const allCashDesks = buildCashDesksList(cashDesksDict, usersList);
 
   const { data: eskhataRateData } = useQuery({
     queryKey: ['eskhata-rate'],

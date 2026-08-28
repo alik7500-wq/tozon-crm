@@ -9,6 +9,7 @@ import { FinanceTabs } from '../../components/FinanceTabs';
 import { useAuth } from '../auth/AuthContext';
 import { 
   DEFAULT_CASH_DESKS, 
+  buildCashDesksList,
   extractCashDeskFromComment, 
   updateCommentWithCashDesk 
 } from '../../utils/cashDesks';
@@ -36,6 +37,11 @@ export const IncomePage = () => {
 
   const queryClient = useQueryClient();
 
+  const { data: cashDesksDict = [] } = useQuery({
+    queryKey: ['dictionaries', 'CASH_DESK'],
+    queryFn: () => dictionariesApi.getItems('CASH_DESK')
+  });
+
   const { data: usersList = [] } = useQuery({
     queryKey: ['users-for-cashdesks'],
     queryFn: async () => {
@@ -44,16 +50,7 @@ export const IncomePage = () => {
     }
   });
 
-  const allCashDesks = [
-    ...DEFAULT_CASH_DESKS,
-    ...usersList
-      .filter(u => u.role === 'SALES_MANAGER' || u.role === 'MANAGER' || u.role === 'DIRECTOR')
-      .map(u => ({
-        id: `USER_${u.id}`,
-        name: `Касса Менеджера: ${u.name}`,
-        icon: '💼'
-      }))
-  ];
+  const allCashDesks = buildCashDesksList(cashDesksDict, usersList);
 
   const { data: paymentMethods = [] } = useQuery({
     queryKey: ['dictionaries', 'PAYMENT_METHOD'],

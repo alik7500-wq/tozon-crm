@@ -4,11 +4,19 @@ import { dictionariesApi } from '../../api/dictionaries.api';
 import { useModalDismiss } from '../../hooks/useModalDismiss';
 import { 
   BookOpen, Plus, Edit, Trash2, CheckCircle2, 
-  TrendingDown, TrendingUp, Megaphone, XCircle, CreditCard,
+  TrendingDown, TrendingUp, Megaphone, XCircle, CreditCard, Wallet,
   Search, Palette, ArrowUpDown, X, Sparkles
 } from 'lucide-react';
 
 const DICTIONARY_TYPES = [
+  {
+    id: 'CASH_DESK',
+    title: 'Кассы компании',
+    description: 'Кассы приема и выдачи денежных средств (Бухгалтерия, Руководство, Отдел продаж, Банк)',
+    icon: Wallet,
+    color: 'emerald',
+    badge: 'Кассы'
+  },
   {
     id: 'EXPENSE_CATEGORY',
     title: 'Статьи расходов (РКО)',
@@ -47,7 +55,7 @@ const DICTIONARY_TYPES = [
     description: 'Формы взаиморасчетов с покупателями и контрагентами (Касса, Безнал, Карта, QR)',
     icon: CreditCard,
     color: 'indigo',
-    badge: 'Касса'
+    badge: 'Оплата'
   }
 ];
 
@@ -56,9 +64,11 @@ const PRESET_COLORS = [
   '#3b82f6', '#6366f1', '#8b5cf6', '#ec4899', '#64748b'
 ];
 
+const PRESET_ICONS = ['🏢', '👔', '💼', '🏦', '🏛', '💵', '🇹🇯', '💳', '📦', '🏷️', '💎', '⭐'];
+
 export const DictionariesTab = () => {
   const queryClient = useQueryClient();
-  const [selectedType, setSelectedType] = useState('EXPENSE_CATEGORY');
+  const [selectedType, setSelectedType] = useState('CASH_DESK');
   const [search, setSearch] = useState('');
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingItem, setEditingItem] = useState(null);
@@ -66,6 +76,7 @@ export const DictionariesTab = () => {
   const [formData, setFormData] = useState({
     name: '',
     code: '',
+    icon: '🏢',
     color: '#3b82f6',
     sort_order: 1
   });
@@ -118,6 +129,7 @@ export const DictionariesTab = () => {
     setFormData({
       name: '',
       code: '',
+      icon: '🏢',
       color: PRESET_COLORS[Math.floor(Math.random() * PRESET_COLORS.length)],
       sort_order: items.length + 1
     });
@@ -134,6 +146,7 @@ export const DictionariesTab = () => {
     setFormData({
       name: item.name || '',
       code: item.code || '',
+      icon: item.icon || '🏢',
       color: item.color || '#3b82f6',
       sort_order: item.sort_order || 1
     });
@@ -156,6 +169,7 @@ export const DictionariesTab = () => {
         data: {
           name: formData.name.trim(),
           code: formData.code.trim() || null,
+          icon: formData.icon ? formData.icon.trim() : null,
           color: formData.color,
           sort_order: Number(formData.sort_order) || 0
         }
@@ -165,6 +179,7 @@ export const DictionariesTab = () => {
         type: selectedType,
         name: formData.name.trim(),
         code: formData.code.trim() || null,
+        icon: formData.icon ? formData.icon.trim() : null,
         color: formData.color,
         sort_order: Number(formData.sort_order) || (items.length + 1)
       });
@@ -183,7 +198,7 @@ export const DictionariesTab = () => {
   return (
     <div className="space-y-6">
       {/* Top Banner / Type Selector */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
+      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-3">
         {DICTIONARY_TYPES.map((type) => {
           const Icon = type.icon;
           const isSelected = selectedType === type.id;
@@ -194,7 +209,7 @@ export const DictionariesTab = () => {
                 setSelectedType(type.id);
                 setSearch('');
               }}
-              className={`p-4 rounded-2xl border text-left transition flex flex-col justify-between gap-3 cursor-pointer relative overflow-hidden ${
+              className={`p-3.5 rounded-2xl border text-left transition flex flex-col justify-between gap-2.5 cursor-pointer relative overflow-hidden ${
                 isSelected
                   ? 'border-blue-500 bg-blue-50/80 shadow-xs ring-2 ring-blue-500/20'
                   : 'border-slate-200 bg-white hover:bg-slate-50'
@@ -214,7 +229,7 @@ export const DictionariesTab = () => {
                 <h4 className={`text-xs font-black line-clamp-1 ${isSelected ? 'text-blue-950' : 'text-slate-800'}`}>
                   {type.title}
                 </h4>
-                <p className="text-[11px] text-slate-500 line-clamp-1 mt-0.5">
+                <p className="text-[10px] text-slate-500 line-clamp-1 mt-0.5">
                   {type.description}
                 </p>
               </div>
@@ -285,7 +300,7 @@ export const DictionariesTab = () => {
                 <tr className="bg-slate-50/80 border-b border-slate-100 text-[11px] font-black uppercase text-slate-500 tracking-wider">
                   <th className="py-3 px-4 w-12 text-center">№</th>
                   <th className="py-3 px-4">Цвет / Метка</th>
-                  <th className="py-3 px-4">Наименование статьи / позиции</th>
+                  <th className="py-3 px-4">Наименование статьи / кассы / позиции</th>
                   <th className="py-3 px-4">Системный код</th>
                   <th className="py-3 px-4 text-center">Порядок</th>
                   <th className="py-3 px-4 text-right">Действия</th>
@@ -310,6 +325,7 @@ export const DictionariesTab = () => {
                     </td>
                     <td className="py-3 px-4">
                       <div className="flex items-center gap-2">
+                        {item.icon && <span className="text-sm">{item.icon}</span>}
                         <span className="font-bold text-slate-900 text-sm">
                           {item.name}
                         </span>
@@ -382,12 +398,12 @@ export const DictionariesTab = () => {
             <form onSubmit={handleSubmit} className="p-5 space-y-4">
               <div>
                 <label className="block text-xs font-bold text-slate-700 mb-1.5">
-                  Наименование статьи / пункта *
+                  Наименование статьи / кассы / пункта *
                 </label>
                 <input
                   type="text"
                   required
-                  placeholder="Например: Строительные материалы"
+                  placeholder={selectedType === 'CASH_DESK' ? 'Например: Главная касса компании (Бухгалтерия)' : 'Например: Строительные материалы'}
                   value={formData.name}
                   onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                   className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-xs font-semibold text-slate-900 outline-none focus:border-blue-500 focus:bg-white transition"
@@ -396,11 +412,40 @@ export const DictionariesTab = () => {
 
               <div>
                 <label className="block text-xs font-bold text-slate-700 mb-1.5">
+                  Иконка / Эмодзи
+                </label>
+                <div className="space-y-2">
+                  <div className="flex items-center gap-1.5 flex-wrap">
+                    {PRESET_ICONS.map(ic => (
+                      <button
+                        key={ic}
+                        type="button"
+                        onClick={() => setFormData({ ...formData, icon: ic })}
+                        className={`h-7 w-7 rounded-lg border text-sm flex items-center justify-center transition cursor-pointer ${
+                          formData.icon === ic ? 'border-blue-600 bg-blue-50 scale-110 shadow-xs' : 'border-slate-200 bg-slate-50 hover:bg-slate-100'
+                        }`}
+                      >
+                        {ic}
+                      </button>
+                    ))}
+                  </div>
+                  <input
+                    type="text"
+                    placeholder="Или введите свой эмодзи (например 🏢)"
+                    value={formData.icon}
+                    onChange={(e) => setFormData({ ...formData, icon: e.target.value })}
+                    className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs text-slate-900 outline-none focus:border-blue-500 focus:bg-white transition"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-slate-700 mb-1.5">
                   Системный идентификатор (код, опционально)
                 </label>
                 <input
                   type="text"
-                  placeholder="Например: CASH, INSTAGRAM"
+                  placeholder="Например: MAIN_CASHIER, CASH, INSTAGRAM"
                   value={formData.code}
                   onChange={(e) => setFormData({ ...formData, code: e.target.value })}
                   className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-xs font-mono text-slate-900 outline-none focus:border-blue-500 focus:bg-white transition"

@@ -36,6 +36,7 @@ export const PaymentRecordModal = ({
 
   // Cash desks and currencies
   const [cashDesk, setCashDesk] = useState('MAIN_CASHIER');
+  const [cashDesksDict, setCashDesksDict] = useState([]);
   const [cashCurrency, setCashCurrency] = useState('TJS'); // Default TJS (национальная валюта)
   const [exchangeRate, setExchangeRate] = useState('9.27'); // default Eskhata USD/TJS rate
   const [paymentMethods, setPaymentMethods] = useState([]);
@@ -59,6 +60,12 @@ export const PaymentRecordModal = ({
       dictionariesApi.getItems('PAYMENT_METHOD')
         .then(items => {
           if (items && items.length > 0) setPaymentMethods(items);
+        })
+        .catch(() => {});
+
+      dictionariesApi.getItems('CASH_DESK')
+        .then(items => {
+          if (items && items.length > 0) setCashDesksDict(items);
         })
         .catch(() => {});
     }
@@ -129,13 +136,19 @@ export const PaymentRecordModal = ({
     );
   }
 
-  const cashDesksList = [
-    { id: 'MAIN_CASHIER', name: 'Главная касса компании (Бухгалтерия)', icon: '🏢' },
-    { id: 'DIRECTOR', name: 'Касса Директора (Руководство)', icon: '👔' },
-    { id: 'SALES_MANAGER', name: `Касса Менеджера продаж (${deal.manager_name || 'Отдел продаж'})`, icon: '💼' },
-    { id: 'FINANCE_OFFICE', name: 'Касса Казначейства / Финансового отдела', icon: '🏦' },
-    { id: 'BANK_ACCOUNT', name: 'Расчетный счет в банке (Безналичные)', icon: '🏛' },
-  ];
+  const cashDesksList = (cashDesksDict && cashDesksDict.length > 0)
+    ? cashDesksDict.map(d => ({
+        id: d.code || `CASH_DESK_${d.id}`,
+        name: d.code === 'SALES_MANAGER' && deal?.manager_name ? `${d.name} (${deal.manager_name})` : d.name,
+        icon: d.icon || '🏢'
+      }))
+    : [
+        { id: 'MAIN_CASHIER', name: 'Главная касса компании (Бухгалтерия)', icon: '🏢' },
+        { id: 'DIRECTOR', name: 'Касса Директора (Руководство)', icon: '👔' },
+        { id: 'SALES_MANAGER', name: `Касса Менеджера продаж (${deal?.manager_name || 'Отдел продаж'})`, icon: '💼' },
+        { id: 'FINANCE_OFFICE', name: 'Касса Казначейства / Финансового отдела', icon: '🏦' },
+        { id: 'BANK_ACCOUNT', name: 'Расчетный счет в банке (Безналичные)', icon: '🏛' },
+      ];
 
   const handleCurrencyChange = (newCurrency) => {
     if (newCurrency === cashCurrency) return;
