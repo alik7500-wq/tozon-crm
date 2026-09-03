@@ -107,6 +107,16 @@ export const PaymentReceiptPrintModal = ({ payment, deal, onClose, initialLang =
     '—'
   ).trim();
 
+  // Client / Payer INN (РМА)
+  const payerInn = (
+    payment.inn ||
+    payment.clientInn ||
+    payment.lead_inn ||
+    deal?.inn ||
+    deal?.lead_inn ||
+    ''
+  ).trim();
+
   // Document Number (Clean numeric or formatted PKO number)
   const docNumber = (() => {
     const raw = payment.reference || payment.payment_number || payment.id || '1';
@@ -271,7 +281,7 @@ export const PaymentReceiptPrintModal = ({ payment, deal, onClose, initialLang =
                     {isTJ ? 'Қабул карда шуд аз' : 'Принято от'}
                   </span>
                   <span className="grow border-b border-black font-bold pb-0.5">
-                    {payerName}
+                    {payerName} {payerInn ? `(РМА/ИНН: ${payerInn})` : ''}
                   </span>
                 </div>
               </div>
@@ -365,7 +375,7 @@ export const PaymentReceiptPrintModal = ({ payment, deal, onClose, initialLang =
                   {isTJ ? 'Қабул карда шуд аз' : 'Принято от'}
                 </span>
                 <div className="border-b border-black font-bold pb-0.5 text-xs">
-                  {payerName}
+                  {payerName} {payerInn ? `(РМА/ИНН: ${payerInn})` : ''}
                 </div>
               </div>
 

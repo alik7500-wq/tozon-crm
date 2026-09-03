@@ -32,6 +32,7 @@ export const EditDealModal = ({
   const [leadPhone, setLeadPhone] = useState('');
   const [passportSeries, setPassportSeries] = useState('');
   const [passportNumber, setPassportNumber] = useState('');
+  const [inn, setInn] = useState('');
   const [responsibleUserId, setResponsibleUserId] = useState('');
   const [paymentType, setPaymentType] = useState('FULL');
   const [installmentMonths, setInstallmentMonths] = useState('0');
@@ -47,6 +48,7 @@ export const EditDealModal = ({
       setLeadPhone(deal.lead_phone || '');
       setPassportSeries(deal.passport_series || '');
       setPassportNumber(deal.passport_number || '');
+      setInn(deal.inn || '');
       setResponsibleUserId(deal.responsible_user_id ? String(deal.responsible_user_id) : '');
       setPaymentType(deal.payment_type || 'FULL');
       setInstallmentMonths(String(deal.installment_months || 0));
@@ -73,6 +75,7 @@ export const EditDealModal = ({
       leadPhone !== (deal.lead_phone || '') ||
       passportSeries !== (deal.passport_series || '') ||
       passportNumber !== (deal.passport_number || '') ||
+      inn !== (deal.inn || '') ||
       responsibleUserId !== (deal.responsible_user_id ? String(deal.responsible_user_id) : '') ||
       paymentType !== (deal.payment_type || 'FULL') ||
       installmentMonths !== String(deal.installment_months || 0) ||
@@ -108,6 +111,7 @@ export const EditDealModal = ({
         lead_phone: leadPhone.trim(),
         passport_series: passportSeries.trim(),
         passport_number: passportNumber.trim(),
+        inn: inn.trim() || null,
         responsible_user_id: responsibleUserId ? parseInt(responsibleUserId, 10) : null,
         payment_type: paymentType,
         installment_months: parseInt(installmentMonths, 10) || 0,
@@ -347,6 +351,19 @@ export const EditDealModal = ({
                     className="w-full rounded-xl border border-slate-200 bg-white px-3 py-1.5 text-xs font-mono font-bold text-slate-900 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition"
                   />
                 </div>
+              </div>
+
+              <div>
+                <label className="block text-[11px] font-bold text-slate-700 mb-1">
+                  ИНН / РМА (Идентификационный номер налогоплательщика)
+                </label>
+                <input
+                  type="text"
+                  value={inn}
+                  onChange={(e) => setInn(e.target.value)}
+                  placeholder="Например: 665151074"
+                  className="w-full rounded-xl border border-slate-200 bg-white px-3 py-1.5 text-xs font-mono font-bold text-slate-900 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition"
+                />
               </div>
             </div>
 

@@ -461,6 +461,11 @@ export const ClientDetailModal = ({ isOpen, onClose, client, onClientUpdated, on
                     <p className="font-medium text-slate-800">{formatDate(fullLead?.birth_date)}</p>
                   </div>
 
+                  <div className="space-y-1">
+                    <span className="text-slate-500">ИНН (РМА):</span>
+                    <p className="font-mono font-bold text-slate-900">{fullLead?.inn || client.inn || 'Не указан'}</p>
+                  </div>
+
                   <div className="sm:col-span-2 space-y-1">
                     <span className="text-slate-500">Адрес регистрации / проживания:</span>
                     <p className="font-medium text-slate-900 flex items-center gap-1">

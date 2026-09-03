@@ -249,6 +249,11 @@ export const PaymentSchedulePrintView = ({ deal, onClose, initialLang = 'TJ' }) 
             </div>
 
             <div className="flex justify-between items-baseline border-b border-dotted border-slate-300 pb-0.5">
+              <span>{isTJ ? 'РМА (ИНН)-и Ҳиссагузор' : 'ИНН (РМА) Дольщика'}</span>
+              <span className="font-semibold font-mono text-slate-800">{deal.inn || '—'}</span>
+            </div>
+
+            <div className="flex justify-between items-baseline border-b border-dotted border-slate-300 pb-0.5">
               <span>{isTJ ? 'Эзоҳ' : 'Примечание'}</span>
               <span className="text-right text-slate-700">
                 {deal.project_name
@@ -377,6 +382,9 @@ export const PaymentSchedulePrintView = ({ deal, onClose, initialLang = 'TJ' }) 
                 {isTJ ? 'ХАРИДОР:' : 'ПОКУПАТЕЛЬ:'}
               </p>
               <p className="font-semibold text-slate-900">{deal.lead_name || deal.buyer_name || '—'}</p>
+              {deal.inn && (
+                <p className="text-slate-600 font-mono text-[11px]">{isTJ ? 'РМА:' : 'ИНН:'} {deal.inn}</p>
+              )}
               <p className="text-slate-600">{isTJ ? 'Тел:' : 'Тел:'} {deal.lead_phone || '—'}</p>
               <div className="mt-10 border-b border-slate-400 w-48 sm:w-56"></div>
               <p className="text-[10px] text-slate-400 mt-1">{isTJ ? '(имзои Харидор)' : '(подпись Покупателя)'}</p>

@@ -35,6 +35,7 @@ export const ClientsPage = () => {
     phone: '',
     passport_series: '',
     passport_number: '',
+    inn: '',
     registration_address: '',
   });
 
@@ -65,6 +66,7 @@ export const ClientsPage = () => {
             passport: d.passport_series && d.passport_number ? `${d.passport_series} ${d.passport_number}` : 'Уточняется',
             passport_series: d.passport_series,
             passport_number: d.passport_number,
+            inn: d.inn || '',
             address: d.registration_address || 'г. Худжанд',
             dealsCount: 1,
             totalPurchasesMinor: d.final_price_minor || 0,
@@ -97,6 +99,7 @@ export const ClientsPage = () => {
             passport: l.passport_series && l.passport_number ? `${l.passport_series} ${l.passport_number}` : 'Уточняется',
             passport_series: l.passport_series,
             passport_number: l.passport_number,
+            inn: l.inn || '',
             address: l.registration_address || 'г. Худжанд',
             dealsCount: 0,
             totalPurchasesMinor: 0,
@@ -112,6 +115,7 @@ export const ClientsPage = () => {
           // Enrich existing deal client with lead id if missing
           const existing = map.get(clientKey);
           if (!existing.lead_id) existing.lead_id = l.id;
+          if (!existing.inn && l.inn) existing.inn = l.inn;
           if (!existing.address && l.registration_address) existing.address = l.registration_address;
         }
       });
@@ -139,6 +143,7 @@ export const ClientsPage = () => {
         phone: newClient.phone.trim(),
         passport_series: newClient.passport_series.trim() || null,
         passport_number: newClient.passport_number.trim() || null,
+        inn: newClient.inn.trim() || null,
         registration_address: newClient.registration_address.trim() || null,
         source: 'DIRECT',
         status: 'NEW',
@@ -150,6 +155,7 @@ export const ClientsPage = () => {
         phone: '',
         passport_series: '',
         passport_number: '',
+        inn: '',
         registration_address: '',
       });
       await fetchClients();
@@ -276,7 +282,14 @@ export const ClientsPage = () => {
                       )}
                     </td>
 
-                    <td className="p-3.5 text-slate-600 font-mono text-[11px]">{c.passport}</td>
+                    <td className="p-3.5 text-slate-600 text-[11px]">
+                      <div className="font-mono">{c.passport}</div>
+                      {c.inn && (
+                        <div className="text-[10px] text-slate-500">
+                          ИНН: <span className="font-mono font-bold text-slate-700">{c.inn}</span>
+                        </div>
+                      )}
+                    </td>
 
                     <td className="p-3.5 text-slate-700 font-medium">
                       {c.projectName} {c.unitNumber !== '—' ? `(кв. №${c.unitNumber})` : ''}
@@ -428,6 +441,17 @@ export const ClientsPage = () => {
                     className="w-full rounded-xl border border-slate-300 bg-slate-50 px-3 py-2 text-xs outline-none focus:border-blue-500 focus:bg-white"
                   />
                 </div>
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-slate-700 mb-1">ИНН (РМА)</label>
+                <input
+                  type="text"
+                  placeholder="Например: 665151074"
+                  value={newClient.inn}
+                  onChange={(e) => setNewClient({ ...newClient, inn: e.target.value })}
+                  className="w-full rounded-xl border border-slate-300 bg-slate-50 px-3.5 py-2 text-xs font-mono font-bold outline-none focus:border-blue-500 focus:bg-white"
+                />
               </div>
 
               <div>

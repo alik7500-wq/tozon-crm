@@ -461,16 +461,17 @@ export const DealDrawer = ({
                     </div>
                   </div>
 
-                  <div className="bg-white p-2.5 rounded-xl border border-slate-200/80 space-y-1">
-                    <span className="text-[11px] font-bold text-slate-600 block">Паспортные данные:</span>
-                    <p className="text-slate-800 text-[11px]">
-                      Серия/№: <strong>{deal.passport_series || '—'} {deal.passport_number || '—'}</strong><br />
-                      Выдан: <span>{deal.passport_issued_by || '—'}</span> (от {deal.passport_issue_date || '—'})
-                    </p>
-                    <p className="text-slate-800 text-[11px]">
-                      Прописка: <span>{deal.registration_address || '—'}</span>
-                    </p>
-                  </div>
+                    <div className="bg-white p-2.5 rounded-xl border border-slate-200/80 space-y-1">
+                      <span className="text-[11px] font-bold text-slate-600 block">Паспортные данные:</span>
+                      <p className="text-slate-800 text-[11px]">
+                        Серия/№: <strong>{deal.passport_series || '—'} {deal.passport_number || '—'}</strong><br />
+                        ИНН (РМА): <strong className="font-mono font-bold text-slate-900">{deal.inn || 'Не указан'}</strong><br />
+                        Выдан: <span>{deal.passport_issued_by || '—'}</span> (от {deal.passport_issue_date || '—'})
+                      </p>
+                      <p className="text-slate-800 text-[11px]">
+                        Прописка: <span>{deal.registration_address || '—'}</span>
+                      </p>
+                    </div>
                 </div>
               </div>
 

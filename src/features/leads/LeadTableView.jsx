@@ -74,7 +74,16 @@ export const LeadTableView = ({ leads, onSelectLead, onEditLead, onStatusChange 
                     {lead.interested_project_name || <span className="text-slate-400">—</span>}
                   </td>
                   <td className="p-3.5 text-slate-600">
-                    {lead.passport_number ? `${lead.passport_series || ''} ${lead.passport_number}` : <span className="text-slate-400">—</span>}
+                    {lead.passport_number ? (
+                      <div>
+                        <div>{lead.passport_series || ''} {lead.passport_number}</div>
+                        {lead.inn && <div className="text-[10px] text-slate-400 font-mono">ИНН: {lead.inn}</div>}
+                      </div>
+                    ) : lead.inn ? (
+                      <div className="text-[11px] text-slate-600 font-mono">ИНН: {lead.inn}</div>
+                    ) : (
+                      <span className="text-slate-400">—</span>
+                    )}
                   </td>
                   <td className="p-3.5 font-bold text-slate-800">
                     {lead.budget_max_minor ? `${(lead.budget_max_minor / 100).toLocaleString()} USD` : <span className="text-slate-400">—</span>}

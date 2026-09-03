@@ -593,7 +593,7 @@ export const DealWizardModal = ({
                             <div>
                               <div className="text-xs font-bold text-slate-900">{lead.full_name}</div>
                               <div className="text-[11px] text-slate-500">
-                                {lead.phone} {lead.passport_number ? `• Паспорт: ${lead.passport_series || ''} ${lead.passport_number}` : ''}
+                                {lead.phone} {lead.passport_number ? `• Паспорт: ${lead.passport_series || ''} ${lead.passport_number}` : ''} {lead.inn ? `• ИНН: ${lead.inn}` : ''}
                               </div>
                             </div>
                             {isSelected && <CheckCircle2 className="h-4 w-4 text-tozon-blue" />}
@@ -687,15 +687,27 @@ export const DealWizardModal = ({
                     </div>
                   </div>
 
-                  <div>
-                    <label className="block text-[11px] font-semibold text-slate-700 mb-1">Адрес регистрации (прописка)</label>
-                    <input
-                      type="text"
-                      placeholder="г. Душанбе, ул. Рудаки 100, кв. 4"
-                      value={newLeadData.registration_address}
-                      onChange={(e) => setNewLeadData({ ...newLeadData, registration_address: e.target.value })}
-                      className="w-full rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-xs outline-none focus:border-blue-500"
-                    />
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <label className="block text-[11px] font-semibold text-slate-700 mb-1">ИНН (РМА)</label>
+                      <input
+                        type="text"
+                        placeholder="Например: 665151074"
+                        value={newLeadData.inn}
+                        onChange={(e) => setNewLeadData({ ...newLeadData, inn: e.target.value })}
+                        className="w-full rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-xs font-mono font-bold outline-none focus:border-blue-500"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-[11px] font-semibold text-slate-700 mb-1">Адрес регистрации (прописка)</label>
+                      <input
+                        type="text"
+                        placeholder="г. Душанбе, ул. Рудаки 100, кв. 4"
+                        value={newLeadData.registration_address}
+                        onChange={(e) => setNewLeadData({ ...newLeadData, registration_address: e.target.value })}
+                        className="w-full rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-xs outline-none focus:border-blue-500"
+                      />
+                    </div>
                   </div>
 
                   <div className="flex justify-end pt-2">

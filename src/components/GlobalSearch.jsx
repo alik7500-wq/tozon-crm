@@ -317,6 +317,9 @@ export const GlobalSearch = () => {
                             {lead.passport_series && lead.passport_number && (
                               <span>• Паспорт: {lead.passport_series} {lead.passport_number}</span>
                             )}
+                            {lead.inn && (
+                              <span>• ИНН: {lead.inn}</span>
+                            )}
                           </p>
                         </div>
                       </div>

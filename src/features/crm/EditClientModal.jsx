@@ -36,6 +36,7 @@ export const EditClientModal = ({
   const [passportIssueDate, setPassportIssueDate] = useState('');
   const [birthDate, setBirthDate] = useState('');
   const [registrationAddress, setRegistrationAddress] = useState('');
+  const [inn, setInn] = useState('');
   const [responsibleUserId, setResponsibleUserId] = useState('');
   const [notes, setNotes] = useState('');
 
@@ -50,6 +51,7 @@ export const EditClientModal = ({
       setPassportIssueDate(client.passport_issue_date ? client.passport_issue_date.split('T')[0] : '');
       setBirthDate(client.birth_date ? client.birth_date.split('T')[0] : '');
       setRegistrationAddress(client.address || client.registration_address || '');
+      setInn(client.inn || '');
       setResponsibleUserId(client.responsible_user_id ? String(client.responsible_user_id) : '');
       setNotes(client.notes || '');
       setError('');
@@ -76,6 +78,7 @@ export const EditClientModal = ({
       passportIssueDate !== (client.passport_issue_date ? client.passport_issue_date.split('T')[0] : '') ||
       birthDate !== (client.birth_date ? client.birth_date.split('T')[0] : '') ||
       registrationAddress !== (client.address || client.registration_address || '') ||
+      inn !== (client.inn || '') ||
       responsibleUserId !== (client.responsible_user_id ? String(client.responsible_user_id) : '') ||
       notes !== (client.notes || '')
     )
@@ -111,6 +114,7 @@ export const EditClientModal = ({
         passport_issue_date: passportIssueDate || null,
         birth_date: birthDate || null,
         registration_address: registrationAddress.trim() || null,
+        inn: inn.trim() || null,
         responsible_user_id: responsibleUserId ? parseInt(responsibleUserId, 10) : null,
         notes: notes.trim() || null
       };
@@ -327,6 +331,19 @@ export const EditClientModal = ({
                     className="w-full rounded-xl border border-slate-200 bg-white px-2.5 py-1.5 text-xs font-semibold text-slate-900 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition"
                   />
                 </div>
+              </div>
+
+              <div>
+                <label className="block text-[11px] font-bold text-slate-700 mb-1">
+                  ИНН / РМА (Идентификационный номер налогоплательщика)
+                </label>
+                <input
+                  type="text"
+                  value={inn}
+                  onChange={(e) => setInn(e.target.value)}
+                  placeholder="Например: 665151074"
+                  className="w-full rounded-xl border border-slate-200 bg-white px-3 py-1.5 text-xs font-mono font-bold text-slate-900 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition"
+                />
               </div>
 
               <div>

@@ -33,6 +33,7 @@ export const CreateLeadModal = ({ isOpen, onClose, onCreated, leadToEdit = null,
     passport_number: '',
     passport_issued_by: '',
     passport_issue_date: '',
+    inn: '',
     birth_date: '',
     registration_address: '',
     notes: '',
@@ -66,6 +67,7 @@ export const CreateLeadModal = ({ isOpen, onClose, onCreated, leadToEdit = null,
         passport_number: leadToEdit.passport_number || '',
         passport_issued_by: leadToEdit.passport_issued_by || '',
         passport_issue_date: leadToEdit.passport_issue_date || '',
+        inn: leadToEdit.inn || '',
         birth_date: leadToEdit.birth_date || '',
         registration_address: leadToEdit.registration_address || '',
         notes: leadToEdit.notes || '',
@@ -84,6 +86,7 @@ export const CreateLeadModal = ({ isOpen, onClose, onCreated, leadToEdit = null,
         passport_number: '',
         passport_issued_by: '',
         passport_issue_date: '',
+        inn: '',
         birth_date: '',
         registration_address: '',
         notes: '',
@@ -427,16 +430,29 @@ export const CreateLeadModal = ({ isOpen, onClose, onCreated, leadToEdit = null,
                 </div>
               </div>
 
-              <div>
-                <label className="block text-xs font-semibold text-slate-700 mb-1">Адрес регистрации (прописка)</label>
-                <input
-                  type="text"
-                  name="registration_address"
-                  value={formData.registration_address}
-                  onChange={handleChange}
-                  placeholder="г. Душанбе, ул. Айни, дом 24, кв. 15"
-                  className="w-full rounded-xl border border-slate-300 bg-slate-50 px-3.5 py-2 text-sm outline-none focus:border-purple-500 focus:bg-white"
-                />
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-xs font-semibold text-slate-700 mb-1">ИНН / РМА клиента</label>
+                  <input
+                    type="text"
+                    name="inn"
+                    value={formData.inn}
+                    onChange={handleChange}
+                    placeholder="Например: 665151074"
+                    className="w-full rounded-xl border border-slate-300 bg-slate-50 px-3 py-2 text-sm font-mono font-bold outline-none focus:border-purple-500 focus:bg-white"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-semibold text-slate-700 mb-1">Адрес регистрации (прописка)</label>
+                  <input
+                    type="text"
+                    name="registration_address"
+                    value={formData.registration_address}
+                    onChange={handleChange}
+                    placeholder="г. Душанбе, ул. Айни, дом 24, кв. 15"
+                    className="w-full rounded-xl border border-slate-300 bg-slate-50 px-3 py-2 text-sm outline-none focus:border-purple-500 focus:bg-white"
+                  />
+                </div>
               </div>
             </div>
           )}

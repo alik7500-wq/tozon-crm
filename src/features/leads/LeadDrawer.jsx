@@ -498,6 +498,10 @@ export const LeadDrawer = ({ isOpen, onClose, leadId, onLeadUpdated, onEditLead 
                         <span className="text-slate-400 block">Адрес регистрации (прописка):</span>
                         <strong className="text-slate-900">{lead.registration_address || '—'}</strong>
                       </div>
+                      <div className="col-span-2">
+                        <span className="text-slate-400 block">ИНН (РМА):</span>
+                        <strong className="text-slate-900 font-mono">{lead.inn || 'Не указан'}</strong>
+                      </div>
                     </div>
                   </div>
                 </div>
