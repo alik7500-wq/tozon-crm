@@ -15,8 +15,10 @@ import {
 import { 
   Wallet, TrendingUp, TrendingDown, RefreshCw, Calendar, ArrowUpRight, 
   ArrowDownRight, FileText, Search, CreditCard, Filter, ArrowRightLeft,
-  DollarSign, CheckCircle2, Coins, X, Edit, Trash2, AlertCircle, Save
+  DollarSign, CheckCircle2, Coins, X, Edit, Trash2, AlertCircle, Save, Printer
 } from 'lucide-react';
+import { PaymentReceiptPrintModal } from './PaymentReceiptPrintModal';
+import { ExpenseReceiptPrintModal } from './ExpenseReceiptPrintModal';
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend
 } from 'recharts';
@@ -34,6 +36,8 @@ export const CashflowPage = () => {
   const [showConvertModal, setShowConvertModal] = useState(false);
   const [showAllDesks, setShowAllDesks] = useState(false);
   const [editingItem, setEditingItem] = useState(null);
+  const [printableIncome, setPrintableIncome] = useState(null);
+  const [printableExpense, setPrintableExpense] = useState(null);
 
   const queryClient = useQueryClient();
 
@@ -890,7 +894,7 @@ export const CashflowPage = () => {
                 <th className="p-3.5">Способ оплаты</th>
                 <th className="p-3.5 text-right">Сумма операции</th>
                 <th className="p-3.5">Примечание</th>
-                {isAdmin && <th className="p-3.5 pr-5 text-right">Действия</th>}
+                <th className="p-3.5 pr-5 text-right">Действия</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100 font-medium">
@@ -949,34 +953,82 @@ export const CashflowPage = () => {
                       {isIncome ? '+' : '-'}{t.amount.toLocaleString('ru-RU', { minimumFractionDigits: 2 })} {t.currency}
                     </td>
                     <td className="p-3.5 text-slate-500 max-w-xs truncate" title={t.comment}>
-                      {t.comment || '-'}
+                      {t.comment ? t.comment.replace(/\[Касса:\s*[^\]]+\]\s*/gi, '').trim() || '-' : '-'}
                     </td>
-                    {isAdmin && (
-                      <td className="p-3.5 pr-5 text-right whitespace-nowrap">
-                        <div className="flex items-center justify-end gap-1.5">
+                    <td className="p-3.5 pr-5 text-right whitespace-nowrap">
+                      <div className="flex items-center justify-end gap-1.5">
+                        {!isConversion && (
                           <button
-                            onClick={() => handleEditClick(t)}
-                            title="Редактировать запись (Админ)"
-                            className="p-1.5 rounded-lg text-slate-400 hover:text-blue-600 hover:bg-blue-50 transition cursor-pointer"
+                            onClick={() => {
+                              if (t.type === 'INCOME') {
+                                setPrintableIncome({
+                                  id: t.rawId,
+                                  deal_id: t.dealId,
+                                  dealId: t.dealId,
+                                  deal: t.deal,
+                                  dealDate: t.dealDate,
+                                  amount: t.amount,
+                                  amount_minor: t.amount_minor || Math.round(t.amount * 100),
+                                  currency: t.currency,
+                                  payment_date: t.date,
+                                  payer_name: t.payer_name || t.counterparty,
+                                  contract: t.contract,
+                                  contract_number: t.contract,
+                                  reference: t.reference,
+                                  comment: t.comment,
+                                  method: t.method,
+                                  created_by_name: t.createdByName
+                                });
+                              } else {
+                                setPrintableExpense({
+                                  id: t.rawId,
+                                  amount: t.amount,
+                                  amount_minor: t.amount_minor || Math.round(t.amount * 100),
+                                  currency: t.currency,
+                                  expense_date: t.date,
+                                  recipient: t.recipient || t.counterparty,
+                                  category: t.category,
+                                  reference: t.reference,
+                                  description: t.description || t.comment,
+                                  method: t.method,
+                                  created_by_name: t.createdByName
+                                });
+                              }
+                            }}
+                            title={t.type === 'INCOME' ? 'Печать ПКО (Квитанция)' : 'Печать РКО (Ордер расхода)'}
+                            className={`p-1.5 rounded-lg text-slate-400 transition cursor-pointer ${
+                              t.type === 'INCOME' ? 'hover:text-emerald-600 hover:bg-emerald-50' : 'hover:text-rose-600 hover:bg-rose-50'
+                            }`}
                           >
-                            <Edit className="h-4 w-4" />
+                            <Printer className="h-4 w-4" />
                           </button>
-                          <button
-                            onClick={() => handleDeleteClick(t)}
-                            title="Удалить запись (Админ)"
-                            className="p-1.5 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-50 transition cursor-pointer"
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </button>
-                        </div>
-                      </td>
-                    )}
+                        )}
+                        {isAdmin && (
+                          <>
+                            <button
+                              onClick={() => handleEditClick(t)}
+                              title="Редактировать запись (Админ)"
+                              className="p-1.5 rounded-lg text-slate-400 hover:text-blue-600 hover:bg-blue-50 transition cursor-pointer"
+                            >
+                              <Edit className="h-4 w-4" />
+                            </button>
+                            <button
+                              onClick={() => handleDeleteClick(t)}
+                              title="Удалить запись (Админ)"
+                              className="p-1.5 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-50 transition cursor-pointer"
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </button>
+                          </>
+                        )}
+                      </div>
+                    </td>
                   </tr>
                 );
               })}
               {transactions.length === 0 && (
                 <tr>
-                  <td colSpan={isAdmin ? 9 : 8} className="p-12 text-center text-slate-400">
+                  <td colSpan={9} className="p-12 text-center text-slate-400">
                     Нет финансовых операций по заданным критериям
                   </td>
                 </tr>
@@ -1354,6 +1406,21 @@ export const CashflowPage = () => {
             </form>
           </div>
         </div>
+      )}
+
+      {/* Printable Receipt Modals */}
+      {printableIncome && (
+        <PaymentReceiptPrintModal
+          payment={printableIncome}
+          deal={printableIncome.deal}
+          onClose={() => setPrintableIncome(null)}
+        />
+      )}
+      {printableExpense && (
+        <ExpenseReceiptPrintModal
+          expense={printableExpense}
+          onClose={() => setPrintableExpense(null)}
+        />
       )}
     </div>
   );

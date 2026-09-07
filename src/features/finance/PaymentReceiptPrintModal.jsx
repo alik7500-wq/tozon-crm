@@ -4,6 +4,8 @@ import { Printer, ArrowLeft, Receipt } from 'lucide-react';
 import { formatContractNumber } from '../../utils/formatters';
 import { numberToWordsTJ, numberToWordsRU } from '../../utils/numberToWords';
 import { useModalDismiss } from '../../hooks/useModalDismiss';
+import { api } from '../../api/client';
+import { getPkoBasisText } from '../../utils/receiptBasis';
 
 const MONTHS_TJ = [
   'Январ', 'Феврал', 'Март', 'Апрел', 'Май', 'Июн',
@@ -17,6 +19,7 @@ const MONTHS_RU = [
 
 export const PaymentReceiptPrintModal = ({ payment, deal, onClose, initialLang = 'TJ' }) => {
   const [lang, setLang] = useState(initialLang);
+  const [asyncDeal, setAsyncDeal] = useState(deal || payment?.deal || null);
 
   const { requestClose } = useModalDismiss({
     isOpen: Boolean(payment),
@@ -30,7 +33,29 @@ export const PaymentReceiptPrintModal = ({ payment, deal, onClose, initialLang =
     };
   }, []);
 
+  useEffect(() => {
+    if (deal) {
+      setAsyncDeal(deal);
+      return;
+    }
+    if (payment?.deal) {
+      setAsyncDeal(payment.deal);
+      return;
+    }
+    const targetDealId = payment?.deal_id || payment?.dealId;
+    if (targetDealId) {
+      api.get(`/deals/${targetDealId}`)
+        .then(res => {
+          const d = res?.data?.deal || res?.data || res;
+          if (d) setAsyncDeal(d);
+        })
+        .catch(err => console.warn('Could not load deal for receipt:', err));
+    }
+  }, [deal, payment]);
+
   if (!payment) return null;
+
+  const activeDeal = deal || asyncDeal || payment?.deal || null;
 
   const handlePrint = () => {
     window.print();
@@ -48,7 +73,7 @@ export const PaymentReceiptPrintModal = ({ payment, deal, onClose, initialLang =
   };
 
   // Date breakdown (strictly from payment date without timezone skew)
-  const rawDateStr = payment.payment_date || payment.date || (deal?.deal_date) || '';
+  const rawDateStr = payment.payment_date || payment.date || (activeDeal?.deal_date) || '';
   const dateParts = rawDateStr ? String(rawDateStr).split('T')[0].split('-') : [];
   
   let dayStr = '01';
@@ -59,11 +84,6 @@ export const PaymentReceiptPrintModal = ({ payment, deal, onClose, initialLang =
     yearStr = dateParts[0];
     monthIdx = Math.max(0, Math.min(11, parseInt(dateParts[1], 10) - 1));
     dayStr = String(dateParts[2]).padStart(2, '0');
-  } else {
-    const d = new Date();
-    dayStr = String(d.getDate()).padStart(2, '0');
-    monthIdx = d.getMonth();
-    yearStr = String(d.getFullYear());
   }
 
   const monthStr = isTJ ? MONTHS_TJ[monthIdx] : MONTHS_RU[monthIdx];
@@ -79,12 +99,54 @@ export const PaymentReceiptPrintModal = ({ payment, deal, onClose, initialLang =
     rawAmount = Number(payment.amount_minor) / 100;
   }
 
-  const paymentCur = (payment.cash_currency || payment.currency || deal?.currency || 'TJS').toUpperCase();
-  const rate = Number(payment.exchange_rate) || 9.27;
+  const descFull = String(payment.comment || '');
+
+  // Check if explicit TJS amount was recorded in the operation comment
+  const tjsMatch = descFull.match(/(?:•|\b)\s*(?:Внесено в кассу:\s*)?([\d\s\u00A0]+(?:[.,]\d+)?)\s*(?:TJS|смн|сомонӣ|сомони)\b/i);
+  let explicitTjs = null;
+  if (tjsMatch && tjsMatch[1]) {
+    const cleanNumStr = tjsMatch[1].replace(/[\s\u00A0]/g, '').replace(',', '.');
+    const parsed = parseFloat(cleanNumStr);
+    if (!isNaN(parsed) && parsed > 0) {
+      explicitTjs = parsed;
+    }
+  }
+
+  // 1. Structured rate from operation data
+  let structuredRate = null;
+  const rawStructured = payment.exchange_rate ?? payment.rate;
+  if (rawStructured !== undefined && rawStructured !== null && rawStructured !== '') {
+    const num = Number(rawStructured);
+    if (!isNaN(num) && num > 0) {
+      structuredRate = num;
+    }
+  }
+
+  // 2. Safely extracted rate from historic operation comment e.g. (Курс: 9.27)
+  let historicRate = null;
+  const rateMatch = descFull.match(/(?:Курс|курсу)[:\s]+([\d]+(?:[.,]\d+)?)/i);
+  if (rateMatch && rateMatch[1]) {
+    const parsedRate = parseFloat(rateMatch[1].replace(',', '.'));
+    if (!isNaN(parsedRate) && parsedRate > 0) {
+      historicRate = parsedRate;
+    }
+  }
+
+  // Mandatory source priority:
+  // 1. Structured operation rate
+  // 2. Historic comment rate
+  // 3. Null (strictly NO fallback, NO 9.27, NO default rate)
+  const effectiveRate = structuredRate || historicRate || null;
+
+  const paymentCur = (payment.cash_currency || payment.currency || activeDeal?.currency || 'TJS').toUpperCase();
 
   let amountTJS = rawAmount;
-  if (paymentCur === 'USD') {
-    amountTJS = rawAmount * rate;
+  if (paymentCur === 'TJS') {
+    amountTJS = rawAmount;
+  } else if (explicitTjs !== null) {
+    amountTJS = explicitTjs;
+  } else if (paymentCur === 'USD') {
+    amountTJS = effectiveRate ? rawAmount * effectiveRate : rawAmount;
   }
 
   const amountNumber = Number(amountTJS.toFixed(2));
@@ -93,7 +155,41 @@ export const PaymentReceiptPrintModal = ({ payment, deal, onClose, initialLang =
     maximumFractionDigits: 2,
   });
 
-  const currency = 'TJS'; // Always TJS (Сомони)
+  // USD Equivalent calculation for official coding table (strict: NO fallback when rate is missing)
+  let amountUSD = null;
+  if (effectiveRate && effectiveRate > 0) {
+    if (paymentCur === 'USD' && rawAmount > 0 && rawAmount !== explicitTjs) {
+      amountUSD = rawAmount;
+    } else if (amountTJS > 0) {
+      amountUSD = amountTJS / effectiveRate;
+    }
+  }
+
+  const hasValidExchangeData = Boolean(
+    effectiveRate &&
+    effectiveRate > 0 &&
+    !isNaN(effectiveRate) &&
+    isFinite(effectiveRate) &&
+    amountUSD &&
+    amountUSD > 0 &&
+    !isNaN(amountUSD) &&
+    isFinite(amountUSD)
+  );
+
+  const rateFormatted = hasValidExchangeData
+    ? effectiveRate.toLocaleString('ru-RU', {
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 4,
+      }).replace('.', ',')
+    : null;
+
+  const amountUsdFormatted = hasValidExchangeData
+    ? `${Number(amountUSD.toFixed(2)).toLocaleString('ru-RU', {
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2,
+      })} USD`
+    : null;
+
   const wordsFormatted = isTJ 
     ? numberToWordsTJ(amountNumber, 'TJS')
     : numberToWordsRU(amountNumber, 'TJS');
@@ -102,8 +198,9 @@ export const PaymentReceiptPrintModal = ({ payment, deal, onClose, initialLang =
   const payerName = (
     payment.payer_name ||
     payment.clientName ||
-    deal?.lead_name ||
-    deal?.buyer_name ||
+    activeDeal?.lead_name ||
+    activeDeal?.buyer_name ||
+    activeDeal?.leads?.full_name ||
     '—'
   ).trim();
 
@@ -112,8 +209,9 @@ export const PaymentReceiptPrintModal = ({ payment, deal, onClose, initialLang =
     payment.inn ||
     payment.clientInn ||
     payment.lead_inn ||
-    deal?.inn ||
-    deal?.lead_inn ||
+    activeDeal?.inn ||
+    activeDeal?.lead_inn ||
+    activeDeal?.leads?.inn ||
     ''
   ).trim();
 
@@ -124,25 +222,15 @@ export const PaymentReceiptPrintModal = ({ payment, deal, onClose, initialLang =
     return cleanDigits || String(payment.id) || '1';
   })();
 
-  // Ground / Basis
-  const dealContractNum = deal?.contract_number ? formatContractNumber(deal.contract_number) : null;
-  const dealDate = deal?.contract_date || deal?.deal_date || fullDateFormatted;
-  const dealDateFormatted = (() => {
-    if (!dealDate) return fullDateFormatted;
-    const d = new Date(dealDate);
-    if (isNaN(d.getTime())) return dealDate;
-    return `${String(d.getDate()).padStart(2, '0')}.${String(d.getMonth() + 1).padStart(2, '0')}.${d.getFullYear()}`;
-  })();
+  // Ground / Basis - strictly primary data via centralized helper
+  const basisText = getPkoBasisText({
+    payment,
+    deal: activeDeal,
+    lang,
+    defaultDateStr: fullDateFormatted
+  });
 
-  const basisText = isTJ
-    ? (dealContractNum 
-        ? `Пардохти маблағи ҳиссагузорӣ дар асоси шартномаи № ${dealContractNum} аз ${dealDateFormatted} сол` 
-        : (payment.comment || payment.contract || 'Пардохти маблағ ба хазина тибқи асос'))
-    : (dealContractNum 
-        ? `Оплата паевого взноса по договору № ${dealContractNum} от ${dealDateFormatted} г.` 
-        : (payment.comment || payment.contract || 'Прием денежных средств в кассу предприятия'));
-
-  const companyTitle = cleanCompanyName(deal?.developer_name);
+  const companyTitle = cleanCompanyName(activeDeal?.developer_name || payment?.developer_name);
 
   return createPortal(
     <div className="print-portal-root fixed inset-0 z-50 overflow-y-auto bg-slate-900/60 backdrop-blur-xs p-2 sm:p-6 flex justify-center animate-in fade-in print:static print:p-0 print:m-0 print:bg-white print:overflow-visible print:block print:h-auto">
@@ -261,14 +349,21 @@ export const PaymentReceiptPrintModal = ({ payment, deal, onClose, initialLang =
                     </tr>
                   </thead>
                   <tbody>
-                    <tr className="h-7">
+                    <tr className="h-8">
                       <td className="border border-black p-1"></td>
                       <td className="border border-black p-1"></td>
                       <td className="border border-black p-1"></td>
-                      <td className="border border-black p-1 font-bold font-sans text-xs">
+                      <td className="border border-black p-1 font-bold font-sans text-xs align-middle">
                         {amountFormatted}
                       </td>
-                      <td className="border border-black p-1"></td>
+                      <td className="border border-black p-1 font-sans text-[10px] leading-tight text-center font-medium align-middle">
+                        {hasValidExchangeData ? (
+                          <>
+                            <div>Курс: {rateFormatted}</div>
+                            <div className="font-bold text-slate-900">{amountUsdFormatted}</div>
+                          </>
+                        ) : null}
+                      </td>
                     </tr>
                   </tbody>
                 </table>
@@ -288,13 +383,13 @@ export const PaymentReceiptPrintModal = ({ payment, deal, onClose, initialLang =
 
               {/* Basis Line */}
               <div className="text-xs">
-                <div className="flex items-baseline gap-2">
-                  <span className="shrink-0 text-slate-800">
+                <div className="flex items-start gap-1.5 leading-relaxed">
+                  <span className="shrink-0 text-slate-800 font-medium pt-0.5">
                     {isTJ ? 'Асос:' : 'Основание:'}
                   </span>
-                  <span className="grow border-b border-black font-medium pb-0.5 leading-relaxed">
+                  <div className="grow font-medium pb-0.5 leading-relaxed min-w-0 break-words underline underline-offset-4 decoration-black/60 decoration-1">
                     {basisText}
-                  </span>
+                  </div>
                 </div>
               </div>
 
@@ -384,7 +479,7 @@ export const PaymentReceiptPrintModal = ({ payment, deal, onClose, initialLang =
                 <span className="text-slate-800 block text-[10px] font-medium">
                   {isTJ ? 'Асос:' : 'Основание:'}
                 </span>
-                <div className="border-b border-black font-medium pb-0.5 leading-tight text-[11px]">
+                <div className="font-medium pb-0.5 leading-snug text-[10.5px] min-w-0 break-words underline underline-offset-3 decoration-black/60 decoration-1">
                   {basisText}
                 </div>
               </div>

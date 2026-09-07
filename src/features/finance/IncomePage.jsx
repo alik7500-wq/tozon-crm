@@ -410,7 +410,7 @@ export const IncomePage = () => {
                     <div className="text-[11px] font-semibold text-slate-700 leading-tight line-clamp-1">{item.createdByName}</div>
                     {item.comment && (
                       <div className="text-[10px] text-slate-400 truncate max-w-[180px] mt-0.5" title={item.comment}>
-                        {item.comment}
+                        {item.comment.replace(/\[Касса:\s*[^\]]+\]\s*/gi, '').trim()}
                       </div>
                     )}
                   </td>
@@ -429,12 +429,17 @@ export const IncomePage = () => {
                           }
                           setPrintableIncome({
                             id: item.id,
+                            deal_id: item.dealId,
+                            dealId: item.dealId,
+                            deal: item.deal,
+                            dealDate: item.dealDate,
                             amount: item.amount,
                             amount_minor: Math.round(item.amount * 100),
                             currency: item.currency,
                             payment_date: item.date,
                             payer_name: item.clientName,
                             contract: item.contract,
+                            contract_number: item.contract,
                             reference: cleanDoc,
                             comment: item.comment,
                             method: item.method,
@@ -886,6 +891,7 @@ export const IncomePage = () => {
       {printableIncome && (
         <PaymentReceiptPrintModal
           payment={printableIncome}
+          deal={printableIncome.deal}
           onClose={() => setPrintableIncome(null)}
         />
       )}

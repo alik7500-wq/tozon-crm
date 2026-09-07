@@ -475,7 +475,7 @@ export const ExpensesPage = () => {
                     -{item.amount.toLocaleString('ru-RU', { minimumFractionDigits: 2 })} {item.currency}
                   </td>
                   <td className="py-2.5 px-2.5 text-slate-500 text-[11px] max-w-[200px] truncate" title={item.description}>
-                    {item.description || '-'}
+                    {item.description ? item.description.replace(/\[Касса:\s*[^\]]+\]\s*/gi, '').trim() || '-' : '-'}
                   </td>
                   <td className="py-2.5 pr-4 text-right whitespace-nowrap">
                     <div className="flex items-center justify-end gap-1">

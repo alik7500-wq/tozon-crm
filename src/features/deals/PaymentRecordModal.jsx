@@ -139,13 +139,13 @@ export const PaymentRecordModal = ({
   const cashDesksList = (cashDesksDict && cashDesksDict.length > 0)
     ? cashDesksDict.map(d => ({
         id: d.code || `CASH_DESK_${d.id}`,
-        name: d.code === 'SALES_MANAGER' && deal?.manager_name ? `${d.name} (${deal.manager_name})` : d.name,
+        name: d.name,
         icon: d.icon || '🏢'
       }))
     : [
         { id: 'MAIN_CASHIER', name: 'Главная касса компании (Бухгалтерия)', icon: '🏢' },
         { id: 'DIRECTOR', name: 'Касса Директора (Руководство)', icon: '👔' },
-        { id: 'SALES_MANAGER', name: `Касса Менеджера продаж (${deal?.manager_name || 'Отдел продаж'})`, icon: '💼' },
+        { id: 'SALES_MANAGER', name: 'Касса Менеджера продаж (Отдел продаж)', icon: '💼' },
         { id: 'FINANCE_OFFICE', name: 'Касса Казначейства / Финансового отдела', icon: '🏦' },
         { id: 'BANK_ACCOUNT', name: 'Расчетный счет в банке (Безналичные)', icon: '🏛' },
       ];

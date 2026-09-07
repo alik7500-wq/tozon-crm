@@ -3,6 +3,7 @@ import { createPortal } from 'react-dom';
 import { Printer, ArrowLeft, Receipt } from 'lucide-react';
 import { numberToWordsTJ, numberToWordsRU } from '../../utils/numberToWords';
 import { useModalDismiss } from '../../hooks/useModalDismiss';
+import { getRkoBasisText } from '../../utils/receiptBasis';
 
 export const ExpenseReceiptPrintModal = ({ expense, onClose, initialLang = 'TJ' }) => {
   const [lang, setLang] = useState(initialLang);
@@ -57,12 +58,54 @@ export const ExpenseReceiptPrintModal = ({ expense, onClose, initialLang = 'TJ' 
     rawAmount = Number(expense.amount_minor) / 100;
   }
 
+  const descFull = String(expense.description || expense.comment || '');
+
+  // Check if explicit TJS amount was recorded in the operation description
+  const tjsMatch = descFull.match(/(?:•|\b)\s*(?:Внесено в кассу:\s*)?([\d\s\u00A0]+(?:[.,]\d+)?)\s*(?:TJS|смн|сомонӣ|сомони)\b/i);
+  let explicitTjs = null;
+  if (tjsMatch && tjsMatch[1]) {
+    const cleanNumStr = tjsMatch[1].replace(/[\s\u00A0]/g, '').replace(',', '.');
+    const parsed = parseFloat(cleanNumStr);
+    if (!isNaN(parsed) && parsed > 0) {
+      explicitTjs = parsed;
+    }
+  }
+
+  // 1. Structured rate from operation data
+  let structuredRate = null;
+  const rawStructured = expense.exchange_rate ?? expense.rate;
+  if (rawStructured !== undefined && rawStructured !== null && rawStructured !== '') {
+    const num = Number(rawStructured);
+    if (!isNaN(num) && num > 0) {
+      structuredRate = num;
+    }
+  }
+
+  // 2. Safely extracted rate from historic operation comment e.g. (Курс: 9.4)
+  let historicRate = null;
+  const rateMatch = descFull.match(/(?:Курс|курсу)[:\s]+([\d]+(?:[.,]\d+)?)/i);
+  if (rateMatch && rateMatch[1]) {
+    const parsedRate = parseFloat(rateMatch[1].replace(',', '.'));
+    if (!isNaN(parsedRate) && parsedRate > 0) {
+      historicRate = parsedRate;
+    }
+  }
+
+  // Mandatory source priority:
+  // 1. Structured operation rate
+  // 2. Historic comment rate
+  // 3. Null (strictly NO fallback, NO 9.27, NO default rate)
+  const effectiveRate = structuredRate || historicRate || null;
+
   const expenseCur = (expense.cash_currency || expense.currency || 'TJS').toUpperCase();
-  const rate = Number(expense.exchange_rate) || 9.27;
 
   let amountTJS = rawAmount;
-  if (expenseCur === 'USD') {
-    amountTJS = rawAmount * rate;
+  if (expenseCur === 'TJS') {
+    amountTJS = rawAmount;
+  } else if (explicitTjs !== null) {
+    amountTJS = explicitTjs;
+  } else if (expenseCur === 'USD') {
+    amountTJS = effectiveRate ? rawAmount * effectiveRate : rawAmount;
   }
 
   const amountNumber = Number(amountTJS.toFixed(2));
@@ -70,6 +113,41 @@ export const ExpenseReceiptPrintModal = ({ expense, onClose, initialLang = 'TJ' 
     minimumFractionDigits: 2,
     maximumFractionDigits: 2,
   });
+
+  // USD Equivalent calculation for official coding table (strict: NO fallback when rate is missing)
+  let amountUSD = null;
+  if (effectiveRate && effectiveRate > 0) {
+    if (expenseCur === 'USD' && rawAmount > 0 && rawAmount !== explicitTjs) {
+      amountUSD = rawAmount;
+    } else if (amountTJS > 0) {
+      amountUSD = amountTJS / effectiveRate;
+    }
+  }
+
+  const hasValidExchangeData = Boolean(
+    effectiveRate &&
+    effectiveRate > 0 &&
+    !isNaN(effectiveRate) &&
+    isFinite(effectiveRate) &&
+    amountUSD &&
+    amountUSD > 0 &&
+    !isNaN(amountUSD) &&
+    isFinite(amountUSD)
+  );
+
+  const rateFormatted = hasValidExchangeData
+    ? effectiveRate.toLocaleString('ru-RU', {
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 4,
+      }).replace('.', ',')
+    : null;
+
+  const amountUsdFormatted = hasValidExchangeData
+    ? `${Number(amountUSD.toFixed(2)).toLocaleString('ru-RU', {
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2,
+      })} USD`
+    : null;
 
   const currency = 'TJS'; // Always TJS (Сомони)
   const wordsFormatted = isTJ 
@@ -84,8 +162,8 @@ export const ExpenseReceiptPrintModal = ({ expense, onClose, initialLang = 'TJ' 
   // Recipient
   const recipientName = (expense.recipient || '—').trim();
 
-  // Ground / Basis
-  const basisText = (expense.description || expense.comment || expense.category || (isTJ ? 'Хароҷоти амалиётӣ' : 'Операционный расход')).trim();
+  // Ground / Basis - strictly primary data via centralized helper
+  const basisText = getRkoBasisText({ expense, lang });
 
   // Appendix / Attached document (only if explicitly specified)
   const appendixText = expense.attachment ? String(expense.attachment).trim() : '';
@@ -201,13 +279,20 @@ export const ExpenseReceiptPrintModal = ({ expense, onClose, initialLang = 'TJ' 
                   </tr>
                 </thead>
                 <tbody>
-                  <tr className="h-7">
+                  <tr className="h-8">
                     <td className="border border-black p-1"></td>
                     <td className="border border-black p-1"></td>
-                    <td className="border border-black p-1 font-bold font-sans text-xs sm:text-sm">
+                    <td className="border border-black p-1 font-bold font-sans text-xs sm:text-sm align-middle">
                       {amountFormatted}
                     </td>
-                    <td className="border border-black p-1"></td>
+                    <td className="border border-black p-1 font-sans text-[10px] sm:text-[11px] leading-tight text-center font-medium align-middle">
+                      {hasValidExchangeData ? (
+                        <>
+                          <div>Курс: {rateFormatted}</div>
+                          <div className="font-bold text-slate-900">{amountUsdFormatted}</div>
+                        </>
+                      ) : null}
+                    </td>
                   </tr>
                 </tbody>
               </table>
@@ -227,13 +312,13 @@ export const ExpenseReceiptPrintModal = ({ expense, onClose, initialLang = 'TJ' 
 
             {/* Basis Line */}
             <div className="text-xs sm:text-sm">
-              <div className="flex items-baseline gap-2">
-                <span className="shrink-0 font-bold text-slate-900">
+              <div className="flex items-start gap-2 leading-relaxed">
+                <span className="shrink-0 font-bold text-slate-900 pt-0.5">
                   {isTJ ? 'Асос:' : 'Основание:'}
                 </span>
-                <span className="grow border-b border-black font-medium pb-0.5 leading-relaxed">
+                <div className="grow font-medium pb-0.5 leading-relaxed min-w-0 break-words underline underline-offset-4 decoration-black/60 decoration-1">
                   {basisText}
-                </span>
+                </div>
               </div>
             </div>
 
