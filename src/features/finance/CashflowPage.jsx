@@ -991,6 +991,8 @@ export const CashflowPage = () => {
                                   reference: t.reference,
                                   description: t.description || t.comment,
                                   method: t.method,
+                                  exchange_rate: t.exchange_rate || null,
+                                  amount_usd: t.amount_usd || null,
                                   created_by_name: t.createdByName
                                 });
                               }

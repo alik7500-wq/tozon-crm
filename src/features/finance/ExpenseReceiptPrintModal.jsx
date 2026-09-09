@@ -71,7 +71,7 @@ export const ExpenseReceiptPrintModal = ({ expense, onClose, initialLang = 'TJ' 
     }
   }
 
-  // 1. Structured rate from operation data
+  // 1. Structured rate saved in DB (historical snapshot from auto-conversion)
   let structuredRate = null;
   const rawStructured = expense.exchange_rate ?? expense.rate;
   if (rawStructured !== undefined && rawStructured !== null && rawStructured !== '') {
@@ -83,7 +83,7 @@ export const ExpenseReceiptPrintModal = ({ expense, onClose, initialLang = 'TJ' 
 
   // 2. Safely extracted rate from historic operation comment e.g. (Курс: 9.4)
   let historicRate = null;
-  const rateMatch = descFull.match(/(?:Курс|курсу)[:\s]+([\d]+(?:[.,]\d+)?)/i);
+  const rateMatch = descFull.match(/(?:Курс|курсу|Қурб)[:\s]+([\d]+(?:[.,]\d+)?)/i);
   if (rateMatch && rateMatch[1]) {
     const parsedRate = parseFloat(rateMatch[1].replace(',', '.'));
     if (!isNaN(parsedRate) && parsedRate > 0) {
@@ -92,7 +92,7 @@ export const ExpenseReceiptPrintModal = ({ expense, onClose, initialLang = 'TJ' 
   }
 
   // Mandatory source priority:
-  // 1. Structured operation rate
+  // 1. Structured operation rate (saved in DB)
   // 2. Historic comment rate
   // 3. Null (strictly NO fallback, NO 9.27, NO default rate)
   const effectiveRate = structuredRate || historicRate || null;
@@ -114,9 +114,19 @@ export const ExpenseReceiptPrintModal = ({ expense, onClose, initialLang = 'TJ' 
     maximumFractionDigits: 2,
   });
 
-  // USD Equivalent calculation for official coding table (strict: NO fallback when rate is missing)
+  // USD Equivalent: prefer saved amount_usd, then calculate from rate
   let amountUSD = null;
-  if (effectiveRate && effectiveRate > 0) {
+  
+  // Priority 1: saved amount_usd from DB (historical snapshot)
+  if (expense.amount_usd !== undefined && expense.amount_usd !== null) {
+    const savedUsd = Number(expense.amount_usd);
+    if (!isNaN(savedUsd) && savedUsd > 0) {
+      amountUSD = savedUsd;
+    }
+  }
+  
+  // Priority 2: calculate from effectiveRate
+  if (amountUSD === null && effectiveRate && effectiveRate > 0) {
     if (expenseCur === 'USD' && rawAmount > 0 && rawAmount !== explicitTjs) {
       amountUSD = rawAmount;
     } else if (amountTJS > 0) {
@@ -288,7 +298,7 @@ export const ExpenseReceiptPrintModal = ({ expense, onClose, initialLang = 'TJ' 
                     <td className="border border-black p-1 font-sans text-[10px] sm:text-[11px] leading-tight text-center font-medium align-middle">
                       {hasValidExchangeData ? (
                         <>
-                          <div>Курс: {rateFormatted}</div>
+                          <div>{isTJ ? 'Қурб' : 'Курс'}: {rateFormatted}</div>
                           <div className="font-bold text-slate-900">{amountUsdFormatted}</div>
                         </>
                       ) : null}

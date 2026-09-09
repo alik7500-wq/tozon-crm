@@ -359,7 +359,7 @@ export const PaymentReceiptPrintModal = ({ payment, deal, onClose, initialLang =
                       <td className="border border-black p-1 font-sans text-[10px] leading-tight text-center font-medium align-middle">
                         {hasValidExchangeData ? (
                           <>
-                            <div>Курс: {rateFormatted}</div>
+                            <div>{isTJ ? 'Қурб' : 'Курс'}: {rateFormatted}</div>
                             <div className="font-bold text-slate-900">{amountUsdFormatted}</div>
                           </>
                         ) : null}

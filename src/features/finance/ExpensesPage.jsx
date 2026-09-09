@@ -492,6 +492,8 @@ export const ExpensesPage = () => {
                           description: item.description,
                           attachment: item.attachment || item.appendix || '',
                           method: item.method,
+                          exchange_rate: item.exchange_rate || null,
+                          amount_usd: item.amount_usd || null,
                           created_by_name: item.createdByName
                         })}
                         title="Печать РКО (Ордер расхода)"
