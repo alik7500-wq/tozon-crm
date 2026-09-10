@@ -411,14 +411,12 @@ export const CashflowPage = () => {
                                   ${desk.balanceUsd.toLocaleString('ru-RU', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                                 </span>
                               )}
-                              {hasTjs && (
-                                <span className={isFiltered ? 'text-blue-700' : 'text-amber-300'}>
-                                  {desk.balanceTjs.toLocaleString('ru-RU', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} TJS
-                                </span>
-                              )}
+                              <span className={isFiltered ? 'text-slate-600 font-semibold' : 'text-indigo-200/90'}>
+                                | {Math.max(0, desk.balanceTjs || 0).toLocaleString('ru-RU', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} TJS
+                              </span>
                               {hasRub && (
                                 <span className={isFiltered ? 'text-purple-700' : 'text-purple-300'}>
-                                  {desk.balanceRub.toLocaleString('ru-RU', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ₽
+                                  | {desk.balanceRub.toLocaleString('ru-RU', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ₽
                                 </span>
                               )}
                             </div>
@@ -738,8 +736,8 @@ export const CashflowPage = () => {
 
                       <div className="flex items-center justify-between text-xs font-mono">
                         <span className="text-slate-400 font-sans text-[11px]">TJS (Сомони):</span>
-                        <span className={`font-black ${desk.balanceTjs > 0 ? 'text-blue-600' : desk.balanceTjs < 0 ? 'text-rose-600' : 'text-slate-400'}`}>
-                          {desk.balanceTjs.toLocaleString('ru-RU', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                        <span className={`font-black ${desk.balanceTjs > 0 ? 'text-blue-600' : 'text-slate-400'}`}>
+                          {Math.max(0, desk.balanceTjs || 0).toLocaleString('ru-RU', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                         </span>
                       </div>
 
