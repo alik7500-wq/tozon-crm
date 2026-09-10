@@ -30,10 +30,21 @@ export const IncomePage = () => {
   const [year, setYear] = useState(new Date().getFullYear());
   const [currency, setCurrency] = useState('ALL');
   const [search, setSearch] = useState('');
+  const [deskFilter, setDeskFilter] = useState('');
   const [showAddModal, setShowAddModal] = useState(false);
   const [editingItem, setEditingItem] = useState(null);
   const [printableIncome, setPrintableIncome] = useState(null);
   const [dealsList, setDealsList] = useState([]);
+
+  const handleDeskFilter = (deskName) => {
+    if (deskFilter === deskName) {
+      setDeskFilter('');
+      setSearch('');
+    } else {
+      setDeskFilter(deskName);
+      setSearch(deskName);
+    }
+  };
 
   const queryClient = useQueryClient();
 
@@ -262,6 +273,42 @@ export const IncomePage = () => {
         </div>
       </div>
 
+      {/* Cash Desk Filter Buttons */}
+      {allCashDesks.length > 0 && (
+        <div className="bg-white rounded-3xl border border-slate-200 shadow-2xs p-4">
+          <div className="flex items-center gap-2 flex-wrap">
+            <div className="flex items-center gap-1.5 text-xs font-bold text-slate-500 mr-1">
+              <Wallet className="h-3.5 w-3.5 text-emerald-600" />
+              <span>Касса:</span>
+            </div>
+            <button
+              onClick={() => { setDeskFilter(''); setSearch(''); }}
+              className={`px-3 py-1.5 rounded-xl text-xs font-bold transition cursor-pointer ${
+                !deskFilter
+                  ? 'bg-emerald-600 text-white shadow-xs'
+                  : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+              }`}
+            >
+              Все кассы
+            </button>
+            {allCashDesks.map((desk) => (
+              <button
+                key={desk.id}
+                onClick={() => handleDeskFilter(desk.name)}
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition cursor-pointer ${
+                  deskFilter === desk.name
+                    ? 'bg-emerald-600 text-white shadow-xs ring-2 ring-emerald-500/30'
+                    : 'bg-slate-100 text-slate-600 hover:bg-emerald-50 hover:text-emerald-700 hover:border-emerald-200 border border-transparent'
+                }`}
+              >
+                <span className="text-sm">{desk.icon}</span>
+                <span>{desk.name.replace(/^Касса\s+/i, '').replace(/\s*\(.*?\)\s*$/, '').trim()}</span>
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+
       {/* Filter and Currency Toolbar */}
       <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 bg-white p-4 rounded-3xl border border-slate-200 shadow-2xs">
         <div className="flex items-center gap-2 flex-wrap">
@@ -305,7 +352,7 @@ export const IncomePage = () => {
               type="text"
               placeholder="Поиск по клиенту, договору..."
               value={search}
-              onChange={(e) => setSearch(e.target.value)}
+              onChange={(e) => { setSearch(e.target.value); if (!e.target.value) setDeskFilter(''); }}
               className="w-full rounded-xl border border-slate-200 bg-slate-50 pl-8 pr-3 py-1.5 text-xs text-slate-900 outline-none focus:border-emerald-500 focus:bg-white transition"
             />
           </div>
