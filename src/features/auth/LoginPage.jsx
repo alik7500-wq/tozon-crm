@@ -117,6 +117,41 @@ export const LoginPage = () => {
                 </>
               )}
             </button>
+
+            {/* Quick dev switch buttons */}
+            <div className="mt-4 pt-4 border-t border-slate-100 flex flex-col gap-2">
+              <span className="text-[10px] uppercase font-bold text-slate-400 text-center tracking-wider">Быстрый вход для проверки</span>
+              <div className="grid grid-cols-2 gap-2">
+                <button
+                  type="button"
+                  id="btn-quick-admin"
+                  onClick={async () => {
+                    setEmail('admin@tozon.crm');
+                    setPassword('admin123');
+                    await login('admin@tozon.crm', 'admin123');
+                    navigate('/finance/cashflow');
+                  }}
+                  className="px-3 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-800 text-xs font-bold transition text-center cursor-pointer"
+                >
+                  🛡️ Админ
+                </button>
+                <button
+                  type="button"
+                  id="btn-quick-dadojon"
+                  onClick={async () => {
+                    await fetch('/api/auth/dev-login', {
+                      method: 'POST',
+                      headers: { 'Content-Type': 'application/json' },
+                      body: JSON.stringify({ email: 'manager1@tozon.tj' })
+                    });
+                    window.location.href = '/finance/cashflow';
+                  }}
+                  className="px-3 py-2 rounded-xl bg-blue-50 hover:bg-blue-100 text-blue-700 text-xs font-bold transition text-center cursor-pointer"
+                >
+                  💼 Дадочон
+                </button>
+              </div>
+            </div>
           </form>
         </div>
 

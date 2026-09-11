@@ -5,6 +5,7 @@ import { dictionariesApi } from '../../api/dictionaries.api';
 import { useModalDismiss } from '../../hooks/useModalDismiss';
 import { PaymentReceiptPrintModal } from '../finance/PaymentReceiptPrintModal';
 import { formatContractNumber } from '../../utils/formatters';
+import { useAuth } from '../auth/AuthContext';
 import {
   X,
   CreditCard,
@@ -27,6 +28,11 @@ export const PaymentRecordModal = ({
   initialScheduleId = null,
   onPaymentSuccess,
 }) => {
+  const { user } = useAuth();
+  const isManager = user?.role === 'SALES_MANAGER' || user?.id === 3;
+  const DADOJON_CASH_DESK_ID = 'fba621e6-4ebe-4459-8623-19f46d864cc6';
+  const AKMALHON_CASH_DESK_ID = 'ab90800a-73af-4cf7-88c2-397c304e2edf';
+
   const [scheduleId, setScheduleId] = useState(initialScheduleId);
   const [amount, setAmount] = useState('');
   const [paymentDate, setPaymentDate] = useState(new Date().toISOString().split('T')[0]);
@@ -35,7 +41,9 @@ export const PaymentRecordModal = ({
   const [comment, setComment] = useState('');
 
   // Cash desks and currencies
-  const [cashDesk, setCashDesk] = useState('MAIN_CASHIER');
+  const [selectedCashDeskId, setSelectedCashDeskId] = useState(
+    isManager ? DADOJON_CASH_DESK_ID : ''
+  );
   const [cashDesksDict, setCashDesksDict] = useState([]);
   const [cashCurrency, setCashCurrency] = useState('TJS'); // Default TJS (национальная валюта)
   const [exchangeRate, setExchangeRate] = useState('9.27'); // default Eskhata USD/TJS rate
@@ -43,6 +51,7 @@ export const PaymentRecordModal = ({
 
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
+
   const [recordedPayment, setRecordedPayment] = useState(null);
   const [updatedDealResult, setUpdatedDealResult] = useState(null);
 
@@ -138,15 +147,14 @@ export const PaymentRecordModal = ({
 
   const cashDesksList = (cashDesksDict && cashDesksDict.length > 0)
     ? cashDesksDict.map(d => ({
-        id: d.code || `CASH_DESK_${d.id}`,
+        id: d.id || d.code,
+        code: d.code,
         name: d.name,
-        icon: d.icon || '🏢'
+        icon: d.icon || (d.code?.includes('MANAGER') ? '💼' : '🏢')
       }))
     : [
-        { id: 'MAIN_CASHIER', name: 'Главная касса компании (Бухгалтерия)', icon: '🏢' },
-        { id: 'DIRECTOR', name: 'Касса Директора (Руководство)', icon: '👔' },
-        { id: 'SALES_MANAGER', name: 'Касса Менеджера продаж (Отдел продаж)', icon: '💼' },
-        { id: 'FINANCE_OFFICE', name: 'Касса Казначейства / Финансового отдела', icon: '🏦' },
+        { id: AKMALHON_CASH_DESK_ID, name: 'Касса Отдела продаж (Акмалхон)', icon: '💼' },
+        { id: DADOJON_CASH_DESK_ID, name: 'Касса менеджера (Дадочон)', icon: '💼' },
         { id: 'BANK_ACCOUNT', name: 'Расчетный счет в банке (Безналичные)', icon: '🏛' },
       ];
 
@@ -231,10 +239,14 @@ export const PaymentRecordModal = ({
     }
 
     const equivalentInDealCurrency = calculateDealEquivalent();
-    const amountMinor = Math.round(equivalentInDealCurrency * 100);
+    if (!isManager && !selectedCashDeskId) {
+      setError('Необходимо обязательно выбрать кассу получения средств');
+      return;
+    }
 
-    const selectedDeskObj = cashDesksList.find((c) => c.id === cashDesk);
-    const deskName = selectedDeskObj ? selectedDeskObj.name : cashDesk;
+    const activeDeskId = isManager ? DADOJON_CASH_DESK_ID : selectedCashDeskId;
+    const selectedDeskObj = cashDesksList.find((c) => c.id === activeDeskId || c.code === activeDeskId);
+    const deskName = selectedDeskObj ? selectedDeskObj.name : (isManager ? 'Касса менеджера (Дадочон)' : 'Касса Отдела продаж (Акмалхон)');
 
     const fullCommentParts = [];
     fullCommentParts.push(`[Касса: ${deskName}] [Раздел: ${cashCurrency}]`);
@@ -258,6 +270,7 @@ export const PaymentRecordModal = ({
         schedule_id: scheduleId || null,
         reference: cleanRef,
         comment: fullCommentParts.join(' • '),
+        cash_desk_id: activeDeskId,
       });
 
       // Cash payment details in TJS for official PKO receipt
@@ -347,21 +360,41 @@ export const PaymentRecordModal = ({
 
               {/* 1. Касса ответственного лица */}
               <div className="rounded-2xl bg-slate-50 p-3 border border-slate-200 space-y-1.5">
-                <label className="block text-xs font-bold text-slate-700 flex items-center gap-1.5">
-                  <User className="h-3.5 w-3.5 text-blue-600" />
-                  <span>Касса ответственного лица *</span>
+                <label className="block text-xs font-bold text-slate-700 flex items-center justify-between">
+                  <span className="flex items-center gap-1.5">
+                    <User className="h-3.5 w-3.5 text-blue-600" />
+                    <span>Касса ответственного лица *</span>
+                  </span>
+                  {isManager && (
+                    <span className="px-2 py-0.5 rounded-md bg-blue-100 text-blue-700 text-[10px] font-bold">
+                      Персональная касса
+                    </span>
+                  )}
                 </label>
-                <select
-                  value={cashDesk}
-                  onChange={(e) => setCashDesk(e.target.value)}
-                  className="w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-xs font-bold text-slate-800 outline-none focus:border-blue-500 transition cursor-pointer"
-                >
-                  {cashDesksList.map((c) => (
-                    <option key={c.id} value={c.id}>
-                      {c.icon} {c.name}
-                    </option>
-                  ))}
-                </select>
+                {isManager ? (
+                  <div className="w-full rounded-xl border border-slate-200 bg-slate-100/90 px-3 py-2 text-xs font-bold text-slate-700 flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <span>💼</span>
+                      <span>Касса менеджера (Дадочон)</span>
+                    </div>
+                    <span className="text-[10px] text-slate-400 font-medium">Фиксировано</span>
+                  </div>
+                ) : (
+                  <select
+                    value={selectedCashDeskId}
+                    onChange={(e) => setSelectedCashDeskId(e.target.value)}
+                    className={`w-full rounded-xl border px-3 py-2 text-xs font-bold outline-none focus:border-blue-500 transition cursor-pointer ${
+                      !selectedCashDeskId ? 'border-amber-400 bg-amber-50/50 text-slate-500' : 'border-slate-300 bg-white text-slate-800'
+                    }`}
+                  >
+                    <option value="">-- Выберите кассу получения средств * --</option>
+                    {cashDesksList.map((c) => (
+                      <option key={c.id} value={c.id}>
+                        {c.icon} {c.name}
+                      </option>
+                    ))}
+                  </select>
+                )}
               </div>
 
               {/* 2. Раздел валюты в кассе: USD / Сомони (TJS) */}

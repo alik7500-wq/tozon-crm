@@ -27,6 +27,7 @@ import dayjs from 'dayjs';
 export const CashflowPage = () => {
   const { user } = useAuth();
   const isAdmin = user?.role === 'ADMIN';
+  const isManager = user?.role === 'SALES_MANAGER';
 
   const [year, setYear] = useState(new Date().getFullYear());
   const [currency, setCurrency] = useState('ALL');
@@ -308,13 +309,15 @@ export const CashflowPage = () => {
             <RefreshCw className="h-3.5 w-3.5" />
           </button>
 
-          <button
-            onClick={() => setShowConvertModal(true)}
-            className="flex items-center gap-2 rounded-2xl bg-blue-600 hover:bg-blue-700 px-4 py-2 text-xs font-bold text-white transition shadow-sm cursor-pointer"
-          >
-            <ArrowRightLeft className="h-4 w-4" />
-            <span>Конвертация / Обмен валют</span>
-          </button>
+          {isAdmin && (
+            <button
+              onClick={() => setShowConvertModal(true)}
+              className="flex items-center gap-2 rounded-2xl bg-blue-600 hover:bg-blue-700 px-4 py-2 text-xs font-bold text-white transition shadow-sm cursor-pointer"
+            >
+              <ArrowRightLeft className="h-4 w-4" />
+              <span>Конвертация / Обмен валют</span>
+            </button>
+          )}
         </div>
       </div>
 
@@ -327,7 +330,7 @@ export const CashflowPage = () => {
           <div className="space-y-3 max-w-2xl">
             <div className="flex items-center gap-2.5 flex-wrap">
               <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-black uppercase tracking-wider bg-indigo-500/20 text-indigo-200 border border-indigo-500/30 backdrop-blur-md">
-                СВОДНЫЙ КАПИТАЛ КОМПАНИИ (ФАКТИЧЕСКИЙ ОСТАТОК СРЕДСТВ)
+                {isManager ? 'ОСТАТОК В ВАШЕЙ ПОДОТЧЁТНОЙ КАССЕ' : 'СВОДНЫЙ КАПИТАЛ КОМПАНИИ (ФАКТИЧЕСКИЙ ОСТАТОК СРЕДСТВ)'}
               </span>
               <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-semibold bg-white/10 text-white border border-white/10 backdrop-blur-md">
                 <span>🏦 Курс Эсхата (Продажа): 1 USD =</span>
@@ -345,7 +348,7 @@ export const CashflowPage = () => {
                 </span>
               </div>
               <p className="text-xs text-indigo-300/80 mt-1">
-                Фактический общий остаток денежных средств во всех кассах компании
+                {isManager ? 'Фактический остаток средств в вашей персональной кассе менеджера' : 'Фактический общий остаток денежных средств во всех кассах компании'}
               </p>
             </div>
 
@@ -354,9 +357,9 @@ export const CashflowPage = () => {
               <div className="flex items-center justify-between gap-2">
                 <span className="text-[11px] font-bold text-indigo-200 uppercase tracking-wider flex items-center gap-1.5">
                   <Wallet className="h-3.5 w-3.5 text-amber-300" />
-                  <span>Фактический остаток в кассах (у кого сколько средств):</span>
+                  <span>{isManager ? 'Ваша персональная касса:' : 'Фактический остаток в кассах (у кого сколько средств):'}</span>
                 </span>
-                {search && (
+                {search && !isManager && (
                   <button
                     onClick={() => setSearch('')}
                     className="text-[10px] text-amber-300 hover:underline flex items-center gap-1 cursor-pointer"
@@ -368,13 +371,14 @@ export const CashflowPage = () => {
               </div>
 
               <div className="flex items-center gap-2.5 flex-wrap text-xs">
-                {cashDesksListWithBalances.filter(d => d.hasBalance).length === 0 ? (
+                {(isManager ? cashDesksListWithBalances.filter(d => d.name.includes('Дадочон')) : cashDesksListWithBalances)
+                  .filter(d => isManager ? true : d.hasBalance).length === 0 ? (
                   <div className="text-xs text-indigo-300/80 bg-white/5 px-3 py-1.5 rounded-xl border border-white/10">
-                    Во всех кассах остаток 0
+                    {isManager ? 'В вашей кассе остаток 0' : 'Во всех кассах остаток 0'}
                   </div>
                 ) : (
-                  cashDesksListWithBalances
-                    .filter(d => d.hasBalance)
+                  (isManager ? cashDesksListWithBalances.filter(d => d.name.includes('Дадочон')) : cashDesksListWithBalances)
+                    .filter(d => isManager ? true : d.hasBalance)
                     .map((desk) => {
                       const isFiltered = search.toLowerCase() === desk.name.toLowerCase();
                       const hasUsd = Math.abs(desk.balanceUsd) > 0.001;
@@ -411,8 +415,8 @@ export const CashflowPage = () => {
                                   ${desk.balanceUsd.toLocaleString('ru-RU', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                                 </span>
                               )}
-                              <span className={isFiltered ? 'text-slate-600 font-semibold' : 'text-indigo-200/90'}>
-                                | {Math.max(0, desk.balanceTjs || 0).toLocaleString('ru-RU', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} TJS
+                              <span className={isFiltered ? (desk.balanceTjs < 0 ? 'text-rose-600 font-bold' : 'text-slate-600 font-semibold') : (desk.balanceTjs < 0 ? 'text-rose-300 font-bold' : 'text-indigo-200/90')}>
+                                | {(desk.balanceTjs || 0).toLocaleString('ru-RU', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} TJS
                               </span>
                               {hasRub && (
                                 <span className={isFiltered ? 'text-purple-700' : 'text-purple-300'}>
@@ -736,8 +740,8 @@ export const CashflowPage = () => {
 
                       <div className="flex items-center justify-between text-xs font-mono">
                         <span className="text-slate-400 font-sans text-[11px]">TJS (Сомони):</span>
-                        <span className={`font-black ${desk.balanceTjs > 0 ? 'text-blue-600' : 'text-slate-400'}`}>
-                          {Math.max(0, desk.balanceTjs || 0).toLocaleString('ru-RU', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                        <span className={`font-black ${desk.balanceTjs > 0 ? 'text-blue-600' : desk.balanceTjs < 0 ? 'text-rose-600' : 'text-slate-400'}`}>
+                          {(desk.balanceTjs || 0).toLocaleString('ru-RU', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                         </span>
                       </div>
 

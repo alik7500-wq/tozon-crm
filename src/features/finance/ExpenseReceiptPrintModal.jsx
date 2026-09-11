@@ -242,7 +242,15 @@ export const ExpenseReceiptPrintModal = ({ expense, onClose, initialLang = 'TJ' 
 
         {/* OFFICIAL RKO DOCUMENT (ОРДЕРИ СОДИРОТИ ХАЗИНАВИ) */}
         <div id="print-section" className="p-6 sm:p-10 text-black font-serif select-text bg-white">
-          <div className="border border-black p-6 sm:p-8 space-y-4 max-w-3xl mx-auto">
+          <div className="relative border border-black p-6 sm:p-8 space-y-4 max-w-3xl mx-auto overflow-hidden">
+            {expense?.status === 'VOIDED' && (
+              <div className="absolute inset-0 flex items-center justify-center pointer-events-none select-none z-10">
+                <div className="text-red-500/20 text-5xl sm:text-7xl font-black uppercase tracking-widest -rotate-45 border-4 sm:border-8 border-red-500/20 p-6 rounded-3xl text-center">
+                  АННУЛИРОВАН
+                  <div className="text-xs font-bold tracking-normal mt-1">{expense.void_reason || expense.voidReason || 'REENTERED_VIA_ATOMIC_CASH_TRANSFER'}</div>
+                </div>
+              </div>
+            )}
             
             {/* Top Company Header */}
             <div className="border-b-2 border-black pb-0.5 inline-block font-bold text-sm sm:text-base tracking-wide">

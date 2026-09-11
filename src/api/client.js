@@ -1,7 +1,10 @@
 import axios from 'axios';
 
+const rawBaseUrl = import.meta.env.VITE_API_URL || 'https://tozon-backend.onrender.com/api';
+const baseURL = rawBaseUrl.endsWith('/api') ? rawBaseUrl : `${rawBaseUrl.replace(/\/$/, '')}/api`;
+
 export const api = axios.create({
-  baseURL: import.meta.env.VITE_API_URL || 'https://tozon-backend.onrender.com/api',
+  baseURL,
   withCredentials: true,
   headers: {
     'Content-Type': 'application/json',

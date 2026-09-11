@@ -71,5 +71,10 @@ export const financeApi = {
   getEskhataRate: async () => {
     const res = await api.get('/finance/rates/eskhata');
     return res?.data || res;
+  },
+
+  createTransfer: async (transferData) => {
+    const res = await api.post('/finance/transfers', transferData);
+    return res?.data || res;
   }
 };

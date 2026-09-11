@@ -26,17 +26,20 @@ import dayjs from 'dayjs';
 export const IncomePage = () => {
   const { user } = useAuth();
   const isAdmin = user?.role === 'ADMIN';
+  const isManager = user?.role === 'SALES_MANAGER';
+  const DADOJON_DESK_ID = 'fba621e6-4ebe-4459-8623-19f46d864cc6';
 
   const [year, setYear] = useState(new Date().getFullYear());
   const [currency, setCurrency] = useState('ALL');
   const [search, setSearch] = useState('');
-  const [deskFilter, setDeskFilter] = useState('');
+  const [deskFilter, setDeskFilter] = useState(isManager ? 'Касса менеджера (Дадочон)' : '');
   const [showAddModal, setShowAddModal] = useState(false);
   const [editingItem, setEditingItem] = useState(null);
   const [printableIncome, setPrintableIncome] = useState(null);
   const [dealsList, setDealsList] = useState([]);
 
   const handleDeskFilter = (deskName) => {
+    if (isManager) return; // Менеджер видит только свою кассу
     if (deskFilter === deskName) {
       setDeskFilter('');
       setSearch('');
@@ -73,9 +76,21 @@ export const IncomePage = () => {
     date: dayjs().format('YYYY-MM-DD'),
     method: 'CASH',
     reference: '',
-    cash_desk: 'Главная касса компании (Бухгалтерия)',
+    cash_desk: isManager ? 'Касса менеджера (Дадочон)' : 'Главная касса компании (Бухгалтерия)',
+    cash_desk_id: isManager ? DADOJON_DESK_ID : '',
     comment: ''
   });
+
+  useEffect(() => {
+    if (isManager) {
+      setFormData(prev => ({
+        ...prev,
+        cash_desk: 'Касса менеджера (Дадочон)',
+        cash_desk_id: DADOJON_DESK_ID
+      }));
+      setDeskFilter('Касса менеджера (Дадочон)');
+    }
+  }, [isManager]);
 
   const { data: response, isLoading, refetch } = useQuery({
     queryKey: ['finance-income', year, currency, search],
@@ -181,9 +196,13 @@ export const IncomePage = () => {
   const handleSubmit = (e) => {
     e.preventDefault();
     if (!formData.amount || Number(formData.amount) <= 0) return;
-    const finalComment = updateCommentWithCashDesk(formData.comment, formData.cash_desk);
+    const finalDeskName = isManager ? 'Касса менеджера (Дадочон)' : formData.cash_desk;
+    const finalDeskId = isManager ? DADOJON_DESK_ID : formData.cash_desk_id;
+    const finalComment = updateCommentWithCashDesk(formData.comment, finalDeskName);
     addMutation.mutate({
       ...formData,
+      cash_desk: finalDeskName,
+      cash_desk_id: finalDeskId,
       comment: finalComment
     });
   };
@@ -281,30 +300,40 @@ export const IncomePage = () => {
               <Wallet className="h-3.5 w-3.5 text-emerald-600" />
               <span>Касса:</span>
             </div>
-            <button
-              onClick={() => { setDeskFilter(''); setSearch(''); }}
-              className={`px-3 py-1.5 rounded-xl text-xs font-bold transition cursor-pointer ${
-                !deskFilter
-                  ? 'bg-emerald-600 text-white shadow-xs'
-                  : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
-              }`}
-            >
-              Все кассы
-            </button>
-            {allCashDesks.map((desk) => (
-              <button
-                key={desk.id}
-                onClick={() => handleDeskFilter(desk.name)}
-                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition cursor-pointer ${
-                  deskFilter === desk.name
-                    ? 'bg-emerald-600 text-white shadow-xs ring-2 ring-emerald-500/30'
-                    : 'bg-slate-100 text-slate-600 hover:bg-emerald-50 hover:text-emerald-700 hover:border-emerald-200 border border-transparent'
-                }`}
-              >
-                <span className="text-sm">{desk.icon}</span>
-                <span>{desk.name.replace(/^Касса\s+/i, '').replace(/\s*\(.*?\)\s*$/, '').trim()}</span>
-              </button>
-            ))}
+            {isManager ? (
+              <div className="flex items-center gap-2 px-3.5 py-1.5 rounded-xl text-xs font-bold bg-emerald-600 text-white shadow-xs">
+                <span>💼</span>
+                <span>Касса менеджера (Дадочон)</span>
+                <span className="px-1.5 py-0.5 rounded bg-white/20 text-[10px] ml-1">Персональная</span>
+              </div>
+            ) : (
+              <>
+                <button
+                  onClick={() => { setDeskFilter(''); setSearch(''); }}
+                  className={`px-3 py-1.5 rounded-xl text-xs font-bold transition cursor-pointer ${
+                    !deskFilter
+                      ? 'bg-emerald-600 text-white shadow-xs'
+                      : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                  }`}
+                >
+                  Все кассы
+                </button>
+                {allCashDesks.map((desk) => (
+                  <button
+                    key={desk.id}
+                    onClick={() => handleDeskFilter(desk.name)}
+                    className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition cursor-pointer ${
+                      deskFilter === desk.name
+                        ? 'bg-emerald-600 text-white shadow-xs ring-2 ring-emerald-500/30'
+                        : 'bg-slate-100 text-slate-600 hover:bg-emerald-50 hover:text-emerald-700 hover:border-emerald-200 border border-transparent'
+                    }`}
+                  >
+                    <span className="text-sm">{desk.icon}</span>
+                    <span>{desk.name.replace(/^Касса\s+/i, '').replace(/\s*\(.*?\)\s*$/, '').trim()}</span>
+                  </button>
+                ))}
+              </>
+            )}
           </div>
         </div>
       )}
@@ -882,21 +911,38 @@ export const IncomePage = () => {
 
                 {/* Cash Desk & Comment */}
                 <div className="sm:col-span-2">
-                  <label className="block text-[11px] font-bold text-slate-700 mb-1 flex items-center gap-1.5">
-                    <Wallet className="h-3 w-3 text-emerald-600" />
-                    <span>Касса зачисления средств *</span>
+                  <label className="block text-[11px] font-bold text-slate-700 mb-1 flex items-center justify-between">
+                    <span className="flex items-center gap-1.5">
+                      <Wallet className="h-3 w-3 text-emerald-600" />
+                      <span>Касса зачисления средств *</span>
+                    </span>
+                    {isManager && (
+                      <span className="px-1.5 py-0.5 rounded bg-blue-100 text-blue-700 text-[10px] font-bold">
+                        Персональная касса
+                      </span>
+                    )}
                   </label>
-                  <select
-                    value={formData.cash_desk}
-                    onChange={e => setFormData({ ...formData, cash_desk: e.target.value })}
-                    className="w-full rounded-xl border border-slate-300 bg-slate-50 px-3 py-1.5 text-xs font-bold text-slate-800 outline-none focus:border-emerald-500 cursor-pointer"
-                  >
-                    {allCashDesks.map(c => (
-                      <option key={c.id || c.name} value={c.name}>
-                        {c.icon} {c.name}
-                      </option>
-                    ))}
-                  </select>
+                  {isManager ? (
+                    <div className="w-full rounded-xl border border-slate-200 bg-slate-100/90 px-3 py-1.5 text-xs font-bold text-slate-700 flex items-center justify-between">
+                      <div className="flex items-center gap-1.5">
+                        <span>💼</span>
+                        <span>Касса менеджера (Дадочон)</span>
+                      </div>
+                      <span className="text-[10px] text-slate-400 font-medium">Фиксировано</span>
+                    </div>
+                  ) : (
+                    <select
+                      value={formData.cash_desk}
+                      onChange={e => setFormData({ ...formData, cash_desk: e.target.value })}
+                      className="w-full rounded-xl border border-slate-300 bg-slate-50 px-3 py-1.5 text-xs font-bold text-slate-800 outline-none focus:border-emerald-500 cursor-pointer"
+                    >
+                      {allCashDesks.map(c => (
+                        <option key={c.id || c.name} value={c.name}>
+                          {c.icon} {c.name}
+                        </option>
+                      ))}
+                    </select>
+                  )}
                 </div>
 
                 {/* Comment (Full width) */}

@@ -294,7 +294,15 @@ export const PaymentReceiptPrintModal = ({ payment, deal, onClose, initialLang =
 
         {/* OFFICIAL DUAL-PANEL PKO DOCUMENT (Шакли КО-1) */}
         <div id="print-section" className="p-4 sm:p-8 text-black font-serif select-text bg-white">
-          <div className="flex flex-row border border-black w-full">
+          <div className="relative flex flex-row border border-black w-full overflow-hidden">
+            {payment?.status === 'VOIDED' && (
+              <div className="absolute inset-0 flex items-center justify-center pointer-events-none select-none z-10">
+                <div className="text-red-500/20 text-5xl sm:text-7xl font-black uppercase tracking-widest -rotate-45 border-4 sm:border-8 border-red-500/20 p-6 rounded-3xl text-center">
+                  АННУЛИРОВАН
+                  <div className="text-xs font-bold tracking-normal mt-1">{payment.void_reason || payment.voidReason || 'REENTERED_VIA_ATOMIC_CASH_TRANSFER'}</div>
+                </div>
+              </div>
+            )}
             
             {/* LEFT PART: ОРДЕРИ ДАРОМАДИ ХАЗИНАВӢ (63% width) */}
             <div className="w-[63%] p-4 sm:p-5 border-r border-dashed border-black flex flex-col justify-between space-y-3">

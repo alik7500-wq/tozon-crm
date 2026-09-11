@@ -13,7 +13,8 @@ import {
 } from '../../utils/cashDesks';
 import { 
   TrendingDown, Plus, Search, Calendar, Tag, FileText, Wallet, RefreshCw,
-  DollarSign, CheckCircle2, User, CreditCard, X, Edit, Trash2, Save, Printer
+  DollarSign, CheckCircle2, User, CreditCard, X, Edit, Trash2, Save, Printer,
+  ArrowRightLeft, ArrowRight
 } from 'lucide-react';
 import {
   PieChart, Pie, Cell, Tooltip, ResponsiveContainer, Legend
@@ -25,17 +26,20 @@ const COLORS = ['#ef4444', '#f97316', '#f59e0b', '#eab308', '#84cc16', '#22c55e'
 export const ExpensesPage = () => {
   const { user } = useAuth();
   const isAdmin = user?.role === 'ADMIN';
+  const isManager = user?.role === 'SALES_MANAGER';
+  const DADOJON_DESK_ID = 'fba621e6-4ebe-4459-8623-19f46d864cc6';
 
   const [year, setYear] = useState(new Date().getFullYear());
   const [currency, setCurrency] = useState('ALL');
   const [categoryFilter, setCategoryFilter] = useState('ALL');
   const [search, setSearch] = useState('');
-  const [deskFilter, setDeskFilter] = useState('');
+  const [deskFilter, setDeskFilter] = useState(isManager ? 'Касса менеджера (Дадочон)' : '');
   const [showAddModal, setShowAddModal] = useState(false);
   const [editingItem, setEditingItem] = useState(null);
   const [printableExpense, setPrintableExpense] = useState(null);
 
   const handleDeskFilter = (deskName) => {
+    if (isManager) return; // Менеджер видит только свою кассу
     if (deskFilter === deskName) {
       setDeskFilter('');
       setSearch('');
@@ -77,7 +81,8 @@ export const ExpensesPage = () => {
     currency: 'TJS',
     date: dayjs().format('YYYY-MM-DD'),
     category: 'Строительные материалы',
-    cash_desk: 'Главная касса компании (Бухгалтерия)',
+    cash_desk: isManager ? 'Касса менеджера (Дадочон)' : 'Главная касса компании (Бухгалтерия)',
+    cash_desk_id: isManager ? DADOJON_DESK_ID : '',
     method: 'CASH',
     reference: '',
     recipient: '',
@@ -85,14 +90,22 @@ export const ExpensesPage = () => {
     attachment: '',
     auto_convert: true,
     exchange_rate: '9.27',
-    source_currency: 'USD'
+    source_currency: 'USD',
+    idempotency_key: `EXP-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`
   });
 
   useEffect(() => {
-    if (allCashDesks.length > 0 && !formData.cash_desk) {
+    if (isManager) {
+      setFormData(prev => ({
+        ...prev,
+        cash_desk: 'Касса менеджера (Дадочон)',
+        cash_desk_id: DADOJON_DESK_ID
+      }));
+      setDeskFilter('Касса менеджера (Дадочон)');
+    } else if (allCashDesks.length > 0 && !formData.cash_desk) {
       setFormData(prev => ({ ...prev, cash_desk: allCashDesks[0].name }));
     }
-  }, [allCashDesks]);
+  }, [allCashDesks, isManager]);
 
   useEffect(() => {
     if (expenseCategories.length > 0 && !formData.category) {
@@ -159,7 +172,8 @@ export const ExpensesPage = () => {
         attachment: '',
         auto_convert: true,
         exchange_rate: liveEskhataRate,
-        source_currency: 'USD'
+        source_currency: 'USD',
+        idempotency_key: `EXP-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`
       });
     }
   });
@@ -194,12 +208,120 @@ export const ExpensesPage = () => {
     ? expensesData.availableYears
     : [year - 1, year, year + 1, year + 2];
 
+  const [isTransfer, setIsTransfer] = useState(false);
+  const [createdTransferPair, setCreatedTransferPair] = useState(null);
+  const [transferForm, setTransferForm] = useState({
+    source_cash_desk_id: '',
+    destination_cash_desk_id: '',
+    operation_type: 'INTERNAL_CASH_TRANSFER',
+    currency: 'USD',
+    amount: '',
+    exchange_rate: liveEskhataRate,
+    date: dayjs().format('YYYY-MM-DD'),
+    recipient: '',
+    description: ''
+  });
+
+  useEffect(() => {
+    if (cashDesksDict && cashDesksDict.length >= 2) {
+      if (!transferForm.source_cash_desk_id) {
+        const akmal = cashDesksDict.find(d => d.code === 'SALES_MANAGER' || (d.name && d.name.includes('Акмалхон')));
+        setTransferForm(prev => ({ ...prev, source_cash_desk_id: akmal?.id || cashDesksDict[0].id }));
+      }
+      if (!transferForm.destination_cash_desk_id) {
+        const ilhom = cashDesksDict.find(d => d.code === 'MAIN_CASHIER' || (d.name && d.name.includes('Илхомчон')));
+        setTransferForm(prev => ({ ...prev, destination_cash_desk_id: ilhom?.id || cashDesksDict[1].id }));
+      }
+    }
+  }, [cashDesksDict]);
+
+  useEffect(() => {
+    if (eskhataRateData?.sellRate) {
+      setTransferForm(prev => ({ ...prev, exchange_rate: String(eskhataRateData.sellRate) }));
+    }
+  }, [eskhataRateData]);
+
+  const transferMutation = useMutation({
+    mutationFn: financeApi.createTransfer,
+    onSuccess: (res) => {
+      queryClient.invalidateQueries(['finance-expenses']);
+      queryClient.invalidateQueries(['finance-cashflow']);
+      queryClient.invalidateQueries(['finance-income']);
+      setShowAddModal(false);
+      const resultData = res?.data || res;
+      setCreatedTransferPair(resultData);
+      setTransferForm(prev => ({
+        ...prev,
+        amount: '',
+        recipient: '',
+        description: '',
+        date: dayjs().format('YYYY-MM-DD')
+      }));
+    },
+    onError: (err) => {
+      alert(`Ошибка при оформлении перемещения: ${err.message || err}`);
+    }
+  });
+
+  const handleTransferSubmit = (e) => {
+    e.preventDefault();
+    if (!transferForm.source_cash_desk_id || !transferForm.destination_cash_desk_id) {
+      alert('Выберите обе кассы');
+      return;
+    }
+    if (transferForm.source_cash_desk_id === transferForm.destination_cash_desk_id) {
+      alert('Касса-источник и касса-получатель должны быть разными!');
+      return;
+    }
+    const amt = parseFloat(transferForm.amount);
+    if (!amt || amt <= 0) {
+      alert('Сумма должна быть больше нуля');
+      return;
+    }
+    const payload = {
+      source_cash_desk_id: transferForm.source_cash_desk_id,
+      destination_cash_desk_id: transferForm.destination_cash_desk_id,
+      operation_type: transferForm.operation_type,
+      currency: transferForm.currency,
+      date: transferForm.date,
+      recipient: transferForm.recipient || (transferForm.operation_type === 'PAYMENT_ON_BEHALF' ? 'Контрагент' : 'Касса-получатель'),
+      description: transferForm.description || 'Внутреннее перемещение между кассами',
+      idempotency_key: `TX-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`
+    };
+
+    if (transferForm.currency === 'TJS') {
+      const rate = parseFloat(transferForm.exchange_rate);
+      if (!rate || rate <= 0) {
+        alert('Укажите корректный курс валюты');
+        return;
+      }
+      payload.amount_tjs = amt;
+      payload.exchange_rate = rate;
+      payload.amount_usd = Number((amt / rate).toFixed(2));
+      payload.amount = payload.amount_usd;
+    } else {
+      payload.amount_usd = amt;
+      payload.amount = amt;
+    }
+
+    transferMutation.mutate(payload);
+  };
+
   const handleSubmit = (e) => {
     e.preventDefault();
     if (!formData.amount || Number(formData.amount) <= 0) return;
-    const finalDesc = updateCommentWithCashDesk(formData.description, formData.cash_desk);
+    const finalDeskName = isManager ? 'Касса менеджера (Дадочон)' : formData.cash_desk;
+    const finalDeskId = isManager ? DADOJON_DESK_ID : formData.cash_desk_id;
+    const finalDesc = updateCommentWithCashDesk(formData.description, finalDeskName);
+    const keyToUse = formData.idempotency_key || `EXP-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
+    if (!formData.idempotency_key) {
+      setFormData(prev => ({ ...prev, idempotency_key: keyToUse }));
+    }
     addMutation.mutate({
       ...formData,
+      idempotency_key: keyToUse,
+      cash_desk: finalDeskName,
+      cash_desk_id: finalDeskId,
       description: finalDesc
     });
   };
@@ -297,30 +419,40 @@ export const ExpensesPage = () => {
               <Wallet className="h-3.5 w-3.5 text-rose-600" />
               <span>Касса:</span>
             </div>
-            <button
-              onClick={() => { setDeskFilter(''); setSearch(''); }}
-              className={`px-3 py-1.5 rounded-xl text-xs font-bold transition cursor-pointer ${
-                !deskFilter
-                  ? 'bg-rose-600 text-white shadow-xs'
-                  : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
-              }`}
-            >
-              Все кассы
-            </button>
-            {allCashDesks.map((desk) => (
-              <button
-                key={desk.id}
-                onClick={() => handleDeskFilter(desk.name)}
-                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition cursor-pointer ${
-                  deskFilter === desk.name
-                    ? 'bg-rose-600 text-white shadow-xs ring-2 ring-rose-500/30'
-                    : 'bg-slate-100 text-slate-600 hover:bg-rose-50 hover:text-rose-700 hover:border-rose-200 border border-transparent'
-                }`}
-              >
-                <span className="text-sm">{desk.icon}</span>
-                <span>{desk.name.replace(/^Касса\s+/i, '').replace(/\s*\(.*?\)\s*$/, '').trim()}</span>
-              </button>
-            ))}
+            {isManager ? (
+              <div className="flex items-center gap-2 px-3.5 py-1.5 rounded-xl text-xs font-bold bg-rose-600 text-white shadow-xs">
+                <span>💼</span>
+                <span>Касса менеджера (Дадочон)</span>
+                <span className="px-1.5 py-0.5 rounded bg-white/20 text-[10px] ml-1">Персональная</span>
+              </div>
+            ) : (
+              <>
+                <button
+                  onClick={() => { setDeskFilter(''); setSearch(''); }}
+                  className={`px-3 py-1.5 rounded-xl text-xs font-bold transition cursor-pointer ${
+                    !deskFilter
+                      ? 'bg-rose-600 text-white shadow-xs'
+                      : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                  }`}
+                >
+                  Все кассы
+                </button>
+                {allCashDesks.map((desk) => (
+                  <button
+                    key={desk.id}
+                    onClick={() => handleDeskFilter(desk.name)}
+                    className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition cursor-pointer ${
+                      deskFilter === desk.name
+                        ? 'bg-rose-600 text-white shadow-xs ring-2 ring-rose-500/30'
+                        : 'bg-slate-100 text-slate-600 hover:bg-rose-50 hover:text-rose-700 hover:border-rose-200 border border-transparent'
+                    }`}
+                  >
+                    <span className="text-sm">{desk.icon}</span>
+                    <span>{desk.name.replace(/^Касса\s+/i, '').replace(/\s*\(.*?\)\s*$/, '').trim()}</span>
+                  </button>
+                ))}
+              </>
+            )}
           </div>
         </div>
       )}
@@ -793,236 +925,529 @@ export const ExpensesPage = () => {
               </button>
             </div>
 
-            {/* Modal Form */}
-            <form onSubmit={handleSubmit} className="p-4 sm:p-5 space-y-3 text-xs">
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                {/* Recipient */}
-                <div>
-                  <label className="block text-[11px] font-bold text-slate-700 mb-1">
-                    Получатель средств (Кому выдано / Контрагент) *
-                  </label>
-                  <input
-                    type="text"
-                    required
-                    value={formData.recipient}
-                    onChange={e => setFormData({ ...formData, recipient: e.target.value })}
-                    placeholder="ФИО сотрудника или название"
-                    className="w-full rounded-xl border border-slate-300 bg-white px-3 py-1.5 text-xs outline-none focus:border-rose-500"
-                  />
+            {/* Mode Switcher Tabs */}
+            {!isManager ? (
+              <div className="flex rounded-2xl bg-slate-100 p-1 mx-4 sm:mx-5 mt-3 border border-slate-200">
+                <button
+                  type="button"
+                  onClick={() => setIsTransfer(false)}
+                  className={`flex-1 py-1.5 text-xs font-bold rounded-xl transition cursor-pointer ${
+                    !isTransfer
+                      ? 'bg-white text-slate-900 shadow-xs'
+                      : 'text-slate-500 hover:text-slate-800'
+                  }`}
+                >
+                  Обычный расход (РКО)
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setIsTransfer(true)}
+                  className={`flex-1 py-1.5 text-xs font-bold rounded-xl transition cursor-pointer flex items-center justify-center gap-1.5 ${
+                    isTransfer
+                      ? 'bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-xs'
+                      : 'text-slate-500 hover:text-slate-800'
+                  }`}
+                >
+                  <ArrowRightLeft className="h-3.5 w-3.5" />
+                  <span>Внутреннее перемещение / Оплата за другую кассу</span>
+                </button>
+              </div>
+            ) : null}
+
+            {isTransfer ? (
+              /* Internal Transfer Form */
+              <form onSubmit={handleTransferSubmit} className="p-4 sm:p-5 space-y-3 text-xs">
+                {/* Source and Destination Desks */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 p-3 bg-blue-50/50 rounded-2xl border border-blue-200/70">
+                  <div>
+                    <label className="block text-[11px] font-bold text-slate-700 mb-1 flex items-center gap-1">
+                      <Wallet className="h-3.5 w-3.5 text-rose-600" />
+                      <span>Касса-источник (Списание / РКО) *</span>
+                    </label>
+                    <select
+                      required
+                      value={transferForm.source_cash_desk_id}
+                      onChange={e => {
+                        const newSrc = e.target.value;
+                        setTransferForm(prev => {
+                          const updated = { ...prev, source_cash_desk_id: newSrc };
+                          if (prev.destination_cash_desk_id === newSrc) {
+                            const alternative = cashDesksDict.find(d => d.id !== newSrc);
+                            updated.destination_cash_desk_id = alternative ? alternative.id : '';
+                          }
+                          return updated;
+                        });
+                      }}
+                      className="w-full rounded-xl border border-slate-300 bg-white px-3 py-1.5 text-xs font-bold text-slate-800 outline-none focus:border-blue-500 cursor-pointer"
+                    >
+                      {cashDesksDict.map(d => (
+                        <option key={d.id} value={d.id}>
+                          {d.icon || '🏢'} {d.name}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="block text-[11px] font-bold text-slate-700 mb-1 flex items-center gap-1">
+                      <Wallet className="h-3.5 w-3.5 text-emerald-600" />
+                      <span>Касса-получатель (Зачисление / ПКО) *</span>
+                    </label>
+                    <select
+                      required
+                      value={transferForm.destination_cash_desk_id}
+                      onChange={e => setTransferForm({ ...transferForm, destination_cash_desk_id: e.target.value })}
+                      className="w-full rounded-xl border border-slate-300 bg-white px-3 py-1.5 text-xs font-bold text-slate-800 outline-none focus:border-blue-500 cursor-pointer"
+                    >
+                      {cashDesksDict
+                        .filter(d => d.id !== transferForm.source_cash_desk_id)
+                        .map(d => (
+                          <option key={d.id} value={d.id}>
+                            {d.icon || '🏢'} {d.name}
+                          </option>
+                        ))}
+                    </select>
+                  </div>
                 </div>
 
-                {/* Category */}
-                <div>
-                  <label className="block text-[11px] font-bold text-slate-700 mb-1">
-                    Категория расхода *
-                  </label>
-                  <select
-                    required
-                    value={formData.category}
-                    onChange={e => setFormData({ ...formData, category: e.target.value })}
-                    className="w-full rounded-xl border border-slate-300 bg-slate-50 px-3 py-1.5 text-xs font-bold text-slate-800 outline-none focus:border-rose-500 cursor-pointer"
-                  >
-                    {expenseCategories.map(cat => (
-                      <option key={cat.id || cat.name} value={cat.name}>{cat.name}</option>
-                    ))}
-                  </select>
-                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  {/* Operation Type */}
+                  <div>
+                    <label className="block text-[11px] font-bold text-slate-700 mb-1">
+                      Тип операции *
+                    </label>
+                    <select
+                      value={transferForm.operation_type}
+                      onChange={e => setTransferForm({ ...transferForm, operation_type: e.target.value })}
+                      className="w-full rounded-xl border border-slate-300 bg-slate-50 px-3 py-1.5 text-xs font-bold text-slate-800 outline-none focus:border-blue-500 cursor-pointer"
+                    >
+                      <option value="INTERNAL_CASH_TRANSFER">Внутреннее перемещение между кассами</option>
+                      <option value="PAYMENT_ON_BEHALF">Оплата за другую кассу</option>
+                    </select>
+                  </div>
 
-                {/* Cash Desk */}
-                <div>
-                  <label className="block text-[11px] font-bold text-slate-700 mb-1 flex items-center gap-1">
-                    <Wallet className="h-3.5 w-3.5 text-rose-600" />
-                    <span>Касса списания средств *</span>
-                  </label>
-                  <select
-                    value={formData.cash_desk || ''}
-                    onChange={e => setFormData({ ...formData, cash_desk: e.target.value })}
-                    className="w-full rounded-xl border border-slate-300 bg-slate-50 px-3 py-1.5 text-xs font-bold text-slate-800 outline-none focus:border-rose-500 cursor-pointer"
-                  >
-                    {allCashDesks.map(c => (
-                      <option key={c.id || c.name} value={c.name}>
-                        {c.icon} {c.name}
-                      </option>
-                    ))}
-                  </select>
+                  {/* Recipient */}
+                  <div>
+                    <label className="block text-[11px] font-bold text-slate-700 mb-1">
+                      Фактический получатель денег *
+                    </label>
+                    <input
+                      type="text"
+                      required
+                      value={transferForm.recipient}
+                      onChange={e => setTransferForm({ ...transferForm, recipient: e.target.value })}
+                      placeholder={transferForm.operation_type === 'PAYMENT_ON_BEHALF' ? 'Контрагент / Организация' : 'Касса-получатель'}
+                      className="w-full rounded-xl border border-slate-300 bg-white px-3 py-1.5 text-xs outline-none focus:border-blue-500"
+                    />
+                  </div>
                 </div>
 
                 {/* Amount and Currency */}
-                <div>
-                  <div className="grid grid-cols-5 gap-2">
-                    <div className="col-span-3">
-                      <label className="block text-[11px] font-bold text-slate-700 mb-1">
-                        Сумма расхода *
-                      </label>
-                      <input
-                        type="number"
-                        step="0.01"
-                        min="0.01"
-                        required
-                        value={formData.amount}
-                        onChange={e => setFormData({ ...formData, amount: e.target.value })}
-                        placeholder="0.00"
-                        className="w-full rounded-xl border border-slate-300 bg-white px-3 py-1.5 text-sm font-black text-slate-900 outline-none focus:border-rose-500"
-                      />
-                    </div>
-                    <div className="col-span-2">
-                      <label className="block text-[11px] font-bold text-slate-700 mb-1">
-                        Валюта *
-                      </label>
-                      <select
-                        value={formData.currency}
-                        onChange={e => setFormData({ ...formData, currency: e.target.value })}
-                        className="w-full rounded-xl border border-slate-300 bg-slate-50 px-2 py-1.5 text-xs font-bold text-slate-800 outline-none focus:border-rose-500"
-                      >
-                        <option value="TJS">TJS (Сомони)</option>
-                        <option value="USD">USD ($)</option>
-                        <option value="RUB">RUB (Рубль)</option>
-                        <option value="EUR">EUR (€)</option>
-                      </select>
-                    </div>
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                  <div className="sm:col-span-2">
+                    <label className="block text-[11px] font-bold text-slate-700 mb-1">
+                      Сумма фактической оплаты *
+                    </label>
+                    <input
+                      type="number"
+                      step="0.01"
+                      min="0.01"
+                      required
+                      value={transferForm.amount}
+                      onChange={e => setTransferForm({ ...transferForm, amount: e.target.value })}
+                      placeholder="0.00"
+                      className="w-full rounded-xl border border-slate-300 bg-white px-3 py-1.5 text-sm font-black text-slate-900 outline-none focus:border-blue-500"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-[11px] font-bold text-slate-700 mb-1">
+                      Валюта оплаты *
+                    </label>
+                    <select
+                      value={transferForm.currency}
+                      onChange={e => setTransferForm({ ...transferForm, currency: e.target.value })}
+                      className="w-full rounded-xl border border-slate-300 bg-slate-50 px-2 py-1.5 text-xs font-bold text-slate-800 outline-none focus:border-blue-500 cursor-pointer"
+                    >
+                      <option value="USD">USD ($)</option>
+                      <option value="TJS">TJS (Сомони)</option>
+                    </select>
                   </div>
                 </div>
 
-                {/* Date & Payment Method */}
-                <div>
-                  <div className="grid grid-cols-2 gap-2">
-                    <div>
-                      <label className="block text-[11px] font-bold text-slate-700 mb-1">Дата *</label>
-                      <input
-                        type="date"
-                        required
-                        value={formData.date}
-                        onChange={e => setFormData({ ...formData, date: e.target.value })}
-                        className="w-full rounded-xl border border-slate-300 bg-slate-50 px-2.5 py-1.5 text-xs outline-none focus:border-rose-500"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-[11px] font-bold text-slate-700 mb-1">Оплата *</label>
-                      <select
-                        value={formData.method}
-                        onChange={e => setFormData({ ...formData, method: e.target.value })}
-                        className="w-full rounded-xl border border-slate-300 bg-slate-50 px-2 py-1.5 text-xs font-medium outline-none focus:border-rose-500 cursor-pointer"
-                      >
-                        {paymentMethods.map(m => (
-                          <option key={m.id || m.code || m.name} value={m.code || m.name}>
-                            {m.name}
-                          </option>
-                        ))}
-                      </select>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Auto-conversion block (Compact) */}
-                {formData.currency !== 'USD' && (
-                  <div className="sm:col-span-2 rounded-xl border border-amber-300 bg-amber-50/80 p-2.5 space-y-1.5">
+                {/* Rate and USD Equivalent for TJS */}
+                {transferForm.currency === 'TJS' && (
+                  <div className="rounded-xl border border-amber-300 bg-amber-50/80 p-3 space-y-2">
                     <div className="flex items-center justify-between flex-wrap gap-2">
-                      <label className="flex items-center gap-1.5 cursor-pointer font-bold text-amber-950 select-none text-xs">
+                      <div className="flex items-center gap-1.5 text-[11px]">
+                        <span className="font-bold text-amber-900">Фактический курс операции:</span>
                         <input
-                          type="checkbox"
-                          checked={formData.auto_convert}
-                          onChange={e => setFormData({ ...formData, auto_convert: e.target.checked })}
-                          className="h-3.5 w-3.5 rounded text-amber-600 focus:ring-amber-500 cursor-pointer"
+                          type="number"
+                          step="0.0001"
+                          required
+                          value={transferForm.exchange_rate}
+                          onChange={e => setTransferForm({ ...transferForm, exchange_rate: e.target.value })}
+                          className="w-24 rounded-md border border-amber-300 bg-white px-2 py-1 text-xs font-black text-amber-950 outline-none text-center shadow-xs"
                         />
-                        <span>Автоконвертация из кассы USD ($)</span>
-                      </label>
-
-                      {formData.auto_convert && (
-                        <div className="flex items-center gap-1.5 text-[11px]">
-                          <span className="inline-flex items-center gap-1 font-bold text-amber-900 bg-amber-200/80 px-2 py-0.5 rounded-md border border-amber-300">
-                            🏦 Эсхата (Продажа):
-                          </span>
-                          <span className="text-amber-800 font-semibold">1 USD =</span>
-                          <input
-                            type="number"
-                            step="0.01"
-                            value={formData.exchange_rate}
-                            onChange={e => setFormData({ ...formData, exchange_rate: e.target.value })}
-                            className="w-16 rounded-md border border-amber-300 bg-white px-1.5 py-0.5 text-xs font-black text-amber-950 outline-none text-center shadow-xs"
-                          />
-                          <span className="text-amber-800 font-bold">{formData.currency}</span>
-                        </div>
-                      )}
+                        <span className="text-amber-800 font-bold">TJS за 1 USD</span>
+                      </div>
+                      <span className="text-[10px] text-amber-800 bg-amber-200/70 px-2 py-0.5 rounded-md font-semibold">
+                        🏦 Банк Эсхата: {liveEskhataRate}
+                      </span>
                     </div>
 
-                    {formData.auto_convert && (
-                      <div className="flex items-center justify-between flex-wrap gap-2 pt-1 border-t border-amber-200/80 text-[11px] text-amber-900">
-                        <span>
-                          Списание с USD кассы: <strong className="text-amber-950 font-black">${(parseFloat(formData.amount) / (parseFloat(formData.exchange_rate) || 10.9) || 0).toFixed(2)} USD</strong>
-                        </span>
-                        <span className="text-emerald-700 font-bold">
-                          В кассу {formData.currency}: +{formData.amount || 0} → 0
-                        </span>
-                      </div>
-                    )}
+                    <div className="p-2 bg-white rounded-lg border border-amber-200 flex items-center justify-between text-xs">
+                      <span className="text-slate-600">Эквивалент USD (будет списан в РКО и зачислен в ПКО):</span>
+                      <span className="font-black text-amber-950 text-sm">
+                        ${(parseFloat(transferForm.amount) / (parseFloat(transferForm.exchange_rate) || 1) || 0).toFixed(2)} USD
+                      </span>
+                    </div>
                   </div>
                 )}
 
-                {/* Reference */}
-                <div>
-                  <label className="block text-[11px] font-bold text-slate-700 mb-1">
-                    Номер документа / РКО / Накладная
-                  </label>
-                  <input
-                    type="text"
-                    value={formData.reference}
-                    onChange={e => setFormData({ ...formData, reference: e.target.value })}
-                    placeholder="Например: РКО-4019 / Чек №..."
-                    className="w-full rounded-xl border border-slate-300 bg-slate-50 px-3 py-1.5 text-xs outline-none focus:border-rose-500"
-                  />
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  {/* Date */}
+                  <div>
+                    <label className="block text-[11px] font-bold text-slate-700 mb-1">Дата операции *</label>
+                    <input
+                      type="date"
+                      required
+                      value={transferForm.date}
+                      onChange={e => setTransferForm({ ...transferForm, date: e.target.value })}
+                      className="w-full rounded-xl border border-slate-300 bg-slate-50 px-2.5 py-1.5 text-xs outline-none focus:border-blue-500"
+                    />
+                  </div>
+
+                  {/* Description */}
+                  <div>
+                    <label className="block text-[11px] font-bold text-slate-700 mb-1">
+                      Назначение платежа / Примечание
+                    </label>
+                    <input
+                      type="text"
+                      value={transferForm.description}
+                      onChange={e => setTransferForm({ ...transferForm, description: e.target.value })}
+                      placeholder="Назначение платежа..."
+                      className="w-full rounded-xl border border-slate-300 bg-slate-50 px-3 py-1.5 text-xs outline-none focus:border-blue-500"
+                    />
+                  </div>
                 </div>
 
-                {/* Description / Назначение */}
-                <div>
-                  <label className="block text-[11px] font-bold text-slate-700 mb-1">
-                    Назначение платежа / Описание
-                  </label>
-                  <input
-                    type="text"
-                    value={formData.description}
-                    onChange={e => setFormData({ ...formData, description: e.target.value })}
-                    placeholder="Подробное назначение расхода..."
-                    className="w-full rounded-xl border border-slate-300 bg-slate-50 px-3 py-1.5 text-xs outline-none focus:border-rose-500"
-                  />
+                {/* Buttons */}
+                <div className="flex items-center justify-end gap-3 pt-2.5 border-t border-slate-100">
+                  <button
+                    type="button"
+                    onClick={requestCloseAdd}
+                    className="rounded-xl border border-slate-300 px-4 py-1.5 text-xs font-bold text-slate-600 hover:bg-slate-50 transition cursor-pointer"
+                  >
+                    Отмена
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={transferMutation.isPending}
+                    className="flex items-center gap-1.5 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 px-5 py-1.5 text-xs font-bold text-white shadow-md hover:from-blue-700 hover:to-indigo-700 transition cursor-pointer disabled:opacity-50"
+                  >
+                    <ArrowRightLeft className={`h-4 w-4 ${transferMutation.isPending ? 'animate-spin' : ''}`} />
+                    <span>{transferMutation.isPending ? 'Создание документов...' : 'Выполнить перемещение (Атомарно)'}</span>
+                  </button>
+                </div>
+              </form>
+            ) : (
+              /* Modal Form */
+              <form onSubmit={handleSubmit} className="p-4 sm:p-5 space-y-3 text-xs">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  {/* Recipient */}
+                  <div>
+                    <label className="block text-[11px] font-bold text-slate-700 mb-1">
+                      Получатель средств (Кому выдано / Контрагент) *
+                    </label>
+                    <input
+                      type="text"
+                      required
+                      value={formData.recipient}
+                      onChange={e => setFormData({ ...formData, recipient: e.target.value })}
+                      placeholder="ФИО сотрудника или название"
+                      className="w-full rounded-xl border border-slate-300 bg-white px-3 py-1.5 text-xs outline-none focus:border-rose-500"
+                    />
+                  </div>
+
+                  {/* Category */}
+                  <div>
+                    <label className="block text-[11px] font-bold text-slate-700 mb-1">
+                      Категория расхода *
+                    </label>
+                    <select
+                      required
+                      value={formData.category}
+                      onChange={e => setFormData({ ...formData, category: e.target.value })}
+                      className="w-full rounded-xl border border-slate-300 bg-slate-50 px-3 py-1.5 text-xs font-bold text-slate-800 outline-none focus:border-rose-500 cursor-pointer"
+                    >
+                      {expenseCategories.map(cat => (
+                        <option key={cat.id || cat.name} value={cat.name}>{cat.name}</option>
+                      ))}
+                    </select>
+                  </div>
+
+                  {/* Cash Desk */}
+                  <div>
+                    <label className="block text-[11px] font-bold text-slate-700 mb-1 flex items-center justify-between">
+                      <span className="flex items-center gap-1">
+                        <Wallet className="h-3.5 w-3.5 text-rose-600" />
+                        <span>Касса списания средств *</span>
+                      </span>
+                      {isManager && (
+                        <span className="px-1.5 py-0.5 rounded bg-blue-100 text-blue-700 text-[10px] font-bold">
+                          Персональная касса
+                        </span>
+                      )}
+                    </label>
+                    {isManager ? (
+                      <div className="w-full rounded-xl border border-slate-200 bg-slate-100/90 px-3 py-1.5 text-xs font-bold text-slate-700 flex items-center justify-between">
+                        <div className="flex items-center gap-1.5">
+                          <span>💼</span>
+                          <span>Касса менеджера (Дадочон)</span>
+                        </div>
+                        <span className="text-[10px] text-slate-400 font-medium">Фиксировано</span>
+                      </div>
+                    ) : (
+                      <select
+                        value={formData.cash_desk || ''}
+                        onChange={e => setFormData({ ...formData, cash_desk: e.target.value })}
+                        className="w-full rounded-xl border border-slate-300 bg-slate-50 px-3 py-1.5 text-xs font-bold text-slate-800 outline-none focus:border-rose-500 cursor-pointer"
+                      >
+                        {allCashDesks.map(c => (
+                          <option key={c.id || c.name} value={c.name}>
+                            {c.icon} {c.name}
+                          </option>
+                        ))}
+                      </select>
+                    )}
+                  </div>
+
+                  {/* Amount and Currency */}
+                  <div>
+                    <div className="grid grid-cols-5 gap-2">
+                      <div className="col-span-3">
+                        <label className="block text-[11px] font-bold text-slate-700 mb-1">
+                          Сумма расхода *
+                        </label>
+                        <input
+                          type="number"
+                          step="0.01"
+                          min="0.01"
+                          required
+                          value={formData.amount}
+                          onChange={e => setFormData({ ...formData, amount: e.target.value })}
+                          placeholder="0.00"
+                          className="w-full rounded-xl border border-slate-300 bg-white px-3 py-1.5 text-sm font-black text-slate-900 outline-none focus:border-rose-500"
+                        />
+                      </div>
+                      <div className="col-span-2">
+                        <label className="block text-[11px] font-bold text-slate-700 mb-1">
+                          Валюта *
+                        </label>
+                        <select
+                          value={formData.currency}
+                          onChange={e => setFormData({ ...formData, currency: e.target.value })}
+                          className="w-full rounded-xl border border-slate-300 bg-slate-50 px-2 py-1.5 text-xs font-bold text-slate-800 outline-none focus:border-rose-500"
+                        >
+                          <option value="TJS">TJS (Сомони)</option>
+                          <option value="USD">USD ($)</option>
+                          <option value="RUB">RUB (Рубль)</option>
+                          <option value="EUR">EUR (€)</option>
+                        </select>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Date & Payment Method */}
+                  <div>
+                    <div className="grid grid-cols-2 gap-2">
+                      <div>
+                        <label className="block text-[11px] font-bold text-slate-700 mb-1">Дата *</label>
+                        <input
+                          type="date"
+                          required
+                          value={formData.date}
+                          onChange={e => setFormData({ ...formData, date: e.target.value })}
+                          className="w-full rounded-xl border border-slate-300 bg-slate-50 px-2.5 py-1.5 text-xs outline-none focus:border-rose-500"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-[11px] font-bold text-slate-700 mb-1">Оплата *</label>
+                        <select
+                          value={formData.method}
+                          onChange={e => setFormData({ ...formData, method: e.target.value })}
+                          className="w-full rounded-xl border border-slate-300 bg-slate-50 px-2 py-1.5 text-xs font-medium outline-none focus:border-rose-500 cursor-pointer"
+                        >
+                          {paymentMethods.map(m => (
+                            <option key={m.id || m.code || m.name} value={m.code || m.name}>
+                              {m.name}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Auto-conversion block (Compact) */}
+                  {formData.currency !== 'USD' && (
+                    <div className="sm:col-span-2 rounded-xl border border-amber-300 bg-amber-50/80 p-2.5 space-y-1.5">
+                      <div className="flex items-center justify-between flex-wrap gap-2">
+                        <label className="flex items-center gap-1.5 cursor-pointer font-bold text-amber-950 select-none text-xs">
+                          <input
+                            type="checkbox"
+                            checked={formData.auto_convert}
+                            onChange={e => setFormData({ ...formData, auto_convert: e.target.checked })}
+                            className="h-3.5 w-3.5 rounded text-amber-600 focus:ring-amber-500 cursor-pointer"
+                          />
+                          <span>Автоконвертация из кассы USD ($)</span>
+                        </label>
+
+                        {formData.auto_convert && (
+                          <div className="flex items-center gap-1.5 text-[11px]">
+                            <span className="inline-flex items-center gap-1 font-bold text-amber-900 bg-amber-200/80 px-2 py-0.5 rounded-md border border-amber-300">
+                              🏦 Эсхата (Продажа):
+                            </span>
+                            <span className="text-amber-800 font-semibold">1 USD =</span>
+                            <input
+                              type="number"
+                              step="0.01"
+                              value={formData.exchange_rate}
+                              onChange={e => setFormData({ ...formData, exchange_rate: e.target.value })}
+                              className="w-16 rounded-md border border-amber-300 bg-white px-1.5 py-0.5 text-xs font-black text-amber-950 outline-none text-center shadow-xs"
+                            />
+                            <span className="text-amber-800 font-bold">{formData.currency}</span>
+                          </div>
+                        )}
+                      </div>
+
+                      {formData.auto_convert && (
+                        <div className="flex items-center justify-between flex-wrap gap-2 pt-1 border-t border-amber-200/80 text-[11px] text-amber-900">
+                          <span>
+                            Списание с USD кассы: <strong className="text-amber-950 font-black">${(parseFloat(formData.amount) / (parseFloat(formData.exchange_rate) || 10.9) || 0).toFixed(2)} USD</strong>
+                          </span>
+                          <span className="text-emerald-700 font-bold">
+                            В кассу {formData.currency}: +{formData.amount || 0} → 0
+                          </span>
+                        </div>
+                      )}
+                    </div>
+                  )}
+
+                  {/* Reference */}
+                  <div>
+                    <label className="block text-[11px] font-bold text-slate-700 mb-1">
+                      Номер документа / РКО / Накладная
+                    </label>
+                    <input
+                      type="text"
+                      value={formData.reference}
+                      onChange={e => setFormData({ ...formData, reference: e.target.value })}
+                      placeholder="Например: РКО-4019 / Чек №..."
+                      className="w-full rounded-xl border border-slate-300 bg-slate-50 px-3 py-1.5 text-xs outline-none focus:border-rose-500"
+                    />
+                  </div>
+
+                  {/* Description / Назначение */}
+                  <div>
+                    <label className="block text-[11px] font-bold text-slate-700 mb-1">
+                      Назначение платежа / Описание
+                    </label>
+                    <input
+                      type="text"
+                      value={formData.description}
+                      onChange={e => setFormData({ ...formData, description: e.target.value })}
+                      placeholder="Подробное назначение расхода..."
+                      className="w-full rounded-xl border border-slate-300 bg-slate-50 px-3 py-1.5 text-xs outline-none focus:border-rose-500"
+                    />
+                  </div>
+
+                  {/* Attachment / Замима */}
+                  <div className="sm:col-span-2">
+                    <label className="block text-[11px] font-bold text-slate-700 mb-1">
+                      Замима (Приложение / Документ-основание)
+                    </label>
+                    <input
+                      type="text"
+                      value={formData.attachment}
+                      onChange={e => setFormData({ ...formData, attachment: e.target.value })}
+                      placeholder="Например: Шартномаи нотариалии ҷуброн аз 03.02.2026 сол"
+                      className="w-full rounded-xl border border-slate-300 bg-slate-50 px-3 py-1.5 text-xs outline-none focus:border-rose-500"
+                    />
+                  </div>
                 </div>
 
-                {/* Attachment / Замима */}
-                <div className="sm:col-span-2">
-                  <label className="block text-[11px] font-bold text-slate-700 mb-1">
-                    Замима (Приложение / Документ-основание)
-                  </label>
-                  <input
-                    type="text"
-                    value={formData.attachment}
-                    onChange={e => setFormData({ ...formData, attachment: e.target.value })}
-                    placeholder="Например: Шартномаи нотариалии ҷуброн аз 03.02.2026 сол"
-                    className="w-full rounded-xl border border-slate-300 bg-slate-50 px-3 py-1.5 text-xs outline-none focus:border-rose-500"
-                  />
+                {/* Buttons */}
+                <div className="flex items-center justify-end gap-3 pt-2.5 border-t border-slate-100">
+                  <button
+                    type="button"
+                    onClick={requestCloseAdd}
+                    className="rounded-xl border border-slate-300 px-4 py-1.5 text-xs font-bold text-slate-600 hover:bg-slate-50 transition cursor-pointer"
+                  >
+                    Отмена
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={addMutation.isPending}
+                    className="flex items-center gap-1.5 rounded-xl bg-gradient-to-r from-rose-600 to-red-600 px-5 py-1.5 text-xs font-bold text-white shadow-md hover:from-rose-700 hover:to-red-700 transition cursor-pointer disabled:opacity-50"
+                  >
+                    <CheckCircle2 className="h-4 w-4" />
+                    <span>{addMutation.isPending ? 'Сохранение...' : 'Зафиксировать расход'}</span>
+                  </button>
                 </div>
-              </div>
-
-              {/* Buttons */}
-              <div className="flex items-center justify-end gap-3 pt-2.5 border-t border-slate-100">
-                <button
-                  type="button"
-                  onClick={requestCloseAdd}
-                  className="rounded-xl border border-slate-300 px-4 py-1.5 text-xs font-bold text-slate-600 hover:bg-slate-50 transition cursor-pointer"
-                >
-                  Отмена
-                </button>
-                <button
-                  type="submit"
-                  disabled={addMutation.isPending}
-                  className="flex items-center gap-1.5 rounded-xl bg-gradient-to-r from-rose-600 to-red-600 px-5 py-1.5 text-xs font-bold text-white shadow-md hover:from-rose-700 hover:to-red-700 transition cursor-pointer disabled:opacity-50"
-                >
-                  <CheckCircle2 className="h-4 w-4" />
-                  <span>{addMutation.isPending ? 'Сохранение...' : 'Зафиксировать расход'}</span>
-                </button>
-              </div>
-            </form>
+              </form>
+            )}
           </div>
         </div>
       )}
+
+      {/* Modal: Transfer Success Confirmation */}
+      {createdTransferPair && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs animate-in fade-in">
+          <div className="relative w-full max-w-md overflow-hidden rounded-3xl border border-emerald-200 bg-white shadow-2xl p-6 text-center space-y-4">
+            <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-emerald-100 text-emerald-600">
+              <CheckCircle2 className="h-8 w-8" />
+            </div>
+            <div>
+              <h3 className="text-lg font-black text-slate-900">Внутреннее перемещение выполнено</h3>
+              <p className="text-xs text-slate-500 mt-1">Документы успешно созданы в единой атомарной транзакции</p>
+            </div>
+            <div className="rounded-2xl bg-slate-50 border border-slate-200 p-4 text-left space-y-2.5 text-xs">
+              <div className="flex justify-between items-center pb-2 border-b border-slate-200">
+                <span className="text-slate-500">Сумма операции:</span>
+                <span className="font-bold text-slate-900">
+                  {createdTransferPair.amount_tjs ? `${createdTransferPair.amount_tjs} TJS (${createdTransferPair.amount_usd} USD)` : `${createdTransferPair.amount_usd} USD`}
+                </span>
+              </div>
+              <div className="flex justify-between items-center">
+                <span className="text-rose-600 font-bold">Расход (РКО кассы-источника):</span>
+                <span className="font-mono font-black text-rose-700 bg-rose-50 px-2 py-0.5 rounded border border-rose-200">
+                  {createdTransferPair.source_reference}
+                </span>
+              </div>
+              <div className="flex justify-between items-center">
+                <span className="text-emerald-600 font-bold">Приход (ПКО кассы-получателя):</span>
+                <span className="font-mono font-black text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200">
+                  {createdTransferPair.destination_reference}
+                </span>
+              </div>
+              {createdTransferPair.exchange_rate && (
+                <div className="flex justify-between items-center pt-2 border-t border-slate-200 text-slate-500">
+                  <span>Курс конвертации:</span>
+                  <span>{createdTransferPair.exchange_rate}</span>
+                </div>
+              )}
+            </div>
+            <button
+              onClick={() => setCreatedTransferPair(null)}
+              className="w-full py-2.5 rounded-xl bg-slate-900 text-white font-bold text-xs hover:bg-slate-800 transition cursor-pointer"
+            >
+              Закрыть
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* Printable Expense Receipt Modal */}
       {printableExpense && (
         <ExpenseReceiptPrintModal
