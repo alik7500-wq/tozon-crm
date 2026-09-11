@@ -5,7 +5,7 @@ import { TozonLogo } from '../../components/TozonLogo';
 import { Lock, Mail, ArrowRight, ShieldCheck, AlertCircle } from 'lucide-react';
 
 export const LoginPage = () => {
-  const { user, login } = useAuth();
+  const { user, login, devLogin } = useAuth();
   const navigate = useNavigate();
 
   const [email, setEmail] = useState('');
@@ -139,12 +139,8 @@ export const LoginPage = () => {
                   type="button"
                   id="btn-quick-dadojon"
                   onClick={async () => {
-                    await fetch('/api/auth/dev-login', {
-                      method: 'POST',
-                      headers: { 'Content-Type': 'application/json' },
-                      body: JSON.stringify({ email: 'manager1@tozon.tj' })
-                    });
-                    window.location.href = '/finance/cashflow';
+                    await devLogin('manager1@tozon.tj');
+                    navigate('/finance/cashflow');
                   }}
                   className="px-3 py-2 rounded-xl bg-blue-50 hover:bg-blue-100 text-blue-700 text-xs font-bold transition text-center cursor-pointer"
                 >

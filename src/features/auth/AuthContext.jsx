@@ -34,6 +34,14 @@ export const AuthProvider = ({ children }) => {
     return res;
   };
 
+  const devLogin = async (email) => {
+    const res = await api.post('/auth/dev-login', { email });
+    if (res?.data?.user) {
+      setUser(res.data.user);
+    }
+    return res;
+  };
+
   const logout = async () => {
     try {
       await api.post('/auth/logout');
@@ -43,7 +51,7 @@ export const AuthProvider = ({ children }) => {
   };
 
   return (
-    <AuthContext.Provider value={{ user, isLoading, login, logout, checkAuth }}>
+    <AuthContext.Provider value={{ user, isLoading, login, devLogin, logout, checkAuth }}>
       {children}
     </AuthContext.Provider>
   );
