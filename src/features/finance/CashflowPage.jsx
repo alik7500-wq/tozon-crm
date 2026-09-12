@@ -562,9 +562,10 @@ export const CashflowPage = () => {
     });
   };
 
-  if (viewMode === 'compact') {
-    return (
-      <div className="flex flex-col h-[calc(100vh-102px)] min-h-[560px] max-h-[calc(100vh-102px)] gap-2 overflow-hidden animate-in fade-in duration-150">
+  return (
+    <>
+      {viewMode === 'compact' ? (
+        <div className="flex flex-col h-[calc(100vh-102px)] min-h-[560px] max-h-[calc(100vh-102px)] gap-2 overflow-hidden animate-in fade-in duration-150">
         {/* Tier 1: Header Row */}
         <div className="flex items-center justify-between gap-2 shrink-0">
           <div className="flex items-center gap-2">
@@ -934,20 +935,10 @@ export const CashflowPage = () => {
             </table>
           </div>
         </div>
-
-        {/* Modals rendered below */}
-        {editingItem && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs animate-in fade-in">
-            {/* Modal contents handled below */}
-          </div>
-        )}
       </div>
-    );
-  }
-
-  // Expanded Classic View
-  return (
-    <div className="space-y-6 animate-in fade-in duration-200">
+      ) : (
+      /* Expanded Classic View */
+      <div className="space-y-6 animate-in fade-in duration-200">
       {/* Header and Quick Navigation Tabs */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
@@ -1579,6 +1570,8 @@ export const CashflowPage = () => {
           </table>
         </div>
       </div>
+    </div>
+    )}
 
       {/* Admin Edit Modal */}
       {editingItem && (
@@ -1987,6 +1980,6 @@ export const CashflowPage = () => {
           onClose={() => setPrintableExpense(null)}
         />
       )}
-    </div>
+    </>
   );
 };
