@@ -15,7 +15,8 @@ import {
 import { 
   Wallet, TrendingUp, TrendingDown, RefreshCw, Calendar, ArrowUpRight, 
   ArrowDownRight, FileText, Search, CreditCard, Filter, ArrowRightLeft,
-  DollarSign, CheckCircle2, Coins, X, Edit, Trash2, AlertCircle, Save, Printer
+  DollarSign, CheckCircle2, Coins, X, Edit, Trash2, AlertCircle, Save, Printer,
+  Maximize2, Minimize2
 } from 'lucide-react';
 import { PaymentReceiptPrintModal } from './PaymentReceiptPrintModal';
 import { ExpenseReceiptPrintModal } from './ExpenseReceiptPrintModal';
@@ -29,6 +30,7 @@ export const CashflowPage = () => {
   const isAdmin = user?.role === 'ADMIN';
   const isManager = user?.role === 'SALES_MANAGER';
 
+  const [viewMode, setViewMode] = useState(() => localStorage.getItem('tozon_cashflow_view_mode') || 'compact');
   const [year, setYear] = useState(new Date().getFullYear());
   const [currency, setCurrency] = useState('ALL');
   const [typeFilter, setTypeFilter] = useState('ALL'); // ALL, INCOME, EXPENSE
@@ -39,6 +41,10 @@ export const CashflowPage = () => {
   const [editingItem, setEditingItem] = useState(null);
   const [printableIncome, setPrintableIncome] = useState(null);
   const [printableExpense, setPrintableExpense] = useState(null);
+
+  useEffect(() => {
+    localStorage.setItem('tozon_cashflow_view_mode', viewMode);
+  }, [viewMode]);
 
   const queryClient = useQueryClient();
 
@@ -358,6 +364,588 @@ export const CashflowPage = () => {
   const totalUsdEquivalent = (summary.USD?.netCashflow || 0) + ((summary.TJS?.netCashflow || 0) / rateNum);
   const totalTjsEquivalent = (summary.TJS?.netCashflow || 0) + ((summary.USD?.netCashflow || 0) * rateNum);
 
+  const displayedDesks = (isManager 
+    ? cashDesksListWithBalances.filter(d => d.name.includes('Дадочон')) 
+    : cashDesksListWithBalances
+  ).filter(d => isManager ? true : (showAllDesks ? true : d.hasBalance));
+
+  const activeDesksCount = cashDesksListWithBalances.filter(d => d.hasBalance).length;
+
+  const renderTransactionRows = (txList) => {
+    if (!txList || txList.length === 0) {
+      return (
+        <tr>
+          <td colSpan={10} className="p-8 text-center text-slate-400">
+            Нет финансовых операций по заданным критериям
+          </td>
+        </tr>
+      );
+    }
+
+    return txList.map((t) => {
+      const isIncome = t.type === 'INCOME';
+      const isConversion = t.category === 'Конвертация валюты' || t.title?.includes('Конвертация') || Boolean(t.conversion_id);
+      return (
+        <tr key={t.id} className={`transition ${isConversion ? 'bg-indigo-50/30 hover:bg-indigo-50/60' : 'hover:bg-slate-50'}`}>
+          <td className="py-2 px-2.5 pl-4 whitespace-nowrap text-slate-600">
+            <div className="flex items-center gap-1 font-bold">
+              <Calendar className="h-3 w-3 text-slate-400" />
+              {dayjs(t.date).format('DD.MM.YYYY')}
+            </div>
+          </td>
+          <td className="py-2 px-2 whitespace-nowrap">
+            <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[9px] font-extrabold ${
+              isConversion
+                ? 'bg-indigo-100 text-indigo-800'
+                : isIncome
+                ? 'bg-emerald-100 text-emerald-800'
+                : 'bg-rose-100 text-rose-800'
+            }`}>
+              {isConversion ? (
+                <ArrowRightLeft className="h-2.5 w-2.5" />
+              ) : isIncome ? (
+                <ArrowUpRight className="h-2.5 w-2.5" />
+              ) : (
+                <ArrowDownRight className="h-2.5 w-2.5" />
+              )}
+              {isConversion ? 'КОНВЕРТАЦИЯ' : isIncome ? 'ПРИХОД' : 'РАСХОД'}
+            </span>
+          </td>
+          <td className="py-2 px-2 font-bold text-slate-900 font-mono whitespace-nowrap">
+            {t.reference}
+          </td>
+          <td className="py-2 px-2 whitespace-nowrap">
+            {t.account_name || t.method === 'BANK_TRANSFER' ? (
+              <div className="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg bg-cyan-50 border border-cyan-200/80 text-cyan-900 font-bold text-[10px]">
+                <span>🏛️</span>
+                <span>Счёт: {t.account_name || t.cash_desk_name || 'Банковский счёт'}</span>
+              </div>
+            ) : isConversion ? (
+              <div className="flex flex-col gap-0.5">
+                <div className={`inline-flex items-center gap-1 px-1.5 py-0.2 rounded font-bold text-[10px] ${
+                  isIncome ? 'bg-emerald-50 text-emerald-800 border border-emerald-200/60' : 'bg-rose-50 text-rose-800 border border-rose-200/60'
+                }`}>
+                  <span>{isIncome ? 'В:' : 'Из:'}</span>
+                  <span>{t.cash_desk_name || (isIncome ? 'Касса зачисления' : 'Касса списания')}</span>
+                </div>
+                {t.counterpart_cash_desk_name && (
+                  <div className="text-[9px] text-indigo-600 font-bold pl-1 flex items-center gap-0.5">
+                    <span>{isIncome ? '←' : '→'}</span>
+                    <span>{t.counterpart_cash_desk_name}</span>
+                  </div>
+                )}
+              </div>
+            ) : t.operation_type === 'INTERNAL_CASH_TRANSFER' || t.transfer_id ? (
+              <div className="flex flex-col gap-0.5">
+                <div className={`inline-flex items-center gap-1 px-1.5 py-0.2 rounded font-bold text-[10px] ${
+                  isIncome ? 'bg-emerald-50 text-emerald-800 border border-emerald-200/60' : 'bg-rose-50 text-rose-800 border border-rose-200/60'
+                }`}>
+                  <span>{isIncome ? 'В:' : 'Из:'}</span>
+                  <span>{t.cash_desk_name}</span>
+                </div>
+                {t.counterpart_cash_desk_name && (
+                  <div className="text-[9px] text-slate-500 font-medium pl-1 flex items-center gap-0.5">
+                    <span>{isIncome ? '←' : '→'}</span>
+                    <span>{t.counterpart_cash_desk_name}</span>
+                  </div>
+                )}
+              </div>
+            ) : isIncome ? (
+              <div className="inline-flex items-center gap-1 px-1.5 py-0.2 rounded bg-emerald-50 text-emerald-800 border border-emerald-200/60 font-bold text-[10px]">
+                <span>В:</span>
+                <span>{t.cash_desk_name || 'Главная касса'}</span>
+              </div>
+            ) : (
+              <div className="inline-flex items-center gap-1 px-1.5 py-0.2 rounded bg-rose-50 text-rose-800 border border-rose-200/60 font-bold text-[10px]">
+                <span>Из:</span>
+                <span>{t.cash_desk_name || 'Главная касса'}</span>
+              </div>
+            )}
+          </td>
+          <td className="py-2 px-2 max-w-[140px] truncate">
+            <div className="font-bold text-slate-900 truncate">{t.counterparty}</div>
+            <div className="text-[9px] text-slate-400 truncate">{t.title}</div>
+          </td>
+          <td className="py-2 px-2 whitespace-nowrap">
+            <span className={`px-1.5 py-0.5 rounded text-[10px] font-medium ${
+              isConversion ? 'bg-indigo-100 text-indigo-800 font-bold' : 'bg-slate-100 text-slate-700'
+            }`}>
+              {t.category}
+            </span>
+          </td>
+          <td className="py-2 px-2 whitespace-nowrap">
+            <span className="inline-flex items-center gap-1 text-[10px] font-semibold text-slate-600">
+              <CreditCard className="h-2.5 w-2.5 text-slate-400" />
+              {t.method === 'CASH' ? 'Наличные' : t.method === 'BANK_TRANSFER' ? 'Банк' : t.method}
+            </span>
+          </td>
+          <td className={`py-2 px-2.5 text-right font-black text-xs font-mono whitespace-nowrap ${
+            isIncome ? 'text-emerald-600' : 'text-rose-600'
+          }`}>
+            {isIncome ? '+' : '-'}{t.amount.toLocaleString('ru-RU', { minimumFractionDigits: 2 })} {t.currency}
+          </td>
+          <td className="py-2 px-2 text-slate-500 max-w-[160px] truncate" title={t.comment}>
+            {t.comment ? t.comment.replace(/\[Касса:\s*[^\]]+\]\s*/gi, '').trim() || '-' : '-'}
+          </td>
+          <td className="py-2 px-2.5 pr-4 text-right whitespace-nowrap">
+            <div className="flex items-center justify-end gap-1">
+              {!isConversion && (
+                <button
+                  onClick={() => {
+                    if (t.type === 'INCOME') {
+                      setPrintableIncome({
+                        id: t.rawId,
+                        deal_id: t.dealId,
+                        dealId: t.dealId,
+                        deal: t.deal,
+                        dealDate: t.dealDate,
+                        amount: t.amount,
+                        amount_minor: t.amount_minor || Math.round(t.amount * 100),
+                        currency: t.currency,
+                        payment_date: t.date,
+                        payer_name: t.payer_name || t.counterparty,
+                        contract: t.contract,
+                        contract_number: t.contract,
+                        reference: t.reference,
+                        comment: t.comment,
+                        method: t.method,
+                        created_by_name: t.createdByName
+                      });
+                    } else {
+                      setPrintableExpense({
+                        id: t.rawId,
+                        amount: t.amount,
+                        amount_minor: t.amount_minor || Math.round(t.amount * 100),
+                        currency: t.currency,
+                        expense_date: t.date,
+                        recipient: t.recipient || t.counterparty,
+                        category: t.category,
+                        reference: t.reference,
+                        description: t.description || t.comment,
+                        method: t.method,
+                        exchange_rate: t.exchange_rate || null,
+                        amount_usd: t.amount_usd || null,
+                        created_by_name: t.createdByName
+                      });
+                    }
+                  }}
+                  title={t.type === 'INCOME' ? 'Печать ПКО (Квитанция)' : 'Печать РКО (Ордер расхода)'}
+                  className={`p-1 rounded-md text-slate-400 transition cursor-pointer ${
+                    t.type === 'INCOME' ? 'hover:text-emerald-600 hover:bg-emerald-50' : 'hover:text-rose-600 hover:bg-rose-50'
+                  }`}
+                >
+                  <Printer className="h-3.5 w-3.5" />
+                </button>
+              )}
+              {isAdmin && (
+                <>
+                  <button
+                    onClick={() => handleEditClick(t)}
+                    title="Редактировать запись (Админ)"
+                    className="p-1 rounded-md text-slate-400 hover:text-blue-600 hover:bg-blue-50 transition cursor-pointer"
+                  >
+                    <Edit className="h-3.5 w-3.5" />
+                  </button>
+                  <button
+                    onClick={() => handleDeleteClick(t)}
+                    title="Удалить запись (Админ)"
+                    className="p-1 rounded-md text-slate-400 hover:text-rose-600 hover:bg-rose-50 transition cursor-pointer"
+                  >
+                    <Trash2 className="h-3.5 w-3.5" />
+                  </button>
+                </>
+              )}
+            </div>
+          </td>
+        </tr>
+      );
+    });
+  };
+
+  if (viewMode === 'compact') {
+    return (
+      <div className="flex flex-col h-[calc(100vh-102px)] min-h-[560px] max-h-[calc(100vh-102px)] gap-2 overflow-hidden animate-in fade-in duration-150">
+        {/* Tier 1: Header Row */}
+        <div className="flex items-center justify-between gap-2 shrink-0">
+          <div className="flex items-center gap-2">
+            <div className="p-1.5 rounded-xl bg-blue-600 text-white shadow-xs">
+              <Wallet className="h-4 w-4" />
+            </div>
+            <div className="flex items-center gap-2">
+              <h1 className="text-sm font-black text-slate-900 tracking-tight">
+                ДДС (Движение денежных средств)
+              </h1>
+              <span className="hidden sm:inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-blue-50 text-blue-700 border border-blue-100">
+                🖥️ Кокпит в 1 экран
+              </span>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-1.5">
+            <div className="inline-flex rounded-xl bg-slate-200/80 p-0.5 text-[11px] font-bold">
+              <button
+                type="button"
+                onClick={() => setViewMode('compact')}
+                className="flex items-center gap-1 px-2.5 py-1 rounded-lg transition cursor-pointer bg-white text-blue-700 shadow-2xs font-extrabold"
+                title="Все данные на одном экране без прокрутки страницы"
+              >
+                <Minimize2 className="h-3 w-3" />
+                <span>В 1 экран</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => setViewMode('expanded')}
+                className="flex items-center gap-1 px-2.5 py-1 rounded-lg transition cursor-pointer text-slate-600 hover:text-slate-900"
+                title="Развернутый полностраничный вид с длинной прокруткой"
+              >
+                <Maximize2 className="h-3 w-3" />
+                <span>Развернутый</span>
+              </button>
+            </div>
+
+            <button
+              onClick={() => refetch()}
+              className="flex items-center gap-1 rounded-xl border border-slate-200 bg-white px-2.5 py-1 text-[11px] font-bold text-slate-700 hover:bg-slate-50 transition shadow-2xs cursor-pointer"
+              title="Обновить данные"
+            >
+              <RefreshCw className="h-3.5 w-3.5" />
+            </button>
+
+            {isAdmin && (
+              <button
+                onClick={() => setShowConvertModal(true)}
+                className="flex items-center gap-1.5 rounded-xl bg-blue-600 hover:bg-blue-700 px-3 py-1 text-[11px] font-bold text-white transition shadow-2xs cursor-pointer"
+              >
+                <ArrowRightLeft className="h-3.5 w-3.5" />
+                <span>Конвертация</span>
+              </button>
+            )}
+          </div>
+        </div>
+
+        {/* Tier 2: Finance Navigation Tabs */}
+        <FinanceTabs compact={true} className="shrink-0" />
+
+        {/* Tier 3: Consolidated Capital & Cash Desks Ribbon */}
+        <div className="shrink-0 rounded-2xl bg-linear-to-r from-slate-950 via-indigo-950 to-slate-900 text-white p-2.5 px-3.5 shadow-sm border border-indigo-900/50 flex flex-wrap items-center justify-between gap-2.5 text-xs">
+          {/* Left: Total Capital */}
+          <div className="flex items-center gap-3">
+            <div>
+              <span className="text-[9px] font-extrabold uppercase tracking-wider text-indigo-300 block leading-tight">
+                {isManager ? 'Подотчетная касса:' : 'Сводный капитал:'}
+              </span>
+              <div className="flex items-baseline gap-1.5 font-mono">
+                <span className="text-base sm:text-lg font-black text-white">
+                  ${totalUsdEquivalent.toLocaleString('ru-RU', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                </span>
+                <span className="text-[10px] font-bold text-indigo-300">USD</span>
+                <span className="text-[10px] font-semibold text-indigo-200/90 ml-0.5">
+                  (≈ {totalTjsEquivalent.toLocaleString('ru-RU', { minimumFractionDigits: 1, maximumFractionDigits: 1 })} TJS)
+                </span>
+              </div>
+            </div>
+
+            <div className="hidden lg:flex items-center gap-1 px-2 py-0.5 rounded-lg bg-white/10 text-[10px] border border-white/10">
+              <span>🏦 Курс Эсхата:</span>
+              <strong className="text-amber-300 font-bold">{liveEskhataRate}</strong>
+              <span>TJS</span>
+            </div>
+          </div>
+
+          {/* Center: Cash Desks interactive badges */}
+          <div className="flex items-center gap-1.5 flex-wrap">
+            <span className="text-[10px] font-bold text-indigo-200 flex items-center gap-1">
+              <Wallet className="h-3 w-3 text-amber-300" />
+              <span>Кассы:</span>
+            </span>
+            {displayedDesks.map(desk => {
+              const isFiltered = search.toLowerCase() === desk.name.toLowerCase();
+              return (
+                <button
+                  key={desk.name}
+                  type="button"
+                  onClick={() => setSearch(isFiltered ? '' : desk.name)}
+                  className={`flex items-center gap-1.5 px-2 py-0.5 rounded-xl text-[10px] font-mono transition cursor-pointer border ${
+                    isFiltered
+                      ? 'bg-white text-slate-900 border-white font-black shadow-xs ring-2 ring-amber-400'
+                      : 'bg-white/10 hover:bg-white/20 border-white/15 text-white'
+                  }`}
+                  title={`Фильтр по кассе: ${desk.displayName}`}
+                >
+                  <span className="text-xs">{desk.icon}</span>
+                  <span className="font-sans font-bold text-[10px]">
+                    {desk.displayName.replace('Касса компании "Тозон" (Илхомчон)', 'Илхомчон').replace('Касса Отдела продаж (Акмалхон)', 'Акмалхон').replace('Касса Менеджера: ', '')}:
+                  </span>
+                  <span className={desk.balanceUsd >= 0 ? 'text-emerald-300 font-bold' : 'text-rose-300 font-bold'}>
+                    ${desk.balanceUsd.toLocaleString('ru-RU', { maximumFractionDigits: 0 })}
+                  </span>
+                  <span className="text-indigo-200/60">|</span>
+                  <span className={desk.balanceTjs < 0 ? 'text-rose-300 font-bold' : 'text-indigo-100 font-semibold'}>
+                    {(desk.balanceTjs || 0).toLocaleString('ru-RU', { maximumFractionDigits: 0 })} TJS
+                  </span>
+                </button>
+              );
+            })}
+            {search && (
+              <button
+                onClick={() => setSearch('')}
+                className="text-[10px] text-amber-300 hover:text-white px-1.5 py-0.5 rounded bg-amber-500/20 flex items-center gap-0.5 cursor-pointer font-bold"
+                title="Сбросить фильтр кассы"
+              >
+                <span>×</span>
+                <span>Сброс ({search})</span>
+              </button>
+            )}
+          </div>
+
+          {/* Right: Quick metric tags */}
+          <div className="hidden xl:flex items-center gap-2 text-[10px] font-semibold text-indigo-200">
+            <span className="px-2 py-0.5 rounded-md bg-white/10 border border-white/10">
+              🔄 Обмен: <strong className="text-rose-300">-${(cashflowData.conversionsSummary?.totalConvertedFromUsd || 0).toLocaleString()}</strong> → <strong className="text-emerald-300">+{(cashflowData.conversionsSummary?.totalConvertedToTjs || 0).toLocaleString()} TJS</strong>
+            </span>
+            <span className="px-2 py-0.5 rounded-md bg-white/10 border border-white/10">
+              ⏳ Рассрочка: <strong className="text-emerald-300">${(cashflowData.salesSummary?.totalReceivableSumUsd || 0).toLocaleString()}</strong>
+            </span>
+          </div>
+        </div>
+
+        {/* Tier 4: Middle Analytics Row (Chart + 4 Mini Cards, ~140px fixed) */}
+        <div className="shrink-0 grid grid-cols-1 lg:grid-cols-12 gap-2 h-36">
+          {/* Left: Monthly Chart (7 cols) */}
+          <div className="lg:col-span-7 bg-white rounded-2xl border border-slate-200 p-2 shadow-2xs flex flex-col justify-between overflow-hidden">
+            <div className="flex items-center justify-between pb-0.5 text-xs">
+              <span className="font-extrabold text-slate-800 flex items-center gap-1.5 text-[11px]">
+                <Calendar className="h-3 w-3 text-blue-600" />
+                <span>Сравнение поступлений и выплат ({cashflowData.chartCurrency || 'USD'}) за {year} г.</span>
+              </span>
+              <div className="flex items-center gap-1">
+                <div className="flex items-center gap-2 text-[10px] mr-2 text-slate-500 font-semibold">
+                  <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-emerald-500 inline-block"></span>Приход</span>
+                  <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-rose-500 inline-block"></span>Расход</span>
+                </div>
+                {availableYears.map(y => (
+                  <button
+                    key={y}
+                    onClick={() => setYear(y)}
+                    className={`px-2 py-0.5 rounded-md text-[10px] font-bold transition cursor-pointer ${
+                      year === y ? 'bg-blue-600 text-white' : 'text-slate-500 hover:bg-slate-100'
+                    }`}
+                  >
+                    {y}
+                  </button>
+                ))}
+              </div>
+            </div>
+            <div className="flex-1 min-h-0 w-full">
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={cashflowData.monthlyData || []} margin={{ top: 2, right: 6, left: -24, bottom: -6 }}>
+                  <CartesianGrid strokeDasharray="2 2" vertical={false} stroke="#f1f5f9" />
+                  <XAxis dataKey="month" axisLine={false} tickLine={false} tick={{ fontSize: 9, fill: '#64748b' }} />
+                  <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 9, fill: '#64748b' }} tickFormatter={(v) => v >= 1000 ? `${(v/1000).toFixed(0)}k` : v} />
+                  <Tooltip
+                    cursor={{ fill: '#f8fafc' }}
+                    contentStyle={{ borderRadius: '12px', border: '1px solid #e2e8f0', fontSize: '11px', padding: '4px 8px' }}
+                    formatter={(val, name) => [`${val.toLocaleString()} ${cashflowData.chartCurrency || 'USD'}`, name === 'income' ? 'Поступления' : 'Выплаты']}
+                  />
+                  <Bar dataKey="income" name="income" fill="#10b981" radius={[3, 3, 0, 0]} maxBarSize={16} />
+                  <Bar dataKey="expense" name="expense" fill="#f43f5e" radius={[3, 3, 0, 0]} maxBarSize={16} />
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+          </div>
+
+          {/* Right: 4 mini summary cards (5 cols) in a 2x2 grid */}
+          <div className="lg:col-span-5 grid grid-cols-2 gap-1.5">
+            {/* 1. USD Saldo */}
+            <div className="bg-white rounded-2xl border border-blue-200 p-2 shadow-2xs flex flex-col justify-between">
+              <div className="flex items-center justify-between text-[10px] font-bold text-blue-700">
+                <span>💵 Сальдо USD</span>
+                <span className="px-1.5 py-0.2 rounded bg-blue-50 text-[10px] border border-blue-100 font-mono font-black">
+                  ${(summary.USD?.netCashflow || 0).toLocaleString('ru-RU', { maximumFractionDigits: 0 })}
+                </span>
+              </div>
+              <div className="grid grid-cols-3 gap-1 text-center text-[10px] mt-1 font-mono">
+                <div className="bg-emerald-50/80 rounded p-0.5">
+                  <span className="text-[8px] text-emerald-600 block">Приход</span>
+                  <span className="font-bold text-emerald-700 truncate block">+${(summary.USD?.totalIncome || 0).toLocaleString()}</span>
+                </div>
+                <div className="bg-rose-50/80 rounded p-0.5">
+                  <span className="text-[8px] text-rose-600 block">Расход</span>
+                  <span className="font-bold text-rose-700 truncate block">-${(summary.USD?.totalExpense || 0).toLocaleString()}</span>
+                </div>
+                <div className={`rounded p-0.5 font-bold ${(summary.USD?.netCashflow || 0) >= 0 ? 'bg-blue-50 text-blue-800' : 'bg-rose-50 text-rose-800'}`}>
+                  <span className="text-[8px] text-slate-500 block">Сальдо</span>
+                  <span className="truncate block font-black">${(summary.USD?.netCashflow || 0).toLocaleString()}</span>
+                </div>
+              </div>
+            </div>
+
+            {/* 2. TJS Saldo */}
+            <div className="bg-white rounded-2xl border border-emerald-200 p-2 shadow-2xs flex flex-col justify-between">
+              <div className="flex items-center justify-between text-[10px] font-bold text-emerald-700">
+                <span>🇹🇯 Сальдо TJS</span>
+                <span className="px-1.5 py-0.2 rounded bg-emerald-50 text-[10px] border border-emerald-100 font-mono font-black">
+                  {(summary.TJS?.netCashflow || 0).toLocaleString('ru-RU', { maximumFractionDigits: 0 })}
+                </span>
+              </div>
+              <div className="grid grid-cols-3 gap-1 text-center text-[10px] mt-1 font-mono">
+                <div className="bg-emerald-50/80 rounded p-0.5">
+                  <span className="text-[8px] text-emerald-600 block">Приход</span>
+                  <span className="font-bold text-emerald-700 truncate block">+{(summary.TJS?.totalIncome || 0).toLocaleString()}</span>
+                </div>
+                <div className="bg-rose-50/80 rounded p-0.5">
+                  <span className="text-[8px] text-rose-600 block">Расход</span>
+                  <span className="font-bold text-rose-700 truncate block">-{(summary.TJS?.totalExpense || 0).toLocaleString()}</span>
+                </div>
+                <div className={`rounded p-0.5 font-bold ${(summary.TJS?.netCashflow || 0) >= 0 ? 'bg-emerald-50 text-emerald-800' : 'bg-rose-50 text-rose-800'}`}>
+                  <span className="text-[8px] text-slate-500 block">Сальдо</span>
+                  <span className="truncate block font-black">{(summary.TJS?.netCashflow || 0).toLocaleString()}</span>
+                </div>
+              </div>
+            </div>
+
+            {/* 3. FX Gain / Loss */}
+            <div className="bg-white rounded-2xl border border-indigo-200 p-2 shadow-2xs flex flex-col justify-between">
+              <div className="flex items-center justify-between text-[10px] font-bold text-indigo-700">
+                <span>📈 Курсовая разница</span>
+                <span className={`px-1 py-0.2 rounded text-[8px] font-bold ${
+                  (cashflowData.fxSummary?.isProfit ?? true) ? 'bg-emerald-100 text-emerald-800' : 'bg-rose-100 text-rose-800'
+                }`}>
+                  {(cashflowData.fxSummary?.isProfit ?? true) ? 'ВЫГОДА' : 'УБЫТОК'}
+                </span>
+              </div>
+              <div className="mt-1 flex items-baseline justify-between font-mono">
+                <span className={`text-xs font-black ${(cashflowData.fxSummary?.isProfit ?? true) ? 'text-emerald-600' : 'text-rose-600'}`}>
+                  {(cashflowData.fxSummary?.fxGainLossUsd || 0) >= 0 ? '+' : ''}${(cashflowData.fxSummary?.fxGainLossUsd || 0).toLocaleString('ru-RU', { minimumFractionDigits: 2 })}
+                </span>
+                <span className="text-[9px] text-slate-500">
+                  Курс: {cashflowData.fxSummary?.avgIncomeRate || 10.80} / {cashflowData.fxSummary?.avgExpenseRate || 10.90}
+                </span>
+              </div>
+            </div>
+
+            {/* 4. Operations Count & Receivables */}
+            <div className="bg-white rounded-2xl border border-slate-200 p-2 shadow-2xs flex flex-col justify-between">
+              <div className="flex items-center justify-between text-[10px] font-bold text-slate-600">
+                <span>📊 Всего операций</span>
+                <span className="text-[9px] font-black text-blue-600">{transactions.length} ордеров</span>
+              </div>
+              <div className="mt-1 flex items-baseline justify-between text-[10px]">
+                <span className="text-slate-500 font-semibold">⏳ Рассрочка:</span>
+                <span className="font-mono font-bold text-emerald-700">
+                  ${(cashflowData.salesSummary?.totalReceivableSumUsd || 0).toLocaleString('ru-RU', { maximumFractionDigits: 0 })}
+                </span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Tier 5: Unified Journal Table (flex-1 min-h-0, scrollable internally) */}
+        <div className="flex-1 min-h-0 flex flex-col rounded-2xl bg-white border border-slate-200 shadow-2xs overflow-hidden">
+          {/* Integrated Toolbar Header */}
+          <div className="px-3 py-1.5 border-b border-slate-200 flex flex-wrap items-center justify-between gap-2 shrink-0 bg-slate-50">
+            <div className="flex items-center gap-2">
+              <FileText className="h-4 w-4 text-blue-600 shrink-0" />
+              <span className="text-xs font-black text-slate-900">
+                Единый журнал кассовых и банковских операций (ДДС)
+              </span>
+              <span className="px-2 py-0.2 rounded-full bg-slate-200/80 text-[10px] font-bold text-slate-600">
+                {transactions.length}
+              </span>
+            </div>
+
+            <div className="flex items-center gap-1.5 flex-wrap">
+              {/* Currency Filter */}
+              <div className="inline-flex rounded-lg bg-slate-200/70 p-0.5 text-[10px] font-bold">
+                {['ALL', 'USD', 'TJS', 'RUB'].map(cur => (
+                  <button
+                    key={cur}
+                    onClick={() => setCurrency(cur)}
+                    className={`px-2 py-0.5 rounded transition cursor-pointer ${
+                      currency === cur ? 'bg-white text-blue-700 shadow-2xs font-extrabold' : 'text-slate-600 hover:text-slate-900'
+                    }`}
+                  >
+                    {cur === 'ALL' ? 'Все валюты' : cur}
+                  </button>
+                ))}
+              </div>
+
+              {/* Type Filter */}
+              <div className="inline-flex rounded-lg bg-slate-200/70 p-0.5 text-[10px] font-bold">
+                {[
+                  { id: 'ALL', label: 'Все' },
+                  { id: 'INCOME', label: 'Приход' },
+                  { id: 'EXPENSE', label: 'Расход' }
+                ].map(t => (
+                  <button
+                    key={t.id}
+                    onClick={() => setTypeFilter(t.id)}
+                    className={`px-2 py-0.5 rounded transition cursor-pointer ${
+                      typeFilter === t.id ? 'bg-slate-900 text-white shadow-2xs font-extrabold' : 'text-slate-600 hover:text-slate-900'
+                    }`}
+                  >
+                    {t.label}
+                  </button>
+                ))}
+              </div>
+
+              {/* Search Box */}
+              <div className="relative w-48">
+                <Search className="absolute left-2 top-1/2 -translate-y-1/2 h-3 w-3 text-slate-400" />
+                <input
+                  type="text"
+                  placeholder="Поиск по ордерам..."
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
+                  className="w-full rounded-lg border border-slate-200 bg-white pl-6 pr-5 py-0.5 text-[11px] text-slate-900 outline-none focus:border-blue-500 transition"
+                />
+                {search && (
+                  <button
+                    onClick={() => setSearch('')}
+                    className="absolute right-1 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-700 cursor-pointer"
+                  >
+                    <X className="h-3 w-3" />
+                  </button>
+                )}
+              </div>
+            </div>
+          </div>
+
+          {/* Table Body with Sticky Header */}
+          <div className="flex-1 overflow-y-auto overflow-x-auto min-h-0">
+            <table className="w-full text-left border-collapse text-[11px]">
+              <thead className="sticky top-0 bg-slate-100 border-b border-slate-200 text-slate-600 font-bold uppercase tracking-wider text-[10px] z-10 shadow-2xs">
+                <tr>
+                  <th className="py-2 px-2.5 pl-4">Дата</th>
+                  <th className="py-2 px-2">Тип</th>
+                  <th className="py-2 px-2">Документ</th>
+                  <th className="py-2 px-2">Касса / Счёт</th>
+                  <th className="py-2 px-2">Контрагент / Клиент</th>
+                  <th className="py-2 px-2">Категория</th>
+                  <th className="py-2 px-2">Способ</th>
+                  <th className="py-2 px-2.5 text-right">Сумма операции</th>
+                  <th className="py-2 px-2">Примечание</th>
+                  <th className="py-2 px-2.5 pr-4 text-right">Действия</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-100 font-medium">
+                {renderTransactionRows(transactions)}
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        {/* Modals rendered below */}
+        {editingItem && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs animate-in fade-in">
+            {/* Modal contents handled below */}
+          </div>
+        )}
+      </div>
+    );
+  }
+
+  // Expanded Classic View
   return (
     <div className="space-y-6 animate-in fade-in duration-200">
       {/* Header and Quick Navigation Tabs */}
@@ -379,6 +967,27 @@ export const CashflowPage = () => {
         </div>
 
         <div className="flex items-center gap-2 flex-wrap">
+          <div className="inline-flex rounded-xl bg-slate-200/80 p-0.5 text-xs font-bold">
+            <button
+              type="button"
+              onClick={() => setViewMode('compact')}
+              className="flex items-center gap-1 px-3 py-1.5 rounded-lg transition cursor-pointer text-slate-600 hover:text-slate-900"
+              title="Все данные на одном экране без прокрутки страницы"
+            >
+              <Minimize2 className="h-3.5 w-3.5" />
+              <span>В 1 экран</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => setViewMode('expanded')}
+              className="flex items-center gap-1 px-3 py-1.5 rounded-lg transition cursor-pointer bg-white text-blue-700 shadow-2xs font-extrabold"
+              title="Развернутый полностраничный вид"
+            >
+              <Maximize2 className="h-3.5 w-3.5" />
+              <span>Развернутый</span>
+            </button>
+          </div>
+
           <button
             onClick={() => refetch()}
             className="flex items-center gap-1.5 rounded-2xl border border-slate-200 bg-white px-3.5 py-2 text-xs font-bold text-slate-700 hover:bg-slate-50 transition shadow-2xs cursor-pointer"
@@ -430,7 +1039,7 @@ export const CashflowPage = () => {
               </p>
             </div>
 
-            {/* Cash desks breakdown pills - Only Cash Desks with Active Balances */}
+            {/* Cash desks breakdown pills */}
             <div className="mt-4 space-y-2 pt-2 border-t border-white/10">
               <div className="flex items-center justify-between gap-2">
                 <span className="text-[11px] font-bold text-indigo-200 uppercase tracking-wider flex items-center gap-1.5">
@@ -449,63 +1058,60 @@ export const CashflowPage = () => {
               </div>
 
               <div className="flex items-center gap-2.5 flex-wrap text-xs">
-                {(isManager ? cashDesksListWithBalances.filter(d => d.name.includes('Дадочон')) : cashDesksListWithBalances)
-                  .filter(d => isManager ? true : d.hasBalance).length === 0 ? (
+                {displayedDesks.length === 0 ? (
                   <div className="text-xs text-indigo-300/80 bg-white/5 px-3 py-1.5 rounded-xl border border-white/10">
                     {isManager ? 'В вашей кассе остаток 0' : 'Во всех кассах остаток 0'}
                   </div>
                 ) : (
-                  (isManager ? cashDesksListWithBalances.filter(d => d.name.includes('Дадочон')) : cashDesksListWithBalances)
-                    .filter(d => isManager ? true : d.hasBalance)
-                    .map((desk) => {
-                      const isFiltered = search.toLowerCase() === desk.name.toLowerCase();
-                      const hasUsd = Math.abs(desk.balanceUsd) > 0.001;
-                      const hasTjs = Math.abs(desk.balanceTjs) > 0.001;
-                      const hasRub = Math.abs(desk.balanceRub) > 0.001;
+                  displayedDesks.map((desk) => {
+                    const isFiltered = search.toLowerCase() === desk.name.toLowerCase();
+                    const hasUsd = Math.abs(desk.balanceUsd) > 0.001;
+                    const hasTjs = Math.abs(desk.balanceTjs) > 0.001;
+                    const hasRub = Math.abs(desk.balanceRub) > 0.001;
 
-                      return (
-                        <button
-                          key={desk.name}
-                          type="button"
-                          onClick={() => setSearch(isFiltered ? '' : desk.name)}
-                          className={`flex items-center gap-2.5 px-3.5 py-2 rounded-2xl border backdrop-blur-md transition cursor-pointer text-left ${
-                            isFiltered
-                              ? 'bg-white text-slate-900 border-white shadow-lg scale-105 ring-2 ring-amber-400'
-                              : 'bg-white/15 hover:bg-white/25 border-white/20 text-white shadow-sm'
-                          }`}
-                          title="Нажмите для фильтрации операций по этой кассе"
-                        >
-                          <span className="text-base">{desk.icon}</span>
-                          <div>
-                            <div className="flex items-center gap-1.5">
-                              <span className={`text-[11px] font-bold ${isFiltered ? 'text-slate-900' : 'text-indigo-100'}`}>
-                                {desk.displayName}
+                    return (
+                      <button
+                        key={desk.name}
+                        type="button"
+                        onClick={() => setSearch(isFiltered ? '' : desk.name)}
+                        className={`flex items-center gap-2.5 px-3.5 py-2 rounded-2xl border backdrop-blur-md transition cursor-pointer text-left ${
+                          isFiltered
+                            ? 'bg-white text-slate-900 border-white shadow-lg scale-105 ring-2 ring-amber-400'
+                            : 'bg-white/15 hover:bg-white/25 border-white/20 text-white shadow-sm'
+                        }`}
+                        title="Нажмите для фильтрации операций по этой кассе"
+                      >
+                        <span className="text-base">{desk.icon}</span>
+                        <div>
+                          <div className="flex items-center gap-1.5">
+                            <span className={`text-[11px] font-bold ${isFiltered ? 'text-slate-900' : 'text-indigo-100'}`}>
+                              {desk.displayName}
+                            </span>
+                            {isFiltered && (
+                              <span className="text-[9px] bg-blue-600 text-white px-1.5 py-0.2 rounded font-bold">
+                                выбрано
                               </span>
-                              {isFiltered && (
-                                <span className="text-[9px] bg-blue-600 text-white px-1.5 py-0.2 rounded font-bold">
-                                  выбрано
-                                </span>
-                              )}
-                            </div>
-                            <div className="flex items-center gap-2 font-mono font-black text-xs mt-0.5">
-                              {hasUsd && (
-                                <span className={isFiltered ? 'text-emerald-700' : 'text-emerald-300'}>
-                                  ${desk.balanceUsd.toLocaleString('ru-RU', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                                </span>
-                              )}
-                              <span className={isFiltered ? (desk.balanceTjs < 0 ? 'text-rose-600 font-bold' : 'text-slate-600 font-semibold') : (desk.balanceTjs < 0 ? 'text-rose-300 font-bold' : 'text-indigo-200/90')}>
-                                | {(desk.balanceTjs || 0).toLocaleString('ru-RU', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} TJS
-                              </span>
-                              {hasRub && (
-                                <span className={isFiltered ? 'text-purple-700' : 'text-purple-300'}>
-                                  | {desk.balanceRub.toLocaleString('ru-RU', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ₽
-                                </span>
-                              )}
-                            </div>
+                            )}
                           </div>
-                        </button>
-                      );
-                    })
+                          <div className="flex items-center gap-2 font-mono font-black text-xs mt-0.5">
+                            {hasUsd && (
+                              <span className={isFiltered ? 'text-emerald-700' : 'text-emerald-300'}>
+                                ${desk.balanceUsd.toLocaleString('ru-RU', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                              </span>
+                            )}
+                            <span className={isFiltered ? (desk.balanceTjs < 0 ? 'text-rose-600 font-bold' : 'text-slate-600 font-semibold') : (desk.balanceTjs < 0 ? 'text-rose-300 font-bold' : 'text-indigo-200/90')}>
+                              | {(desk.balanceTjs || 0).toLocaleString('ru-RU', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} TJS
+                            </span>
+                            {hasRub && (
+                              <span className={isFiltered ? 'text-purple-700' : 'text-purple-300'}>
+                                | {desk.balanceRub.toLocaleString('ru-RU', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ₽
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                      </button>
+                    );
+                  })
                 )}
               </div>
             </div>
@@ -524,7 +1130,6 @@ export const CashflowPage = () => {
 
         {/* Sales, Area, Discounts & Receivables metrics grid inside Banner */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 pt-4 border-t border-indigo-500/20 text-xs">
-          {/* 1. Реализовано м² */}
           <div className="rounded-2xl bg-white/10 p-3.5 border border-white/10 backdrop-blur-xs flex flex-col justify-between">
             <div className="flex items-center justify-between text-indigo-200 text-[11px] font-semibold">
               <span>📐 Продано площади</span>
@@ -540,7 +1145,6 @@ export const CashflowPage = () => {
             </p>
           </div>
 
-          {/* 2. Сумма скидки */}
           <div className="rounded-2xl bg-white/10 p-3.5 border border-white/10 backdrop-blur-xs flex flex-col justify-between">
             <div className="flex items-center justify-between text-indigo-200 text-[11px] font-semibold">
               <span>🏷️ Предоставлено скидок</span>
@@ -556,7 +1160,6 @@ export const CashflowPage = () => {
             </p>
           </div>
 
-          {/* 3. Ожидаемый остаток (сумма рассрочки) */}
           <div className="rounded-2xl bg-white/10 p-3.5 border border-white/10 backdrop-blur-xs flex flex-col justify-between">
             <div className="flex items-center justify-between text-indigo-200 text-[11px] font-semibold">
               <span>⏳ Ожидаемый остаток (Рассрочка)</span>
@@ -572,7 +1175,6 @@ export const CashflowPage = () => {
             </p>
           </div>
 
-          {/* 4. Сконвертировано */}
           <div className="rounded-2xl bg-white/10 p-3.5 border border-white/10 backdrop-blur-xs flex flex-col justify-between">
             <div className="flex items-center justify-between text-indigo-200 text-[11px] font-semibold">
               <span>🔄 Сконвертировано ({year} г.)</span>
@@ -755,102 +1357,95 @@ export const CashflowPage = () => {
               {showAllDesks ? 'Скрыть кассы с нулевым остатком' : `Показать все кассы (${cashDesksListWithBalances.length})`}
             </button>
             <div className="text-xs font-bold text-emerald-700 bg-emerald-50 px-3 py-1.5 rounded-xl border border-emerald-100">
-              С остатком: <span className="font-black">{cashDesksListWithBalances.filter(d => d.hasBalance).length}</span>
+              С остатком: <span className="font-black">{activeDesksCount}</span>
             </div>
           </div>
         </div>
 
-        {(() => {
-          const displayedDesks = showAllDesks ? cashDesksListWithBalances : cashDesksListWithBalances.filter(d => d.hasBalance);
-          if (displayedDesks.length === 0) {
-            return (
-              <div className="p-8 text-center text-slate-400 text-xs bg-slate-50 rounded-2xl border border-slate-100">
-                <p className="font-bold text-slate-600">Нет касс с ненулевым остатком</p>
-                <button
-                  onClick={() => setShowAllDesks(true)}
-                  className="mt-2 text-blue-600 font-bold hover:underline cursor-pointer"
+        {displayedDesks.length === 0 ? (
+          <div className="p-8 text-center text-slate-400 text-xs bg-slate-50 rounded-2xl border border-slate-100">
+            <p className="font-bold text-slate-600">Нет касс с ненулевым остатком</p>
+            <button
+              onClick={() => setShowAllDesks(true)}
+              className="mt-2 text-blue-600 font-bold hover:underline cursor-pointer"
+            >
+              Показать все зарегистрированные кассы компании
+            </button>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-3.5">
+            {displayedDesks.map((desk) => {
+              const isFiltered = search.toLowerCase() === desk.name.toLowerCase();
+              return (
+                <div
+                  key={desk.name}
+                  className={`p-4 rounded-2xl border transition relative flex flex-col justify-between gap-3 ${
+                    isFiltered
+                      ? 'border-blue-500 bg-blue-50/50 shadow-md ring-2 ring-blue-500/20'
+                      : desk.hasBalance
+                        ? 'border-slate-200 bg-white hover:border-slate-300 hover:shadow-xs'
+                        : 'border-slate-100 bg-slate-50/60 opacity-80'
+                  }`}
                 >
-                  Показать все зарегистрированные кассы компании
-                </button>
-              </div>
-            );
-          }
+                  <div>
+                    <div className="flex items-center justify-between gap-2 mb-2">
+                      <span className="text-2xl">{desk.icon}</span>
+                      <span className={`text-[10px] font-extrabold px-2 py-0.5 rounded-md uppercase tracking-wider ${
+                        desk.hasBalance
+                          ? 'bg-emerald-50 text-emerald-700 border border-emerald-100'
+                          : 'bg-slate-100 text-slate-400'
+                      }`}>
+                        {desk.hasBalance ? 'Есть средства' : 'Пусто'}
+                      </span>
+                    </div>
 
-          return (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-3.5">
-              {displayedDesks.map((desk) => {
-                const isFiltered = search.toLowerCase() === desk.name.toLowerCase();
-                return (
-                  <div
-                    key={desk.name}
-                    className={`p-4 rounded-2xl border transition relative flex flex-col justify-between gap-3 ${
+                    <h4 className="text-xs font-black text-slate-900 line-clamp-2 leading-tight">
+                      {desk.displayName}
+                    </h4>
+                  </div>
+
+                  <div className="space-y-1.5 pt-2 border-t border-slate-100">
+                    <div className="flex items-center justify-between text-xs font-mono">
+                      <span className="text-slate-400 font-sans text-[11px]">USD ($):</span>
+                      <span className={`font-black ${desk.balanceUsd > 0 ? 'text-emerald-600' : desk.balanceUsd < 0 ? 'text-rose-600' : 'text-slate-400'}`}>
+                        ${desk.balanceUsd.toLocaleString('ru-RU', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                      </span>
+                    </div>
+
+                    <div className="flex items-center justify-between text-xs font-mono">
+                      <span className="text-slate-400 font-sans text-[11px]">TJS (Сомони):</span>
+                      <span className={`font-black ${desk.balanceTjs > 0 ? 'text-blue-600' : desk.balanceTjs < 0 ? 'text-rose-600' : 'text-slate-400'}`}>
+                        {(desk.balanceTjs || 0).toLocaleString('ru-RU', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                      </span>
+                    </div>
+
+                    {desk.balanceRub !== 0 && (
+                      <div className="flex items-center justify-between text-xs font-mono">
+                        <span className="text-slate-400 font-sans text-[11px]">RUB (₽):</span>
+                        <span className="font-black text-purple-600">
+                          {desk.balanceRub.toLocaleString('ru-RU', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ₽
+                        </span>
+                      </div>
+                    )}
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={() => setSearch(isFiltered ? '' : desk.name)}
+                    className={`w-full py-1.5 rounded-xl text-[11px] font-bold transition flex items-center justify-center gap-1.5 cursor-pointer ${
                       isFiltered
-                        ? 'border-blue-500 bg-blue-50/50 shadow-md ring-2 ring-blue-500/20'
-                        : desk.hasBalance
-                          ? 'border-slate-200 bg-white hover:border-slate-300 hover:shadow-xs'
-                          : 'border-slate-100 bg-slate-50/60 opacity-80'
+                        ? 'bg-blue-600 text-white shadow-xs'
+                        : 'bg-slate-100 hover:bg-slate-200 text-slate-700'
                     }`}
                   >
-                    <div>
-                      <div className="flex items-center justify-between gap-2 mb-2">
-                        <span className="text-2xl">{desk.icon}</span>
-                        <span className={`text-[10px] font-extrabold px-2 py-0.5 rounded-md uppercase tracking-wider ${
-                          desk.hasBalance
-                            ? 'bg-emerald-50 text-emerald-700 border border-emerald-100'
-                            : 'bg-slate-100 text-slate-400'
-                        }`}>
-                          {desk.hasBalance ? 'Есть средства' : 'Пусто'}
-                        </span>
-                      </div>
-
-                      <h4 className="text-xs font-black text-slate-900 line-clamp-2 leading-tight">
-                        {desk.displayName}
-                      </h4>
-                    </div>
-
-                    <div className="space-y-1.5 pt-2 border-t border-slate-100">
-                      <div className="flex items-center justify-between text-xs font-mono">
-                        <span className="text-slate-400 font-sans text-[11px]">USD ($):</span>
-                        <span className={`font-black ${desk.balanceUsd > 0 ? 'text-emerald-600' : desk.balanceUsd < 0 ? 'text-rose-600' : 'text-slate-400'}`}>
-                          ${desk.balanceUsd.toLocaleString('ru-RU', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                        </span>
-                      </div>
-
-                      <div className="flex items-center justify-between text-xs font-mono">
-                        <span className="text-slate-400 font-sans text-[11px]">TJS (Сомони):</span>
-                        <span className={`font-black ${desk.balanceTjs > 0 ? 'text-blue-600' : desk.balanceTjs < 0 ? 'text-rose-600' : 'text-slate-400'}`}>
-                          {(desk.balanceTjs || 0).toLocaleString('ru-RU', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                        </span>
-                      </div>
-
-                      {desk.balanceRub !== 0 && (
-                        <div className="flex items-center justify-between text-xs font-mono">
-                          <span className="text-slate-400 font-sans text-[11px]">RUB (₽):</span>
-                          <span className="font-black text-purple-600">
-                            {desk.balanceRub.toLocaleString('ru-RU', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ₽
-                          </span>
-                        </div>
-                      )}
-                    </div>
-
-                    <button
-                      type="button"
-                      onClick={() => setSearch(isFiltered ? '' : desk.name)}
-                      className={`w-full py-1.5 rounded-xl text-[11px] font-bold transition flex items-center justify-center gap-1.5 cursor-pointer ${
-                        isFiltered
-                          ? 'bg-blue-600 text-white shadow-xs'
-                          : 'bg-slate-100 hover:bg-slate-200 text-slate-700'
-                      }`}
-                    >
-                      <Search className="h-3 w-3" />
-                      <span>{isFiltered ? 'Сбросить фильтр' : 'Показать проводки'}</span>
-                    </button>
-                  </div>
-                );
-              })}
-            </div>
-          );
-        })()}
+                    <Search className="h-3 w-3" />
+                    <span>{isFiltered ? 'Сбросить фильтр' : 'Показать проводки'}</span>
+                  </button>
+                </div>
+              );
+            })}
+          </div>
+        )}
       </div>
 
       {/* Filter and Currency Toolbar */}
@@ -979,191 +1574,7 @@ export const CashflowPage = () => {
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100 font-medium">
-              {transactions.map((t) => {
-                const isIncome = t.type === 'INCOME';
-                const isConversion = t.category === 'Конвертация валюты' || t.title?.includes('Конвертация') || Boolean(t.conversion_id);
-                return (
-                  <tr key={t.id} className={`transition ${isConversion ? 'bg-indigo-50/30 hover:bg-indigo-50/60' : 'hover:bg-slate-50'}`}>
-                    <td className="p-3.5 pl-5 whitespace-nowrap text-slate-600">
-                      <div className="flex items-center gap-1.5 font-bold">
-                        <Calendar className="h-3.5 w-3.5 text-slate-400" />
-                        {dayjs(t.date).format('DD.MM.YYYY')}
-                      </div>
-                    </td>
-                    <td className="p-3.5">
-                      <span className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-md text-[10px] font-extrabold ${
-                        isConversion
-                          ? 'bg-indigo-100 text-indigo-800'
-                          : isIncome
-                          ? 'bg-emerald-100 text-emerald-800'
-                          : 'bg-rose-100 text-rose-800'
-                      }`}>
-                        {isConversion ? (
-                          <ArrowRightLeft className="h-3 w-3" />
-                        ) : isIncome ? (
-                          <ArrowUpRight className="h-3 w-3" />
-                        ) : (
-                          <ArrowDownRight className="h-3 w-3" />
-                        )}
-                        {isConversion ? 'КОНВЕРТАЦИЯ' : isIncome ? 'ПРИХОД (ПКО)' : 'РАСХОД (РКО)'}
-                      </span>
-                    </td>
-                    <td className="p-3.5 font-bold text-slate-900 font-mono">
-                      {t.reference}
-                    </td>
-                    <td className="p-3.5 whitespace-nowrap">
-                      {t.account_name || t.method === 'BANK_TRANSFER' ? (
-                        <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-cyan-50 border border-cyan-200/80 text-cyan-900 font-bold text-[11px]">
-                          <span>🏛️</span>
-                          <span>Счёт: {t.account_name || t.cash_desk_name || 'Банковский счёт'}</span>
-                        </div>
-                      ) : isConversion ? (
-                        <div className="flex flex-col gap-0.5">
-                          <div className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-md font-bold text-[11px] ${
-                            isIncome ? 'bg-emerald-50 text-emerald-800 border border-emerald-200/60' : 'bg-rose-50 text-rose-800 border border-rose-200/60'
-                          }`}>
-                            <span>{isIncome ? 'В:' : 'Из:'}</span>
-                            <span>{t.cash_desk_name || (isIncome ? 'Касса зачисления' : 'Касса списания')}</span>
-                          </div>
-                          {t.counterpart_cash_desk_name && (
-                            <div className="text-[10px] text-indigo-600 font-bold pl-1 flex items-center gap-1">
-                              <span>{isIncome ? '←' : '→'}</span>
-                              <span>{t.counterpart_cash_desk_name}</span>
-                            </div>
-                          )}
-                        </div>
-                      ) : t.operation_type === 'INTERNAL_CASH_TRANSFER' || t.transfer_id ? (
-                        <div className="flex flex-col gap-0.5">
-                          <div className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-md font-bold text-[11px] ${
-                            isIncome ? 'bg-emerald-50 text-emerald-800 border border-emerald-200/60' : 'bg-rose-50 text-rose-800 border border-rose-200/60'
-                          }`}>
-                            <span>{isIncome ? 'В:' : 'Из:'}</span>
-                            <span>{t.cash_desk_name}</span>
-                          </div>
-                          {t.counterpart_cash_desk_name && (
-                            <div className="text-[10px] text-slate-500 font-medium pl-1 flex items-center gap-1">
-                              <span>{isIncome ? '←' : '→'}</span>
-                              <span>{t.counterpart_cash_desk_name}</span>
-                            </div>
-                          )}
-                        </div>
-                      ) : isIncome ? (
-                        <div className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-emerald-50 text-emerald-800 border border-emerald-200/60 font-bold text-[11px]">
-                          <span>В:</span>
-                          <span>{t.cash_desk_name || 'Главная касса'}</span>
-                        </div>
-                      ) : (
-                        <div className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-rose-50 text-rose-800 border border-rose-200/60 font-bold text-[11px]">
-                          <span>Из:</span>
-                          <span>{t.cash_desk_name || 'Главная касса'}</span>
-                        </div>
-                      )}
-                    </td>
-                    <td className="p-3.5">
-                      <div className="font-bold text-slate-900">{t.counterparty}</div>
-                      <div className="text-[10px] text-slate-400">{t.title}</div>
-                    </td>
-                    <td className="p-3.5">
-                      <span className={`px-2 py-0.5 rounded-lg font-medium ${
-                        isConversion ? 'bg-indigo-100 text-indigo-800 font-bold' : 'bg-slate-100 text-slate-700'
-                      }`}>
-                        {t.category}
-                      </span>
-                    </td>
-                    <td className="p-3.5">
-                      <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-slate-600">
-                        <CreditCard className="h-3 w-3 text-slate-400" />
-                        {t.method === 'CASH' ? 'Наличные' : t.method === 'BANK_TRANSFER' ? 'Банк' : t.method}
-                      </span>
-                    </td>
-                    <td className={`p-3.5 text-right font-black text-sm whitespace-nowrap ${
-                      isIncome ? 'text-emerald-600' : 'text-rose-600'
-                    }`}>
-                      {isIncome ? '+' : '-'}{t.amount.toLocaleString('ru-RU', { minimumFractionDigits: 2 })} {t.currency}
-                    </td>
-                    <td className="p-3.5 text-slate-500 max-w-xs truncate" title={t.comment}>
-                      {t.comment ? t.comment.replace(/\[Касса:\s*[^\]]+\]\s*/gi, '').trim() || '-' : '-'}
-                    </td>
-                    <td className="p-3.5 pr-5 text-right whitespace-nowrap">
-                      <div className="flex items-center justify-end gap-1.5">
-                        {!isConversion && (
-                          <button
-                            onClick={() => {
-                              if (t.type === 'INCOME') {
-                                setPrintableIncome({
-                                  id: t.rawId,
-                                  deal_id: t.dealId,
-                                  dealId: t.dealId,
-                                  deal: t.deal,
-                                  dealDate: t.dealDate,
-                                  amount: t.amount,
-                                  amount_minor: t.amount_minor || Math.round(t.amount * 100),
-                                  currency: t.currency,
-                                  payment_date: t.date,
-                                  payer_name: t.payer_name || t.counterparty,
-                                  contract: t.contract,
-                                  contract_number: t.contract,
-                                  reference: t.reference,
-                                  comment: t.comment,
-                                  method: t.method,
-                                  created_by_name: t.createdByName
-                                });
-                              } else {
-                                setPrintableExpense({
-                                  id: t.rawId,
-                                  amount: t.amount,
-                                  amount_minor: t.amount_minor || Math.round(t.amount * 100),
-                                  currency: t.currency,
-                                  expense_date: t.date,
-                                  recipient: t.recipient || t.counterparty,
-                                  category: t.category,
-                                  reference: t.reference,
-                                  description: t.description || t.comment,
-                                  method: t.method,
-                                  exchange_rate: t.exchange_rate || null,
-                                  amount_usd: t.amount_usd || null,
-                                  created_by_name: t.createdByName
-                                });
-                              }
-                            }}
-                            title={t.type === 'INCOME' ? 'Печать ПКО (Квитанция)' : 'Печать РКО (Ордер расхода)'}
-                            className={`p-1.5 rounded-lg text-slate-400 transition cursor-pointer ${
-                              t.type === 'INCOME' ? 'hover:text-emerald-600 hover:bg-emerald-50' : 'hover:text-rose-600 hover:bg-rose-50'
-                            }`}
-                          >
-                            <Printer className="h-4 w-4" />
-                          </button>
-                        )}
-                        {isAdmin && (
-                          <>
-                            <button
-                              onClick={() => handleEditClick(t)}
-                              title="Редактировать запись (Админ)"
-                              className="p-1.5 rounded-lg text-slate-400 hover:text-blue-600 hover:bg-blue-50 transition cursor-pointer"
-                            >
-                              <Edit className="h-4 w-4" />
-                            </button>
-                            <button
-                              onClick={() => handleDeleteClick(t)}
-                              title="Удалить запись (Админ)"
-                              className="p-1.5 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-50 transition cursor-pointer"
-                            >
-                              <Trash2 className="h-4 w-4" />
-                            </button>
-                          </>
-                        )}
-                      </div>
-                    </td>
-                  </tr>
-                );
-              })}
-              {transactions.length === 0 && (
-                <tr>
-                  <td colSpan={10} className="p-12 text-center text-slate-400">
-                    Нет финансовых операций по заданным критериям
-                  </td>
-                </tr>
-              )}
+              {renderTransactionRows(transactions)}
             </tbody>
           </table>
         </div>
