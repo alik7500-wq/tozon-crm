@@ -75,6 +75,8 @@ export const CashflowPage = () => {
   const [convertForm, setConvertForm] = useState({
     from_currency: 'USD',
     to_currency: 'TJS',
+    from_cash_desk_id: '',
+    to_cash_desk_id: '',
     from_amount: '',
     exchange_rate: '9.27',
     date: dayjs().format('YYYY-MM-DD'),
@@ -82,6 +84,18 @@ export const CashflowPage = () => {
     reference: '',
     comment: ''
   });
+
+  useEffect(() => {
+    if (cashDesksDict && cashDesksDict.length >= 2) {
+      const akmal = cashDesksDict.find(d => d.code === 'SALES_MANAGER' || (d.name && d.name.includes('Акмалхон')));
+      const ilhom = cashDesksDict.find(d => d.code === 'MAIN_CASHIER' || (d.name && d.name.includes('Илхомчон')));
+      setConvertForm(prev => ({
+        ...prev,
+        from_cash_desk_id: prev.from_cash_desk_id || akmal?.id || cashDesksDict[0].id,
+        to_cash_desk_id: prev.to_cash_desk_id || ilhom?.id || (cashDesksDict[1] ? cashDesksDict[1].id : cashDesksDict[0].id)
+      }));
+    }
+  }, [cashDesksDict]);
 
   const isConvertDirty = Boolean(convertForm.from_amount && parseFloat(convertForm.from_amount) > 0 || convertForm.comment.trim());
   const { requestClose: requestCloseConvert } = useModalDismiss({
@@ -110,9 +124,13 @@ export const CashflowPage = () => {
       queryClient.invalidateQueries(['finance-income']);
       queryClient.invalidateQueries(['finance-expenses']);
       setShowConvertModal(false);
+      const akmal = cashDesksDict.find(d => d.code === 'SALES_MANAGER' || (d.name && d.name.includes('Акмалхон')));
+      const ilhom = cashDesksDict.find(d => d.code === 'MAIN_CASHIER' || (d.name && d.name.includes('Илхомчон')));
       setConvertForm({
         from_currency: 'USD',
         to_currency: 'TJS',
+        from_cash_desk_id: akmal?.id || (cashDesksDict[0] ? cashDesksDict[0].id : ''),
+        to_cash_desk_id: ilhom?.id || (cashDesksDict[1] ? cashDesksDict[1].id : ''),
         from_amount: '',
         exchange_rate: liveEskhataRate,
         date: dayjs().format('YYYY-MM-DD'),
@@ -198,30 +216,90 @@ export const CashflowPage = () => {
 
   const handleEditClick = (t) => {
     const isIncome = t.type === 'INCOME';
-    const desk = isIncome ? (extractCashDeskFromComment(t.comment) || 'Главная касса компании (Бухгалтерия)') : '';
+    const desk = t.cash_desk_name || (isIncome ? (extractCashDeskFromComment(t.comment) || '') : '') || '';
+    const isConv = Boolean(t.conversion_id) || 
+                   (t.reference && (t.reference.includes('КОНВ') || t.reference.includes('ОБМЕН'))) ||
+                   (t.category === 'Конвертация валюты');
     setEditingItem({
       id: t.rawId,
       type: t.type,
       amount: t.amount,
+      originalAmount: t.amount,
       currency: t.currency,
+      originalCurrency: t.currency,
       date: t.date,
+      originalDate: t.date,
       method: t.method || 'CASH',
+      originalMethod: t.method || 'CASH',
       reference: t.reference || '',
+      originalReference: t.reference || '',
       comment: t.comment || '',
+      originalComment: t.comment || '',
       cash_desk: desk,
+      originalCashDesk: desk,
+      cash_desk_id: t.cash_desk_id || null,
+      originalCashDeskId: t.cash_desk_id || null,
       category: t.category || 'Прочее',
+      originalCategory: t.category || 'Прочее',
       recipient: t.counterparty || '',
-      payer_name: t.counterparty || ''
+      originalRecipient: t.counterparty || '',
+      payer_name: t.counterparty || '',
+      originalPayerName: t.counterparty || '',
+      isConversion: isConv
     });
   };
 
   const handleSaveEdit = (e) => {
     e.preventDefault();
     if (!editingItem) return;
+
+    // PATCH semantics: construct only modified fields
+    const patchPayload = { id: editingItem.id };
+
+    if (!editingItem.isConversion) {
+      if (Number(editingItem.amount) !== Number(editingItem.originalAmount)) {
+        patchPayload.amount = Number(editingItem.amount);
+      }
+      if (editingItem.currency !== editingItem.originalCurrency) {
+        patchPayload.currency = editingItem.currency;
+      }
+    }
+
+    if (editingItem.date !== editingItem.originalDate) {
+      patchPayload.date = editingItem.date;
+    }
+    if (editingItem.method !== editingItem.originalMethod) {
+      patchPayload.method = editingItem.method;
+    }
+    if (editingItem.reference !== editingItem.originalReference) {
+      patchPayload.reference = editingItem.reference;
+    }
+    if (editingItem.comment !== editingItem.originalComment) {
+      patchPayload.comment = editingItem.comment;
+      patchPayload.description = editingItem.comment;
+    }
+    if (editingItem.cash_desk !== editingItem.originalCashDesk || editingItem.cash_desk_id !== editingItem.originalCashDeskId) {
+      if (editingItem.cash_desk_id) {
+        patchPayload.cash_desk_id = editingItem.cash_desk_id;
+      }
+      if (editingItem.cash_desk) {
+        patchPayload.cash_desk = editingItem.cash_desk;
+      }
+    }
+
     if (editingItem.type === 'INCOME') {
-      updateIncomeMutation.mutate(editingItem);
+      if (editingItem.payer_name !== editingItem.originalPayerName) {
+        patchPayload.payer_name = editingItem.payer_name;
+      }
+      updateIncomeMutation.mutate(patchPayload);
     } else {
-      updateExpenseMutation.mutate(editingItem);
+      if (editingItem.recipient !== editingItem.originalRecipient) {
+        patchPayload.recipient = editingItem.recipient;
+      }
+      if (editingItem.category !== editingItem.originalCategory) {
+        patchPayload.category = editingItem.category;
+      }
+      updateExpenseMutation.mutate(patchPayload);
     }
   };
 
@@ -891,6 +969,7 @@ export const CashflowPage = () => {
                 <th className="p-3.5 pl-5">Дата</th>
                 <th className="p-3.5">Тип</th>
                 <th className="p-3.5">Документ</th>
+                <th className="p-3.5">Касса / Счёт</th>
                 <th className="p-3.5">Контрагент / Клиент</th>
                 <th className="p-3.5">Статья / Категория</th>
                 <th className="p-3.5">Способ оплаты</th>
@@ -902,7 +981,7 @@ export const CashflowPage = () => {
             <tbody className="divide-y divide-slate-100 font-medium">
               {transactions.map((t) => {
                 const isIncome = t.type === 'INCOME';
-                const isConversion = t.category === 'Конвертация валюты' || t.title?.includes('Конвертация');
+                const isConversion = t.category === 'Конвертация валюты' || t.title?.includes('Конвертация') || Boolean(t.conversion_id);
                 return (
                   <tr key={t.id} className={`transition ${isConversion ? 'bg-indigo-50/30 hover:bg-indigo-50/60' : 'hover:bg-slate-50'}`}>
                     <td className="p-3.5 pl-5 whitespace-nowrap text-slate-600">
@@ -931,6 +1010,54 @@ export const CashflowPage = () => {
                     </td>
                     <td className="p-3.5 font-bold text-slate-900 font-mono">
                       {t.reference}
+                    </td>
+                    <td className="p-3.5 whitespace-nowrap">
+                      {t.account_name || t.method === 'BANK_TRANSFER' ? (
+                        <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-cyan-50 border border-cyan-200/80 text-cyan-900 font-bold text-[11px]">
+                          <span>🏛️</span>
+                          <span>Счёт: {t.account_name || t.cash_desk_name || 'Банковский счёт'}</span>
+                        </div>
+                      ) : isConversion ? (
+                        <div className="flex flex-col gap-0.5">
+                          <div className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-md font-bold text-[11px] ${
+                            isIncome ? 'bg-emerald-50 text-emerald-800 border border-emerald-200/60' : 'bg-rose-50 text-rose-800 border border-rose-200/60'
+                          }`}>
+                            <span>{isIncome ? 'В:' : 'Из:'}</span>
+                            <span>{t.cash_desk_name || (isIncome ? 'Касса зачисления' : 'Касса списания')}</span>
+                          </div>
+                          {t.counterpart_cash_desk_name && (
+                            <div className="text-[10px] text-indigo-600 font-bold pl-1 flex items-center gap-1">
+                              <span>{isIncome ? '←' : '→'}</span>
+                              <span>{t.counterpart_cash_desk_name}</span>
+                            </div>
+                          )}
+                        </div>
+                      ) : t.operation_type === 'INTERNAL_CASH_TRANSFER' || t.transfer_id ? (
+                        <div className="flex flex-col gap-0.5">
+                          <div className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-md font-bold text-[11px] ${
+                            isIncome ? 'bg-emerald-50 text-emerald-800 border border-emerald-200/60' : 'bg-rose-50 text-rose-800 border border-rose-200/60'
+                          }`}>
+                            <span>{isIncome ? 'В:' : 'Из:'}</span>
+                            <span>{t.cash_desk_name}</span>
+                          </div>
+                          {t.counterpart_cash_desk_name && (
+                            <div className="text-[10px] text-slate-500 font-medium pl-1 flex items-center gap-1">
+                              <span>{isIncome ? '←' : '→'}</span>
+                              <span>{t.counterpart_cash_desk_name}</span>
+                            </div>
+                          )}
+                        </div>
+                      ) : isIncome ? (
+                        <div className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-emerald-50 text-emerald-800 border border-emerald-200/60 font-bold text-[11px]">
+                          <span>В:</span>
+                          <span>{t.cash_desk_name || 'Главная касса'}</span>
+                        </div>
+                      ) : (
+                        <div className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-rose-50 text-rose-800 border border-rose-200/60 font-bold text-[11px]">
+                          <span>Из:</span>
+                          <span>{t.cash_desk_name || 'Главная касса'}</span>
+                        </div>
+                      )}
                     </td>
                     <td className="p-3.5">
                       <div className="font-bold text-slate-900">{t.counterparty}</div>
@@ -1032,7 +1159,7 @@ export const CashflowPage = () => {
               })}
               {transactions.length === 0 && (
                 <tr>
-                  <td colSpan={9} className="p-12 text-center text-slate-400">
+                  <td colSpan={10} className="p-12 text-center text-slate-400">
                     Нет финансовых операций по заданным критериям
                   </td>
                 </tr>
@@ -1065,22 +1192,41 @@ export const CashflowPage = () => {
             <form onSubmit={handleSaveEdit} className="p-6 space-y-3.5 text-xs">
               <div className="grid grid-cols-3 gap-3">
                 <div className="col-span-2">
-                  <label className="block font-bold text-slate-700 mb-1">Сумма *</label>
+                  <label className="block font-bold text-slate-700 mb-1 flex items-center justify-between">
+                    <span>Сумма *</span>
+                    {editingItem.isConversion && (
+                      <span className="text-[10px] text-amber-700 font-bold bg-amber-50 px-2 py-0.5 rounded-md border border-amber-200 flex items-center gap-1">
+                        <span>🔒</span>
+                        <span>Защищена от изменения</span>
+                      </span>
+                    )}
+                  </label>
                   <input
                     type="number"
                     step="0.01"
                     required
+                    readOnly={editingItem.isConversion}
+                    disabled={editingItem.isConversion}
                     value={editingItem.amount}
-                    onChange={e => setEditingItem({ ...editingItem, amount: e.target.value })}
-                    className="w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm font-black text-slate-900 outline-none focus:border-blue-500"
+                    onChange={e => !editingItem.isConversion && setEditingItem({ ...editingItem, amount: e.target.value })}
+                    className={`w-full rounded-xl border px-3 py-2 text-sm font-black outline-none ${
+                      editingItem.isConversion 
+                        ? 'border-slate-200 bg-slate-100 text-slate-500 cursor-not-allowed' 
+                        : 'border-slate-300 bg-white text-slate-900 focus:border-blue-500'
+                    }`}
                   />
                 </div>
                 <div>
                   <label className="block font-bold text-slate-700 mb-1">Валюта *</label>
                   <select
+                    disabled={editingItem.isConversion}
                     value={editingItem.currency}
-                    onChange={e => setEditingItem({ ...editingItem, currency: e.target.value })}
-                    className="w-full rounded-xl border border-slate-300 bg-slate-50 px-3 py-2 text-xs font-bold outline-none"
+                    onChange={e => !editingItem.isConversion && setEditingItem({ ...editingItem, currency: e.target.value })}
+                    className={`w-full rounded-xl border px-3 py-2 text-xs font-bold outline-none ${
+                      editingItem.isConversion 
+                        ? 'border-slate-200 bg-slate-100 text-slate-500 cursor-not-allowed' 
+                        : 'border-slate-300 bg-slate-50'
+                    }`}
                   >
                     <option value="USD">USD</option>
                     <option value="TJS">TJS</option>
@@ -1136,48 +1282,48 @@ export const CashflowPage = () => {
                 </div>
               )}
 
-              {/* Выбор кассы для ПКО */}
-              {editingItem.type === 'INCOME' && (
-                <div>
-                  <label className="block font-bold text-slate-700 mb-1 flex items-center justify-between">
-                    <span className="flex items-center gap-1.5">
-                      <Wallet className="h-3.5 w-3.5 text-blue-600" />
-                      <span>Касса зачисления средств *</span>
+              {/* Выбор кассы для ПКО и РКО */}
+              <div>
+                <label className="block font-bold text-slate-700 mb-1 flex items-center justify-between">
+                  <span className="flex items-center gap-1.5">
+                    <Wallet className="h-3.5 w-3.5 text-blue-600" />
+                    <span>{editingItem.type === 'INCOME' ? 'Касса зачисления средств' : 'Касса списания средств'} *</span>
+                  </span>
+                  {editingItem.cash_desk && (
+                    <span className="text-[10px] text-blue-600 font-bold bg-blue-50 px-2 py-0.5 rounded-md border border-blue-100">
+                      Выбрана касса
                     </span>
-                    {editingItem.cash_desk && (
-                      <span className="text-[10px] text-blue-600 font-bold bg-blue-50 px-2 py-0.5 rounded-md border border-blue-100">
-                        Выбрана касса
-                      </span>
-                    )}
-                  </label>
-                  <select
-                    value={editingItem.cash_desk || ''}
-                    onChange={(e) => {
-                      const newDesk = e.target.value;
-                      const updatedComment = updateCommentWithCashDesk(editingItem.comment, newDesk);
-                      setEditingItem({
-                        ...editingItem,
-                        cash_desk: newDesk,
-                        comment: updatedComment
-                      });
-                    }}
-                    className="w-full rounded-xl border border-slate-300 bg-slate-50 px-3 py-2 text-xs font-bold text-slate-800 outline-none focus:border-blue-500 focus:bg-white transition cursor-pointer"
-                  >
-                    {(() => {
-                      const customOption = editingItem.cash_desk && !allCashDesks.some(c => c.name === editingItem.cash_desk) ? [{
-                        id: 'CUSTOM_DESK',
-                        name: editingItem.cash_desk,
-                        icon: '🏷️'
-                      }] : [];
-                      return [...customOption, ...allCashDesks].map((c) => (
-                        <option key={c.id || c.name} value={c.name}>
-                          {c.icon} {c.name}
-                        </option>
-                      ));
-                    })()}
-                  </select>
-                </div>
-              )}
+                  )}
+                </label>
+                <select
+                  value={editingItem.cash_desk_id || editingItem.cash_desk || ''}
+                  onChange={(e) => {
+                    const selectedVal = e.target.value;
+                    const matchedDesk = allCashDesks.find(c => String(c.id) === String(selectedVal) || c.name === selectedVal);
+                    const newDeskName = matchedDesk ? matchedDesk.name : selectedVal;
+                    const newDeskId = matchedDesk?.id || (selectedVal.includes('-') ? selectedVal : null);
+                    
+                    let updatedComment = editingItem.comment;
+                    if (editingItem.type === 'INCOME') {
+                      updatedComment = updateCommentWithCashDesk(editingItem.comment, newDeskName);
+                    }
+                    setEditingItem({
+                      ...editingItem,
+                      cash_desk: newDeskName,
+                      cash_desk_id: newDeskId,
+                      comment: updatedComment
+                    });
+                  }}
+                  className="w-full rounded-xl border border-slate-300 bg-slate-50 px-3 py-2 text-xs font-bold text-slate-800 outline-none focus:border-blue-500 focus:bg-white transition cursor-pointer"
+                >
+                  <option value="">-- Выберите кассу --</option>
+                  {allCashDesks.map((c) => (
+                    <option key={c.id || c.name} value={c.id || c.name}>
+                      {c.icon} {c.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
 
               <div>
                 <label className="block font-bold text-slate-700 mb-1">
@@ -1269,26 +1415,30 @@ export const CashflowPage = () => {
                   <div className="rounded-2xl bg-slate-50 p-3 border border-slate-200 space-y-2">
                     <div className="grid grid-cols-2 gap-2">
                       <div>
-                        <label className="block text-[11px] font-bold text-slate-700 mb-1">Списать из кассы *</label>
+                        <label className="block text-[11px] font-bold text-slate-700 mb-1">Касса списания (USD) *</label>
                         <select
-                          value={convertForm.from_currency}
-                          onChange={e => setConvertForm({ ...convertForm, from_currency: e.target.value })}
+                          required
+                          value={convertForm.from_cash_desk_id}
+                          onChange={e => setConvertForm({ ...convertForm, from_cash_desk_id: e.target.value })}
                           className="w-full rounded-xl border border-slate-300 bg-white px-2.5 py-1.5 text-xs font-bold outline-none focus:border-indigo-500"
                         >
-                          <option value="USD">Касса USD ($)</option>
-                          <option value="TJS">Касса TJS (Сомони)</option>
+                          {cashDesksDict.map(d => (
+                            <option key={d.id} value={d.id}>{d.icon || '🏢'} {d.name}</option>
+                          ))}
                         </select>
                       </div>
 
                       <div>
-                        <label className="block text-[11px] font-bold text-slate-700 mb-1">Зачислить в кассу *</label>
+                        <label className="block text-[11px] font-bold text-slate-700 mb-1">Касса зачисления (TJS) *</label>
                         <select
-                          value={convertForm.to_currency}
-                          onChange={e => setConvertForm({ ...convertForm, to_currency: e.target.value })}
+                          required
+                          value={convertForm.to_cash_desk_id}
+                          onChange={e => setConvertForm({ ...convertForm, to_cash_desk_id: e.target.value })}
                           className="w-full rounded-xl border border-slate-300 bg-white px-2.5 py-1.5 text-xs font-bold outline-none focus:border-indigo-500"
                         >
-                          <option value="TJS">Касса TJS (Сомони)</option>
-                          <option value="USD">Касса USD ($)</option>
+                          {cashDesksDict.map(d => (
+                            <option key={d.id} value={d.id}>{d.icon || '🏢'} {d.name}</option>
+                          ))}
                         </select>
                       </div>
                     </div>

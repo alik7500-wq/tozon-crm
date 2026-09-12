@@ -103,7 +103,11 @@ export const ExpensesPage = () => {
       }));
       setDeskFilter('Касса менеджера (Дадочон)');
     } else if (allCashDesks.length > 0 && !formData.cash_desk) {
-      setFormData(prev => ({ ...prev, cash_desk: allCashDesks[0].name }));
+      setFormData(prev => ({
+        ...prev,
+        cash_desk: allCashDesks[0].name,
+        cash_desk_id: allCashDesks[0].id
+      }));
     }
   }, [allCashDesks, isManager]);
 
@@ -310,8 +314,9 @@ export const ExpensesPage = () => {
   const handleSubmit = (e) => {
     e.preventDefault();
     if (!formData.amount || Number(formData.amount) <= 0) return;
+    const matchedDesk = allCashDesks.find(c => c.name === formData.cash_desk);
     const finalDeskName = isManager ? 'Касса менеджера (Дадочон)' : formData.cash_desk;
-    const finalDeskId = isManager ? DADOJON_DESK_ID : formData.cash_desk_id;
+    const finalDeskId = isManager ? DADOJON_DESK_ID : (formData.cash_desk_id || matchedDesk?.id || null);
     const finalDesc = updateCommentWithCashDesk(formData.description, finalDeskName);
     const keyToUse = formData.idempotency_key || `EXP-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
     if (!formData.idempotency_key) {
@@ -1211,7 +1216,14 @@ export const ExpensesPage = () => {
                     ) : (
                       <select
                         value={formData.cash_desk || ''}
-                        onChange={e => setFormData({ ...formData, cash_desk: e.target.value })}
+                        onChange={e => {
+                          const desk = allCashDesks.find(c => c.name === e.target.value);
+                          setFormData({ 
+                            ...formData, 
+                            cash_desk: e.target.value,
+                            cash_desk_id: desk?.id || null
+                          });
+                        }}
                         className="w-full rounded-xl border border-slate-300 bg-slate-50 px-3 py-1.5 text-xs font-bold text-slate-800 outline-none focus:border-rose-500 cursor-pointer"
                       >
                         {allCashDesks.map(c => (

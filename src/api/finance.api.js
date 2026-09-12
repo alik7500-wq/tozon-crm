@@ -12,7 +12,7 @@ export const financeApi = {
   },
 
   updateIncome: async ({ id, ...data }) => {
-    const res = await api.put(`/finance/income/${id}`, data);
+    const res = await api.patch(`/finance/income/${id}`, data);
     return res?.data || res;
   },
 
@@ -32,7 +32,7 @@ export const financeApi = {
   },
 
   updateExpense: async ({ id, ...data }) => {
-    const res = await api.put(`/finance/expenses/${id}`, data);
+    const res = await api.patch(`/finance/expenses/${id}`, data);
     return res?.data || res;
   },
 
