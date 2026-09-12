@@ -5,8 +5,9 @@ export const dictionariesApi = {
    * Получить элементы справочника
    * @param {string} [type] EXPENSE_CATEGORY, INCOME_CATEGORY, LEAD_SOURCE, LOSS_REASON, PAYMENT_METHOD
    */
-  getItems: async (type = null) => {
-    const res = await api.get('/dictionaries', { params: type ? { type } : {} });
+  getItems: async (type = null, extraParams = {}) => {
+    const params = type ? { type, ...extraParams } : extraParams;
+    const res = await api.get('/dictionaries', { params });
     return res?.data || res || [];
   },
 

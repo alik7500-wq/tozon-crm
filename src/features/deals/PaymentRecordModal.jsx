@@ -32,6 +32,7 @@ export const PaymentRecordModal = ({
   const isManager = user?.role === 'SALES_MANAGER' || user?.id === 3;
   const DADOJON_CASH_DESK_ID = 'fba621e6-4ebe-4459-8623-19f46d864cc6';
   const AKMALHON_CASH_DESK_ID = 'ab90800a-73af-4cf7-88c2-397c304e2edf';
+  const ILHOMJON_CASH_DESK_ID = '6ddf2f64-0a77-4aeb-8daf-a391b2da0141';
 
   const [scheduleId, setScheduleId] = useState(initialScheduleId);
   const [amount, setAmount] = useState('');
@@ -41,13 +42,13 @@ export const PaymentRecordModal = ({
   const [comment, setComment] = useState('');
 
   // Cash desks and currencies
-  const [selectedCashDeskId, setSelectedCashDeskId] = useState(
-    isManager ? DADOJON_CASH_DESK_ID : ''
-  );
+  const [selectedCashDeskId, setSelectedCashDeskId] = useState('');
+  const [showConfirmModal, setShowConfirmModal] = useState(false);
   const [cashDesksDict, setCashDesksDict] = useState([]);
   const [cashCurrency, setCashCurrency] = useState('TJS'); // Default TJS (национальная валюта)
   const [exchangeRate, setExchangeRate] = useState('9.27'); // default Eskhata USD/TJS rate
   const [paymentMethods, setPaymentMethods] = useState([]);
+  const [formIdempotencyKey, setFormIdempotencyKey] = useState('');
 
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
@@ -59,6 +60,7 @@ export const PaymentRecordModal = ({
 
   useEffect(() => {
     if (isOpen) {
+      setFormIdempotencyKey(`pko_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`);
       financeApi.getEskhataRate()
         .then(res => {
           const rate = res?.data?.sellRate || res?.sellRate;
@@ -72,7 +74,7 @@ export const PaymentRecordModal = ({
         })
         .catch(() => {});
 
-      dictionariesApi.getItems('CASH_DESK')
+      dictionariesApi.getItems('CASH_DESK', { purpose: 'income' })
         .then(items => {
           if (items && items.length > 0) setCashDesksDict(items);
         })
@@ -145,7 +147,13 @@ export const PaymentRecordModal = ({
     );
   }
 
-  const cashDesksList = (cashDesksDict && cashDesksDict.length > 0)
+  const MANAGER_ALLOWED_DESK_IDS = [
+    AKMALHON_CASH_DESK_ID,
+    ILHOMJON_CASH_DESK_ID,
+    DADOJON_CASH_DESK_ID
+  ];
+
+  const rawDesks = (cashDesksDict && cashDesksDict.length > 0)
     ? cashDesksDict.map(d => ({
         id: d.id || d.code,
         code: d.code,
@@ -153,10 +161,18 @@ export const PaymentRecordModal = ({
         icon: d.icon || (d.code?.includes('MANAGER') ? '💼' : '🏢')
       }))
     : [
-        { id: AKMALHON_CASH_DESK_ID, name: 'Касса Отдела продаж (Акмалхон)', icon: '💼' },
-        { id: DADOJON_CASH_DESK_ID, name: 'Касса менеджера (Дадочон)', icon: '💼' },
-        { id: 'BANK_ACCOUNT', name: 'Расчетный счет в банке (Безналичные)', icon: '🏛' },
+        { id: AKMALHON_CASH_DESK_ID, code: 'SALES_MANAGER', name: 'Касса Отдела продаж (Акмалхон)', icon: '💼' },
+        { id: ILHOMJON_CASH_DESK_ID, code: 'MAIN_CASHIER', name: 'Касса компании "Тозон" (Илхомчон)', icon: '🏢' },
+        { id: DADOJON_CASH_DESK_ID, code: 'SALES_MANAGER_Dadojon', name: 'Касса менеджера (Дадочон)', icon: '💼' },
+        { id: 'BANK_ACCOUNT', code: 'BANK_ACCOUNT', name: 'Расчетный счет в банке (Безналичные)', icon: '🏛' },
       ];
+
+  const cashDesksList = isManager
+    ? rawDesks.filter(d => 
+        MANAGER_ALLOWED_DESK_IDS.includes(d.id) || 
+        ['SALES_MANAGER', 'MAIN_CASHIER', 'SALES_MANAGER_Dadojon'].includes(d.code)
+      )
+    : rawDesks;
 
   const handleCurrencyChange = (newCurrency) => {
     if (newCurrency === cashCurrency) return;
@@ -238,15 +254,29 @@ export const PaymentRecordModal = ({
       return;
     }
 
-    const equivalentInDealCurrency = calculateDealEquivalent();
-    if (!isManager && !selectedCashDeskId) {
-      setError('Необходимо обязательно выбрать кассу получения средств');
+    if (!selectedCashDeskId) {
+      setError('Необходимо обязательно выбрать кассу зачисления (кому переданы деньги)');
       return;
     }
 
-    const activeDeskId = isManager ? DADOJON_CASH_DESK_ID : selectedCashDeskId;
+    // Если это менеджер, запрашиваем обязательное подтверждение передачи денег перед проведением
+    if (isManager) {
+      setShowConfirmModal(true);
+      return;
+    }
+
+    await doExecutePayment();
+  };
+
+  const doExecutePayment = async () => {
+    setError('');
+    const parsedAmount = parseFloat(amount);
+    const equivalentInDealCurrency = calculateDealEquivalent();
+    const amountMinor = Math.round(equivalentInDealCurrency * 100);
+
+    const activeDeskId = selectedCashDeskId;
     const selectedDeskObj = cashDesksList.find((c) => c.id === activeDeskId || c.code === activeDeskId);
-    const deskName = selectedDeskObj ? selectedDeskObj.name : (isManager ? 'Касса менеджера (Дадочон)' : 'Касса Отдела продаж (Акмалхон)');
+    const deskName = selectedDeskObj ? selectedDeskObj.name : 'Касса Отдела продаж (Акмалхон)';
 
     const fullCommentParts = [];
     fullCommentParts.push(`[Касса: ${deskName}] [Раздел: ${cashCurrency}]`);
@@ -271,6 +301,7 @@ export const PaymentRecordModal = ({
         reference: cleanRef,
         comment: fullCommentParts.join(' • '),
         cash_desk_id: activeDeskId,
+        idempotency_key: formIdempotencyKey
       });
 
       // Cash payment details in TJS for official PKO receipt
@@ -358,43 +389,32 @@ export const PaymentRecordModal = ({
                 </div>
               </div>
 
-              {/* 1. Касса ответственного лица */}
+              {/* 1. Касса зачисления / Кому переданы деньги */}
               <div className="rounded-2xl bg-slate-50 p-3 border border-slate-200 space-y-1.5">
                 <label className="block text-xs font-bold text-slate-700 flex items-center justify-between">
                   <span className="flex items-center gap-1.5">
                     <User className="h-3.5 w-3.5 text-blue-600" />
-                    <span>Касса ответственного лица *</span>
+                    <span>{isManager ? 'Касса зачисления / Кому переданы деньги *' : 'Касса получения средств *'}</span>
                   </span>
-                  {isManager && (
-                    <span className="px-2 py-0.5 rounded-md bg-blue-100 text-blue-700 text-[10px] font-bold">
-                      Персональная касса
-                    </span>
-                  )}
+                  <span className="px-2 py-0.5 rounded-md bg-amber-100 text-amber-800 text-[10px] font-bold">
+                    Обязательный выбор
+                  </span>
                 </label>
-                {isManager ? (
-                  <div className="w-full rounded-xl border border-slate-200 bg-slate-100/90 px-3 py-2 text-xs font-bold text-slate-700 flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <span>💼</span>
-                      <span>Касса менеджера (Дадочон)</span>
-                    </div>
-                    <span className="text-[10px] text-slate-400 font-medium">Фиксировано</span>
-                  </div>
-                ) : (
-                  <select
-                    value={selectedCashDeskId}
-                    onChange={(e) => setSelectedCashDeskId(e.target.value)}
-                    className={`w-full rounded-xl border px-3 py-2 text-xs font-bold outline-none focus:border-blue-500 transition cursor-pointer ${
-                      !selectedCashDeskId ? 'border-amber-400 bg-amber-50/50 text-slate-500' : 'border-slate-300 bg-white text-slate-800'
-                    }`}
-                  >
-                    <option value="">-- Выберите кассу получения средств * --</option>
-                    {cashDesksList.map((c) => (
-                      <option key={c.id} value={c.id}>
-                        {c.icon} {c.name}
-                      </option>
-                    ))}
-                  </select>
-                )}
+                <select
+                  value={selectedCashDeskId}
+                  onChange={(e) => setSelectedCashDeskId(e.target.value)}
+                  className={`w-full rounded-xl border px-3 py-2 text-xs font-bold outline-none focus:border-blue-500 transition cursor-pointer ${
+                    !selectedCashDeskId ? 'border-amber-400 bg-amber-50/50 text-slate-500' : 'border-slate-300 bg-white text-slate-800'
+                  }`}
+                  required
+                >
+                  <option value="">-- Выберите кассу зачисления / кому переданы деньги * --</option>
+                  {cashDesksList.map((c) => (
+                    <option key={c.id} value={c.id}>
+                      {c.icon} {c.name}
+                    </option>
+                  ))}
+                </select>
               </div>
 
               {/* 2. Раздел валюты в кассе: USD / Сомони (TJS) */}
@@ -644,6 +664,48 @@ export const PaymentRecordModal = ({
             </button>
           </div>
         </form>
+
+        {/* Confirmation Modal before creating PKO */}
+        {showConfirmModal && (
+          <div className="fixed inset-0 z-[70] flex items-center justify-center p-4 bg-slate-900/70 backdrop-blur-xs animate-in fade-in">
+            <div className="relative w-full max-w-md rounded-3xl border border-slate-200 bg-white p-6 shadow-2xl space-y-4">
+              <div className="flex items-start gap-3.5">
+                <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-amber-100 text-amber-600 shrink-0">
+                  <AlertCircle className="h-6 w-6" />
+                </div>
+                <div>
+                  <h4 className="text-sm font-black text-slate-900 leading-snug">Подтверждение передачи средств</h4>
+                  <p className="mt-2 text-xs text-slate-600 leading-relaxed">
+                    Деньги будут зачислены в: <strong className="text-slate-900 font-bold">{cashDesksList.find(c => c.id === selectedCashDeskId)?.name || 'выбранную кассу'}</strong>.
+                  </p>
+                  <p className="mt-2 text-xs text-amber-800 font-bold bg-amber-50 rounded-xl p-2.5 border border-amber-200/80">
+                    Подтвердите, что средства фактически переданы владельцу этой кассы.
+                  </p>
+                </div>
+              </div>
+              <div className="flex items-center justify-end gap-2.5 pt-3 border-t border-slate-100">
+                <button
+                  type="button"
+                  onClick={() => setShowConfirmModal(false)}
+                  className="rounded-xl border border-slate-300 bg-white px-4 py-2 text-xs font-bold text-slate-600 hover:bg-slate-50 transition cursor-pointer"
+                >
+                  Отмена
+                </button>
+                <button
+                  type="button"
+                  disabled={isLoading}
+                  onClick={() => {
+                    setShowConfirmModal(false);
+                    doExecutePayment();
+                  }}
+                  className="rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 px-5 py-2 text-xs font-bold text-white shadow-md hover:from-blue-700 hover:to-indigo-700 transition cursor-pointer flex items-center gap-2"
+                >
+                  {isLoading ? 'Проведение...' : 'Подтверждаю, деньги переданы'}
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );
