@@ -198,20 +198,35 @@ export const ContractPrintView = ({ deal, onClose, initialLang = 'TJ' }) => {
     ? Number(deal.unit_area).toLocaleString('ru-RU', { minimumFractionDigits: 1, maximumFractionDigits: 2 })
     : '0';
 
-  const rawPricePerM2 = deal.price_per_m2_minor
-    ? deal.price_per_m2_minor / 100
-    : deal.area_m2_x100 && deal.area_m2_x100 > 0
-    ? (deal.final_price_minor / (deal.area_m2_x100 / 100)) / 100
-    : (deal.final_price_minor ? deal.final_price_minor / 100 : 0);
+  const resolveDealPricePerM2 = (dealObj) => {
+    if (!dealObj) return 0;
+    // Priority 1: Deal's own snapshot price per m2
+    if (dealObj.deal_price_per_m2_minor && dealObj.deal_price_per_m2_minor > 0) {
+      return dealObj.deal_price_per_m2_minor / 100;
+    }
+    // Priority 2: Fallback for legacy deals based on final_price / area
+    const area = dealObj.area_m2_x100
+      ? dealObj.area_m2_x100 / 100
+      : (dealObj.unit_area ? parseFloat(dealObj.unit_area) : 0);
+
+    if (area > 0 && dealObj.final_price_minor && dealObj.final_price_minor > 0) {
+      return (dealObj.final_price_minor / area) / 100;
+    }
+    // Priority 3: Fallback if area or price missing
+    return dealObj.final_price_minor ? dealObj.final_price_minor / 100 : 0;
+  };
+
+  const rawPricePerM2 = resolveDealPricePerM2(deal);
+  const exchangeRate = deal.exchange_rate ? parseFloat(deal.exchange_rate) : null;
 
   const pricePerM2Number = Math.round(rawPricePerM2);
   const pricePerM2Words = isTJ ? numberToTajikWords(pricePerM2Number) : numberToRussianWords(pricePerM2Number);
   const pricePerM2Formatted = pricePerM2Number.toLocaleString('ru-RU');
 
-  // USD calculations
-  const usdPrice = currency === 'USD' ? pricePerM2Number : Math.round(pricePerM2Number / 9.29);
+  // USD / TJS calculations based on dynamic exchangeRate
+  const usdPrice = currency === 'USD' ? pricePerM2Number : (exchangeRate ? Math.round(pricePerM2Number / exchangeRate) : 0);
   const usdPriceWords = isTJ ? numberToTajikWords(usdPrice) : numberToRussianWords(usdPrice);
-  const tjsPrice = currency === 'TJS' ? pricePerM2Number : Math.round(pricePerM2Number * 9.29);
+  const tjsPrice = currency === 'TJS' ? pricePerM2Number : (exchangeRate ? Math.round(pricePerM2Number * exchangeRate) : 0);
   const tjsPriceWords = isTJ ? numberToTajikWords(tjsPrice) : numberToRussianWords(tjsPrice);
 
   const finalPrice = formatMoney(deal.final_price_minor || 0);
@@ -445,13 +460,25 @@ export const ContractPrintView = ({ deal, onClose, initialLang = 'TJ' }) => {
               </h4>
               <p>
                 {isTJ ? (
-                  <>
-                    3.1. Бо маслиҳати «Тарафҳо» нархи 1 м.кв. хонаи истиқоматиро ба <strong><u>{tjsPrice.toLocaleString('ru-RU')} ({tjsPriceWords}) сомонӣ</u></strong>, ки ин <strong><u>{usdPrice.toLocaleString('ru-RU')} ({usdPriceWords}) доллари ИМА</u></strong> аз рӯи қурби имрӯзаи бонк 9,29 сомонӣ нисбати 1 доллари ИМА, ба ҳолати рӯзи имзогузории шартномаи мазкур ташкил медиҳад нархгузорӣ намудаанд.
-                  </>
+                  exchangeRate && exchangeRate > 0 ? (
+                    <>
+                      3.1. Бо маслиҳати «Тарафҳо» нархи 1 м.кв. хонаи истиқоматиро ба <strong><u>{tjsPrice.toLocaleString('ru-RU')} ({tjsPriceWords}) сомонӣ</u></strong>, ки ин <strong><u>{usdPrice.toLocaleString('ru-RU')} ({usdPriceWords}) доллари ИМА</u></strong> аз рӯи қурби имрӯзаи бонк {exchangeRate.toLocaleString('ru-RU', { minimumFractionDigits: 2, maximumFractionDigits: 4 })} сомонӣ нисбати 1 доллари ИМА, ба ҳолати рӯзи имзогузории шартномаи мазкур ташкил медиҳад нархгузорӣ намудаанд.
+                    </>
+                  ) : (
+                    <>
+                      3.1. Бо маслиҳати «Тарафҳо» нархи 1 м.кв. хонаи истиқоматиро ба <strong><u>{usdPrice.toLocaleString('ru-RU')} ({usdPriceWords}) доллари ИМА</u></strong> ба ҳолати рӯзи имзогузории шартномаи мазкур ташкил медиҳад нархгузорӣ намудаанд. Маблағи умумии шартнома <strong><u>{finalPrice} {currencyShort}</u></strong>-ро ташкил медиҳад.
+                    </>
+                  )
                 ) : (
-                  <>
-                    3.1. По соглашению Сторон цена 1 кв.м квартиры определена в размере <strong><u>{tjsPrice.toLocaleString('ru-RU')} ({tjsPriceWords}) сомони</u></strong>, что составляет <strong><u>{usdPrice.toLocaleString('ru-RU')} ({usdPriceWords}) долларов США</u></strong> по курсу банка на день заключения настоящего Договора. Общая стоимость составляет <strong><u>{finalPrice} {currencyShort}</u></strong>.
-                  </>
+                  exchangeRate && exchangeRate > 0 ? (
+                    <>
+                      3.1. По соглашению Сторон цена 1 кв.м квартиры определена в размере <strong><u>{tjsPrice.toLocaleString('ru-RU')} ({tjsPriceWords}) сомони</u></strong>, что составляет <strong><u>{usdPrice.toLocaleString('ru-RU')} ({usdPriceWords}) долларов США</u></strong> по курсу банка ({exchangeRate.toLocaleString('ru-RU', { minimumFractionDigits: 2, maximumFractionDigits: 4 })} сомони за 1 USD) на день заключения настоящего Договора. Общая стоимость составляет <strong><u>{finalPrice} {currencyShort}</u></strong>.
+                    </>
+                  ) : (
+                    <>
+                      3.1. По соглашению Сторон цена 1 кв.м квартиры определена в размере <strong><u>{usdPrice.toLocaleString('ru-RU')} ({usdPriceWords}) долларов США</u></strong> на день заключения настоящего Договора. Общая стоимость составляет <strong><u>{finalPrice} {currencyShort}</u></strong>.
+                    </>
+                  )
                 )}
               </p>
               <p>

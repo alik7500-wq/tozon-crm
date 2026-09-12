@@ -8,6 +8,8 @@ import { ReserveApartmentModal } from './ReserveApartmentModal';
 import { ExtendReservationModal } from './ExtendReservationModal';
 import { useModalDismiss } from '../../hooks/useModalDismiss';
 import { formatContractNumber } from '../../utils/formatters';
+import { EditDealModal } from '../deals/EditDealModal';
+import { hasPermission } from '../../utils/permissions';
 import {
   X,
   Building2,
@@ -35,6 +37,7 @@ import {
   XCircle,
   FileCheck2,
   Edit3,
+  Pencil,
   Sliders,
   Sparkles,
   Percent,
@@ -74,6 +77,9 @@ export const ApartmentDetailModal = ({
   const [isExtendModalOpen, setIsExtendModalOpen] = useState(false);
   const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false);
   const [isPrintModalOpen, setIsPrintModalOpen] = useState(false);
+  const [isEditDealModalOpen, setIsEditDealModalOpen] = useState(false);
+
+  const isAdmin = user?.role === 'ADMIN' || hasPermission(user, 'deals.manage');
 
   const fetchUnit = async () => {
     if (!unitId) return;
@@ -611,6 +617,17 @@ export const ApartmentDetailModal = ({
 
                 {/* Actions for Reserved Unit */}
                 <div className="flex flex-wrap items-center justify-end gap-2.5 pt-3 border-t border-amber-200">
+                  {isAdmin && (
+                    <button
+                      onClick={() => setIsEditDealModalOpen(true)}
+                      className="inline-flex items-center gap-1.5 rounded-xl border border-amber-300 bg-amber-50 hover:bg-amber-100 text-amber-900 px-3.5 py-2 text-xs font-bold transition shadow-2xs cursor-pointer"
+                      title="Редактировать сделку (Администратор)"
+                    >
+                      <Pencil className="h-3.5 w-3.5 text-amber-600" />
+                      <span>Редактировать сделку</span>
+                    </button>
+                  )}
+
                   <button
                     onClick={handleCancelReservation}
                     disabled={isUpdatingStatus}
@@ -660,6 +677,17 @@ export const ApartmentDetailModal = ({
                     </div>
 
                     <div className="flex items-center gap-2">
+                      {isAdmin && (
+                        <button
+                          onClick={() => setIsEditDealModalOpen(true)}
+                          className="inline-flex items-center gap-1.5 rounded-xl border border-amber-300 bg-amber-50 hover:bg-amber-100 text-amber-900 px-3 py-1.5 text-xs font-bold transition shadow-2xs cursor-pointer"
+                          title="Редактировать сделку (Администратор)"
+                        >
+                          <Pencil className="h-3.5 w-3.5 text-amber-600" />
+                          <span>Изменить сделку</span>
+                        </button>
+                      )}
+
                       <button
                         onClick={() => setIsPrintModalOpen(true)}
                         className="inline-flex items-center gap-1 rounded-xl bg-white border border-blue-200 px-3 py-1.5 text-xs font-bold text-blue-700 hover:bg-blue-50 transition shadow-2xs cursor-pointer"
@@ -1520,6 +1548,20 @@ export const ApartmentDetailModal = ({
             </div>
           )}
         </div>
+      )}
+
+      {/* Admin Deal Edit Modal */}
+      {isEditDealModalOpen && activeDeal && (
+        <EditDealModal
+          isOpen={isEditDealModalOpen}
+          deal={activeDeal}
+          onClose={() => setIsEditDealModalOpen(false)}
+          onDealUpdated={(updatedDeal) => {
+            setIsEditDealModalOpen(false);
+            fetchUnit();
+            if (onUnitUpdated) onUnitUpdated();
+          }}
+        />
       )}
     </>
   );
