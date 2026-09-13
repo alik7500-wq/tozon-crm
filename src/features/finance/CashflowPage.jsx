@@ -226,6 +226,15 @@ export const CashflowPage = () => {
     const isConv = Boolean(t.conversion_id) || 
                    (t.reference && (t.reference.includes('КОНВ') || t.reference.includes('ОБМЕН'))) ||
                    (t.category === 'Конвертация валюты');
+
+    const targetDeskId = t.cash_desk_id || t.cashDeskId;
+    const matchedDesk = allCashDesks.find(c => 
+      (targetDeskId && (String(c.id) === String(targetDeskId) || c.code === targetDeskId)) ||
+      (desk && c.name && c.name.toLowerCase() === desk.toLowerCase())
+    );
+    const resolvedDeskId = matchedDesk?.id || targetDeskId || null;
+    const resolvedDeskName = matchedDesk?.name || desk;
+
     setEditingItem({
       id: t.rawId,
       type: t.type,
@@ -241,10 +250,10 @@ export const CashflowPage = () => {
       originalReference: t.reference || '',
       comment: t.comment || '',
       originalComment: t.comment || '',
-      cash_desk: desk,
-      originalCashDesk: desk,
-      cash_desk_id: t.cash_desk_id || null,
-      originalCashDeskId: t.cash_desk_id || null,
+      cash_desk: resolvedDeskName,
+      originalCashDesk: resolvedDeskName,
+      cash_desk_id: resolvedDeskId,
+      originalCashDeskId: resolvedDeskId,
       category: t.category || 'Прочее',
       originalCategory: t.category || 'Прочее',
       recipient: t.counterparty || '',
@@ -297,6 +306,10 @@ export const CashflowPage = () => {
       if (editingItem.payer_name !== editingItem.originalPayerName) {
         patchPayload.payer_name = editingItem.payer_name;
       }
+      if (Object.keys(patchPayload).length === 1) {
+        setEditingItem(null);
+        return;
+      }
       updateIncomeMutation.mutate(patchPayload);
     } else {
       if (editingItem.recipient !== editingItem.originalRecipient) {
@@ -304,6 +317,10 @@ export const CashflowPage = () => {
       }
       if (editingItem.category !== editingItem.originalCategory) {
         patchPayload.category = editingItem.category;
+      }
+      if (Object.keys(patchPayload).length === 1) {
+        setEditingItem(null);
+        return;
       }
       updateExpenseMutation.mutate(patchPayload);
     }
@@ -1700,12 +1717,16 @@ export const CashflowPage = () => {
                   )}
                 </label>
                 <select
-                  value={editingItem.cash_desk_id || editingItem.cash_desk || ''}
+                  value={editingItem.cash_desk_id || ''}
                   onChange={(e) => {
                     const selectedVal = e.target.value;
-                    const matchedDesk = allCashDesks.find(c => String(c.id) === String(selectedVal) || c.name === selectedVal);
+                    const matchedDesk = allCashDesks.find(c => 
+                      String(c.id) === String(selectedVal) || 
+                      c.code === selectedVal || 
+                      c.name === selectedVal
+                    );
                     const newDeskName = matchedDesk ? matchedDesk.name : selectedVal;
-                    const newDeskId = matchedDesk?.id || (selectedVal.includes('-') ? selectedVal : null);
+                    const newDeskId = matchedDesk?.id || selectedVal;
                     
                     let updatedComment = editingItem.comment;
                     if (editingItem.type === 'INCOME') {
