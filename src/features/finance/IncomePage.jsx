@@ -195,12 +195,14 @@ export const IncomePage = () => {
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    if (!formData.amount || Number(formData.amount) <= 0) return;
+    const cleanAmount = String(formData.amount || '').replace(',', '.').trim();
+    if (!cleanAmount || Number(cleanAmount) <= 0) return;
     const finalDeskName = isManager ? 'Касса менеджера (Дадочон)' : formData.cash_desk;
     const finalDeskId = isManager ? DADOJON_DESK_ID : formData.cash_desk_id;
     const finalComment = updateCommentWithCashDesk(formData.comment, finalDeskName);
     addMutation.mutate({
       ...formData,
+      amount: cleanAmount,
       cash_desk: finalDeskName,
       cash_desk_id: finalDeskId,
       comment: finalComment

@@ -277,7 +277,8 @@ export const ExpensesPage = () => {
       alert('Касса-источник и касса-получатель должны быть разными!');
       return;
     }
-    const amt = parseFloat(transferForm.amount);
+    const cleanAmountStr = String(transferForm.amount || '').replace(',', '.').trim();
+    const amt = parseFloat(cleanAmountStr);
     if (!amt || amt <= 0) {
       alert('Сумма должна быть больше нуля');
       return;
@@ -294,7 +295,8 @@ export const ExpensesPage = () => {
     };
 
     if (transferForm.currency === 'TJS') {
-      const rate = parseFloat(transferForm.exchange_rate);
+      const cleanRateStr = String(transferForm.exchange_rate || '').replace(',', '.').trim();
+      const rate = parseFloat(cleanRateStr);
       if (!rate || rate <= 0) {
         alert('Укажите корректный курс валюты');
         return;
@@ -313,7 +315,8 @@ export const ExpensesPage = () => {
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    if (!formData.amount || Number(formData.amount) <= 0) return;
+    const cleanFormDataAmount = String(formData.amount || '').replace(',', '.').trim();
+    if (!cleanFormDataAmount || Number(cleanFormDataAmount) <= 0) return;
     const matchedDesk = allCashDesks.find(c => c.name === formData.cash_desk);
     const finalDeskName = isManager ? 'Касса менеджера (Дадочон)' : formData.cash_desk;
     const finalDeskId = isManager ? DADOJON_DESK_ID : (formData.cash_desk_id || matchedDesk?.id || null);
@@ -324,6 +327,7 @@ export const ExpensesPage = () => {
     }
     addMutation.mutate({
       ...formData,
+      amount: cleanFormDataAmount,
       idempotency_key: keyToUse,
       cash_desk: finalDeskName,
       cash_desk_id: finalDeskId,

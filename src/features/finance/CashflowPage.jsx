@@ -216,8 +216,14 @@ export const CashflowPage = () => {
 
   const handleConvertSubmit = (e) => {
     e.preventDefault();
-    if (!convertForm.from_amount || Number(convertForm.from_amount) <= 0) return;
-    convertMutation.mutate(convertForm);
+    const cleanAmount = String(convertForm.from_amount || '').replace(',', '.').trim();
+    if (!cleanAmount || Number(cleanAmount) <= 0) return;
+    const cleanRate = String(convertForm.exchange_rate || '').replace(',', '.').trim();
+    convertMutation.mutate({
+      ...convertForm,
+      from_amount: cleanAmount,
+      exchange_rate: cleanRate || convertForm.exchange_rate
+    });
   };
 
   const handleEditClick = (t) => {
