@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { financeApi } from '../../api/finance.api';
 import { dictionariesApi } from '../../api/dictionaries.api';
@@ -28,14 +28,14 @@ const COLORS = ['#ef4444', '#f97316', '#f59e0b', '#eab308', '#84cc16', '#22c55e'
 export const ExpensesPage = () => {
   const { user } = useAuth();
   const isAdmin = user?.role === 'ADMIN';
-  const isManager = user?.role === 'SALES_MANAGER';
+  const isManager = user?.role === 'SALES_MANAGER' || user?.role === 'MANAGER';
   const DADOJON_DESK_ID = 'fba621e6-4ebe-4459-8623-19f46d864cc6';
 
   const [year, setYear] = useState(new Date().getFullYear());
   const [currency, setCurrency] = useState('ALL');
   const [categoryFilter, setCategoryFilter] = useState('ALL');
   const [search, setSearch] = useState('');
-  const [deskFilter, setDeskFilter] = useState(isManager ? 'Касса менеджера (Дадочон)' : '');
+  const [deskFilter, setDeskFilter] = useState('ALL');
   const [showAddModal, setShowAddModal] = useState(false);
   const [editingItem, setEditingItem] = useState(null);
   const [printableExpense, setPrintableExpense] = useState(null);
@@ -58,7 +58,7 @@ export const ExpensesPage = () => {
     queryFn: () => dictionariesApi.getItems('CASH_DESK')
   });
 
-  const allCashDesks = buildCashDesksList(cashDesksDict);
+  const allCashDesks = useMemo(() => buildCashDesksList(cashDesksDict), [cashDesksDict]);
 
   const { data: expenseCategories = [] } = useQuery({
     queryKey: ['dictionaries', 'EXPENSE_CATEGORY'],
@@ -98,33 +98,50 @@ export const ExpensesPage = () => {
 
   useEffect(() => {
     if (isManager) {
-      setFormData(prev => ({
-        ...prev,
-        cash_desk: 'Касса менеждера (Дадочон)',
-        cash_desk_id: DADOJON_DESK_ID
-      }));
-      setDeskFilter('Касса менеждера (Дадочон)');
+      setFormData(prev => {
+        if (prev.cash_desk_id === DADOJON_DESK_ID && prev.cash_desk === 'Касса менеждера (Дадочон)') {
+          return prev;
+        }
+        return {
+          ...prev,
+          cash_desk: 'Касса менеждера (Дадочон)',
+          cash_desk_id: DADOJON_DESK_ID
+        };
+      });
+      setDeskFilter(prev => prev === 'Касса менеджера (Дадочон)' ? prev : 'Касса менеджера (Дадочон)');
     } else if (allCashDesks.length > 0) {
       setFormData(prev => {
         const resolved = resolveCashDesk(prev.cash_desk_id || prev.cash_desk, allCashDesks);
+        const nextName = resolved?.name || allCashDesks[0]?.name;
+        const nextId = resolved?.id || allCashDesks[0]?.id;
+        if (prev.cash_desk === nextName && prev.cash_desk_id === nextId) {
+          return prev;
+        }
         return {
           ...prev,
-          cash_desk: resolved?.name || allCashDesks[0].name,
-          cash_desk_id: resolved?.id || allCashDesks[0].id
+          cash_desk: nextName,
+          cash_desk_id: nextId
         };
       });
     }
   }, [allCashDesks, isManager]);
 
   useEffect(() => {
-    if (expenseCategories.length > 0 && !formData.category) {
-      setFormData(prev => ({ ...prev, category: expenseCategories[0].name }));
+    if (expenseCategories.length > 0) {
+      setFormData(prev => {
+        if (prev.category) return prev;
+        return { ...prev, category: expenseCategories[0].name };
+      });
     }
   }, [expenseCategories]);
 
   useEffect(() => {
     if (eskhataRateData?.sellRate) {
-      setFormData(prev => ({ ...prev, exchange_rate: String(eskhataRateData.sellRate) }));
+      const rateStr = String(eskhataRateData.sellRate);
+      setFormData(prev => {
+        if (prev.exchange_rate === rateStr) return prev;
+        return { ...prev, exchange_rate: rateStr };
+      });
     }
   }, [eskhataRateData]);
 
@@ -268,20 +285,28 @@ export const ExpensesPage = () => {
 
   useEffect(() => {
     if (cashDesksDict && cashDesksDict.length >= 2) {
-      if (!transferForm.source_cash_desk_id) {
+      setTransferForm(prev => {
         const akmal = cashDesksDict.find(d => d.code === 'SALES_MANAGER' || (d.name && d.name.includes('Акмалхон')));
-        setTransferForm(prev => ({ ...prev, source_cash_desk_id: akmal?.id || cashDesksDict[0].id }));
-      }
-      if (!transferForm.destination_cash_desk_id) {
         const ilhom = cashDesksDict.find(d => d.code === 'MAIN_CASHIER' || (d.name && d.name.includes('Илхомчон')));
-        setTransferForm(prev => ({ ...prev, destination_cash_desk_id: ilhom?.id || cashDesksDict[1].id }));
-      }
+        const nextSource = prev.source_cash_desk_id || akmal?.id || cashDesksDict[0].id;
+        const nextDest = prev.destination_cash_desk_id || ilhom?.id || cashDesksDict[1].id;
+        if (prev.source_cash_desk_id === nextSource && prev.destination_cash_desk_id === nextDest) return prev;
+        return {
+          ...prev,
+          source_cash_desk_id: nextSource,
+          destination_cash_desk_id: nextDest
+        };
+      });
     }
   }, [cashDesksDict]);
 
   useEffect(() => {
     if (eskhataRateData?.sellRate) {
-      setTransferForm(prev => ({ ...prev, exchange_rate: String(eskhataRateData.sellRate) }));
+      const rateStr = String(eskhataRateData.sellRate);
+      setTransferForm(prev => {
+        if (prev.exchange_rate === rateStr) return prev;
+        return { ...prev, exchange_rate: rateStr };
+      });
     }
   }, [eskhataRateData]);
 

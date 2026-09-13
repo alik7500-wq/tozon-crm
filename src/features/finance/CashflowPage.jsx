@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { api } from '../../api/client';
 import { financeApi } from '../../api/finance.api';
@@ -63,7 +63,7 @@ export const CashflowPage = () => {
     }
   });
 
-  const allCashDesks = buildCashDesksList(cashDesksDict, usersList);
+  const allCashDesks = useMemo(() => buildCashDesksList(cashDesksDict, usersList), [cashDesksDict, usersList]);
 
   const { data: eskhataRateData } = useQuery({
     queryKey: ['eskhata-rate'],
@@ -75,8 +75,12 @@ export const CashflowPage = () => {
 
   useEffect(() => {
     if (eskhataRateData?.sellRate) {
-      setGlobalRate(String(eskhataRateData.sellRate));
-      setConvertForm(prev => ({ ...prev, exchange_rate: String(eskhataRateData.sellRate) }));
+      const rateStr = String(eskhataRateData.sellRate);
+      setGlobalRate(prev => prev === rateStr ? prev : rateStr);
+      setConvertForm(prev => {
+        if (prev.exchange_rate === rateStr) return prev;
+        return { ...prev, exchange_rate: rateStr };
+      });
     }
   }, [eskhataRateData]);
 
@@ -95,13 +99,18 @@ export const CashflowPage = () => {
 
   useEffect(() => {
     if (cashDesksDict && cashDesksDict.length >= 2) {
-      const akmal = cashDesksDict.find(d => d.code === 'SALES_MANAGER' || (d.name && d.name.includes('Акмалхон')));
-      const ilhom = cashDesksDict.find(d => d.code === 'MAIN_CASHIER' || (d.name && d.name.includes('Илхомчон')));
-      setConvertForm(prev => ({
-        ...prev,
-        from_cash_desk_id: prev.from_cash_desk_id || akmal?.id || cashDesksDict[0].id,
-        to_cash_desk_id: prev.to_cash_desk_id || ilhom?.id || (cashDesksDict[1] ? cashDesksDict[1].id : cashDesksDict[0].id)
-      }));
+      setConvertForm(prev => {
+        const akmal = cashDesksDict.find(d => d.code === 'SALES_MANAGER' || (d.name && d.name.includes('Акмалхон')));
+        const ilhom = cashDesksDict.find(d => d.code === 'MAIN_CASHIER' || (d.name && d.name.includes('Илхомчон')));
+        const nextFrom = prev.from_cash_desk_id || akmal?.id || cashDesksDict[0].id;
+        const nextTo = prev.to_cash_desk_id || ilhom?.id || (cashDesksDict[1] ? cashDesksDict[1].id : cashDesksDict[0].id);
+        if (prev.from_cash_desk_id === nextFrom && prev.to_cash_desk_id === nextTo) return prev;
+        return {
+          ...prev,
+          from_cash_desk_id: nextFrom,
+          to_cash_desk_id: nextTo
+        };
+      });
     }
   }, [cashDesksDict]);
 

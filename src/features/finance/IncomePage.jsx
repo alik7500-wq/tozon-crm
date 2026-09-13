@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { api } from '../../api/client';
 import { financeApi } from '../../api/finance.api';
@@ -56,7 +56,7 @@ export const IncomePage = () => {
     queryFn: () => dictionariesApi.getItems('CASH_DESK')
   });
 
-  const allCashDesks = buildCashDesksList(cashDesksDict);
+  const allCashDesks = useMemo(() => buildCashDesksList(cashDesksDict), [cashDesksDict]);
 
   const { data: paymentMethods = [] } = useQuery({
     queryKey: ['dictionaries', 'PAYMENT_METHOD'],
