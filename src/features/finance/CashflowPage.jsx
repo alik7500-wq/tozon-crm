@@ -254,8 +254,8 @@ export const CashflowPage = () => {
       originalMethod: t.method || 'CASH',
       reference: t.reference || '',
       originalReference: t.reference || '',
-      comment: t.comment || '',
-      originalComment: t.comment || '',
+      comment: (t.comment || '').replace(/\[IDEMP:[^\]]+\]\s*/gi, '').trim(),
+      originalComment: (t.comment || '').replace(/\[IDEMP:[^\]]+\]\s*/gi, '').trim(),
       cash_desk: resolvedDeskName,
       originalCashDesk: resolvedDeskName,
       cash_desk_id: resolvedDeskId,
@@ -508,7 +508,7 @@ export const CashflowPage = () => {
             {isIncome ? '+' : '-'}{t.amount.toLocaleString('ru-RU', { minimumFractionDigits: 2 })} {t.currency}
           </td>
           <td className="py-2 px-2 text-slate-500 max-w-[160px] truncate" title={t.comment}>
-            {t.comment ? t.comment.replace(/\[Касса:\s*[^\]]+\]\s*/gi, '').trim() || '-' : '-'}
+            {t.comment ? t.comment.replace(/\[Касса:\s*[^\]]+\]\s*/gi, '').replace(/\[IDEMP:[^\]]+\]\s*/gi, '').trim() || '-' : '-'}
           </td>
           <td className="py-2 px-2.5 pr-4 text-right whitespace-nowrap">
             <div className="flex items-center justify-end gap-1">
@@ -530,7 +530,7 @@ export const CashflowPage = () => {
                         contract: t.contract,
                         contract_number: t.contract,
                         reference: t.reference,
-                        comment: t.comment,
+                        comment: (t.comment || '').replace(/\[IDEMP:[^\]]+\]\s*/gi, '').trim(),
                         method: t.method,
                         created_by_name: t.createdByName
                       });
@@ -544,7 +544,7 @@ export const CashflowPage = () => {
                         recipient: t.recipient || t.counterparty,
                         category: t.category,
                         reference: t.reference,
-                        description: t.description || t.comment,
+                        description: (t.description || t.comment || '').replace(/\[IDEMP:[^\]]+\]\s*/gi, '').trim(),
                         method: t.method,
                         exchange_rate: t.exchange_rate || null,
                         amount_usd: t.amount_usd || null,

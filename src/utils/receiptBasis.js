@@ -7,6 +7,7 @@ export const cleanReceiptBasis = (text, fallback = '') => {
   if (!text || typeof text !== 'string') return fallback;
 
   let clean = text
+    .replace(/\[IDEMP:[^\]]+\]\s*/gi, '')
     .replace(/\[Касса:\s*[^\]]+\]\s*/gi, '')
     .replace(/\[Раздел:\s*[^\]]+\]\s*/gi, '')
     .replace(/\s*•\s*(?:Внесено в кассу:\s*)?[\d\s\u00A0]+(?:[.,]\d+)?\s*(?:TJS|смн|сомонӣ|сомони)[^.]*?(?:\(Курс:[^)]+\))?/gi, '')

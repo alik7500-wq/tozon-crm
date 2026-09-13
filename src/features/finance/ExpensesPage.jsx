@@ -663,7 +663,7 @@ export const ExpensesPage = () => {
                     -{item.amount.toLocaleString('ru-RU', { minimumFractionDigits: 2 })} {item.currency}
                   </td>
                   <td className="py-2.5 px-2.5 text-slate-500 text-[11px] max-w-[200px] truncate" title={item.description}>
-                    {item.description ? item.description.replace(/\[Касса:\s*[^\]]+\]\s*/gi, '').trim() || '-' : '-'}
+                    {item.description ? item.description.replace(/\[Касса:\s*[^\]]+\]\s*/gi, '').replace(/\[IDEMP:[^\]]+\]\s*/gi, '').trim() || '-' : '-'}
                   </td>
                   <td className="py-2.5 pr-4 text-right whitespace-nowrap">
                     <div className="flex items-center justify-end gap-1">
@@ -677,7 +677,7 @@ export const ExpensesPage = () => {
                           recipient: item.recipient,
                           category: item.category,
                           reference: item.reference,
-                          description: item.description,
+                          description: (item.description || '').replace(/\[IDEMP:[^\]]+\]\s*/gi, '').trim(),
                           attachment: item.attachment || item.appendix || '',
                           method: item.method,
                           exchange_rate: item.exchange_rate || null,
@@ -703,7 +703,7 @@ export const ExpensesPage = () => {
                                 category: item.category || 'Прочее',
                                 recipient: item.recipient || '',
                                 reference: item.reference || '',
-                                description: item.description || '',
+                                description: (item.description || '').replace(/\[IDEMP:[^\]]+\]\s*/gi, '').trim(),
                                 cash_desk: desk
                               });
                             }}

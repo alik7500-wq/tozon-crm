@@ -34,7 +34,7 @@ export const extractCashDeskFromComment = (comment) => {
  * Обновляет или добавляет блок [Касса: ...] в примечание
  */
 export const updateCommentWithCashDesk = (comment, newDeskName) => {
-  const text = comment || '';
+  const text = (comment || '').replace(/\[IDEMP:[^\]]+\]\s*/gi, '').trim();
   if (!newDeskName) {
     return text.replace(/\[Касса:\s*[^\]]+\]\s*/gi, '').trim();
   }
