@@ -163,7 +163,41 @@ export const ExpensesPage = () => {
         attachment: formData.attachment,
         method: formData.method
       };
-      setPrintableExpense(createdExpense);
+      const conv = createdExpense?.conversion;
+      const isAutoConverted = Boolean(conv?.has_conversion || (formData.auto_convert && formData.currency === 'TJS'));
+
+      if (isAutoConverted) {
+        const cleanDesc = (formData.description || '').replace(/\[IDEMP:[^\]]+\]\s*/gi, '').trim();
+        const amtTjs = conv?.target_amount_tjs || Number(formData.amount);
+        const rate = conv?.exchange_rate || parseFloat(formData.exchange_rate) || 9.27;
+        const amtUsd = conv?.source_amount_usd || (rate > 0 ? Number((amtTjs / rate).toFixed(2)) : 0);
+
+        setCreatedConversionReport({
+          is_auto_converted: true,
+          main_reference: conv?.main_expense_reference || createdExpense.reference || `РКО-${createdExpense.id}`,
+          conv_expense_reference: conv?.conv_expense_reference || null,
+          conv_payment_reference: conv?.conv_payment_reference || null,
+          amount_tjs: amtTjs,
+          amount_usd: amtUsd,
+          exchange_rate: rate,
+          cash_desk_name: formData.cash_desk,
+          recipient: formData.recipient,
+          category: formData.category,
+          description: cleanDesc,
+          date: formData.date,
+          createdExpense: {
+            ...createdExpense,
+            amount: amtTjs,
+            currency: 'TJS',
+            exchange_rate: rate,
+            amount_usd: amtUsd,
+            description: cleanDesc
+          }
+        });
+      } else {
+        setPrintableExpense(createdExpense);
+      }
+
       setFormData({
         amount: '',
         currency: 'TJS',
@@ -214,6 +248,7 @@ export const ExpensesPage = () => {
 
   const [isTransfer, setIsTransfer] = useState(false);
   const [createdTransferPair, setCreatedTransferPair] = useState(null);
+  const [createdConversionReport, setCreatedConversionReport] = useState(null);
   const [transferForm, setTransferForm] = useState({
     source_cash_desk_id: '',
     destination_cash_desk_id: '',
@@ -1460,6 +1495,123 @@ export const ExpensesPage = () => {
             >
               Закрыть
             </button>
+          </div>
+        </div>
+      )}
+
+      {/* Modal: Auto-Conversion & Expense Report Confirmation */}
+      {createdConversionReport && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs animate-in fade-in">
+          <div className="relative w-full max-w-md overflow-hidden rounded-3xl border border-emerald-200 bg-white shadow-2xl p-6 text-center space-y-4">
+            <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-emerald-100 text-emerald-600">
+              <CheckCircle2 className="h-8 w-8" />
+            </div>
+            <div>
+              <h3 className="text-lg font-black text-slate-900">Автоконвертация и расход выполнены</h3>
+              <p className="text-xs text-slate-500 mt-1">Документы успешно созданы в единой атомарной транзакции</p>
+            </div>
+
+            <div className="rounded-2xl bg-slate-50 border border-slate-200 p-4 text-left space-y-2.5 text-xs">
+              <div className="flex justify-between items-center pb-2 border-b border-slate-200">
+                <span className="text-slate-500 font-medium">Сумма расхода:</span>
+                <span className="font-black text-rose-600 text-sm">
+                  {createdConversionReport.amount_tjs?.toLocaleString('ru-RU', { minimumFractionDigits: 2 })} TJS
+                </span>
+              </div>
+
+              <div className="flex justify-between items-center">
+                <span className="text-slate-500 font-medium">Списание с кассы USD:</span>
+                <span className="font-bold text-slate-900">
+                  ${createdConversionReport.amount_usd?.toLocaleString('ru-RU', { minimumFractionDigits: 2 })} USD
+                </span>
+              </div>
+
+              {createdConversionReport.exchange_rate && (
+                <div className="flex justify-between items-center">
+                  <span className="text-slate-500 font-medium">Курс конвертации (Эсхата):</span>
+                  <span className="font-semibold text-slate-700">
+                    1 USD = {createdConversionReport.exchange_rate} TJS
+                  </span>
+                </div>
+              )}
+
+              {createdConversionReport.cash_desk_name && (
+                <div className="flex justify-between items-center">
+                  <span className="text-slate-500 font-medium">Касса списания:</span>
+                  <span className="font-bold text-slate-800 truncate max-w-[200px]" title={createdConversionReport.cash_desk_name}>
+                    {createdConversionReport.cash_desk_name}
+                  </span>
+                </div>
+              )}
+
+              {/* Цепочка документов */}
+              <div className="pt-2 border-t border-slate-200 space-y-2">
+                <div className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Созданные документы:</div>
+
+                {createdConversionReport.conv_expense_reference && (
+                  <div className="flex justify-between items-center">
+                    <span className="text-rose-600 font-medium">Расход конвертации (USD):</span>
+                    <span className="font-mono font-black text-rose-700 bg-rose-50 px-2 py-0.5 rounded border border-rose-200">
+                      {createdConversionReport.conv_expense_reference}
+                    </span>
+                  </div>
+                )}
+
+                {createdConversionReport.conv_payment_reference && (
+                  <div className="flex justify-between items-center">
+                    <span className="text-emerald-600 font-medium">Приход конвертации (TJS):</span>
+                    <span className="font-mono font-black text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200">
+                      {createdConversionReport.conv_payment_reference}
+                    </span>
+                  </div>
+                )}
+
+                <div className="flex justify-between items-center">
+                  <span className="text-blue-600 font-bold">Ордер расхода (РКО):</span>
+                  <span className="font-mono font-black text-blue-700 bg-blue-50 px-2 py-0.5 rounded border border-blue-200">
+                    {createdConversionReport.main_reference}
+                  </span>
+                </div>
+              </div>
+
+              {(createdConversionReport.recipient || createdConversionReport.description) && (
+                <div className="pt-2 border-t border-slate-200 space-y-1">
+                  {createdConversionReport.recipient && (
+                    <div className="flex justify-between items-center">
+                      <span className="text-slate-500 font-medium">Получатель:</span>
+                      <span className="font-bold text-slate-800">{createdConversionReport.recipient}</span>
+                    </div>
+                  )}
+                  {createdConversionReport.description && (
+                    <div className="text-[11px] text-slate-500 truncate" title={createdConversionReport.description}>
+                      <span className="text-slate-400">Назначение: </span>{createdConversionReport.description}
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+
+            <div className="flex items-center gap-2 pt-1">
+              <button
+                type="button"
+                onClick={() => {
+                  const exp = createdConversionReport.createdExpense;
+                  setCreatedConversionReport(null);
+                  if (exp) setPrintableExpense(exp);
+                }}
+                className="flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-xl bg-gradient-to-r from-rose-600 to-red-600 text-white font-bold text-xs hover:from-rose-700 hover:to-red-700 transition cursor-pointer shadow-md shadow-rose-600/20"
+              >
+                <Printer className="h-4 w-4" />
+                <span>Печать РКО</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => setCreatedConversionReport(null)}
+                className="px-5 py-2.5 rounded-xl border border-slate-300 text-slate-700 font-bold text-xs hover:bg-slate-50 transition cursor-pointer"
+              >
+                Закрыть
+              </button>
+            </div>
           </div>
         </div>
       )}

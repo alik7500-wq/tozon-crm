@@ -18,7 +18,8 @@ import {
   Building2,
   User,
   ArrowRightLeft,
-  Coins
+  Coins,
+  Printer
 } from 'lucide-react';
 
 export const PaymentRecordModal = ({
@@ -55,6 +56,7 @@ export const PaymentRecordModal = ({
 
   const [recordedPayment, setRecordedPayment] = useState(null);
   const [updatedDealResult, setUpdatedDealResult] = useState(null);
+  const [paymentReport, setPaymentReport] = useState(null);
 
   const dealCurrency = deal?.currency || deal?.project_currency || 'USD';
 
@@ -130,6 +132,103 @@ export const PaymentRecordModal = ({
   });
 
   if (!isOpen || !deal) return null;
+
+  if (paymentReport) {
+    return (
+      <div className="fixed inset-0 z-[70] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs animate-in fade-in">
+        <div className="relative w-full max-w-md overflow-hidden rounded-3xl border border-emerald-200 bg-white shadow-2xl p-6 text-center space-y-4">
+          <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-emerald-100 text-emerald-600">
+            <CheckCircle2 className="h-8 w-8" />
+          </div>
+          <div>
+            <h3 className="text-lg font-black text-slate-900">Оплата принята и сконвертирована</h3>
+            <p className="text-xs text-slate-500 mt-1">Платеж успешно зарегистрирован в единой транзакции</p>
+          </div>
+
+          <div className="rounded-2xl bg-slate-50 border border-slate-200 p-4 text-left space-y-2.5 text-xs">
+            <div className="flex justify-between items-center pb-2 border-b border-slate-200">
+              <span className="text-slate-500 font-medium">Внесено в кассу:</span>
+              <span className="font-black text-emerald-600 text-sm">
+                +{paymentReport.amount_tjs?.toLocaleString('ru-RU', { minimumFractionDigits: 2 })} TJS
+              </span>
+            </div>
+
+            <div className="flex justify-between items-center">
+              <span className="text-slate-500 font-medium">Эквивалент в сделке (USD):</span>
+              <span className="font-bold text-slate-900">
+                ${paymentReport.amount_usd?.toLocaleString('ru-RU', { minimumFractionDigits: 2 })} USD
+              </span>
+            </div>
+
+            {paymentReport.exchange_rate && (
+              <div className="flex justify-between items-center">
+                <span className="text-slate-500 font-medium">Курс пересчета (Эсхата):</span>
+                <span className="font-semibold text-slate-700">
+                  1 USD = {paymentReport.exchange_rate} TJS
+                </span>
+              </div>
+            )}
+
+            <div className="flex justify-between items-center">
+              <span className="text-slate-500 font-medium">Касса зачисления:</span>
+              <span className="font-bold text-slate-800 truncate max-w-[200px]" title={paymentReport.cash_desk_name}>
+                {paymentReport.cash_desk_name}
+              </span>
+            </div>
+
+            <div className="pt-2 border-t border-slate-200 space-y-2">
+              <div className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Созданный документ:</div>
+              <div className="flex justify-between items-center">
+                <span className="text-emerald-600 font-bold">Ордер прихода (ПКО):</span>
+                <span className="font-mono font-black text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200">
+                  {paymentReport.reference}
+                </span>
+              </div>
+            </div>
+
+            <div className="pt-2 border-t border-slate-200 space-y-1">
+              <div className="flex justify-between items-center">
+                <span className="text-slate-500 font-medium">Договор:</span>
+                <span className="font-bold text-slate-800">№ {paymentReport.contract_number}</span>
+              </div>
+              <div className="flex justify-between items-center">
+                <span className="text-slate-500 font-medium">Плательщик:</span>
+                <span className="font-bold text-slate-800">{paymentReport.payer_name}</span>
+              </div>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-2 pt-1">
+            <button
+              type="button"
+              onClick={() => {
+                const p = paymentReport.payment;
+                setPaymentReport(null);
+                setRecordedPayment(p);
+              }}
+              className="flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 text-white font-bold text-xs hover:from-emerald-700 hover:to-teal-700 transition cursor-pointer shadow-md shadow-emerald-600/20"
+            >
+              <Printer className="h-4 w-4" />
+              <span>Печать ПКО (Квитанция)</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                if (onPaymentSuccess && updatedDealResult) {
+                  onPaymentSuccess(updatedDealResult);
+                }
+                setPaymentReport(null);
+                onClose();
+              }}
+              className="px-5 py-2.5 rounded-xl border border-slate-300 text-slate-700 font-bold text-xs hover:bg-slate-50 transition cursor-pointer"
+            >
+              Закрыть
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   if (recordedPayment) {
     return (
@@ -328,7 +427,25 @@ export const PaymentRecordModal = ({
 
       const updatedDeal = res.data?.deal || res.deal || res;
       setUpdatedDealResult(updatedDeal);
-      setRecordedPayment(createdPayment);
+
+      // If paid in TJS (or conversion happened), show the conversion & payment report modal first
+      if (cashCurrency === 'TJS' || cashCurrency !== dealCurrency) {
+        setPaymentReport({
+          payment: createdPayment,
+          deal: updatedDeal || deal,
+          amount_tjs: cashAmountTJS,
+          amount_usd: equivalentInDealCurrency,
+          exchange_rate: exchangeRate,
+          cash_desk_name: deskName,
+          reference: cleanRef,
+          payer_name: deal.lead_name || deal.buyer_name,
+          contract_number: formatContractNumber(deal.contract_number),
+          payment_date: paymentDate,
+          method: method
+        });
+      } else {
+        setRecordedPayment(createdPayment);
+      }
     } catch (err) {
       setError(err.message || 'Ошибка сохранения платежа');
     } finally {
