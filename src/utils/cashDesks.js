@@ -1,13 +1,12 @@
 export const DEFAULT_CASH_DESKS = [
-  { id: 'MAIN_CASHIER', name: 'Главная касса компании (Бухгалтерия)', icon: '🏢' },
-  { id: 'DIRECTOR', name: 'Касса Директора (Руководство)', icon: '👔' },
-  { id: 'SALES_MANAGER', name: 'Касса Менеджера продаж (Отдел продаж)', icon: '💼' },
-  { id: 'FINANCE_OFFICE', name: 'Касса Казначейства / Финансового отдела', icon: '🏦' },
-  { id: 'BANK_ACCOUNT', name: 'Расчетный счет в банке (Безналичные)', icon: '🏛' },
+  { id: 'ab90800a-73af-4cf7-88c2-397c304e2edf', code: 'SALES_MANAGER', name: 'Касса Отдела продаж (Акмалхон)', icon: '💼' },
+  { id: '6ddf2f64-0a77-4aeb-8daf-a391b2da0141', code: 'MAIN_CASHIER', name: 'Касса компании "Тозон" (Илхомчон)', icon: '🏢' },
+  { id: 'fba621e6-4ebe-4459-8623-19f46d864cc6', code: 'SALES_MANAGER_Dadojon', name: 'Касса менеждера (Дадочон)', icon: '👔' },
+  { id: 'c16e402e-2af2-4f12-9e9a-073d72a9682a', code: 'BANK_ACCOUNT', name: 'Расчетный счет в банке (Безналичные)', icon: '🏛' },
 ];
 
 /**
- * Собирает список касс исключительно на основе справочника "Кассы компании" из Настроек
+ * Собирает список касс на основе справочника "Кассы компании" из Настроек
  */
 export const buildCashDesksList = (dictionaryItems = []) => {
   if (dictionaryItems && dictionaryItems.length > 0) {
@@ -31,17 +30,62 @@ export const extractCashDeskFromComment = (comment) => {
 };
 
 /**
+ * Очищает строку от технических тегов [Касса: ...] и [IDEMP: ...]
+ */
+export const cleanCashDeskFromComment = (text) => {
+  if (!text) return '';
+  return String(text)
+    .replace(/\[Касса:\s*[^\]]+\]\s*/gi, '')
+    .replace(/\[IDEMP:[^\]]+\]\s*/gi, '')
+    .trim();
+};
+
+/**
+ * Сопоставляет переданный идентификатор или название с объектом кассы
+ */
+export const resolveCashDesk = (deskNameOrId, cashDesksList = []) => {
+  const list = (cashDesksList && cashDesksList.length > 0) ? cashDesksList : DEFAULT_CASH_DESKS;
+  if (!deskNameOrId) return list[0] || null;
+  const str = String(deskNameOrId).trim().toLowerCase();
+
+  // 1. По точному ID или code
+  let found = list.find(c => String(c.id).toLowerCase() === str || (c.code && c.code.toLowerCase() === str));
+  if (found) return found;
+
+  // 2. По точному названию
+  found = list.find(c => c.name.toLowerCase() === str);
+  if (found) return found;
+
+  // 3. По известным историческим синонимам и алиасам
+  if (str.includes('бухгалтери') || str.includes('илхом') || str.includes('главная')) {
+    found = list.find(c => c.code === 'MAIN_CASHIER' || c.name.toLowerCase().includes('илхом') || c.name.toLowerCase().includes('тозон'));
+    if (found) return found;
+  }
+  if (str.includes('акмал') || str.includes('продаж')) {
+    found = list.find(c => c.code === 'SALES_MANAGER' || c.name.toLowerCase().includes('акмал'));
+    if (found) return found;
+  }
+  if (str.includes('дадоч')) {
+    found = list.find(c => c.code === 'SALES_MANAGER_Dadojon' || c.name.toLowerCase().includes('дадоч'));
+    if (found) return found;
+  }
+  if (str.includes('банк') || str.includes('расчет')) {
+    found = list.find(c => c.code === 'BANK_ACCOUNT' || c.name.toLowerCase().includes('банк'));
+    if (found) return found;
+  }
+
+  return list[0] || null;
+};
+
+/**
  * Обновляет или добавляет блок [Касса: ...] в примечание
  */
 export const updateCommentWithCashDesk = (comment, newDeskName) => {
-  const text = (comment || '').replace(/\[IDEMP:[^\]]+\]\s*/gi, '').trim();
+  const text = cleanCashDeskFromComment(comment);
   if (!newDeskName) {
-    return text.replace(/\[Касса:\s*[^\]]+\]\s*/gi, '').trim();
+    return text;
   }
-  if (/\[Касса:\s*[^\]]+\]/i.test(text)) {
-    return text.replace(/\[Касса:\s*[^\]]+\]/i, `[Касса: ${newDeskName}]`);
-  }
-  if (text.trim().length === 0) {
+  if (text.length === 0) {
     return `[Касса: ${newDeskName}]`;
   }
   return `[Касса: ${newDeskName}] ${text}`.trim();

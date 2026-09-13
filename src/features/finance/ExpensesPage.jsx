@@ -9,7 +9,9 @@ import { useAuth } from '../auth/AuthContext';
 import { 
   buildCashDesksList, 
   extractCashDeskFromComment, 
-  updateCommentWithCashDesk 
+  updateCommentWithCashDesk,
+  cleanCashDeskFromComment,
+  resolveCashDesk
 } from '../../utils/cashDesks';
 import { 
   TrendingDown, Plus, Search, Calendar, Tag, FileText, Wallet, RefreshCw,
@@ -81,8 +83,8 @@ export const ExpensesPage = () => {
     currency: 'TJS',
     date: dayjs().format('YYYY-MM-DD'),
     category: 'Строительные материалы',
-    cash_desk: isManager ? 'Касса менеджера (Дадочон)' : 'Главная касса компании (Бухгалтерия)',
-    cash_desk_id: isManager ? DADOJON_DESK_ID : '',
+    cash_desk: isManager ? 'Касса менеждера (Дадочон)' : 'Касса Отдела продаж (Акмалхон)',
+    cash_desk_id: isManager ? DADOJON_DESK_ID : 'ab90800a-73af-4cf7-88c2-397c304e2edf',
     method: 'CASH',
     reference: '',
     recipient: '',
@@ -98,16 +100,19 @@ export const ExpensesPage = () => {
     if (isManager) {
       setFormData(prev => ({
         ...prev,
-        cash_desk: 'Касса менеджера (Дадочон)',
+        cash_desk: 'Касса менеждера (Дадочон)',
         cash_desk_id: DADOJON_DESK_ID
       }));
-      setDeskFilter('Касса менеджера (Дадочон)');
-    } else if (allCashDesks.length > 0 && !formData.cash_desk) {
-      setFormData(prev => ({
-        ...prev,
-        cash_desk: allCashDesks[0].name,
-        cash_desk_id: allCashDesks[0].id
-      }));
+      setDeskFilter('Касса менеждера (Дадочон)');
+    } else if (allCashDesks.length > 0) {
+      setFormData(prev => {
+        const resolved = resolveCashDesk(prev.cash_desk_id || prev.cash_desk, allCashDesks);
+        return {
+          ...prev,
+          cash_desk: resolved?.name || allCashDesks[0].name,
+          cash_desk_id: resolved?.id || allCashDesks[0].id
+        };
+      });
     }
   }, [allCashDesks, isManager]);
 
@@ -352,10 +357,11 @@ export const ExpensesPage = () => {
     e.preventDefault();
     const cleanFormDataAmount = String(formData.amount || '').replace(',', '.').trim();
     if (!cleanFormDataAmount || Number(cleanFormDataAmount) <= 0) return;
-    const matchedDesk = allCashDesks.find(c => c.name === formData.cash_desk);
-    const finalDeskName = isManager ? 'Касса менеджера (Дадочон)' : formData.cash_desk;
-    const finalDeskId = isManager ? DADOJON_DESK_ID : (formData.cash_desk_id || matchedDesk?.id || null);
-    const finalDesc = updateCommentWithCashDesk(formData.description, finalDeskName);
+    const resolved = resolveCashDesk(formData.cash_desk_id || formData.cash_desk, allCashDesks);
+    const finalDeskName = isManager ? 'Касса менеждера (Дадочон)' : (resolved?.name || formData.cash_desk);
+    const finalDeskId = isManager ? DADOJON_DESK_ID : (resolved?.id || formData.cash_desk_id || null);
+    const cleanDesc = cleanCashDeskFromComment(formData.description);
+    const finalDesc = updateCommentWithCashDesk(cleanDesc, finalDeskName);
     const keyToUse = formData.idempotency_key || `EXP-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
     if (!formData.idempotency_key) {
       setFormData(prev => ({ ...prev, idempotency_key: keyToUse }));
@@ -728,7 +734,11 @@ export const ExpensesPage = () => {
                         <>
                           <button
                             onClick={() => {
-                              const desk = extractCashDeskFromComment(item.description) || (allCashDesks[0]?.name || 'Главная касса компании (Бухгалтерия)');
+                              const targetDeskId = item.cashDeskId || item.cash_desk_id;
+                              const extractedCommentDesk = extractCashDeskFromComment(item.description);
+                              const resolved = resolveCashDesk(targetDeskId || extractedCommentDesk, allCashDesks);
+                              const cleanDesc = cleanCashDeskFromComment(item.description);
+
                               setEditingItem({
                                 id: item.id,
                                 amount: item.amount,
@@ -738,8 +748,9 @@ export const ExpensesPage = () => {
                                 category: item.category || 'Прочее',
                                 recipient: item.recipient || '',
                                 reference: item.reference || '',
-                                description: (item.description || '').replace(/\[IDEMP:[^\]]+\]\s*/gi, '').trim(),
-                                cash_desk: desk
+                                description: cleanDesc,
+                                cash_desk: resolved?.name || allCashDesks[0]?.name || '',
+                                cash_desk_id: resolved?.id || allCashDesks[0]?.id || null
                               });
                             }}
                             title="Редактировать РКО (Админ)"
@@ -798,9 +809,13 @@ export const ExpensesPage = () => {
 
             <form onSubmit={(e) => {
               e.preventDefault();
-              const finalDesc = updateCommentWithCashDesk(editingItem.description, editingItem.cash_desk);
+              const cleanDesc = cleanCashDeskFromComment(editingItem.description);
+              const finalDesc = updateCommentWithCashDesk(cleanDesc, editingItem.cash_desk);
+              const resolved = resolveCashDesk(editingItem.cash_desk_id || editingItem.cash_desk, allCashDesks);
               updateMutation.mutate({
                 ...editingItem,
+                cash_desk: resolved?.name || editingItem.cash_desk,
+                cash_desk_id: resolved?.id || editingItem.cash_desk_id || null,
                 description: finalDesc
               });
             }} className="p-6 space-y-3.5 text-xs">
@@ -841,11 +856,11 @@ export const ExpensesPage = () => {
                   value={editingItem.cash_desk || ''}
                   onChange={(e) => {
                     const newDesk = e.target.value;
-                    const updatedDesc = updateCommentWithCashDesk(editingItem.description, newDesk);
+                    const resolved = resolveCashDesk(newDesk, allCashDesks);
                     setEditingItem({
                       ...editingItem,
-                      cash_desk: newDesk,
-                      description: updatedDesc
+                      cash_desk: resolved?.name || newDesk,
+                      cash_desk_id: resolved?.id || null
                     });
                   }}
                   className="w-full rounded-xl border border-slate-300 bg-slate-50 px-3 py-2 text-xs font-bold text-slate-800 outline-none focus:border-rose-500 focus:bg-white transition cursor-pointer"

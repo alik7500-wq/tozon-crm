@@ -10,7 +10,9 @@ import {
   DEFAULT_CASH_DESKS, 
   buildCashDesksList,
   extractCashDeskFromComment, 
-  updateCommentWithCashDesk 
+  updateCommentWithCashDesk,
+  cleanCashDeskFromComment,
+  resolveCashDesk
 } from '../../utils/cashDesks';
 import { 
   Wallet, TrendingUp, TrendingDown, RefreshCw, Calendar, ArrowUpRight, 
@@ -228,18 +230,16 @@ export const CashflowPage = () => {
 
   const handleEditClick = (t) => {
     const isIncome = t.type === 'INCOME';
-    const desk = t.cash_desk_name || (isIncome ? (extractCashDeskFromComment(t.comment) || '') : '') || '';
     const isConv = Boolean(t.conversion_id) || 
                    (t.reference && (t.reference.includes('КОНВ') || t.reference.includes('ОБМЕН'))) ||
                    (t.category === 'Конвертация валюты');
 
     const targetDeskId = t.cash_desk_id || t.cashDeskId;
-    const matchedDesk = allCashDesks.find(c => 
-      (targetDeskId && (String(c.id) === String(targetDeskId) || c.code === targetDeskId)) ||
-      (desk && c.name && c.name.toLowerCase() === desk.toLowerCase())
-    );
-    const resolvedDeskId = matchedDesk?.id || targetDeskId || null;
-    const resolvedDeskName = matchedDesk?.name || desk;
+    const extractedCommentDesk = extractCashDeskFromComment(t.comment);
+    const resolved = resolveCashDesk(targetDeskId || t.cash_desk_name || extractedCommentDesk, allCashDesks);
+    const resolvedDeskId = resolved?.id || targetDeskId || null;
+    const resolvedDeskName = resolved?.name || t.cash_desk_name || allCashDesks[0]?.name || '';
+    const cleanComment = cleanCashDeskFromComment(t.comment);
 
     setEditingItem({
       id: t.rawId,
@@ -254,8 +254,8 @@ export const CashflowPage = () => {
       originalMethod: t.method || 'CASH',
       reference: t.reference || '',
       originalReference: t.reference || '',
-      comment: (t.comment || '').replace(/\[IDEMP:[^\]]+\]\s*/gi, '').trim(),
-      originalComment: (t.comment || '').replace(/\[IDEMP:[^\]]+\]\s*/gi, '').trim(),
+      comment: cleanComment,
+      originalComment: cleanComment,
       cash_desk: resolvedDeskName,
       originalCashDesk: resolvedDeskName,
       cash_desk_id: resolvedDeskId,
@@ -295,9 +295,11 @@ export const CashflowPage = () => {
     if (editingItem.reference !== editingItem.originalReference) {
       patchPayload.reference = editingItem.reference;
     }
-    if (editingItem.comment !== editingItem.originalComment) {
-      patchPayload.comment = editingItem.comment;
-      patchPayload.description = editingItem.comment;
+    if (editingItem.comment !== editingItem.originalComment || editingItem.cash_desk !== editingItem.originalCashDesk) {
+      const cleanComm = cleanCashDeskFromComment(editingItem.comment);
+      const finalComment = updateCommentWithCashDesk(cleanComm, editingItem.cash_desk);
+      patchPayload.comment = finalComment;
+      patchPayload.description = finalComment;
     }
     if (editingItem.cash_desk !== editingItem.originalCashDesk || editingItem.cash_desk_id !== editingItem.originalCashDeskId) {
       if (editingItem.cash_desk_id) {
@@ -1726,23 +1728,14 @@ export const CashflowPage = () => {
                   value={editingItem.cash_desk_id || ''}
                   onChange={(e) => {
                     const selectedVal = e.target.value;
-                    const matchedDesk = allCashDesks.find(c => 
-                      String(c.id) === String(selectedVal) || 
-                      c.code === selectedVal || 
-                      c.name === selectedVal
-                    );
-                    const newDeskName = matchedDesk ? matchedDesk.name : selectedVal;
-                    const newDeskId = matchedDesk?.id || selectedVal;
+                    const resolved = resolveCashDesk(selectedVal, allCashDesks);
+                    const newDeskName = resolved ? resolved.name : selectedVal;
+                    const newDeskId = resolved?.id || selectedVal;
                     
-                    let updatedComment = editingItem.comment;
-                    if (editingItem.type === 'INCOME') {
-                      updatedComment = updateCommentWithCashDesk(editingItem.comment, newDeskName);
-                    }
                     setEditingItem({
                       ...editingItem,
                       cash_desk: newDeskName,
-                      cash_desk_id: newDeskId,
-                      comment: updatedComment
+                      cash_desk_id: newDeskId
                     });
                   }}
                   className="w-full rounded-xl border border-slate-300 bg-slate-50 px-3 py-2 text-xs font-bold text-slate-800 outline-none focus:border-blue-500 focus:bg-white transition cursor-pointer"
