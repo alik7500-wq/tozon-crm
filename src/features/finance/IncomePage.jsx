@@ -934,12 +934,20 @@ export const IncomePage = () => {
                     </div>
                   ) : (
                     <select
-                      value={formData.cash_desk}
-                      onChange={e => setFormData({ ...formData, cash_desk: e.target.value })}
+                      value={formData.cash_desk_id || formData.cash_desk}
+                      onChange={e => {
+                        const selectedObj = allCashDesks.find(c => c.id === e.target.value || c.name === e.target.value);
+                        setFormData({
+                          ...formData,
+                          cash_desk_id: selectedObj?.id || e.target.value,
+                          cash_desk: selectedObj?.name || e.target.value
+                        });
+                      }}
                       className="w-full rounded-xl border border-slate-300 bg-slate-50 px-3 py-1.5 text-xs font-bold text-slate-800 outline-none focus:border-emerald-500 cursor-pointer"
                     >
+                      <option value="">-- Выберите кассу зачисления --</option>
                       {allCashDesks.map(c => (
-                        <option key={c.id || c.name} value={c.name}>
+                        <option key={c.id || c.name} value={c.id || c.name}>
                           {c.icon} {c.name}
                         </option>
                       ))}
@@ -971,8 +979,8 @@ export const IncomePage = () => {
                 </button>
                 <button
                   type="submit"
-                  disabled={addMutation.isPending}
-                  className="flex items-center gap-1.5 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 px-5 py-1.5 text-xs font-bold text-white shadow-md hover:from-emerald-700 hover:to-teal-700 transition cursor-pointer disabled:opacity-50"
+                  disabled={addMutation.isPending || (!isManager && !formData.cash_desk_id && !formData.cash_desk)}
+                  className="flex items-center gap-1.5 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 px-5 py-1.5 text-xs font-bold text-white shadow-md hover:from-emerald-700 hover:to-teal-700 transition cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   <CheckCircle2 className="h-4 w-4" />
                   <span>{addMutation.isPending ? 'Сохранение...' : 'Зафиксировать приход'}</span>

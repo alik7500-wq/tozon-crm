@@ -45,7 +45,7 @@ export const cleanCashDeskFromComment = (text) => {
  */
 export const resolveCashDesk = (deskNameOrId, cashDesksList = []) => {
   const list = (cashDesksList && cashDesksList.length > 0) ? cashDesksList : DEFAULT_CASH_DESKS;
-  if (!deskNameOrId) return list[0] || null;
+  if (!deskNameOrId) return null;
   const str = String(deskNameOrId).trim().toLowerCase();
 
   // 1. По точному ID или code
@@ -56,25 +56,7 @@ export const resolveCashDesk = (deskNameOrId, cashDesksList = []) => {
   found = list.find(c => c.name.toLowerCase() === str);
   if (found) return found;
 
-  // 3. По известным историческим синонимам и алиасам
-  if (str.includes('бухгалтери') || str.includes('илхом') || str.includes('главная')) {
-    found = list.find(c => c.code === 'MAIN_CASHIER' || c.name.toLowerCase().includes('илхом') || c.name.toLowerCase().includes('тозон'));
-    if (found) return found;
-  }
-  if (str.includes('акмал') || str.includes('продаж')) {
-    found = list.find(c => c.code === 'SALES_MANAGER' || c.name.toLowerCase().includes('акмал'));
-    if (found) return found;
-  }
-  if (str.includes('дадоч')) {
-    found = list.find(c => c.code === 'SALES_MANAGER_Dadojon' || c.name.toLowerCase().includes('дадоч'));
-    if (found) return found;
-  }
-  if (str.includes('банк') || str.includes('расчет')) {
-    found = list.find(c => c.code === 'BANK_ACCOUNT' || c.name.toLowerCase().includes('банк'));
-    if (found) return found;
-  }
-
-  return list[0] || null;
+  return null;
 };
 
 /**
