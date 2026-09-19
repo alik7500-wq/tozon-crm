@@ -220,11 +220,17 @@ export const ExpensesPage = () => {
         setPrintableExpense(createdExpense);
       }
 
+      // Определяем кассу для сброса формы (сохраняем текущую кассу)
+      const resetDeskName = isManager ? 'Касса менеждера (Дадочон)' : (formData.cash_desk || 'Касса Отдела продаж (Акмалхон)');
+      const resetDeskId = isManager ? DADOJON_DESK_ID : (formData.cash_desk_id || 'ab90800a-73af-4cf7-88c2-397c304e2edf');
+
       setFormData({
         amount: '',
         currency: 'TJS',
         date: dayjs().format('YYYY-MM-DD'),
         category: 'Строительные материалы',
+        cash_desk: resetDeskName,
+        cash_desk_id: resetDeskId,
         method: 'CASH',
         reference: '',
         recipient: '',
@@ -235,6 +241,10 @@ export const ExpensesPage = () => {
         source_currency: 'USD',
         idempotency_key: `EXP-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`
       });
+    },
+    onError: (err) => {
+      const msg = err?.response?.data?.error?.message || err?.message || 'Неизвестная ошибка';
+      alert(`Ошибка при сохранении РКО: ${msg}`);
     }
   });
 
@@ -379,18 +389,32 @@ export const ExpensesPage = () => {
   };
 
   const handleSubmit = (e) => {
-    e.preventDefault();
+    if (e && e.preventDefault) e.preventDefault();
     const cleanFormDataAmount = String(formData.amount || '').replace(',', '.').trim();
-    if (!cleanFormDataAmount || Number(cleanFormDataAmount) <= 0) return;
+    const numAmount = parseFloat(cleanFormDataAmount);
+    if (isNaN(numAmount) || numAmount <= 0) {
+      alert('Пожалуйста, укажите корректную сумму расхода больше 0');
+      return;
+    }
+    if (!formData.recipient || !formData.recipient.trim()) {
+      alert('Пожалуйста, укажите получателя средств (контрагента)');
+      return;
+    }
+    if (!formData.category || !formData.category.trim()) {
+      alert('Пожалуйста, выберите категорию расхода');
+      return;
+    }
+    if (!formData.date) {
+      alert('Пожалуйста, укажите дату расхода');
+      return;
+    }
     const resolved = resolveCashDesk(formData.cash_desk_id || formData.cash_desk, allCashDesks);
-    const finalDeskName = isManager ? 'Касса менеждера (Дадочон)' : (resolved?.name || formData.cash_desk);
-    const finalDeskId = isManager ? DADOJON_DESK_ID : (resolved?.id || formData.cash_desk_id || null);
+    const finalDeskName = isManager ? 'Касса менеждера (Дадочон)' : (resolved?.name || formData.cash_desk || 'Касса Отдела продаж (Акмалхон)');
+    const finalDeskId = isManager ? DADOJON_DESK_ID : (resolved?.id || formData.cash_desk_id || 'ab90800a-73af-4cf7-88c2-397c304e2edf');
     const cleanDesc = cleanCashDeskFromComment(formData.description);
     const finalDesc = updateCommentWithCashDesk(cleanDesc, finalDeskName);
-    const keyToUse = formData.idempotency_key || `EXP-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
-    if (!formData.idempotency_key) {
-      setFormData(prev => ({ ...prev, idempotency_key: keyToUse }));
-    }
+    const keyToUse = `EXP-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
+
     addMutation.mutate({
       ...formData,
       amount: cleanFormDataAmount,
@@ -1237,7 +1261,7 @@ export const ExpensesPage = () => {
               </form>
             ) : (
               /* Modal Form */
-              <form onSubmit={handleSubmit} className="p-4 sm:p-5 space-y-3 text-xs">
+              <form onSubmit={handleSubmit} noValidate className="p-4 sm:p-5 space-y-3 text-xs">
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   {/* Recipient */}
                   <div>
@@ -1480,6 +1504,7 @@ export const ExpensesPage = () => {
                   <button
                     type="submit"
                     disabled={addMutation.isPending}
+                    onClick={handleSubmit}
                     className="flex items-center gap-1.5 rounded-xl bg-gradient-to-r from-rose-600 to-red-600 px-5 py-1.5 text-xs font-bold text-white shadow-md hover:from-rose-700 hover:to-red-700 transition cursor-pointer disabled:opacity-50"
                   >
                     <CheckCircle2 className="h-4 w-4" />
