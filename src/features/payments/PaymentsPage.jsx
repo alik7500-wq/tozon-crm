@@ -54,7 +54,7 @@ export const PaymentsPage = () => {
 
   const signedDeals = filteredDeals.filter(d => d.status === 'SIGNED' || d.status === 'COMPLETED');
   const totalContractAmount = signedDeals.reduce((acc, d) => acc + (d.final_price_minor || 0), 0);
-  const totalCollected = filteredDeals.reduce((acc, d) => acc + (d.total_paid_minor || d.paid_amount_minor || 0), 0);
+  const totalCollected = filteredDeals.reduce((acc, d) => acc + (d.paid_amount_minor ?? d.total_paid_minor ?? 0), 0);
   const totalDebt = Math.max(0, totalContractAmount - totalCollected);
 
   return (
@@ -170,9 +170,9 @@ export const PaymentsPage = () => {
               </thead>
               <tbody className="divide-y divide-slate-100">
                 {filteredDeals.map((d) => {
-                  const paid = d.paid_amount_minor || 0;
+                  const paid = d.paid_amount_minor ?? d.total_paid_minor ?? 0;
                   const total = d.final_price_minor || 0;
-                  const balance = total - paid;
+                  const balance = Math.max(0, total - paid);
                   const percent = total > 0 ? Math.min(100, Math.round((paid / total) * 100)) : 0;
 
                   return (

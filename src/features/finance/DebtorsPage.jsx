@@ -30,7 +30,7 @@ export const DebtorsPage = () => {
       const list = res.data?.deals || res.deals || [];
       const debtorDeals = list.filter((d) => {
         const total = d.final_price_minor || 0;
-        const paid = d.paid_amount_minor || 0;
+        const paid = d.paid_amount_minor ?? d.total_paid_minor ?? 0;
         return total > paid && d.payment_type === 'INSTALLMENT';
       });
       setDeals(debtorDeals);
@@ -56,8 +56,8 @@ export const DebtorsPage = () => {
 
   const totalOutstanding = filtered.reduce((acc, d) => {
     const total = d.final_price_minor || 0;
-    const paid = d.paid_amount_minor || 0;
-    return acc + (total - paid);
+    const paid = d.paid_amount_minor ?? d.total_paid_minor ?? 0;
+    return acc + Math.max(0, total - paid);
   }, 0);
 
   return (
@@ -133,8 +133,8 @@ export const DebtorsPage = () => {
               <tbody className="divide-y divide-slate-100">
                 {filtered.map((d) => {
                   const total = d.final_price_minor || 0;
-                  const paid = d.paid_amount_minor || 0;
-                  const debt = total - paid;
+                  const paid = d.paid_amount_minor ?? d.total_paid_minor ?? 0;
+                  const debt = Math.max(0, total - paid);
 
                   return (
                     <tr

@@ -102,8 +102,9 @@ export const DealsKanbanView = ({
                 col.deals.map((deal) => {
                   const currency = deal.currency || deal.project_currency || 'USD';
                   const finalPrice = (deal.final_price_minor || 0) / 100;
-                  const totalPaid = (deal.total_paid_minor || 0) / 100;
-                  const remaining = (deal.remaining_debt_minor || 0) / 100;
+                  const paidMinor = deal.paid_amount_minor ?? deal.total_paid_minor ?? 0;
+                  const totalPaid = paidMinor / 100;
+                  const remaining = Math.max(0, finalPrice - totalPaid);
                   const paidPercent = finalPrice > 0 ? Math.min(100, Math.round((totalPaid / finalPrice) * 100)) : 0;
                   const areaM2 = (deal.area_m2_x100 / 100).toFixed(1);
 

@@ -155,8 +155,9 @@ export const DealDrawer = ({
 
   const currency = deal?.currency || deal?.project_currency || 'USD';
   const finalPrice = deal ? (deal.final_price_minor / 100) : 0;
-  const totalPaid = deal ? (deal.total_paid_minor / 100) : 0;
-  const remainingDebt = deal ? (deal.remaining_debt_minor / 100) : 0;
+  const paidMinor = deal ? (deal.paid_amount_minor ?? deal.total_paid_minor ?? 0) : 0;
+  const totalPaid = paidMinor / 100;
+  const remainingDebt = deal ? (deal.remaining_debt_minor !== undefined ? deal.remaining_debt_minor / 100 : Math.max(0, finalPrice - totalPaid)) : 0;
   const paidPercent = finalPrice > 0 ? Math.min(100, Math.round((totalPaid / finalPrice) * 100)) : 0;
 
   const getStatusBadge = (status) => {
