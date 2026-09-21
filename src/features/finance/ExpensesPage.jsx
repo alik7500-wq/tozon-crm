@@ -272,7 +272,7 @@ export const ExpensesPage = () => {
   });
 
   const expensesData = response || { list: [], totalsByCurrency: {}, availableCurrencies: ['USD', 'TJS'], categoriesChart: [] };
-  const totals = expensesData.totalsByCurrency || {};
+  const totals = expensesData.totalsByCurrency || expensesData.totals || {};
   const list = expensesData.list || [];
   const availableYears = expensesData.availableYears && expensesData.availableYears.length > 0
     ? expensesData.availableYears

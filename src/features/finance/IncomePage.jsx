@@ -171,7 +171,7 @@ export const IncomePage = () => {
   });
 
   const incomeData = response || { list: [], totalsByCurrency: {}, availableCurrencies: ['USD', 'TJS'], chartData: [] };
-  const totals = incomeData.totalsByCurrency || {};
+  const totals = incomeData.totalsByCurrency || incomeData.totals || {};
   const list = incomeData.list || [];
   const availableYears = incomeData.availableYears && incomeData.availableYears.length > 0
     ? incomeData.availableYears
