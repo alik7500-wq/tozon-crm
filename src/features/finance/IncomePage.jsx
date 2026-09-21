@@ -255,7 +255,7 @@ export const IncomePage = () => {
           <div className="text-2xl font-black text-emerald-950 mt-2">
             ${(totals.USD || 0).toLocaleString('ru-RU', { minimumFractionDigits: 2 })}
           </div>
-          <p className="text-[11px] text-emerald-600/90 mt-1 font-medium">Оприходовано в долларах США ({year} г.)</p>
+          <p className="text-[11px] text-emerald-600/90 mt-1 font-medium">Все оприходованные кассовые ордера ПКО ({year === 'ALL' ? 'все года' : `${year} г.`})</p>
         </div>
 
         <div className="rounded-3xl border border-blue-200 bg-gradient-to-br from-blue-50 to-indigo-50/40 p-5 shadow-2xs relative overflow-hidden">

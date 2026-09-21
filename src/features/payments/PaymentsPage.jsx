@@ -96,7 +96,7 @@ export const PaymentsPage = () => {
               <Wallet className="h-6 w-6" />
             </div>
             <div>
-              <span className="text-[11px] font-bold text-emerald-700 block">Фактически получено</span>
+              <span className="text-[11px] font-bold text-emerald-700 block">Получено по договорам</span>
               <div className="text-xl font-black text-emerald-800 mt-0.5">
                 {(totalCollected / 100).toLocaleString()} <span className="text-xs font-normal">USD</span>
               </div>
