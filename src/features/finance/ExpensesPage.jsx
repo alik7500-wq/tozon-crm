@@ -11,7 +11,8 @@ import {
   extractCashDeskFromComment, 
   updateCommentWithCashDesk,
   cleanCashDeskFromComment,
-  resolveCashDesk
+  resolveCashDesk,
+  resolveManagerDeskId
 } from '../../utils/cashDesks';
 import { 
   TrendingDown, Plus, Search, Calendar, Tag, FileText, Wallet, RefreshCw,
@@ -29,28 +30,12 @@ export const ExpensesPage = () => {
   const { user } = useAuth();
   const isAdmin = user?.role === 'ADMIN';
   const isManager = user?.role === 'SALES_MANAGER' || user?.role === 'MANAGER';
-  const DADOJON_DESK_ID = 'fba621e6-4ebe-4459-8623-19f46d864cc6';
 
   const [year, setYear] = useState(new Date().getFullYear());
   const [currency, setCurrency] = useState('ALL');
   const [categoryFilter, setCategoryFilter] = useState('ALL');
   const [search, setSearch] = useState('');
-  const [deskFilter, setDeskFilter] = useState('ALL');
-  const [showAddModal, setShowAddModal] = useState(false);
-  const [editingItem, setEditingItem] = useState(null);
-  const [printableExpense, setPrintableExpense] = useState(null);
-
-  const handleDeskFilter = (deskName) => {
-    if (isManager) return; // Менеджер видит только свою кассу
-    if (deskFilter === deskName) {
-      setDeskFilter('');
-      setSearch('');
-    } else {
-      setDeskFilter(deskName);
-      setSearch(deskName);
-    }
-  };
-
+  
   const queryClient = useQueryClient();
 
   const { data: cashDesksDict = [] } = useQuery({
@@ -59,6 +44,32 @@ export const ExpensesPage = () => {
   });
 
   const allCashDesks = useMemo(() => buildCashDesksList(cashDesksDict), [cashDesksDict]);
+
+  const managerDeskId = useMemo(() => {
+    if (!isManager) return null;
+    return resolveManagerDeskId(user, allCashDesks);
+  }, [isManager, user, allCashDesks]);
+
+  const [selectedDeskId, setSelectedDeskId] = useState(() => isManager ? resolveManagerDeskId(user) : 'ALL');
+
+  useEffect(() => {
+    if (isManager && managerDeskId) {
+      setSelectedDeskId(managerDeskId);
+    }
+  }, [isManager, managerDeskId]);
+
+  const [showAddModal, setShowAddModal] = useState(false);
+  const [editingItem, setEditingItem] = useState(null);
+  const [printableExpense, setPrintableExpense] = useState(null);
+
+  const handleDeskFilter = (deskId) => {
+    if (isManager) return; // Менеджер видит только свою кассу
+    if (selectedDeskId === deskId) {
+      setSelectedDeskId('ALL');
+    } else {
+      setSelectedDeskId(deskId);
+    }
+  };
 
   const { data: expenseCategories = [] } = useQuery({
     queryKey: ['dictionaries', 'EXPENSE_CATEGORY'],
@@ -108,7 +119,7 @@ export const ExpensesPage = () => {
           cash_desk_id: DADOJON_DESK_ID
         };
       });
-      setDeskFilter(prev => prev === 'Касса менеджера (Дадочон)' ? prev : 'Касса менеджера (Дадочон)');
+      setSelectedDeskId(prev => prev === DADOJON_DESK_ID ? prev : DADOJON_DESK_ID);
     } else if (allCashDesks.length > 0) {
       setFormData(prev => {
         const resolved = resolveCashDesk(prev.cash_desk_id || prev.cash_desk, allCashDesks);
@@ -161,8 +172,14 @@ export const ExpensesPage = () => {
   });
 
   const { data: response, isLoading, refetch } = useQuery({
-    queryKey: ['finance-expenses', year, currency, categoryFilter, search],
-    queryFn: () => financeApi.getExpenses({ year, currency, category: categoryFilter, search })
+    queryKey: ['finance-expenses', year, currency, categoryFilter, selectedDeskId, search],
+    queryFn: () => financeApi.getExpenses({
+      year,
+      currency,
+      category: categoryFilter,
+      cash_desk_id: selectedDeskId !== 'ALL' ? selectedDeskId : undefined,
+      search
+    })
   });
 
   const addMutation = useMutation({
@@ -527,9 +544,9 @@ export const ExpensesPage = () => {
             ) : (
               <>
                 <button
-                  onClick={() => { setDeskFilter(''); setSearch(''); }}
+                  onClick={() => handleDeskFilter('ALL')}
                   className={`px-3 py-1.5 rounded-xl text-xs font-bold transition cursor-pointer ${
-                    !deskFilter
+                    selectedDeskId === 'ALL'
                       ? 'bg-rose-600 text-white shadow-xs'
                       : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
                   }`}
@@ -539,9 +556,9 @@ export const ExpensesPage = () => {
                 {allCashDesks.map((desk) => (
                   <button
                     key={desk.id}
-                    onClick={() => handleDeskFilter(desk.name)}
+                    onClick={() => handleDeskFilter(desk.id)}
                     className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition cursor-pointer ${
-                      deskFilter === desk.name
+                      selectedDeskId === desk.id
                         ? 'bg-rose-600 text-white shadow-xs ring-2 ring-rose-500/30'
                         : 'bg-slate-100 text-slate-600 hover:bg-rose-50 hover:text-rose-700 hover:border-rose-200 border border-transparent'
                     }`}

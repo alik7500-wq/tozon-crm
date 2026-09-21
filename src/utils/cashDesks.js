@@ -60,6 +60,50 @@ export const resolveCashDesk = (deskNameOrId, cashDesksList = []) => {
 };
 
 /**
+ * Динамически определяет ID кассы менеджера на основе данных пользователя и списка касс из API.
+ * При неоднозначном результате или отсутствии у пользователя собственной кассы
+ * функция возвращает null, предотвращая случайный доступ к чужим кассам.
+ */
+export const resolveManagerDeskId = (user, cashDesksList = []) => {
+  if (!user) return null;
+  const list = (cashDesksList && cashDesksList.length > 0) ? cashDesksList : DEFAULT_CASH_DESKS;
+
+  // 1. Прямая привязка по ID кассы в профиле пользователя (наивысший приоритет)
+  if (user?.cash_desk_id) {
+    const found = list.find(d => String(d.id) === String(user.cash_desk_id));
+    if (found) return found.id;
+  }
+  if (user?.desk_id) {
+    const found = list.find(d => String(d.id) === String(user.desk_id));
+    if (found) return found.id;
+  }
+
+  // 2. Поиск совпадений по имени менеджера в названии кассы
+  const userName = (user?.name || user?.full_name || '').trim().toLowerCase();
+  if (userName && userName.length > 2) {
+    const matchedByName = list.filter(d => d.name && d.name.toLowerCase().includes(userName));
+    // Если найдена ровно одна уникальная касса — используем её
+    if (matchedByName.length === 1) {
+      return matchedByName[0].id;
+    }
+    // При неоднозначности (несколько совпадений) — завершаемся безопасно
+    if (matchedByName.length > 1) {
+      console.warn(`[resolveManagerDeskId] Найдено несколько касс по имени "${userName}". Выбор заблокирован ради безопасности.`);
+      return null;
+    }
+  }
+
+  // 3. Сопоставление по известным первично настроенным персональным кодам
+  if (user?.username === 'Dadojon' || userName.includes('дадочон')) {
+    const matchedByCode = list.find(d => d.code === 'SALES_MANAGER_Dadojon' || (d.name && d.name.includes('Дадочон')));
+    if (matchedByCode) return matchedByCode.id;
+  }
+
+  // Безопасная блокировка: при отсутствии привязки возврат null
+  return null;
+};
+
+/**
  * Обновляет или добавляет блок [Касса: ...] в примечание
  */
 export const updateCommentWithCashDesk = (comment, newDeskName) => {
