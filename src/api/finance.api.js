@@ -56,6 +56,11 @@ export const financeApi = {
     return res?.data || res;
   },
 
+  getPaymentCalendar: async (filters = {}) => {
+    const res = await api.get('/finance/calendar', { params: filters });
+    return res?.data || res;
+  },
+
   getDealsForSelect: async () => {
     const res = await api.get('/deals');
     const deals = res?.data?.deals || res?.deals || res || [];
