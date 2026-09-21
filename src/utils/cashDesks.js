@@ -3,6 +3,7 @@ export const DEFAULT_CASH_DESKS = [
   { id: '6ddf2f64-0a77-4aeb-8daf-a391b2da0141', code: 'MAIN_CASHIER', name: 'Касса компании "Тозон" (Илхомчон)', icon: '🏢' },
   { id: 'fba621e6-4ebe-4459-8623-19f46d864cc6', code: 'SALES_MANAGER_Dadojon', name: 'Касса менеждера (Дадочон)', icon: '👔' },
   { id: 'c16e402e-2af2-4f12-9e9a-073d72a9682a', code: 'BANK_ACCOUNT', name: 'Расчетный счет в банке (Безналичные)', icon: '🏛' },
+  { id: '6b5c2380-1ab6-4e39-877a-4f4519a5ab65', code: 'TOZON_PLAZA_INVESTMENT', name: 'Инвестиционная касса TOZON PLAZA', icon: '📈' },
 ];
 
 /**

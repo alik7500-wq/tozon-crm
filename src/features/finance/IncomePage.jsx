@@ -487,9 +487,15 @@ export const IncomePage = () => {
                     {item.clientPhone && <div className="text-[10px] text-slate-400 mt-0.5">{item.clientPhone}</div>}
                   </td>
                   <td className="py-2.5 px-2 text-center whitespace-nowrap">
-                    <span className="px-2 py-0.5 rounded-md bg-blue-50 text-blue-700 font-bold border border-blue-100 text-[11px]">
-                      {item.contract}
-                    </span>
+                    {item.operationType === 'INVESTMENT' || item.category === 'Инвестиции партнёров' ? (
+                      <span className="px-2 py-0.5 rounded-md bg-purple-100 text-purple-800 font-bold border border-purple-200 text-[11px] inline-flex items-center gap-1">
+                        💼 Инвестиция партнёра
+                      </span>
+                    ) : (
+                      <span className="px-2 py-0.5 rounded-md bg-blue-50 text-blue-700 font-bold border border-blue-100 text-[11px]">
+                        {item.contract}
+                      </span>
+                    )}
                   </td>
                   <td className="py-2.5 px-2 text-center whitespace-nowrap">
                     <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-bold bg-slate-100 text-slate-700">
@@ -927,7 +933,7 @@ export const IncomePage = () => {
                   </div>
                 </div>
 
-                {/* Cash Desk & Comment */}
+                {/* Cash Desk Selection */}
                 <div className="sm:col-span-2">
                   <label className="block text-[11px] font-bold text-slate-700 mb-1 flex items-center justify-between">
                     <span className="flex items-center gap-1.5">
@@ -952,11 +958,15 @@ export const IncomePage = () => {
                     <select
                       value={formData.cash_desk_id || formData.cash_desk}
                       onChange={e => {
-                        const selectedObj = allCashDesks.find(c => c.id === e.target.value || c.name === e.target.value);
+                        const selectedObj = allCashDesks.find(c => c.id === e.target.value || c.name === e.target.value || c.code === e.target.value);
+                        const isInv = selectedObj?.code === 'TOZON_PLAZA_INVESTMENT' || selectedObj?.name?.includes('Инвестиционная');
                         setFormData({
                           ...formData,
                           cash_desk_id: selectedObj?.id || e.target.value,
-                          cash_desk: selectedObj?.name || e.target.value
+                          cash_desk: selectedObj?.name || e.target.value,
+                          operation_type: isInv ? 'INVESTMENT' : 'STANDARD',
+                          deal_id: isInv ? '' : formData.deal_id,
+                          category: isInv ? 'Инвестиции партнёров' : formData.category
                         });
                       }}
                       className="w-full rounded-xl border border-slate-300 bg-slate-50 px-3 py-1.5 text-xs font-bold text-slate-800 outline-none focus:border-emerald-500 cursor-pointer"
@@ -971,14 +981,245 @@ export const IncomePage = () => {
                   )}
                 </div>
 
+                {/* Investment Banner or Deal selection */}
+                {(() => {
+                  const selectedObj = allCashDesks.find(c => c.id === formData.cash_desk_id || c.name === formData.cash_desk);
+                  const isInv = selectedObj?.code === 'TOZON_PLAZA_INVESTMENT' || selectedObj?.name?.includes('Инвестиционная') || formData.operation_type === 'INVESTMENT';
+                  
+                  if (isInv) {
+                    return (
+                      <div className="sm:col-span-2 p-2.5 bg-purple-50 border border-purple-200 rounded-xl text-xs flex items-center justify-between text-purple-900 font-medium">
+                        <div className="flex items-center gap-2">
+                          <span className="text-base">📈</span>
+                          <div>
+                            <div className="font-bold">Инвестиционная касса TOZON PLAZA</div>
+                            <div className="text-[11px] text-purple-700">Взнос партнёра / инвестора не привязывается к сделке и не влияет на выручку от продаж квартир</div>
+                          </div>
+                        </div>
+                        <span className="px-2 py-0.5 rounded bg-purple-600 text-white text-[10px] font-bold">Инвестиции</span>
+                      </div>
+                    );
+                  }
+
+                  return (
+                    <div className="sm:col-span-2">
+                      <label className="block text-[11px] font-bold text-slate-700 mb-1">
+                        Привязать к сделке / договору (необязательно):
+                      </label>
+                      <select
+                        value={formData.deal_id}
+                        onChange={handleDealSelect}
+                        className="w-full rounded-xl border border-slate-300 bg-slate-50 px-3 py-1.5 text-xs font-medium outline-none focus:border-emerald-500 focus:bg-white"
+                      >
+                        <option value="">-- Прямое поступление (без привязки к сделке) --</option>
+                        {dealsList.map(d => (
+                          <option key={d.id} value={d.id}>
+                            Договор {d.contract_number || `СД-${d.id}`} • {d.lead_name} ({d.project_name})
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                  );
+                })()}
+
+                {/* Partner / Investor Name */}
+                <div>
+                  <label className="block text-[11px] font-bold text-slate-700 mb-1">
+                    {(() => {
+                      const selectedObj = allCashDesks.find(c => c.id === formData.cash_desk_id || c.name === formData.cash_desk);
+                      return (selectedObj?.code === 'TOZON_PLAZA_INVESTMENT' || selectedObj?.name?.includes('Инвестиционная')) ? 'Партнёр / Инвестор *' : 'ФИО Плательщика / Клиент *';
+                    })()}
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    value={formData.payer_name}
+                    onChange={e => setFormData({ ...formData, payer_name: e.target.value })}
+                    placeholder={allCashDesks.find(c => c.id === formData.cash_desk_id || c.name === formData.cash_desk)?.code === 'TOZON_PLAZA_INVESTMENT' ? 'ФИО или наименование партнера/инвестора' : 'ФИО клиента или контрагента'}
+                    className="w-full rounded-xl border border-slate-300 bg-white px-3 py-1.5 text-xs outline-none focus:border-emerald-500"
+                  />
+                </div>
+
+                {/* Method */}
+                <div>
+                  <label className="block text-[11px] font-bold text-slate-700 mb-1">Способ оплаты *</label>
+                  <select
+                    value={formData.method}
+                    onChange={e => setFormData({ ...formData, method: e.target.value })}
+                    className="w-full rounded-xl border border-slate-300 bg-slate-50 px-2.5 py-1.5 text-xs font-medium outline-none focus:border-emerald-500 cursor-pointer"
+                  >
+                    {paymentMethods.map(m => (
+                      <option key={m.id || m.code || m.name} value={m.code || m.name}>
+                        {m.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                {/* Project (for investment) */}
+                {(() => {
+                  const selectedObj = allCashDesks.find(c => c.id === formData.cash_desk_id || c.name === formData.cash_desk);
+                  const isInv = selectedObj?.code === 'TOZON_PLAZA_INVESTMENT' || selectedObj?.name?.includes('Инвестиционная') || formData.operation_type === 'INVESTMENT';
+                  if (!isInv) return null;
+                  return (
+                    <div>
+                      <label className="block text-[11px] font-bold text-slate-700 mb-1">Проект *</label>
+                      <select
+                        value={formData.project_id || '3'}
+                        onChange={e => setFormData({ ...formData, project_id: e.target.value })}
+                        className="w-full rounded-xl border border-slate-300 bg-slate-50 px-2.5 py-1.5 text-xs font-bold text-slate-800 outline-none focus:border-purple-500"
+                      >
+                        <option value="3">ЖК TOZON PLAZA</option>
+                      </select>
+                    </div>
+                  );
+                })()}
+
+                {/* Amount and Currency */}
+                <div>
+                  <div className="grid grid-cols-5 gap-2">
+                    <div className="col-span-3">
+                      <label className="block text-[11px] font-bold text-slate-700 mb-1">
+                        Сумма поступления *
+                      </label>
+                      <input
+                        type="number"
+                        step="0.01"
+                        min="0.01"
+                        required
+                        value={formData.amount}
+                        onChange={e => setFormData({ ...formData, amount: e.target.value })}
+                        placeholder="0.00"
+                        className="w-full rounded-xl border border-slate-300 bg-white px-3 py-1.5 text-sm font-black text-slate-900 outline-none focus:border-emerald-500"
+                      />
+                    </div>
+                    <div className="col-span-2">
+                      <label className="block text-[11px] font-bold text-slate-700 mb-1">
+                        Валюта *
+                      </label>
+                      <select
+                        value={formData.currency}
+                        onChange={e => setFormData({ ...formData, currency: e.target.value })}
+                        className="w-full rounded-xl border border-slate-300 bg-slate-50 px-2 py-1.5 text-xs font-bold text-slate-800 outline-none focus:border-emerald-500"
+                      >
+                        <option value="USD">USD ($)</option>
+                        <option value="TJS">TJS (Сомони)</option>
+                        <option value="RUB">RUB (Рубль)</option>
+                        <option value="EUR">EUR (€)</option>
+                      </select>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Exchange Rate & USD Equivalent if TJS */}
+                {formData.currency === 'TJS' && (
+                  <div className="sm:col-span-2 bg-slate-50 p-2.5 rounded-xl border border-slate-200 grid grid-cols-2 gap-3 items-center">
+                    <div>
+                      <label className="block text-[11px] font-bold text-slate-700 mb-1">
+                        Курс обмена TJS → USD *
+                      </label>
+                      <input
+                        type="number"
+                        step="0.0001"
+                        min="0.0001"
+                        required
+                        value={formData.exchange_rate}
+                        onChange={e => setFormData({ ...formData, exchange_rate: e.target.value })}
+                        placeholder="10.90"
+                        className="w-full rounded-xl border border-slate-300 bg-white px-3 py-1.5 text-xs font-bold text-slate-900 outline-none focus:border-purple-500"
+                      />
+                    </div>
+                    <div>
+                      <div className="text-[11px] font-bold text-slate-500 mb-1">Эквивалент USD (расчёт)</div>
+                      <div className="text-sm font-black text-purple-700">
+                        {formData.amount && formData.exchange_rate && parseFloat(formData.exchange_rate) > 0
+                          ? `$ ${(parseFloat(formData.amount) / parseFloat(formData.exchange_rate)).toLocaleString('ru-RU', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} USD`
+                          : '$ 0.00 USD'}
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* Date & Reference */}
+                <div>
+                  <div className="grid grid-cols-2 gap-2">
+                    <div>
+                      <label className="block text-[11px] font-bold text-slate-700 mb-1">Дата платежа *</label>
+                      <input
+                        type="date"
+                        required
+                        value={formData.date}
+                        onChange={e => setFormData({ ...formData, date: e.target.value })}
+                        className="w-full rounded-xl border border-slate-300 bg-slate-50 px-2.5 py-1.5 text-xs outline-none focus:border-emerald-500"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-[11px] font-bold text-slate-700 mb-1">
+                        Номер чека / ПКО
+                      </label>
+                      <input
+                        type="text"
+                        value={formData.reference}
+                        onChange={e => setFormData({ ...formData, reference: e.target.value })}
+                        placeholder="ПКО-10449..."
+                        className="w-full rounded-xl border border-slate-300 bg-slate-50 px-2.5 py-1.5 text-xs outline-none focus:border-emerald-500"
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                {/* DDS Article, Purpose, Basis for Investment */}
+                {(() => {
+                  const selectedObj = allCashDesks.find(c => c.id === formData.cash_desk_id || c.name === formData.cash_desk);
+                  const isInv = selectedObj?.code === 'TOZON_PLAZA_INVESTMENT' || selectedObj?.name?.includes('Инвестиционная') || formData.operation_type === 'INVESTMENT';
+                  if (!isInv) return null;
+                  return (
+                    <>
+                      <div>
+                        <label className="block text-[11px] font-bold text-slate-700 mb-1">Статья ДДС *</label>
+                        <select
+                          value={formData.category || 'Инвестиции партнёров'}
+                          onChange={e => setFormData({ ...formData, category: e.target.value })}
+                          className="w-full rounded-xl border border-slate-300 bg-slate-50 px-2.5 py-1.5 text-xs font-bold text-purple-900 outline-none focus:border-purple-500"
+                        >
+                          <option value="Инвестиции партнёров">Финансовая деятельность • Инвестиции партнёров</option>
+                          {incomeCategories.filter(c => c.name !== 'Инвестиции партнёров').map(c => (
+                            <option key={c.id || c.name} value={c.name}>{c.name}</option>
+                          ))}
+                        </select>
+                      </div>
+                      <div>
+                        <label className="block text-[11px] font-bold text-slate-700 mb-1">Основание</label>
+                        <input
+                          type="text"
+                          value={formData.basis || ''}
+                          onChange={e => setFormData({ ...formData, basis: e.target.value })}
+                          placeholder="например, Инвестиционный договор №..."
+                          className="w-full rounded-xl border border-slate-300 bg-slate-50 px-3 py-1.5 text-xs outline-none focus:border-purple-500"
+                        />
+                      </div>
+                      <div className="sm:col-span-2">
+                        <label className="block text-[11px] font-bold text-slate-700 mb-1">Назначение платежа</label>
+                        <input
+                          type="text"
+                          value={formData.purpose || ''}
+                          onChange={e => setFormData({ ...formData, purpose: e.target.value })}
+                          placeholder="например, Взнос на строительство корпуса Б..."
+                          className="w-full rounded-xl border border-slate-300 bg-slate-50 px-3 py-1.5 text-xs outline-none focus:border-purple-500"
+                        />
+                      </div>
+                    </>
+                  );
+                })()}
+
                 {/* Comment (Full width) */}
                 <div className="sm:col-span-2">
-                  <label className="block text-[11px] font-bold text-slate-700 mb-1">Примечание / Назначение</label>
+                  <label className="block text-[11px] font-bold text-slate-700 mb-1">Примечание</label>
                   <input
                     type="text"
                     value={formData.comment}
                     onChange={e => setFormData({ ...formData, comment: e.target.value })}
-                    placeholder="Детали или назначение платежа..."
+                    placeholder="Дополнительные детали..."
                     className="w-full rounded-xl border border-slate-300 bg-slate-50 px-3 py-1.5 text-xs outline-none focus:border-emerald-500"
                   />
                 </div>
