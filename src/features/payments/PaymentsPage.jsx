@@ -52,9 +52,10 @@ export const PaymentsPage = () => {
     );
   });
 
-  const totalContractAmount = deals.reduce((acc, d) => acc + (d.final_price_minor || 0), 0);
-  const totalCollected = deals.reduce((acc, d) => acc + (d.paid_amount_minor || 0), 0);
-  const totalDebt = totalContractAmount - totalCollected;
+  const signedDeals = filteredDeals.filter(d => d.status === 'SIGNED' || d.status === 'COMPLETED');
+  const totalContractAmount = signedDeals.reduce((acc, d) => acc + (d.final_price_minor || 0), 0);
+  const totalCollected = filteredDeals.reduce((acc, d) => acc + (d.total_paid_minor || d.paid_amount_minor || 0), 0);
+  const totalDebt = Math.max(0, totalContractAmount - totalCollected);
 
   return (
     <div className="space-y-6 max-w-7xl mx-auto pb-12">

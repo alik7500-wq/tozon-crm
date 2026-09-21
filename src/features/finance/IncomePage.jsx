@@ -362,7 +362,7 @@ export const IncomePage = () => {
         <div className="flex items-center gap-3 flex-wrap">
           <div className="flex items-center gap-1.5 bg-slate-50 p-1 rounded-2xl border border-slate-200">
             <span className="text-[11px] font-bold text-slate-500 px-2">Год:</span>
-            {availableYears.map(y => (
+            {['ALL', ...availableYears].map(y => (
               <button
                 key={y}
                 onClick={() => setYear(y)}
@@ -372,7 +372,7 @@ export const IncomePage = () => {
                     : 'text-slate-600 hover:bg-slate-200/70'
                 }`}
               >
-                {y}
+                {y === 'ALL' ? 'Все' : y}
               </button>
             ))}
           </div>
