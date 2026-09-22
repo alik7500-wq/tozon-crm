@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { api } from '../../api/client';
 import { useModalDismiss } from '../../hooks/useModalDismiss';
 import { formatContractNumber } from '../../utils/formatters';
+import { SendSmsModal } from '../../components/sms/SendSmsModal';
 import {
   X,
   User,
@@ -33,6 +34,7 @@ export const LeadDrawer = ({ isOpen, onClose, leadId, onLeadUpdated, onEditLead 
   const [isAddingNote, setIsAddingNote] = useState(false);
   const [isUpdatingStatus, setIsUpdatingStatus] = useState(false);
   const [toastMessage, setToastMessage] = useState('');
+  const [isSmsModalOpen, setIsSmsModalOpen] = useState(false);
 
   const { requestClose } = useModalDismiss({
     isOpen: Boolean(isOpen && leadId),
@@ -215,14 +217,24 @@ export const LeadDrawer = ({ isOpen, onClose, leadId, onLeadUpdated, onEditLead 
 
           <div className="flex items-center gap-2">
             {lead && (
-              <button
-                type="button"
-                onClick={() => onEditLead(lead)}
-                className="flex items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3 py-1.5 text-xs font-bold text-slate-700 hover:bg-slate-50 shadow-2xs transition cursor-pointer"
-              >
-                <Edit2 className="h-3.5 w-3.5" />
-                <span>Редактировать</span>
-              </button>
+              <>
+                <button
+                  type="button"
+                  onClick={() => setIsSmsModalOpen(true)}
+                  className="flex items-center gap-1.5 rounded-xl border border-blue-200 bg-blue-50/80 px-3 py-1.5 text-xs font-bold text-blue-700 hover:bg-blue-100 shadow-2xs transition cursor-pointer"
+                >
+                  <MessageSquare className="h-3.5 w-3.5 text-blue-600" />
+                  <span>Отправить SMS</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => onEditLead(lead)}
+                  className="flex items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3 py-1.5 text-xs font-bold text-slate-700 hover:bg-slate-50 shadow-2xs transition cursor-pointer"
+                >
+                  <Edit2 className="h-3.5 w-3.5" />
+                  <span>Редактировать</span>
+                </button>
+              </>
             )}
             <button
               type="button"
@@ -547,6 +559,18 @@ export const LeadDrawer = ({ isOpen, onClose, leadId, onLeadUpdated, onEditLead 
             </div>
           </div>
         ) : null}
+
+        {/* Send SMS Modal */}
+        {lead && (
+          <SendSmsModal
+            isOpen={isSmsModalOpen}
+            onClose={() => setIsSmsModalOpen(false)}
+            client={lead}
+            onSuccess={() => {
+              showToast('✓ SMS сообщение успешно поставлено в очередь');
+            }}
+          />
+        )}
       </div>
     </div>
   );
