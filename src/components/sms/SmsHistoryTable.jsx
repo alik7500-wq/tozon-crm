@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { api } from '../../api/client';
 import { MessageSquare, Clock, CheckCircle2, AlertTriangle, RefreshCw, Phone, User, ShieldAlert } from 'lucide-react';
 
-export function SmsHistoryTable({ clientId = null }) {
+export function SmsHistoryTable({ clientId = null, refreshTrigger = 0, onCountChange, onOpenSendModal }) {
   const [history, setHistory] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -15,10 +15,15 @@ export function SmsHistoryTable({ clientId = null }) {
       const res = await api.get(endpoint);
       if (res.success && Array.isArray(res.data)) {
         setHistory(res.data);
+        if (onCountChange) onCountChange(res.data.length);
+      } else {
+        setHistory([]);
+        if (onCountChange) onCountChange(0);
       }
     } catch (err) {
       console.error('Error fetching SMS history:', err);
       setError('Не удалось загрузить историю SMS');
+      if (onCountChange) onCountChange(0);
     } finally {
       setIsLoading(false);
     }
@@ -26,29 +31,44 @@ export function SmsHistoryTable({ clientId = null }) {
 
   useEffect(() => {
     fetchHistory();
-  }, [clientId]);
+  }, [clientId, refreshTrigger]);
 
-  const getStatusBadge = (status) => {
+  const getStatusBadge = (status, errorMessage) => {
     switch (status) {
       case 'sent':
+        return (
+          <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-medium bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+            <CheckCircle2 className="w-3.5 h-3.5" />
+            Отправлено
+          </span>
+        );
       case 'delivered':
         return (
           <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-medium bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
             <CheckCircle2 className="w-3.5 h-3.5" />
-            {status === 'delivered' ? 'Доставлено' : 'Отправлено'}
+            Доставлено
           </span>
         );
       case 'sending':
-      case 'queued':
         return (
           <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-medium bg-amber-500/10 text-amber-400 border border-amber-500/20">
             <Clock className="w-3.5 h-3.5 animate-pulse" />
-            В процессе
+            Отправляется
+          </span>
+        );
+      case 'queued':
+        return (
+          <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-medium bg-amber-500/10 text-amber-400 border border-amber-500/20">
+            <Clock className="w-3.5 h-3.5" />
+            В очереди
           </span>
         );
       case 'failed':
         return (
-          <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-medium bg-rose-500/10 text-rose-400 border border-rose-500/20">
+          <span
+            className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-medium bg-rose-500/10 text-rose-400 border border-rose-500/20"
+            title={errorMessage ? `Причина: ${errorMessage}` : 'Ошибка отправки'}
+          >
             <AlertTriangle className="w-3.5 h-3.5" />
             Ошибка
           </span>
@@ -71,14 +91,14 @@ export function SmsHistoryTable({ clientId = null }) {
             <MessageSquare className="w-5 h-5" />
           </div>
           <div>
-            <h3 className="text-base font-semibold text-white">История отправленных SMS</h3>
+            <h3 className="text-base font-semibold text-white">История SMS сообщений</h3>
             <p className="text-xs text-slate-400">Провайдер Payom.tj • Имя отправителя: TOZON-PLAZA</p>
           </div>
         </div>
         <button
           onClick={fetchHistory}
           disabled={isLoading}
-          className="flex items-center gap-1.5 text-xs text-slate-400 hover:text-slate-200 px-3 py-1.5 rounded-lg border border-slate-800 hover:bg-slate-800 transition-colors"
+          className="flex items-center gap-1.5 text-xs text-slate-400 hover:text-slate-200 px-3 py-1.5 rounded-lg border border-slate-800 hover:bg-slate-800 transition-colors cursor-pointer"
         >
           <RefreshCw className={`w-3.5 h-3.5 ${isLoading ? 'animate-spin' : ''}`} />
           Обновить
@@ -94,21 +114,36 @@ export function SmsHistoryTable({ clientId = null }) {
           {error}
         </div>
       ) : history.length === 0 ? (
-        <div className="p-8 text-center text-slate-500 text-sm">
-          История SMS сообщений пуста.
+        <div className="p-8 text-center bg-slate-900/50 space-y-3">
+          <div className="w-12 h-12 rounded-full bg-blue-500/10 text-blue-400 border border-blue-500/20 flex items-center justify-center mx-auto">
+            <MessageSquare className="w-6 h-6" />
+          </div>
+          <div>
+            <h4 className="text-sm font-semibold text-slate-200">SMS сообщений пока нет</h4>
+            <p className="text-xs text-slate-400 mt-1">Отправьте клиенту первое сообщение</p>
+          </div>
+          {onOpenSendModal && (
+            <button
+              type="button"
+              onClick={onOpenSendModal}
+              className="inline-flex items-center gap-1.5 rounded-xl bg-blue-600 px-4 py-2 text-xs font-bold text-white hover:bg-blue-500 transition shadow-md cursor-pointer"
+            >
+              <MessageSquare className="w-3.5 h-3.5" />
+              <span>Отправить SMS</span>
+            </button>
+          )}
         </div>
       ) : (
         <div className="overflow-x-auto">
           <table className="w-full text-left text-sm text-slate-300">
             <thead className="bg-slate-950/60 text-xs uppercase text-slate-500 border-b border-slate-800">
               <tr>
-                <th className="px-6 py-3 font-medium">Дата & Время</th>
+                <th className="px-6 py-3 font-medium">Дата / Время</th>
                 {!clientId && <th className="px-6 py-3 font-medium">Клиент</th>}
                 <th className="px-6 py-3 font-medium">Телефон</th>
                 <th className="px-6 py-3 font-medium">Текст сообщения</th>
-                <th className="px-6 py-3 font-medium">Отправитель</th>
                 <th className="px-6 py-3 font-medium">Статус</th>
-                <th className="px-6 py-3 font-medium">Менеджер CRM</th>
+                <th className="px-6 py-3 font-medium">Отправитель</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-800/60">
@@ -125,14 +160,16 @@ export function SmsHistoryTable({ clientId = null }) {
                   <td className="px-6 py-3.5 font-mono text-emerald-400 text-xs whitespace-nowrap">
                     {row.phone}
                   </td>
-                  <td className="px-6 py-3.5 text-slate-300 max-w-xs truncate" title={row.message}>
-                    {row.message}
-                  </td>
-                  <td className="px-6 py-3.5 font-mono text-xs text-blue-400 whitespace-nowrap">
-                    {row.sender_name || 'TOZON-PLAZA'}
+                  <td className="px-6 py-3.5 text-slate-300 max-w-sm break-words">
+                    <p className="line-clamp-3 hover:line-clamp-none transition-all">{row.message}</p>
+                    {row.status === 'failed' && row.error_message && (
+                      <span className="text-[11px] text-rose-400 block mt-1">
+                        Причина: {row.error_message}
+                      </span>
+                    )}
                   </td>
                   <td className="px-6 py-3.5 whitespace-nowrap">
-                    {getStatusBadge(row.status)}
+                    {getStatusBadge(row.status, row.error_message)}
                   </td>
                   <td className="px-6 py-3.5 text-xs text-slate-400 whitespace-nowrap">
                     {row.created_by_name || 'Система'}

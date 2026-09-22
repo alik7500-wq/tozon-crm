@@ -3,6 +3,7 @@ import { api } from '../../api/client';
 import { useModalDismiss } from '../../hooks/useModalDismiss';
 import { formatContractNumber } from '../../utils/formatters';
 import { SendSmsModal } from '../../components/sms/SendSmsModal';
+import { SmsHistoryTable } from '../../components/sms/SmsHistoryTable';
 import {
   X,
   User,
@@ -29,12 +30,14 @@ import {
 export const LeadDrawer = ({ isOpen, onClose, leadId, onLeadUpdated, onEditLead }) => {
   const [lead, setLead] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState('notes'); // 'notes', 'info', 'deals'
+  const [activeTab, setActiveTab] = useState('notes'); // 'notes', 'info', 'deals', 'sms'
   const [newNote, setNewNote] = useState('');
   const [isAddingNote, setIsAddingNote] = useState(false);
   const [isUpdatingStatus, setIsUpdatingStatus] = useState(false);
   const [toastMessage, setToastMessage] = useState('');
   const [isSmsModalOpen, setIsSmsModalOpen] = useState(false);
+  const [smsRefreshTrigger, setSmsRefreshTrigger] = useState(0);
+  const [smsCount, setSmsCount] = useState(0);
 
   const { requestClose } = useModalDismiss({
     isOpen: Boolean(isOpen && leadId),
@@ -343,6 +346,22 @@ export const LeadDrawer = ({ isOpen, onClose, leadId, onLeadUpdated, onEditLead 
                   {dealsCount}
                 </span>
               </button>
+
+              <button
+                type="button"
+                onClick={() => setActiveTab('sms')}
+                className={`py-3 px-3 text-xs font-bold transition border-b-2 flex items-center gap-1.5 cursor-pointer ${
+                  activeTab === 'sms'
+                    ? 'border-purple-600 text-purple-700 bg-white shadow-2xs'
+                    : 'border-transparent text-slate-500 hover:text-slate-900'
+                }`}
+              >
+                <MessageSquare className="h-3.5 w-3.5 text-blue-600" />
+                <span>SMS</span>
+                <span className={`px-1.5 py-0.2 rounded-full text-[10px] font-extrabold ${activeTab === 'sms' ? 'bg-blue-100 text-blue-800' : 'bg-slate-200 text-slate-600'}`}>
+                  {smsCount}
+                </span>
+              </button>
             </div>
 
             {/* Tab Body */}
@@ -556,6 +575,33 @@ export const LeadDrawer = ({ isOpen, onClose, leadId, onLeadUpdated, onEditLead 
                   )}
                 </div>
               )}
+
+              {/* TAB 4: SMS MESSAGES */}
+              {activeTab === 'sms' && (
+                <div className="space-y-4">
+                  <div className="flex items-center justify-between bg-blue-50 border border-blue-200 p-4 rounded-xl">
+                    <div>
+                      <h4 className="text-xs font-bold text-blue-900">SMS сообщения</h4>
+                      <p className="text-[11px] text-blue-700">История отправленных сообщений клиенту</p>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setIsSmsModalOpen(true)}
+                      className="flex items-center gap-1.5 rounded-xl bg-blue-600 px-4 py-2 text-xs font-bold text-white hover:bg-blue-700 transition shadow-sm cursor-pointer"
+                    >
+                      <MessageSquare className="h-3.5 w-3.5" />
+                      <span>Отправить SMS</span>
+                    </button>
+                  </div>
+
+                  <SmsHistoryTable
+                    clientId={leadId}
+                    refreshTrigger={smsRefreshTrigger}
+                    onCountChange={setSmsCount}
+                    onOpenSendModal={() => setIsSmsModalOpen(true)}
+                  />
+                </div>
+              )}
             </div>
           </div>
         ) : null}
@@ -567,7 +613,8 @@ export const LeadDrawer = ({ isOpen, onClose, leadId, onLeadUpdated, onEditLead 
             onClose={() => setIsSmsModalOpen(false)}
             client={lead}
             onSuccess={() => {
-              showToast('✓ SMS сообщение успешно поставлено в очередь');
+              setSmsRefreshTrigger((prev) => prev + 1);
+              showToast('✓ SMS отправлено');
             }}
           />
         )}
