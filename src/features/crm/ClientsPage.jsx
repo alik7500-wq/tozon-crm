@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { api } from '../../api/client';
 import { ClientDetailModal } from './ClientDetailModal';
 import { EditClientModal } from './EditClientModal';
+import { SendSmsModal } from '../../components/sms/SendSmsModal';
 import {
   Users,
   Plus,
@@ -19,7 +20,8 @@ import {
   History,
   ChevronRight,
   ShieldCheck,
-  Sparkles
+  Sparkles,
+  MessageSquare
 } from 'lucide-react';
 
 export const ClientsPage = () => {
@@ -28,6 +30,7 @@ export const ClientsPage = () => {
   const [search, setSearch] = useState('');
   const [selectedClient, setSelectedClient] = useState(null);
   const [clientToEdit, setClientToEdit] = useState(null);
+  const [smsClient, setSmsClient] = useState(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [newClient, setNewClient] = useState({
@@ -306,15 +309,30 @@ export const ClientsPage = () => {
                     <td className="p-3.5 text-right pr-6">
                       <div className="flex items-center justify-end gap-2">
                         {c.phone && (
-                          <a
-                            href={`tel:${c.phone}`}
-                            onClick={(e) => e.stopPropagation()}
-                            title="Позвонить клиенту"
-                            className="inline-flex items-center gap-1 rounded-xl bg-blue-50 text-blue-700 px-3 py-1.5 text-xs font-bold hover:bg-blue-100 transition cursor-pointer"
-                          >
-                            <Phone className="h-3 w-3" />
-                            <span>Позвонить</span>
-                          </a>
+                          <>
+                            <a
+                              href={`tel:${c.phone}`}
+                              onClick={(e) => e.stopPropagation()}
+                              title="Позвонить клиенту"
+                              className="inline-flex items-center gap-1 rounded-xl bg-blue-50 text-blue-700 px-3 py-1.5 text-xs font-bold hover:bg-blue-100 transition cursor-pointer"
+                            >
+                              <Phone className="h-3 w-3" />
+                              <span>Позвонить</span>
+                            </a>
+
+                            <button
+                              type="button"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setSmsClient(c);
+                              }}
+                              title="Отправить SMS клиенту"
+                              className="inline-flex items-center gap-1 rounded-xl bg-purple-50 text-purple-700 hover:bg-purple-100 border border-purple-200/80 px-2.5 py-1.5 text-xs font-bold transition cursor-pointer"
+                            >
+                              <MessageSquare className="h-3 w-3" />
+                              <span>SMS</span>
+                            </button>
+                          </>
                         )}
 
                         <button
@@ -374,6 +392,24 @@ export const ClientsPage = () => {
           onEditClient={(client) => {
             setSelectedClient(null);
             setClientToEdit(client);
+          }}
+        />
+      )}
+
+      {/* Send SMS Modal */}
+      {smsClient && (
+        <SendSmsModal
+          isOpen={Boolean(smsClient)}
+          onClose={() => setSmsClient(null)}
+          client={{
+            id: smsClient.lead_id || smsClient.id,
+            phone: smsClient.phone,
+            full_name: smsClient.name || smsClient.full_name,
+            name: smsClient.name || smsClient.full_name,
+            deal_id: smsClient.deal_id
+          }}
+          onSuccess={() => {
+            fetchClients();
           }}
         />
       )}

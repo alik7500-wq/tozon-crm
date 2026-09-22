@@ -3,6 +3,8 @@ import { createPortal } from 'react-dom';
 import { api } from '../../api/client';
 import { useModalDismiss } from '../../hooks/useModalDismiss';
 import { formatContractNumber } from '../../utils/formatters';
+import { SendSmsModal } from '../../components/sms/SendSmsModal';
+import { SmsHistoryTable } from '../../components/sms/SmsHistoryTable';
 import {
   X,
   User,
@@ -33,13 +35,16 @@ import {
 } from 'lucide-react';
 
 export const ClientDetailModal = ({ isOpen, onClose, client, onClientUpdated, onEditClient }) => {
-  const [activeTab, setActiveTab] = useState('INFO'); // 'INFO' or 'HISTORY'
+  const [activeTab, setActiveTab] = useState('INFO'); // 'INFO', 'HISTORY', or 'SMS'
   const [fullLead, setFullLead] = useState(null);
   const [clientDeals, setClientDeals] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
   const [newNote, setNewNote] = useState('');
   const [isSubmittingNote, setIsSubmittingNote] = useState(false);
   const [toastMessage, setToastMessage] = useState('');
+  const [isSmsModalOpen, setIsSmsModalOpen] = useState(false);
+  const [smsRefreshTrigger, setSmsRefreshTrigger] = useState(0);
+  const [smsCount, setSmsCount] = useState(0);
 
   const showToast = (msg) => {
     setToastMessage(msg);
@@ -307,13 +312,25 @@ export const ClientDetailModal = ({ isOpen, onClose, client, onClientUpdated, on
             )}
 
             {client.phone && (
-              <a
-                href={`tel:${client.phone}`}
-                className="hidden sm:flex items-center gap-1.5 rounded-xl bg-blue-600 hover:bg-blue-700 px-3.5 py-1.5 text-xs font-bold text-white transition shadow-xs"
-              >
-                <Phone className="h-3.5 w-3.5" />
-                <span>Позвонить</span>
-              </a>
+              <>
+                <button
+                  type="button"
+                  onClick={() => setIsSmsModalOpen(true)}
+                  className="flex items-center gap-1.5 rounded-xl bg-purple-600 hover:bg-purple-700 px-3 py-1.5 text-xs font-bold text-white transition shadow-xs cursor-pointer"
+                  title="Отправить SMS сообщение"
+                >
+                  <MessageSquare className="h-3.5 w-3.5" />
+                  <span>SMS</span>
+                </button>
+
+                <a
+                  href={`tel:${client.phone}`}
+                  className="hidden sm:flex items-center gap-1.5 rounded-xl bg-blue-600 hover:bg-blue-700 px-3.5 py-1.5 text-xs font-bold text-white transition shadow-xs"
+                >
+                  <Phone className="h-3.5 w-3.5" />
+                  <span>Позвонить</span>
+                </a>
+              </>
             )}
 
             <button
@@ -358,6 +375,25 @@ export const ClientDetailModal = ({ isOpen, onClose, client, onClientUpdated, on
                 {timeline.length}
               </span>
             </button>
+
+            <button
+              onClick={() => setActiveTab('SMS')}
+              className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition cursor-pointer ${
+                activeTab === 'SMS'
+                  ? 'bg-purple-600 text-white shadow-xs'
+                  : 'text-slate-600 hover:text-slate-900 hover:bg-slate-200/60'
+              }`}
+            >
+              <MessageSquare className="h-4 w-4" />
+              <span>SMS история</span>
+              <span
+                className={`text-[10px] px-1.5 py-0.2 rounded-full font-bold ${
+                  activeTab === 'SMS' ? 'bg-white/20 text-white' : 'bg-slate-200 text-slate-700'
+                }`}
+              >
+                {smsCount}
+              </span>
+            </button>
           </div>
 
           <div className="hidden sm:block text-xs font-medium text-slate-500">
@@ -372,9 +408,11 @@ export const ClientDetailModal = ({ isOpen, onClose, client, onClientUpdated, on
               <div className="h-8 w-8 animate-spin rounded-full border-4 border-blue-600 border-t-transparent" />
               <span className="text-xs text-slate-500">Загрузка карточки клиента...</span>
             </div>
-          ) : activeTab === 'INFO' ? (
-            /* ================= VIEW 1: ДАННЫЕ КЛИЕНТА ================= */
-            <div className="space-y-6 animate-in fade-in duration-200">
+          ) : (
+            <>
+              {/* ================= VIEW 1: ДАННЫЕ КЛИЕНТА ================= */}
+              {activeTab === 'INFO' && (
+                <div className="space-y-6 animate-in fade-in duration-200">
               
               {/* Financial KPI Highlights */}
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
@@ -585,8 +623,10 @@ export const ClientDetailModal = ({ isOpen, onClose, client, onClientUpdated, on
               </div>
 
             </div>
-          ) : (
-            /* ================= VIEW 2: ИСТОРИЯ КЛИЕНТА / ТАЙМЛАЙН ================= */
+          )}
+
+          {/* ================= VIEW 2: ИСТОРИЯ КЛИЕНТА / ТАЙМЛАЙН ================= */}
+          {activeTab === 'HISTORY' && (
             <div className="space-y-6 animate-in fade-in duration-200">
               
               {/* Back to Client Profile top prompt */}
@@ -689,9 +729,43 @@ export const ClientDetailModal = ({ isOpen, onClose, client, onClientUpdated, on
                   </div>
                 )}
               </div>
-
             </div>
           )}
+
+            {/* TAB 3: SMS HISTORY */}
+            {activeTab === 'SMS' && (
+              <div className="space-y-4 animate-in fade-in">
+                <div className="flex items-center justify-between bg-slate-900 text-white p-4 rounded-2xl">
+                  <div>
+                    <h4 className="text-sm font-bold flex items-center gap-2">
+                      <MessageSquare className="h-4 w-4 text-purple-400" />
+                      <span>SMS коммуникация клиента</span>
+                    </h4>
+                    <p className="text-xs text-slate-400 mt-0.5">
+                      Получатель: {client.phone || 'Не указан'} • Статусы отправок Payom.tj
+                    </p>
+                  </div>
+                  <button
+                    onClick={() => setIsSmsModalOpen(true)}
+                    className="px-3.5 py-2 rounded-xl bg-purple-600 hover:bg-purple-700 text-white text-xs font-bold transition flex items-center gap-1.5 shadow-sm cursor-pointer"
+                  >
+                    <Send className="h-3.5 w-3.5" />
+                    <span>Отправить SMS</span>
+                  </button>
+                </div>
+
+                <div className="rounded-2xl border border-slate-200 bg-slate-900 p-4 shadow-inner">
+                  <SmsHistoryTable
+                    clientId={client.lead_id || client.id}
+                    refreshTrigger={smsRefreshTrigger}
+                    onCountChange={setSmsCount}
+                    onOpenSendModal={() => setIsSmsModalOpen(true)}
+                  />
+                </div>
+              </div>
+            )}
+          </>
+        )}
         </div>
 
         {/* Footer */}
@@ -732,6 +806,25 @@ export const ClientDetailModal = ({ isOpen, onClose, client, onClientUpdated, on
         </div>
 
       </div>
+
+      {/* Send SMS Modal */}
+      {isSmsModalOpen && (
+        <SendSmsModal
+          isOpen={isSmsModalOpen}
+          onClose={() => setIsSmsModalOpen(false)}
+          client={{
+            id: client.lead_id || client.id,
+            phone: client.phone,
+            full_name: client.name || client.full_name,
+            name: client.name || client.full_name,
+            deal_id: client.deal_id
+          }}
+          onSuccess={() => {
+            setSmsRefreshTrigger((prev) => prev + 1);
+            if (onClientUpdated) onClientUpdated();
+          }}
+        />
+      )}
     </div>,
     document.body
   );

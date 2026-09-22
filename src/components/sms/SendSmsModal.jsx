@@ -102,7 +102,7 @@ export function SendSmsModal({ isOpen, onClose, client, onSuccess }) {
 
     try {
       const res = await api.post('/sms/send', {
-        clientId: client.id,
+        clientId: client.id || client.clientId || client.lead_id || null,
         phone: displayPhone,
         text: text.trim(),
         dealId: client.deal_id || client.dealId || null

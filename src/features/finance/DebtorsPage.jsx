@@ -4,6 +4,7 @@ import { DealDrawer } from '../deals/DealDrawer';
 import { ContractPrintView } from '../deals/ContractPrintView';
 import { FinanceTabs } from '../../components/FinanceTabs';
 import { formatContractNumber } from '../../utils/formatters';
+import { SendSmsModal } from '../../components/sms/SendSmsModal';
 import {
   AlertCircle,
   Search,
@@ -13,7 +14,8 @@ import {
   TrendingDown,
   Clock,
   User,
-  Eye
+  Eye,
+  MessageSquare
 } from 'lucide-react';
 
 export const DebtorsPage = () => {
@@ -22,6 +24,7 @@ export const DebtorsPage = () => {
   const [search, setSearch] = useState('');
   const [selectedDealIdForDrawer, setSelectedDealIdForDrawer] = useState(null);
   const [contractToPrint, setContractToPrint] = useState(null);
+  const [smsDebtor, setSmsDebtor] = useState(null);
 
   const fetchDebtors = async () => {
     try {
@@ -162,13 +165,25 @@ export const DebtorsPage = () => {
                       <td className="p-3.5 text-right pr-5">
                         <div className="flex items-center justify-end gap-2" onClick={(e) => e.stopPropagation()}>
                           {d.lead_phone && (
-                            <a
-                              href={`tel:${d.lead_phone}`}
-                              className="inline-flex items-center gap-1 rounded-xl bg-blue-50 text-blue-700 px-2.5 py-1.5 text-xs font-bold hover:bg-blue-100 transition cursor-pointer"
-                            >
-                              <Phone className="h-3.5 w-3.5" />
-                              <span>Звонок</span>
-                            </a>
+                            <>
+                              <a
+                                href={`tel:${d.lead_phone}`}
+                                className="inline-flex items-center gap-1 rounded-xl bg-blue-50 text-blue-700 px-2.5 py-1.5 text-xs font-bold hover:bg-blue-100 transition cursor-pointer"
+                              >
+                                <Phone className="h-3.5 w-3.5" />
+                                <span>Звонок</span>
+                              </a>
+
+                              <button
+                                type="button"
+                                onClick={() => setSmsDebtor(d)}
+                                className="inline-flex items-center gap-1 rounded-xl bg-purple-50 text-purple-700 hover:bg-purple-100 border border-purple-200/80 px-2.5 py-1.5 text-xs font-bold transition cursor-pointer"
+                                title="Отправить SMS должнику"
+                              >
+                                <MessageSquare className="h-3.5 w-3.5" />
+                                <span>SMS</span>
+                              </button>
+                            </>
                           )}
                           <button
                             onClick={() => setSelectedDealIdForDrawer(d.id)}
@@ -202,6 +217,25 @@ export const DebtorsPage = () => {
         <ContractPrintView
           deal={contractToPrint}
           onClose={() => setContractToPrint(null)}
+        />
+      )}
+
+      {/* Send SMS Modal */}
+      {smsDebtor && (
+        <SendSmsModal
+          isOpen={Boolean(smsDebtor)}
+          onClose={() => setSmsDebtor(null)}
+          client={{
+            id: smsDebtor.lead_id,
+            lead_id: smsDebtor.lead_id,
+            phone: smsDebtor.lead_phone,
+            full_name: smsDebtor.lead_name,
+            name: smsDebtor.lead_name,
+            deal_id: smsDebtor.id
+          }}
+          onSuccess={() => {
+            fetchDebtors();
+          }}
         />
       )}
     </div>

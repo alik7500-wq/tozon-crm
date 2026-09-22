@@ -3,6 +3,7 @@ import { api } from '../../api/client';
 import { formatContractNumber } from '../../utils/formatters';
 import { PaymentRecordModal } from './PaymentRecordModal';
 import { useModalDismiss } from '../../hooks/useModalDismiss';
+import { SendSmsModal } from '../../components/sms/SendSmsModal';
 import {
   X,
   FileCheck,
@@ -26,7 +27,8 @@ import {
   BadgeAlert,
   ChevronRight,
   TrendingUp,
-  MapPin
+  MapPin,
+  MessageSquare
 } from 'lucide-react';
 import { useAuth } from '../auth/AuthContext';
 
@@ -51,6 +53,7 @@ export const DealDrawer = ({
   const [cancelReason, setCancelReason] = useState('');
   const [isExtendPromptOpen, setIsExtendPromptOpen] = useState(false);
   const [newExtendExpiresAt, setNewExtendExpiresAt] = useState('');
+  const [isSmsModalOpen, setIsSmsModalOpen] = useState(false);
   const [actionLoading, setActionLoading] = useState(false);
 
   const fetchDealDetail = async () => {
@@ -437,9 +440,22 @@ export const DealDrawer = ({
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               {/* Buyer Card */}
               <div className="rounded-2xl border border-slate-200 bg-slate-50/50 p-4 space-y-3">
-                <div className="flex items-center gap-2 text-xs font-bold text-slate-900 border-b border-slate-200/80 pb-2">
-                  <User className="h-4 w-4 text-blue-600" />
-                  <span>Покупатель (Клиент)</span>
+                <div className="flex items-center justify-between border-b border-slate-200/80 pb-2">
+                  <div className="flex items-center gap-2 text-xs font-bold text-slate-900">
+                    <User className="h-4 w-4 text-blue-600" />
+                    <span>Покупатель (Клиент)</span>
+                  </div>
+                  {deal.lead_phone && (
+                    <button
+                      type="button"
+                      onClick={() => setIsSmsModalOpen(true)}
+                      className="inline-flex items-center gap-1 rounded-lg bg-purple-50 hover:bg-purple-100 border border-purple-200 text-purple-700 px-2 py-1 text-[11px] font-bold transition cursor-pointer"
+                      title="Отправить SMS покупателю"
+                    >
+                      <MessageSquare className="h-3 w-3" />
+                      <span>Отправить SMS</span>
+                    </button>
+                  )}
                 </div>
 
                 <div className="space-y-2 text-xs">
@@ -760,6 +776,25 @@ export const DealDrawer = ({
           deal={deal}
           initialScheduleId={selectedScheduleIdForPayment}
           onPaymentSuccess={handlePaymentSuccess}
+        />
+      )}
+
+      {/* Send SMS Modal */}
+      {isSmsModalOpen && deal && (
+        <SendSmsModal
+          isOpen={isSmsModalOpen}
+          onClose={() => setIsSmsModalOpen(false)}
+          client={{
+            id: deal.lead_id,
+            lead_id: deal.lead_id,
+            phone: deal.lead_phone,
+            full_name: deal.lead_name,
+            name: deal.lead_name,
+            deal_id: deal.id
+          }}
+          onSuccess={() => {
+            fetchDealDetail();
+          }}
         />
       )}
     </div>
