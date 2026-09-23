@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { api } from '../../api/client';
 import { X, Send, MessageSquare, AlertCircle, CheckCircle, Sparkles } from 'lucide-react';
 
@@ -45,13 +45,22 @@ const CONTEXT_MAPPING = {
 export function SendSmsModal({ isOpen, onClose, client, context = 'lead', onSuccess }) {
   const [text, setText] = useState('');
   const [templates, setTemplates] = useState([]);
+  const [availability, setAvailability] = useState({});
+  const [isAvailabilityLoading, setIsAvailabilityLoading] = useState(false);
   const [selectedTemplateCode, setSelectedTemplateCode] = useState('');
   const [isSending, setIsSending] = useState(false);
   const [isPreviewLoading, setIsPreviewLoading] = useState(false);
   const [error, setError] = useState(null);
   const [successResult, setSuccessResult] = useState(null);
 
+  const reqSeqRef = useRef(0);
+  const previewSeqRef = useRef(0);
+
   const displayPhone = formatPhoneDisplay(client?.phone || client?.secondary_phone);
+
+  const clientId = client?.id || client?.clientId || client?.lead_id || null;
+  const dealId = client?.deal_id || client?.dealId || null;
+  const taskId = client?.task_id || client?.taskId || client?.meeting_id || client?.meetingId || null;
 
   useEffect(() => {
     if (isOpen) {
@@ -60,16 +69,22 @@ export function SendSmsModal({ isOpen, onClose, client, context = 'lead', onSucc
       setSuccessResult(null);
       setSelectedTemplateCode('');
       setIsPreviewLoading(false);
-      fetchTemplates();
+      setAvailability({});
+      fetchTemplatesAndAvailability();
     }
-  }, [isOpen, context]);
+  }, [isOpen, context, clientId, dealId, taskId]);
 
-  const fetchTemplates = async () => {
+  const fetchTemplatesAndAvailability = async () => {
+    const currentSeq = ++reqSeqRef.current;
     const allowedCodes = CONTEXT_MAPPING[context] || CONTEXT_MAPPING.lead;
     const defaults = (CONTEXT_TEMPLATES[context] || CONTEXT_TEMPLATES.lead).filter((t) => allowedCodes.includes(t.code));
 
+    setIsAvailabilityLoading(true);
     try {
+      // 1. Fetch DB templates
       const res = await api.get('/sms/templates');
+      if (currentSeq !== reqSeqRef.current) return;
+
       let loaded = [];
       if (res.success && Array.isArray(res.data)) {
         loaded = res.data;
@@ -86,14 +101,37 @@ export function SendSmsModal({ isOpen, onClose, client, context = 'lead', onSucc
           }
         });
 
-      setTemplates(Array.from(mergedMap.values()));
+      const templateList = Array.from(mergedMap.values());
+      setTemplates(templateList);
+
+      // 2. Fetch Server-Side Template Availability
+      const availRes = await api.post('/sms/template-availability', {
+        clientId,
+        dealId,
+        taskId
+      });
+      if (currentSeq !== reqSeqRef.current) return;
+
+      if (availRes.success && availRes.data?.templates) {
+        const availMap = {};
+        availRes.data.templates.forEach((item) => {
+          availMap[item.code] = item;
+        });
+        setAvailability(availMap);
+      }
     } catch (err) {
-      console.warn('Не удалось загрузить шаблоны SMS:', err);
+      if (currentSeq !== reqSeqRef.current) return;
+      console.warn('Не удалось загрузить шаблоны или доступность SMS:', err);
       setTemplates(defaults);
+    } finally {
+      if (currentSeq === reqSeqRef.current) {
+        setIsAvailabilityLoading(false);
+      }
     }
   };
 
   const handleTemplateSelect = async (code) => {
+    const currentPreviewSeq = ++previewSeqRef.current;
     setSelectedTemplateCode(code);
     setError(null);
     setSuccessResult(null);
@@ -103,9 +141,12 @@ export function SendSmsModal({ isOpen, onClose, client, context = 'lead', onSucc
       return;
     }
 
-    const clientId = client?.id || client?.clientId || client?.lead_id || null;
-    const dealId = client?.deal_id || client?.dealId || null;
-    const taskId = client?.task_id || client?.taskId || client?.meeting_id || client?.meetingId || null;
+    const availInfo = availability[code];
+    if (availInfo && !availInfo.available) {
+      setError(availInfo.reason || 'Шаблон недоступен для данного контекста');
+      setText('');
+      return;
+    }
 
     setIsPreviewLoading(true);
     try {
@@ -115,6 +156,7 @@ export function SendSmsModal({ isOpen, onClose, client, context = 'lead', onSucc
         dealId,
         taskId
       });
+      if (currentPreviewSeq !== previewSeqRef.current) return;
 
       if (res.success && res.data?.text) {
         setText(res.data.text);
@@ -124,10 +166,13 @@ export function SendSmsModal({ isOpen, onClose, client, context = 'lead', onSucc
         setText('');
       }
     } catch (err) {
+      if (currentPreviewSeq !== previewSeqRef.current) return;
       setError(err.message || 'Ошибка генерации предпросмотра SMS');
       setText('');
     } finally {
-      setIsPreviewLoading(false);
+      if (currentPreviewSeq === previewSeqRef.current) {
+        setIsPreviewLoading(false);
+      }
     }
   };
 
@@ -254,15 +299,20 @@ export function SendSmsModal({ isOpen, onClose, client, context = 'lead', onSucc
             <select
               value={selectedTemplateCode}
               onChange={(e) => handleTemplateSelect(e.target.value)}
-              disabled={isSending || isPreviewLoading}
+              disabled={isSending || isPreviewLoading || isAvailabilityLoading}
               className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-sm text-slate-200 focus:outline-none focus:border-blue-500 transition-colors disabled:opacity-50"
             >
               <option value="">-- Своё сообщение --</option>
-              {templates.map((t) => (
-                <option key={t.id || t.code} value={t.code}>
-                  {t.name}
-                </option>
-              ))}
+              {templates.map((t) => {
+                const avail = availability[t.code];
+                const isAvail = avail ? avail.available : true;
+                const reasonStr = avail && !avail.available ? ` — (${avail.reason})` : '';
+                return (
+                  <option key={t.id || t.code} value={t.code} disabled={!isAvail}>
+                    {t.name}{reasonStr}
+                  </option>
+                );
+              })}
             </select>
           </div>
 
