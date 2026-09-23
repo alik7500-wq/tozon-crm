@@ -408,6 +408,7 @@ export const ClientsPage = () => {
             name: smsClient.name || smsClient.full_name,
             deal_id: smsClient.deal_id
           }}
+          context="client"
           onSuccess={() => {
             fetchClients();
           }}

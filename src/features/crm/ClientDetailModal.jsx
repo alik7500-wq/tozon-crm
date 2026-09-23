@@ -819,6 +819,7 @@ export const ClientDetailModal = ({ isOpen, onClose, client, onClientUpdated, on
             name: client.name || client.full_name,
             deal_id: client.deal_id
           }}
+          context="client"
           onSuccess={() => {
             setSmsRefreshTrigger((prev) => prev + 1);
             if (onClientUpdated) onClientUpdated();

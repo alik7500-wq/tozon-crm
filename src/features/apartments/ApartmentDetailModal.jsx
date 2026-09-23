@@ -10,6 +10,10 @@ import { useModalDismiss } from '../../hooks/useModalDismiss';
 import { formatContractNumber } from '../../utils/formatters';
 import { EditDealModal } from '../deals/EditDealModal';
 import { hasPermission } from '../../utils/permissions';
+import { InteractiveApartmentView } from './components/InteractiveApartmentView';
+
+const LayoutEditorModal = React.lazy(() => import('../projects/components/LayoutEditorModal').then(m => ({ default: m.LayoutEditorModal })));
+
 import {
   X,
   Building2,
@@ -78,6 +82,7 @@ export const ApartmentDetailModal = ({
   const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false);
   const [isPrintModalOpen, setIsPrintModalOpen] = useState(false);
   const [isEditDealModalOpen, setIsEditDealModalOpen] = useState(false);
+  const [editingLayoutId, setEditingLayoutId] = useState(null);
 
   const isAdmin = user?.role === 'ADMIN' || hasPermission(user, 'deals.manage');
 
@@ -422,8 +427,19 @@ export const ApartmentDetailModal = ({
             Информация о квартире не найдена.
           </div>
         ) : (
-          <div className="space-y-3.5">
+          <div className="space-y-4">
+            {/* Interactive Presentation View */}
+            <InteractiveApartmentView
+              unitId={unit.id}
+              currency={projectCurrency}
+              onReserve={() => setIsReserveModalOpen(true)}
+              onCreateDeal={() => setIsDealWizardOpen(true)}
+              onOpenEditor={(layoutId) => setEditingLayoutId(layoutId)}
+              userRole={user?.role}
+            />
+
             {/* Quick Specs Grid */}
+
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
               <div className="rounded-xl bg-slate-50 p-2.5 border border-slate-200/80">
                 <span className="text-[10px] font-bold uppercase text-slate-400 block">Комнатность</span>
@@ -1563,6 +1579,21 @@ export const ApartmentDetailModal = ({
           }}
         />
       )}
+
+      {/* Admin Layout Presentation Editor Modal */}
+      {editingLayoutId && (
+        <React.Suspense fallback={null}>
+          <LayoutEditorModal
+            layoutId={editingLayoutId}
+            isOpen={Boolean(editingLayoutId)}
+            onClose={() => setEditingLayoutId(null)}
+            onUpdated={() => fetchUnit()}
+          />
+        </React.Suspense>
+      )}
     </>
   );
 };
+
+
+

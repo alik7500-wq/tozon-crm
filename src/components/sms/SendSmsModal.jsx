@@ -16,11 +16,38 @@ function formatPhoneDisplay(rawPhone) {
   return cleaned;
 }
 
-export function SendSmsModal({ isOpen, onClose, client, onSuccess }) {
+// Built-in fallback templates by context
+const CONTEXT_TEMPLATES = {
+  lead: [
+    { code: 'CLIENT_WELCOME', name: 'Приветствие клиента', text: 'Здравствуйте, {{client_name}}! Спасибо за обращение в отдел продаж ЖК TOZON-PLAZA.' },
+    { code: 'MEETING_REMINDER', name: 'Напоминание о встрече', text: 'Здравствуйте, {{client_name}}! Напоминаем о запланированной встрече {{meeting_date}} в {{meeting_time}}. TOZON-PLAZA.' }
+  ],
+  client: [
+    { code: 'CLIENT_WELCOME', name: 'Приветствие клиента', text: 'Здравствуйте, {{client_name}}! Спасибо за обращение в ЖК TOZON-PLAZA.' },
+    { code: 'MEETING_REMINDER', name: 'Напоминание о встрече', text: 'Здравствуйте, {{client_name}}! Напоминаем о запланированной встрече {{meeting_date}} в {{meeting_time}}. TOZON-PLAZA.' }
+  ],
+  deal: [
+    { code: 'DEAL_INFO', name: 'Сообщение по договору', text: 'Здравствуйте, {{client_name}}! Информация по вашему договору №{{contract_number}} (кв. №{{apartment}}, {{project_name}}). TOZON-PLAZA.' },
+    { code: 'PAYMENT_REMINDER', name: 'Напоминание об оплате', text: 'Здравствуйте, {{client_name}}! Напоминаем об очередной оплате по договору №{{contract_number}} в размере {{payment_amount}} {{currency}} до {{payment_date}}. TOZON-PLAZA.' }
+  ],
+  debtor: [
+    { code: 'DEBTOR_REMINDER', name: 'Напоминание о задолженности', text: 'Уважаемый(ая) {{client_name}}! Просим внести просроченную оплату {{overdue_amount}} {{currency}} по договору №{{contract_number}}. TOZON-PLAZA.' }
+  ]
+};
+
+const CONTEXT_MAPPING = {
+  lead: ['CLIENT_WELCOME', 'MEETING_REMINDER'],
+  client: ['CLIENT_WELCOME', 'MEETING_REMINDER'],
+  deal: ['DEAL_INFO', 'PAYMENT_REMINDER'],
+  debtor: ['DEBTOR_REMINDER']
+};
+
+export function SendSmsModal({ isOpen, onClose, client, context = 'lead', onSuccess }) {
   const [text, setText] = useState('');
   const [templates, setTemplates] = useState([]);
   const [selectedTemplateCode, setSelectedTemplateCode] = useState('');
   const [isSending, setIsSending] = useState(false);
+  const [isPreviewLoading, setIsPreviewLoading] = useState(false);
   const [error, setError] = useState(null);
   const [successResult, setSuccessResult] = useState(null);
 
@@ -32,30 +59,75 @@ export function SendSmsModal({ isOpen, onClose, client, onSuccess }) {
       setError(null);
       setSuccessResult(null);
       setSelectedTemplateCode('');
+      setIsPreviewLoading(false);
       fetchTemplates();
     }
-  }, [isOpen]);
+  }, [isOpen, context]);
 
   const fetchTemplates = async () => {
+    const allowedCodes = CONTEXT_MAPPING[context] || CONTEXT_MAPPING.lead;
+    const defaults = (CONTEXT_TEMPLATES[context] || CONTEXT_TEMPLATES.lead).filter((t) => allowedCodes.includes(t.code));
+
     try {
       const res = await api.get('/sms/templates');
+      let loaded = [];
       if (res.success && Array.isArray(res.data)) {
-        setTemplates(res.data);
+        loaded = res.data;
       }
+
+      const mergedMap = new Map();
+      defaults.forEach((t) => mergedMap.set(t.code, t));
+
+      loaded
+        .filter((t) => allowedCodes.includes(t.code) && t.code !== 'CUSTOM_MESSAGE')
+        .forEach((t) => {
+          if (t.text && t.text !== '{{text}}') {
+            mergedMap.set(t.code, t);
+          }
+        });
+
+      setTemplates(Array.from(mergedMap.values()));
     } catch (err) {
       console.warn('Не удалось загрузить шаблоны SMS:', err);
+      setTemplates(defaults);
     }
   };
 
-  const handleTemplateSelect = (code) => {
+  const handleTemplateSelect = async (code) => {
     setSelectedTemplateCode(code);
-    const tmpl = templates.find((t) => t.code === code);
-    if (tmpl) {
-      let filledText = tmpl.text;
-      const clientName = client?.full_name || client?.name || 'Клиент';
-      filledText = filledText.replace(/\{\{client_name\}\}/g, clientName);
-      filledText = filledText.replace(/\{\{customerName\}\}/g, clientName);
-      setText(filledText);
+    setError(null);
+    setSuccessResult(null);
+
+    if (!code || code === 'CUSTOM_MESSAGE' || code === 'DEFAULT') {
+      setText('');
+      return;
+    }
+
+    const clientId = client?.id || client?.clientId || client?.lead_id || null;
+    const dealId = client?.deal_id || client?.dealId || null;
+    const taskId = client?.task_id || client?.taskId || client?.meeting_id || client?.meetingId || null;
+
+    setIsPreviewLoading(true);
+    try {
+      const res = await api.post('/sms/preview', {
+        templateCode: code,
+        clientId,
+        dealId,
+        taskId
+      });
+
+      if (res.success && res.data?.text) {
+        setText(res.data.text);
+      } else {
+        const errorMsg = typeof res.error === 'string' ? res.error : res.error?.message || 'Не удалось сформировать предпросмотр шаблона';
+        setError(errorMsg);
+        setText('');
+      }
+    } catch (err) {
+      setError(err.message || 'Ошибка генерации предпросмотра SMS');
+      setText('');
+    } finally {
+      setIsPreviewLoading(false);
     }
   };
 
@@ -88,9 +160,13 @@ export function SendSmsModal({ isOpen, onClose, client, onSuccess }) {
 
   const counterDisplay = `${charCount} ${getCharLabel(charCount)} • ${smsSegments} SMS`;
 
+  // Unresolved placeholder detection: generic protection blocking ANY {{anything}}
+  const unresolvedMatch = text.match(/\{\{[^{}]+\}\}/);
+  const hasUnresolvedPlaceholder = Boolean(unresolvedMatch);
+
   const handleSend = async (e) => {
     e.preventDefault();
-    if (isSending) return; // Prevent double submission
+    if (isSending || hasUnresolvedPlaceholder) return; // Prevent double submission / invalid placeholder
     if (!text.trim()) {
       setError('Введите текст сообщения');
       return;
@@ -170,45 +246,59 @@ export function SendSmsModal({ isOpen, onClose, client, onSuccess }) {
           </div>
 
           {/* Template Selector */}
-          {templates.length > 0 && (
-            <div>
-              <label className="block text-xs font-medium text-slate-400 mb-1.5 flex items-center gap-1">
-                <Sparkles className="w-3.5 h-3.5 text-amber-400" />
-                Выбрать шаблон сообщения
-              </label>
-              <select
-                value={selectedTemplateCode}
-                onChange={(e) => handleTemplateSelect(e.target.value)}
-                disabled={isSending}
-                className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-sm text-slate-200 focus:outline-none focus:border-blue-500 transition-colors disabled:opacity-50"
-              >
-                <option value="">-- Своё сообщение --</option>
-                {templates.map((t) => (
-                  <option key={t.id} value={t.code}>
-                    {t.name}
-                  </option>
-                ))}
-              </select>
-            </div>
-          )}
+          <div>
+            <label className="block text-xs font-medium text-slate-400 mb-1.5 flex items-center gap-1">
+              <Sparkles className="w-3.5 h-3.5 text-amber-400" />
+              Выбрать шаблон сообщения ({context.toUpperCase()})
+            </label>
+            <select
+              value={selectedTemplateCode}
+              onChange={(e) => handleTemplateSelect(e.target.value)}
+              disabled={isSending || isPreviewLoading}
+              className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-sm text-slate-200 focus:outline-none focus:border-blue-500 transition-colors disabled:opacity-50"
+            >
+              <option value="">-- Своё сообщение --</option>
+              {templates.map((t) => (
+                <option key={t.id || t.code} value={t.code}>
+                  {t.name}
+                </option>
+              ))}
+            </select>
+          </div>
 
           {/* Message Textarea */}
           <div>
             <div className="flex justify-between items-center mb-1.5">
               <label className="text-xs font-medium text-slate-300">Текст сообщения</label>
               <span className="text-xs text-slate-400 font-mono">
-                {counterDisplay}
+                {isPreviewLoading ? 'Загрузка...' : counterDisplay}
               </span>
             </div>
             <textarea
               rows={4}
               value={text}
-              disabled={isSending}
+              disabled={isSending || isPreviewLoading}
               onChange={(e) => setText(e.target.value)}
-              placeholder="Введите текст сообщения клиенту..."
+              placeholder={isPreviewLoading ? 'Загрузка шаблона...' : 'Введите текст сообщения клиенту...'}
               className="w-full bg-slate-950 border border-slate-800 rounded-xl p-3 text-sm text-slate-100 placeholder-slate-600 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all resize-none disabled:opacity-50"
             />
           </div>
+
+          {/* Unresolved Placeholder Protection Warning */}
+          {hasUnresolvedPlaceholder && !isPreviewLoading && (
+            <div className="flex items-center gap-2 p-3 bg-amber-500/10 border border-amber-500/20 text-amber-400 rounded-xl text-xs">
+              <AlertCircle className="w-4 h-4 shrink-0" />
+              <span>Не все данные шаблона заполнены: <strong className="font-mono">{unresolvedMatch[0]}</strong></span>
+            </div>
+          )}
+
+          {/* High SMS Segment Warning */}
+          {smsSegments >= 3 && !hasUnresolvedPlaceholder && !isPreviewLoading && (
+            <div className="flex items-center gap-2 p-2.5 bg-blue-500/10 border border-blue-500/20 text-blue-300 rounded-xl text-xs">
+              <Sparkles className="w-4 h-4 shrink-0 text-blue-400" />
+              <span>Сообщение будет отправлено как {smsSegments} SMS-сегмента(ов).</span>
+            </div>
+          )}
 
           {/* Error Banner */}
           {error && (
@@ -231,18 +321,20 @@ export function SendSmsModal({ isOpen, onClose, client, onSuccess }) {
             <button
               type="button"
               onClick={onClose}
-              disabled={isSending}
+              disabled={isSending || isPreviewLoading}
               className="px-4 py-2 rounded-xl border border-slate-800 text-sm font-medium text-slate-300 hover:bg-slate-800 hover:text-white transition-colors disabled:opacity-50"
             >
               Отмена
             </button>
             <button
               type="submit"
-              disabled={isSending || !text.trim()}
+              disabled={isSending || isPreviewLoading || !text.trim() || hasUnresolvedPlaceholder}
               className="flex items-center gap-2 px-5 py-2 rounded-xl bg-blue-600 hover:bg-blue-500 text-white text-sm font-medium transition-colors shadow-lg shadow-blue-600/20 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
             >
               {isSending ? (
                 <span>Отправка...</span>
+              ) : isPreviewLoading ? (
+                <span>Загрузка...</span>
               ) : (
                 <>
                   <Send className="w-4 h-4" />

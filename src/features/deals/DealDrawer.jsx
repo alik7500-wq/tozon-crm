@@ -790,8 +790,12 @@ export const DealDrawer = ({
             phone: deal.lead_phone,
             full_name: deal.lead_name,
             name: deal.lead_name,
-            deal_id: deal.id
+            deal_id: deal.id,
+            contract_number: deal.contract_number,
+            apartment: `кв. ${deal.apartment_number || deal.unit_number || ''}`,
+            project_name: deal.project_name
           }}
+          context="deal"
           onSuccess={() => {
             fetchDealDetail();
           }}

@@ -231,8 +231,15 @@ export const DebtorsPage = () => {
             phone: smsDebtor.lead_phone,
             full_name: smsDebtor.lead_name,
             name: smsDebtor.lead_name,
-            deal_id: smsDebtor.id
+            deal_id: smsDebtor.id,
+            contract_number: smsDebtor.contract_number,
+            apartment: `кв. ${smsDebtor.unit_number || ''}`,
+            project_name: smsDebtor.project_name,
+            overdue_amount: (
+              Math.max(0, (smsDebtor.final_price_minor || 0) - (smsDebtor.paid_amount_minor ?? smsDebtor.total_paid_minor ?? 0)) / 100
+            ).toLocaleString('ru-RU')
           }}
+          context="debtor"
           onSuccess={() => {
             fetchDebtors();
           }}

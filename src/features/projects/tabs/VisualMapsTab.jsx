@@ -256,12 +256,39 @@ export const VisualMapsTab = ({ projectId, onSelectUnit }) => {
               {/* Hotspots Overlay */}
               {hotspots.map((h, idx) => {
                 const isSelected = isEditMode && selectedHotspotIdx === idx;
+                
+                let hotspotColorStyle = 'border-blue-500 bg-blue-500/20 hover:bg-blue-500/40 hover:border-blue-400 z-10';
+                if (isSelected) {
+                  hotspotColorStyle = 'border-amber-400 bg-amber-400/30 shadow-lg ring-2 ring-amber-400/50 z-20';
+                } else if (h.target_unit_id) {
+                  switch (h.unit_status) {
+                    case 'RESERVED':
+                      hotspotColorStyle = 'border-amber-500 bg-amber-500/30 hover:bg-amber-500/50 z-10';
+                      break;
+                    case 'SOLD':
+                      hotspotColorStyle = 'border-rose-500 bg-rose-500/30 hover:bg-rose-500/50 z-10';
+                      break;
+                    case 'BLOCKED':
+                      hotspotColorStyle = 'border-slate-500 bg-slate-500/30 hover:bg-slate-500/50 z-10';
+                      break;
+                    case 'AVAILABLE':
+                    default:
+                      hotspotColorStyle = 'border-emerald-500 bg-emerald-500/30 hover:bg-emerald-500/50 z-10';
+                      break;
+                  }
+                }
+
                 return (
                   <div
                     key={idx}
                     onClick={() => {
-                      if (isEditMode) setSelectedHotspotIdx(idx);
-                      else alert(`Выбрана зона: ${h.label}`);
+                      if (isEditMode) {
+                        setSelectedHotspotIdx(idx);
+                      } else if (h.target_unit_id && onSelectUnit) {
+                        onSelectUnit(h.target_unit_id);
+                      } else {
+                        alert(`Выбрана зона: ${h.label}`);
+                      }
                     }}
                     style={{
                       left: `${h.x_pct}%`,
@@ -269,18 +296,16 @@ export const VisualMapsTab = ({ projectId, onSelectUnit }) => {
                       width: `${h.width_pct}%`,
                       height: `${h.height_pct}%`,
                     }}
-                    className={`absolute flex items-center justify-center transition-all cursor-pointer rounded-lg border-2 ${
-                      isSelected
-                        ? 'border-amber-400 bg-amber-400/30 shadow-lg ring-2 ring-amber-400/50 z-20'
-                        : 'border-blue-500 bg-blue-500/20 hover:bg-blue-500/40 hover:border-blue-400 z-10'
-                    }`}
+                    className={`absolute flex items-center justify-center transition-all cursor-pointer rounded-lg border-2 ${hotspotColorStyle}`}
                   >
                     <span className="rounded-md bg-slate-900/80 px-2 py-0.5 text-[11px] font-extrabold text-white shadow-sm backdrop-blur-xs">
-                      {h.label || `Область ${idx + 1}`}
+                      {h.label || (h.unit_number ? `Кв. №${h.unit_number}` : `Область ${idx + 1}`)}
                     </span>
                   </div>
                 );
               })}
+
+
             </div>
           </div>
 
@@ -307,10 +332,24 @@ export const VisualMapsTab = ({ projectId, onSelectUnit }) => {
                   type="text"
                   value={hotspots[selectedHotspotIdx].label}
                   onChange={(e) => handleUpdateHotspot(selectedHotspotIdx, 'label', e.target.value)}
-                  placeholder="Корпус 1"
+                  placeholder="Корпус 1 или Квартира 12"
                   className="w-full rounded-xl border border-slate-300 bg-slate-50 px-3 py-2 text-xs outline-none focus:border-blue-500"
                 />
               </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-slate-700 mb-1">
+                  ID Квартиры (для открытия презентации)
+                </label>
+                <input
+                  type="number"
+                  value={hotspots[selectedHotspotIdx].target_unit_id || ''}
+                  onChange={(e) => handleUpdateHotspot(selectedHotspotIdx, 'target_unit_id', parseInt(e.target.value, 10) || null)}
+                  placeholder="Например: 15"
+                  className="w-full rounded-xl border border-slate-300 bg-slate-50 px-3 py-2 text-xs outline-none focus:border-blue-500"
+                />
+              </div>
+
 
               <div className="grid grid-cols-2 gap-3">
                 <div>

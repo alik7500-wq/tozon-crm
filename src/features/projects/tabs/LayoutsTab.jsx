@@ -4,11 +4,15 @@ import { useAuth } from '../../auth/AuthContext';
 import { Plus, X, Maximize2, Coins, Trash2, Image as ImageIcon, Sparkles, AlertCircle } from 'lucide-react';
 import ImageUpload from '../../../components/ImageUpload';
 
+const LayoutEditorModal = React.lazy(() => import('../components/LayoutEditorModal').then(m => ({ default: m.LayoutEditorModal })));
+
+
 export const LayoutsTab = ({ projectId, currency = 'USD', onLayoutCreated }) => {
   const { user } = useAuth();
   const [layouts, setLayouts] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [editingLayoutId, setEditingLayoutId] = useState(null);
   const [error, setError] = useState('');
 
   // Form state
@@ -160,7 +164,15 @@ export const LayoutsTab = ({ projectId, currency = 'USD', onLayoutCreated }) => 
               </div>
 
               {user?.role === 'ADMIN' && (
-                <div className="mt-3 flex justify-end border-t border-slate-100 pt-2.5">
+                <div className="mt-3 flex items-center justify-between border-t border-slate-100 pt-2.5">
+                  <button
+                    onClick={() => setEditingLayoutId(l.id)}
+                    className="flex items-center gap-1.5 rounded-lg bg-blue-50 px-2.5 py-1 text-xs font-bold text-blue-700 hover:bg-blue-100 transition cursor-pointer"
+                  >
+                    <Sparkles className="h-3.5 w-3.5" />
+                    <span>Интерактив / Редактор</span>
+                  </button>
+
                   <button
                     onClick={() => handleDelete(l.id)}
                     className="flex items-center gap-1 text-[11px] font-semibold text-rose-500 hover:text-rose-700 transition cursor-pointer"
@@ -170,6 +182,7 @@ export const LayoutsTab = ({ projectId, currency = 'USD', onLayoutCreated }) => 
                   </button>
                 </div>
               )}
+
             </div>
           ))}
         </div>
@@ -293,6 +306,21 @@ export const LayoutsTab = ({ projectId, currency = 'USD', onLayoutCreated }) => 
           </div>
         </div>
       )}
+
+      {/* Layout Presentation Editor Modal */}
+      {editingLayoutId && (
+        <React.Suspense fallback={null}>
+          <LayoutEditorModal
+            layoutId={editingLayoutId}
+            isOpen={Boolean(editingLayoutId)}
+            onClose={() => setEditingLayoutId(null)}
+            onUpdated={() => fetchLayouts()}
+          />
+        </React.Suspense>
+      )}
     </div>
   );
 };
+
+
+

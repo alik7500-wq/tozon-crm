@@ -612,6 +612,7 @@ export const LeadDrawer = ({ isOpen, onClose, leadId, onLeadUpdated, onEditLead 
             isOpen={isSmsModalOpen}
             onClose={() => setIsSmsModalOpen(false)}
             client={lead}
+            context="lead"
             onSuccess={() => {
               setSmsRefreshTrigger((prev) => prev + 1);
               showToast('✓ SMS отправлено');
