@@ -27,7 +27,7 @@ const CONTEXT_TEMPLATES = {
     { code: 'MEETING_REMINDER', name: 'Напоминание о встрече', text: 'Здравствуйте, {{client_name}}! Напоминаем о запланированной встрече {{meeting_date}} в {{meeting_time}}. TOZON-PLAZA.' }
   ],
   deal: [
-    { code: 'DEAL_INFO', name: 'Сообщение по договору', text: 'Здравствуйте, {{client_name}}! Информация по вашему договору №{{contract_number}} (кв. №{{apartment}}, {{project_name}}). TOZON-PLAZA.' },
+    { code: 'DEAL_INFO', name: 'Сообщение по договору', text: '{{client_name}}: дог. №{{contract_number}}, кв. №{{apartment}} ({{apartment_area}} м²). Стоимость {{contract_total}} {{currency}}, оплачено {{total_paid}} {{currency}}, остаток {{remaining_balance}} {{currency}}. TOZON-PLAZA' },
     { code: 'PAYMENT_REMINDER', name: 'Напоминание об оплате', text: 'Здравствуйте, {{client_name}}! Напоминаем об очередной оплате по договору №{{contract_number}} в размере {{payment_amount}} {{currency}} до {{payment_date}}. TOZON-PLAZA.' }
   ],
   debtor: [
