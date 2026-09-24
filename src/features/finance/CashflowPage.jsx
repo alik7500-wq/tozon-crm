@@ -18,7 +18,7 @@ import {
   Wallet, TrendingUp, TrendingDown, RefreshCw, Calendar, ArrowUpRight, 
   ArrowDownRight, FileText, Search, CreditCard, Filter, ArrowRightLeft,
   DollarSign, CheckCircle2, Coins, X, Edit, Trash2, AlertCircle, Save, Printer,
-  Maximize2, Minimize2
+  Maximize2, Minimize2, FileSpreadsheet
 } from 'lucide-react';
 import { PaymentReceiptPrintModal } from './PaymentReceiptPrintModal';
 import { ExpenseReceiptPrintModal } from './ExpenseReceiptPrintModal';
@@ -43,6 +43,34 @@ export const CashflowPage = () => {
   const [editingItem, setEditingItem] = useState(null);
   const [printableIncome, setPrintableIncome] = useState(null);
   const [printableExpense, setPrintableExpense] = useState(null);
+  const [isExporting, setIsExporting] = useState(false);
+
+  const handleExportExcel = async () => {
+    try {
+      setIsExporting(true);
+      const blob = await financeApi.exportCashflowExcel({
+        year,
+        currency,
+        type: typeFilter,
+        search
+      });
+
+      const url = window.URL.createObjectURL(new Blob([blob]));
+      const link = document.createElement('a');
+      link.href = url;
+      const todayStr = dayjs().format('YYYY-MM-DD');
+      link.setAttribute('download', `DDS_TOZON_PLAZA_${todayStr}.xlsx`);
+      document.body.appendChild(link);
+      link.click();
+      link.parentNode.removeChild(link);
+      window.URL.revokeObjectURL(url);
+    } catch (err) {
+      console.error('Export error:', err);
+      alert(`Ошибка при выгрузке Excel: ${err.message || 'Не удалось сформировать отчёт'}`);
+    } finally {
+      setIsExporting(false);
+    }
+  };
 
   useEffect(() => {
     localStorage.setItem('tozon_cashflow_view_mode', viewMode);
@@ -646,6 +674,17 @@ export const CashflowPage = () => {
               <RefreshCw className="h-3.5 w-3.5" />
             </button>
 
+            <button
+              type="button"
+              onClick={handleExportExcel}
+              disabled={isExporting}
+              className="flex items-center gap-1.5 rounded-xl border border-emerald-300 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 px-3 py-1 text-[11px] font-bold transition shadow-2xs cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+              title="Выгрузить отчёт ДДС в Excel"
+            >
+              <FileSpreadsheet className="h-3.5 w-3.5 text-emerald-600" />
+              <span>{isExporting ? 'Формирование отчёта…' : 'Выгрузить в Excel'}</span>
+            </button>
+
             {isAdmin && (
               <button
                 onClick={() => setShowConvertModal(true)}
@@ -1019,6 +1058,17 @@ export const CashflowPage = () => {
             title="Обновить данные"
           >
             <RefreshCw className="h-3.5 w-3.5" />
+          </button>
+
+          <button
+            type="button"
+            onClick={handleExportExcel}
+            disabled={isExporting}
+            className="flex items-center gap-2 rounded-2xl border border-emerald-300 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 px-4 py-2 text-xs font-bold transition shadow-2xs cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+            title="Выгрузить отчёт ДДС в Excel"
+          >
+            <FileSpreadsheet className="h-4 w-4 text-emerald-600" />
+            <span>{isExporting ? 'Формирование отчёта…' : 'Выгрузить в Excel'}</span>
           </button>
 
           {isAdmin && (

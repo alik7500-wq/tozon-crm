@@ -51,6 +51,14 @@ export const financeApi = {
     return res?.data || res;
   },
 
+  exportCashflowExcel: async (filters = {}) => {
+    const res = await api.get('/finance/cashflow/export.xlsx', {
+      params: filters,
+      responseType: 'blob'
+    });
+    return res;
+  },
+
   getPlanFactReport: async (filters = {}) => {
     const res = await api.get('/finance/plan-fact', { params: filters });
     return res?.data || res;
