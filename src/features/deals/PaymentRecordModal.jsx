@@ -19,7 +19,9 @@ import {
   User,
   ArrowRightLeft,
   Coins,
-  Printer
+  Printer,
+  Send,
+  MessageSquare
 } from 'lucide-react';
 
 export const PaymentRecordModal = ({
@@ -57,6 +59,14 @@ export const PaymentRecordModal = ({
   const [recordedPayment, setRecordedPayment] = useState(null);
   const [updatedDealResult, setUpdatedDealResult] = useState(null);
   const [paymentReport, setPaymentReport] = useState(null);
+
+  // SMS Confirmation State (Post-Commit)
+  const [smsPreviewText, setSmsPreviewText] = useState('');
+  const [smsPreviewLoading, setSmsPreviewLoading] = useState(false);
+  const [smsPreviewError, setSmsPreviewError] = useState('');
+  const [smsSendLoading, setSmsSendLoading] = useState(false);
+  const [smsSentSuccess, setSmsSentSuccess] = useState(false);
+  const [smsSendError, setSmsSendError] = useState('');
 
   const dealCurrency = deal?.currency || deal?.project_currency || 'USD';
 
@@ -124,6 +134,63 @@ export const PaymentRecordModal = ({
 
   const isDirty = Boolean(amount && parseFloat(amount) > 0 || reference.trim() || comment.trim());
 
+  useEffect(() => {
+    if (paymentReport && paymentReport.payment && deal) {
+      setSmsPreviewLoading(true);
+      setSmsPreviewError('');
+      setSmsSentSuccess(false);
+      setSmsSendError('');
+
+      api.post('/sms/preview', {
+        templateCode: 'PAYMENT_RECEIVED',
+        clientId: deal.lead_id,
+        dealId: deal.id,
+        paymentId: paymentReport.payment.id
+      })
+      .then(res => {
+        const textRes = res.data?.data?.text || res.data?.text || res.text;
+        if (textRes) {
+          setSmsPreviewText(textRes);
+        } else {
+          setSmsPreviewText('');
+        }
+      })
+      .catch(err => {
+        setSmsPreviewError(err.message || 'Не удалось загрузить предпросмотр SMS');
+      })
+      .finally(() => {
+        setSmsPreviewLoading(false);
+      });
+    }
+  }, [paymentReport, deal]);
+
+  const handleSendSmsConfirmation = async () => {
+    if (!paymentReport || !paymentReport.payment || !deal) return;
+    setSmsSendLoading(true);
+    setSmsSendError('');
+
+    try {
+      const res = await api.post('/sms/send', {
+        clientId: deal.lead_id,
+        dealId: deal.id,
+        paymentId: paymentReport.payment.id,
+        templateCode: 'PAYMENT_RECEIVED',
+        text: smsPreviewText
+      });
+
+      if (res.data?.success || res.success) {
+        setSmsSentSuccess(true);
+      } else {
+        const msg = res.data?.error?.message || res.error?.message || 'Ошибка отправки SMS';
+        setSmsSendError(msg);
+      }
+    } catch (err) {
+      setSmsSendError(err.message || 'Ошибка отправки SMS');
+    } finally {
+      setSmsSendLoading(false);
+    }
+  };
+
   const { requestClose } = useModalDismiss({
     isOpen: Boolean(isOpen && deal),
     onClose,
@@ -136,7 +203,7 @@ export const PaymentRecordModal = ({
   if (paymentReport) {
     return (
       <div className="fixed inset-0 z-[70] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs animate-in fade-in">
-        <div className="relative w-full max-w-md overflow-hidden rounded-3xl border border-emerald-200 bg-white shadow-2xl p-6 text-center space-y-4">
+        <div className="relative w-full max-w-lg overflow-hidden rounded-3xl border border-emerald-200 bg-white shadow-2xl p-6 text-center space-y-4 max-h-[92vh] overflow-y-auto">
           <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-emerald-100 text-emerald-600">
             <CheckCircle2 className="h-8 w-8" />
           </div>
@@ -198,6 +265,60 @@ export const PaymentRecordModal = ({
             </div>
           </div>
 
+          {/* SMS CONFIRMATION SECTION (Post-Commit) */}
+          <div className="rounded-2xl border border-blue-200 bg-blue-50/50 p-3.5 text-left space-y-2">
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-bold text-blue-900 flex items-center gap-1.5">
+                <MessageSquare className="h-4 w-4 text-blue-600" />
+                SMS-подтверждение клиенту
+              </span>
+              <span className="text-[10px] font-semibold px-2 py-0.5 rounded bg-blue-100 text-blue-800">
+                Пост-комит (Ручное подтверждение)
+              </span>
+            </div>
+
+            {smsPreviewLoading ? (
+              <div className="py-3 text-center text-xs text-slate-500 animate-pulse">
+                Формирование текста SMS по состоянию договора после платежа...
+              </div>
+            ) : smsSentSuccess ? (
+              <div className="flex items-center gap-2 rounded-xl bg-emerald-100 border border-emerald-300 p-2.5 text-xs font-bold text-emerald-800">
+                <CheckCircle2 className="h-4 w-4 text-emerald-600 shrink-0" />
+                <span>SMS-подтверждение успешно отправлено покупателю!</span>
+              </div>
+            ) : (
+              <>
+                {smsPreviewError ? (
+                  <div className="text-xs text-amber-700 bg-amber-50 p-2 rounded border border-amber-200">
+                    {smsPreviewError}
+                  </div>
+                ) : (
+                  <div className="rounded-xl bg-white border border-blue-200 p-2.5 text-xs text-slate-800 font-medium leading-relaxed shadow-2xs">
+                    {smsPreviewText}
+                  </div>
+                )}
+
+                {smsSendError && (
+                  <div className="text-xs text-rose-600 font-semibold bg-rose-50 p-2 rounded border border-rose-200">
+                    {smsSendError}
+                  </div>
+                )}
+
+                <div className="flex items-center gap-2 pt-1">
+                  <button
+                    type="button"
+                    onClick={handleSendSmsConfirmation}
+                    disabled={smsSendLoading || smsPreviewLoading || !smsPreviewText}
+                    className="flex-1 flex items-center justify-center gap-1.5 py-2 rounded-xl bg-blue-600 text-white font-bold text-xs hover:bg-blue-700 transition cursor-pointer disabled:opacity-50 shadow-sm shadow-blue-600/20"
+                  >
+                    <Send className="h-3.5 w-3.5" />
+                    <span>{smsSendLoading ? 'Отправка...' : 'Отправить SMS'}</span>
+                  </button>
+                </div>
+              </>
+            )}
+          </div>
+
           <div className="flex items-center gap-2 pt-1">
             <button
               type="button"
@@ -222,7 +343,7 @@ export const PaymentRecordModal = ({
               }}
               className="px-5 py-2.5 rounded-xl border border-slate-300 text-slate-700 font-bold text-xs hover:bg-slate-50 transition cursor-pointer"
             >
-              Закрыть
+              Закрыть без SMS
             </button>
           </div>
         </div>
