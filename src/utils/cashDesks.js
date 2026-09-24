@@ -12,7 +12,7 @@ export const DEFAULT_CASH_DESKS = [
 export const buildCashDesksList = (dictionaryItems = []) => {
   if (dictionaryItems && dictionaryItems.length > 0) {
     return dictionaryItems.map(d => ({
-      id: d.id || d.code || `CASH_DESK_${d.id}`,
+      id: d.id,
       code: d.code,
       name: d.name,
       icon: d.icon || '🏢'

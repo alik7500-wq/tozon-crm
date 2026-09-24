@@ -27,6 +27,68 @@ import {
 } from 'recharts';
 import dayjs from 'dayjs';
 
+const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+export const isValidUuid = (val) => Boolean(val && typeof val === 'string' && UUID_REGEX.test(val.trim()));
+
+/**
+ * Unified Cashflow Filter Normalizer for screen data, Excel exports, and React Query key
+ */
+export const buildCashflowFilters = ({
+  year,
+  startDate,
+  endDate,
+  selectedCashDeskId,
+  currency,
+  typeFilter,
+  categoryFilter,
+  search
+}) => {
+  if (startDate && endDate && startDate > endDate) {
+    return { invalidDateRange: true };
+  }
+
+  const hasDateRange = Boolean(startDate || endDate);
+  const filters = {};
+
+  if (hasDateRange) {
+    filters.year = 'ALL';
+  } else if (year && year !== 'ALL') {
+    filters.year = Number(year);
+  } else {
+    filters.year = 'ALL';
+  }
+
+  if (startDate) filters.date_from = startDate;
+  if (endDate) filters.date_to = endDate;
+
+  if (selectedCashDeskId && selectedCashDeskId !== 'ALL') {
+    if (!isValidUuid(selectedCashDeskId)) {
+      console.error('Attempted to send non-UUID cash_desk_id to API:', selectedCashDeskId);
+      return { invalidCashDeskId: true };
+    }
+    filters.cash_desk_id = selectedCashDeskId;
+  }
+
+  if (currency && currency !== 'ALL') {
+    filters.currency = currency;
+  }
+
+  if (typeFilter && typeFilter !== 'ALL') {
+    filters.type = typeFilter;
+  }
+
+  if (categoryFilter && categoryFilter !== 'ALL') {
+    filters.category = categoryFilter;
+  }
+
+  if (search && search.trim()) {
+    filters.search = search.trim();
+  }
+
+  return filters;
+};
+
 export const CashflowPage = () => {
   const { user } = useAuth();
   const isAdmin = user?.role === 'ADMIN';
@@ -49,24 +111,27 @@ export const CashflowPage = () => {
   const [printableExpense, setPrintableExpense] = useState(null);
   const [isExporting, setIsExporting] = useState(false);
 
+  const activeFilters = useMemo(() => buildCashflowFilters({
+    year,
+    startDate,
+    endDate,
+    selectedCashDeskId,
+    currency,
+    typeFilter,
+    categoryFilter,
+    search
+  }), [year, startDate, endDate, selectedCashDeskId, currency, typeFilter, categoryFilter, search]);
+
+  const dateRangeError = activeFilters.invalidDateRange ? 'Дата "С" не может быть позже Даты "По"' : null;
+
   const handleExportExcel = async () => {
+    if (activeFilters.invalidDateRange) {
+      alert('Ошибка: Дата "С" не может быть позже Даты "По"');
+      return;
+    }
     try {
       setIsExporting(true);
-      const filters = {
-        year: year === 'ALL' ? 'ALL' : year,
-        date_from: startDate || undefined,
-        date_to: endDate || undefined,
-        cash_desk_id: selectedCashDeskId !== 'ALL' ? selectedCashDeskId : undefined,
-        currency: currency !== 'ALL' ? currency : undefined,
-        type: typeFilter !== 'ALL' ? typeFilter : undefined,
-        category: categoryFilter !== 'ALL' ? categoryFilter : undefined,
-        search: search.trim() || undefined
-      };
-
-      // Remove undefined values for clean query string
-      Object.keys(filters).forEach(k => filters[k] === undefined && delete filters[k]);
-
-      const blob = await financeApi.exportCashflowExcel(filters);
+      const blob = await financeApi.exportCashflowExcel(activeFilters);
 
       const url = window.URL.createObjectURL(new Blob([blob]));
       const link = document.createElement('a');
@@ -83,6 +148,17 @@ export const CashflowPage = () => {
     } finally {
       setIsExporting(false);
     }
+  };
+
+  const handleResetFilters = () => {
+    setSelectedCashDeskId('ALL');
+    setStartDate('');
+    setEndDate('');
+    setCategoryFilter('ALL');
+    setCurrency('ALL');
+    setTypeFilter('ALL');
+    setSearch('');
+    setYear(new Date().getFullYear());
   };
 
   useEffect(() => {
@@ -171,17 +247,9 @@ export const CashflowPage = () => {
   });
 
   const { data: response, isLoading, refetch } = useQuery({
-    queryKey: ['finance-cashflow', year, currency, typeFilter, search, selectedCashDeskId, startDate, endDate, categoryFilter],
-    queryFn: () => financeApi.getCashflow({
-      year: year === 'ALL' ? 'ALL' : year,
-      currency: currency !== 'ALL' ? currency : undefined,
-      type: typeFilter !== 'ALL' ? typeFilter : undefined,
-      cash_desk_id: selectedCashDeskId !== 'ALL' ? selectedCashDeskId : undefined,
-      date_from: startDate || undefined,
-      date_to: endDate || undefined,
-      category: categoryFilter !== 'ALL' ? categoryFilter : undefined,
-      search: search.trim() || undefined
-    })
+    queryKey: ['finance-cashflow', activeFilters],
+    queryFn: () => financeApi.getCashflow(activeFilters),
+    enabled: !activeFilters.invalidDateRange
   });
 
   const convertMutation = useMutation({
@@ -409,8 +477,10 @@ export const CashflowPage = () => {
   
   // Объединяем со всеми кассами из allCashDesks
   const cashDesksListWithBalances = allCashDesks.map(desk => {
-    const found = serverDesks.find(sd => sd.name.toLowerCase() === desk.name.toLowerCase());
+    const found = serverDesks.find(sd => sd.id === desk.id || (sd.name && desk.name && sd.name.toLowerCase() === desk.name.toLowerCase()));
     return {
+      id: desk.id,
+      code: desk.code,
       name: desk.name,
       displayName: desk.name.replace(/^Касса Менеджера:\s*/i, 'Менеджер '),
       icon: desk.icon || '🏢',
@@ -427,8 +497,10 @@ export const CashflowPage = () => {
 
   // Добавляем кассы из сервера, которых не было в allCashDesks
   serverDesks.forEach(sd => {
-    if (!cashDesksListWithBalances.some(cd => cd.name.toLowerCase() === sd.name.toLowerCase())) {
+    if (sd.id && isValidUuid(sd.id) && !cashDesksListWithBalances.some(cd => cd.id === sd.id)) {
       cashDesksListWithBalances.push({
+        id: sd.id,
+        code: sd.code,
         name: sd.name,
         displayName: sd.name.replace(/^Касса Менеджера:\s*/i, 'Менеджер '),
         icon: '💼',
@@ -443,6 +515,30 @@ export const CashflowPage = () => {
       });
     }
   });
+
+  const availableCategories = useMemo(() => {
+    const defaultCats = [
+      'ALL',
+      'Инвестиции партнёров',
+      'Поступления по сделкам',
+      'Строительные материалы',
+      'Заработная плата',
+      'Аренда и коммунальные услуги',
+      'Маркетинг и реклама',
+      'Налоги и сборы',
+      'Хозяйственные расходы',
+      'Внутренние перемещения между кассами',
+      'Конвертация валюты',
+      'Прочее'
+    ];
+    const set = new Set(defaultCats);
+    if (cashflowData?.transactions) {
+      cashflowData.transactions.forEach(t => {
+        if (t.category) set.add(t.category);
+      });
+    }
+    return Array.from(set);
+  }, [cashflowData]);
 
   // Calculate Consolidated Equivalent Balance
   const totalUsdEquivalent = (summary.USD?.netCashflow || 0) + ((summary.TJS?.netCashflow || 0) / rateNum);
@@ -755,12 +851,19 @@ export const CashflowPage = () => {
               <span>Кассы:</span>
             </span>
             {displayedDesks.map(desk => {
-              const isFiltered = search.toLowerCase() === desk.name.toLowerCase();
+              const deskId = desk.id;
+              const isFiltered = selectedCashDeskId === deskId;
               return (
                 <button
-                  key={desk.name}
+                  key={desk.id || desk.name}
                   type="button"
-                  onClick={() => setSearch(isFiltered ? '' : desk.name)}
+                  onClick={() => {
+                    if (!deskId || !isValidUuid(deskId)) {
+                      alert(`Ошибка: Касса "${desk.name}" не имеет валидного UUID идентификатора`);
+                      return;
+                    }
+                    setSelectedCashDeskId(isFiltered ? 'ALL' : deskId);
+                  }}
                   className={`flex items-center gap-1.5 px-2 py-0.5 rounded-xl text-[10px] font-mono transition cursor-pointer border ${
                     isFiltered
                       ? 'bg-white text-slate-900 border-white font-black shadow-xs ring-2 ring-amber-400'
@@ -782,14 +885,14 @@ export const CashflowPage = () => {
                 </button>
               );
             })}
-            {search && (
+            {selectedCashDeskId !== 'ALL' && (
               <button
-                onClick={() => setSearch('')}
+                onClick={() => setSelectedCashDeskId('ALL')}
                 className="text-[10px] text-amber-300 hover:text-white px-1.5 py-0.5 rounded bg-amber-500/20 flex items-center gap-0.5 cursor-pointer font-bold"
-                title="Сбросить фильтр кассы"
+                title="Сбросить выбор кассы"
               >
                 <span>×</span>
-                <span>Сброс ({search})</span>
+                <span>Все кассы</span>
               </button>
             )}
           </div>
@@ -951,6 +1054,64 @@ export const CashflowPage = () => {
             </div>
 
             <div className="flex items-center gap-1.5 flex-wrap">
+              {/* Cash Desk Select */}
+              <div className="flex items-center gap-1">
+                <span className="text-[10px] text-slate-500 font-semibold">Касса:</span>
+                <select
+                  value={selectedCashDeskId}
+                  onChange={(e) => {
+                    const val = e.target.value;
+                    if (val !== 'ALL' && !isValidUuid(val)) {
+                      alert('Ошибка: Выбранная касса не имеет валидного UUID');
+                      return;
+                    }
+                    setSelectedCashDeskId(val);
+                  }}
+                  aria-label="Фильтр по кассе"
+                  className="rounded-lg border border-slate-200 bg-white px-2 py-0.5 text-[11px] font-bold text-slate-800 outline-none focus:border-blue-500 transition cursor-pointer max-w-[160px] truncate"
+                >
+                  <option value="ALL">Все кассы</option>
+                  {cashDesksListWithBalances.map(d => (
+                    <option key={d.id} value={d.id}>{d.displayName}</option>
+                  ))}
+                </select>
+              </div>
+
+              {/* Date Range: Date From & Date To */}
+              <div className="flex items-center gap-1">
+                <span className="text-[10px] text-slate-500 font-semibold">С:</span>
+                <input
+                  type="date"
+                  value={startDate}
+                  onChange={(e) => setStartDate(e.target.value)}
+                  aria-label="Дата начала периода"
+                  className="rounded-lg border border-slate-200 bg-white px-2 py-0.5 text-[11px] text-slate-800 outline-none focus:border-blue-500 transition"
+                />
+                <span className="text-[10px] text-slate-500 font-semibold">По:</span>
+                <input
+                  type="date"
+                  value={endDate}
+                  onChange={(e) => setEndDate(e.target.value)}
+                  aria-label="Дата окончания периода"
+                  className="rounded-lg border border-slate-200 bg-white px-2 py-0.5 text-[11px] text-slate-800 outline-none focus:border-blue-500 transition"
+                />
+              </div>
+
+              {/* Category Select */}
+              <div className="flex items-center gap-1">
+                <span className="text-[10px] text-slate-500 font-semibold">Категория:</span>
+                <select
+                  value={categoryFilter}
+                  onChange={(e) => setCategoryFilter(e.target.value)}
+                  aria-label="Фильтр по категории"
+                  className="rounded-lg border border-slate-200 bg-white px-2 py-0.5 text-[11px] font-bold text-slate-800 outline-none focus:border-blue-500 transition cursor-pointer max-w-[160px] truncate"
+                >
+                  {availableCategories.map(c => (
+                    <option key={c} value={c}>{c === 'ALL' ? 'Все категории' : c}</option>
+                  ))}
+                </select>
+              </div>
+
               {/* Currency Filter */}
               <div className="inline-flex rounded-lg bg-slate-200/70 p-0.5 text-[10px] font-bold">
                 {['ALL', 'USD', 'TJS', 'RUB'].map(cur => (
@@ -986,13 +1147,14 @@ export const CashflowPage = () => {
               </div>
 
               {/* Search Box */}
-              <div className="relative w-48">
+              <div className="relative w-40">
                 <Search className="absolute left-2 top-1/2 -translate-y-1/2 h-3 w-3 text-slate-400" />
                 <input
                   type="text"
-                  placeholder="Поиск по ордерам..."
+                  placeholder="Поиск..."
                   value={search}
                   onChange={(e) => setSearch(e.target.value)}
+                  aria-label="Текстовый поиск ордеров"
                   className="w-full rounded-lg border border-slate-200 bg-white pl-6 pr-5 py-0.5 text-[11px] text-slate-900 outline-none focus:border-blue-500 transition"
                 />
                 {search && (
@@ -1004,6 +1166,19 @@ export const CashflowPage = () => {
                   </button>
                 )}
               </div>
+
+              {/* Reset Filters Button */}
+              {(selectedCashDeskId !== 'ALL' || startDate || endDate || categoryFilter !== 'ALL' || currency !== 'ALL' || typeFilter !== 'ALL' || search) && (
+                <button
+                  type="button"
+                  onClick={handleResetFilters}
+                  className="flex items-center gap-1 px-2 py-0.5 rounded-lg bg-amber-50 hover:bg-amber-100 text-amber-800 border border-amber-200 text-[10px] font-bold transition cursor-pointer"
+                  title="Сбросить все выбранные фильтры"
+                >
+                  <X className="h-3 w-3" />
+                  <span>Сбросить</span>
+                </button>
+              )}
             </div>
           </div>
 
@@ -1161,16 +1336,23 @@ export const CashflowPage = () => {
                   </div>
                 ) : (
                   displayedDesks.map((desk) => {
-                    const isFiltered = search.toLowerCase() === desk.name.toLowerCase();
+                    const deskId = desk.id;
+                    const isFiltered = selectedCashDeskId === deskId;
                     const hasUsd = Math.abs(desk.balanceUsd) > 0.001;
                     const hasTjs = Math.abs(desk.balanceTjs) > 0.001;
                     const hasRub = Math.abs(desk.balanceRub) > 0.001;
 
                     return (
                       <button
-                        key={desk.name}
+                        key={desk.id || desk.name}
                         type="button"
-                        onClick={() => setSearch(isFiltered ? '' : desk.name)}
+                        onClick={() => {
+                          if (!deskId || !isValidUuid(deskId)) {
+                            alert(`Ошибка: Касса "${desk.name}" не имеет валидного UUID идентификатора`);
+                            return;
+                          }
+                          setSelectedCashDeskId(isFiltered ? 'ALL' : deskId);
+                        }}
                         className={`flex items-center gap-2.5 px-3.5 py-2 rounded-2xl border backdrop-blur-md transition cursor-pointer text-left ${
                           isFiltered
                             ? 'bg-white text-slate-900 border-white shadow-lg scale-105 ring-2 ring-amber-400'
