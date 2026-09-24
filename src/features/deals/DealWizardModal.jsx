@@ -68,7 +68,7 @@ export const DealWizardModal = ({
   // Deal Financials
   const [dealStatus, setDealStatus] = useState('SIGNED'); // 'SIGNED' or 'RESERVED'
   const [reservationDays, setReservationDays] = useState(3);
-  const [recordInitialPayment, setRecordInitialPayment] = useState(true);
+  const [recordInitialPayment, setRecordInitialPayment] = useState(false);
 
   const [pricePerM2, setPricePerM2] = useState(500);
   const [discountType, setDiscountType] = useState('AMOUNT'); // 'AMOUNT' or 'PERCENT'
@@ -1176,9 +1176,14 @@ export const DealWizardModal = ({
                           onChange={(e) => setRecordInitialPayment(e.target.checked)}
                           className="h-4 w-4 rounded text-emerald-600 focus:ring-emerald-500 cursor-pointer"
                         />
-                        <label htmlFor="recordInit" className="text-xs text-slate-900 font-bold cursor-pointer">
-                          Зафиксировать оплату первоначального взноса в кассу
-                        </label>
+                        <div className="flex-1">
+                          <label htmlFor="recordInit" className="text-xs text-slate-900 font-bold cursor-pointer block">
+                            Первоначальный взнос уже получен в кассу
+                          </label>
+                          <p className="text-[11px] text-slate-600 mt-0.5 font-normal">
+                            Отметьте только если деньги фактически приняты от покупателя при подписании договора.
+                          </p>
+                        </div>
                       </div>
                       <span className="font-extrabold text-xs text-emerald-700 bg-emerald-100 px-2 py-0.5 rounded-md border border-emerald-300">
                         +{downPaymentAmount.toLocaleString()} {currency}
