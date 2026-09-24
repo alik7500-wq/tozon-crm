@@ -37,6 +37,10 @@ export const CashflowPage = () => {
   const [currency, setCurrency] = useState('ALL');
   const [typeFilter, setTypeFilter] = useState('ALL'); // ALL, INCOME, EXPENSE
   const [search, setSearch] = useState('');
+  const [selectedCashDeskId, setSelectedCashDeskId] = useState('ALL');
+  const [startDate, setStartDate] = useState('');
+  const [endDate, setEndDate] = useState('');
+  const [categoryFilter, setCategoryFilter] = useState('ALL');
   const [globalRate, setGlobalRate] = useState('9.27');
   const [showConvertModal, setShowConvertModal] = useState(false);
   const [showAllDesks, setShowAllDesks] = useState(false);
@@ -48,12 +52,21 @@ export const CashflowPage = () => {
   const handleExportExcel = async () => {
     try {
       setIsExporting(true);
-      const blob = await financeApi.exportCashflowExcel({
-        year,
-        currency,
-        type: typeFilter,
-        search
-      });
+      const filters = {
+        year: year === 'ALL' ? 'ALL' : year,
+        date_from: startDate || undefined,
+        date_to: endDate || undefined,
+        cash_desk_id: selectedCashDeskId !== 'ALL' ? selectedCashDeskId : undefined,
+        currency: currency !== 'ALL' ? currency : undefined,
+        type: typeFilter !== 'ALL' ? typeFilter : undefined,
+        category: categoryFilter !== 'ALL' ? categoryFilter : undefined,
+        search: search.trim() || undefined
+      };
+
+      // Remove undefined values for clean query string
+      Object.keys(filters).forEach(k => filters[k] === undefined && delete filters[k]);
+
+      const blob = await financeApi.exportCashflowExcel(filters);
 
       const url = window.URL.createObjectURL(new Blob([blob]));
       const link = document.createElement('a');
@@ -158,8 +171,17 @@ export const CashflowPage = () => {
   });
 
   const { data: response, isLoading, refetch } = useQuery({
-    queryKey: ['finance-cashflow', year, currency, typeFilter, search],
-    queryFn: () => financeApi.getCashflow({ year, currency, type: typeFilter, search })
+    queryKey: ['finance-cashflow', year, currency, typeFilter, search, selectedCashDeskId, startDate, endDate, categoryFilter],
+    queryFn: () => financeApi.getCashflow({
+      year: year === 'ALL' ? 'ALL' : year,
+      currency: currency !== 'ALL' ? currency : undefined,
+      type: typeFilter !== 'ALL' ? typeFilter : undefined,
+      cash_desk_id: selectedCashDeskId !== 'ALL' ? selectedCashDeskId : undefined,
+      date_from: startDate || undefined,
+      date_to: endDate || undefined,
+      category: categoryFilter !== 'ALL' ? categoryFilter : undefined,
+      search: search.trim() || undefined
+    })
   });
 
   const convertMutation = useMutation({
