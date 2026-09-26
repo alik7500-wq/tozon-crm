@@ -153,7 +153,11 @@ describe('CashflowPage RTL Real Component Test Suite', () => {
 
     // Select Category
     const categorySelect = screen.getAllByLabelText('Фильтр по категории')[0];
-    fireEvent.change(categorySelect, { target: { value: 'Инвестиции партнёров' } });
+    const partnerOpt = Array.from(categorySelect.options).find(opt => opt.value === 'PARTNER_INVESTMENT');
+    expect(partnerOpt).toBeDefined();
+    expect(partnerOpt.textContent).toBe('Инвестиции партнёров');
+
+    fireEvent.change(categorySelect, { target: { value: 'PARTNER_INVESTMENT' } });
 
     // Click Export Excel Button
     const exportBtn = screen.getAllByRole('button', { name: /Выгрузить в Excel/i })[0];
@@ -165,7 +169,7 @@ describe('CashflowPage RTL Real Component Test Suite', () => {
         date_from: '2026-06-01',
         date_to: '2026-06-30',
         cash_desk_id: 'ab90800a-73af-4cf7-88c2-397c304e2edf',
-        category: 'Инвестиции партнёров'
+        category: 'PARTNER_INVESTMENT'
       });
     });
   });

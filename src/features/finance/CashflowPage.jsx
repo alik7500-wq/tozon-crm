@@ -31,6 +31,21 @@ const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12
 
 export const isValidUuid = (val) => Boolean(val && typeof val === 'string' && UUID_REGEX.test(val.trim()));
 
+export const CATEGORY_DEFINITIONS = [
+  { code: 'ALL', name: 'Все категории' },
+  { code: 'PARTNER_INVESTMENT', name: 'Инвестиции партнёров' },
+  { code: 'SALES_INCOME', name: 'Поступления по сделкам' },
+  { code: 'BUILDING_MATERIALS', name: 'Строительные материалы' },
+  { code: 'SALARY', name: 'Заработная плата' },
+  { code: 'RENT', name: 'Аренда и коммунальные услуги' },
+  { code: 'MARKETING', name: 'Маркетинг и реклама' },
+  { code: 'TAXES', name: 'Налоги и сборы' },
+  { code: 'UTILITIES', name: 'Хозяйственные расходы' },
+  { code: 'INTERNAL_TRANSFER', name: 'Внутренние перемещения между кассами' },
+  { code: 'CURRENCY_CONVERSION', name: 'Конвертация валюты' },
+  { code: 'OTHER', name: 'Прочее' }
+];
+
 /**
  * Unified Cashflow Filter Normalizer for screen data, Excel exports, and React Query key
  */
@@ -517,27 +532,19 @@ export const CashflowPage = () => {
   });
 
   const availableCategories = useMemo(() => {
-    const defaultCats = [
-      'ALL',
-      'Инвестиции партнёров',
-      'Поступления по сделкам',
-      'Строительные материалы',
-      'Заработная плата',
-      'Аренда и коммунальные услуги',
-      'Маркетинг и реклама',
-      'Налоги и сборы',
-      'Хозяйственные расходы',
-      'Внутренние перемещения между кассами',
-      'Конвертация валюты',
-      'Прочее'
-    ];
-    const set = new Set(defaultCats);
+    const list = [...CATEGORY_DEFINITIONS];
     if (cashflowData?.transactions) {
       cashflowData.transactions.forEach(t => {
-        if (t.category) set.add(t.category);
+        if (t.category) {
+          const catStr = String(t.category).trim();
+          const exists = list.some(c => c.code === catStr || c.name === catStr);
+          if (!exists) {
+            list.push({ code: catStr, name: catStr });
+          }
+        }
       });
     }
-    return Array.from(set);
+    return list;
   }, [cashflowData]);
 
   // Calculate Consolidated Equivalent Balance
@@ -1107,7 +1114,7 @@ export const CashflowPage = () => {
                   className="rounded-lg border border-slate-200 bg-white px-2 py-0.5 text-[11px] font-bold text-slate-800 outline-none focus:border-blue-500 transition cursor-pointer max-w-[160px] truncate"
                 >
                   {availableCategories.map(c => (
-                    <option key={c} value={c}>{c === 'ALL' ? 'Все категории' : c}</option>
+                    <option key={c.code} value={c.code}>{c.name}</option>
                   ))}
                 </select>
               </div>
