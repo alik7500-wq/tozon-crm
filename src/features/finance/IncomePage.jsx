@@ -17,12 +17,16 @@ import {
 import { 
   TrendingUp, Plus, Search, Calendar, DollarSign, Coins, CreditCard, 
   User, FileText, CheckCircle2, RefreshCw, Filter, ArrowUpRight, Building2, X,
-  Edit, Trash2, Save, Printer, Wallet
+  Edit, Trash2, Save, Printer, Wallet, Tag
 } from 'lucide-react';
 import {
-  BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer
+  BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
+  PieChart, Pie, Cell
 } from 'recharts';
 import dayjs from 'dayjs';
+
+const INCOME_COLORS = ['#10b981', '#06b6d4', '#3b82f6', '#8b5cf6', '#f59e0b', '#ec4899', '#14b8a6', '#6366f1'];
+
 
 export const IncomePage = () => {
   const { user } = useAuth();
@@ -31,6 +35,7 @@ export const IncomePage = () => {
 
   const [year, setYear] = useState(new Date().getFullYear());
   const [currency, setCurrency] = useState('ALL');
+  const [categoryFilter, setCategoryFilter] = useState('ALL');
   const [search, setSearch] = useState('');
   
   const queryClient = useQueryClient();
@@ -104,14 +109,16 @@ export const IncomePage = () => {
   }, [isManager]);
 
   const { data: response, isLoading, refetch } = useQuery({
-    queryKey: ['finance-income', year, currency, selectedDeskId, search],
+    queryKey: ['finance-income', year, currency, categoryFilter, selectedDeskId, search],
     queryFn: () => financeApi.getIncome({
       year,
       currency,
+      category: categoryFilter !== 'ALL' ? categoryFilter : undefined,
       cash_desk_id: selectedDeskId !== 'ALL' ? selectedDeskId : undefined,
       search
     })
   });
+
 
   useEffect(() => {
     financeApi.getDealsForSelect().then(data => setDealsList(data || [])).catch(() => {});
@@ -186,12 +193,17 @@ export const IncomePage = () => {
     }
   });
 
-  const incomeData = response || { list: [], totalsByCurrency: {}, availableCurrencies: ['USD', 'TJS'], chartData: [] };
+  const incomeData = response || { list: [], totalsByCurrency: {}, availableCurrencies: ['USD', 'TJS'], chartData: [], categoriesChart: [] };
   const totals = incomeData.totalsByCurrency || incomeData.totals || {};
   const list = incomeData.list || [];
   const availableYears = incomeData.availableYears && incomeData.availableYears.length > 0
     ? incomeData.availableYears
     : [year - 1, year, year + 1, year + 2];
+
+  const totalChartAmount = useMemo(() => {
+    if (!incomeData.categoriesChart || !Array.isArray(incomeData.categoriesChart)) return 0;
+    return incomeData.categoriesChart.reduce((sum, item) => sum + (Number(item.amount) || 0), 0);
+  }, [incomeData.categoriesChart]);
 
   const handleDealSelect = (e) => {
     const dId = e.target.value;
@@ -376,6 +388,21 @@ export const IncomePage = () => {
         </div>
 
         <div className="flex items-center gap-3 flex-wrap">
+          <select
+            value={categoryFilter}
+            onChange={(e) => setCategoryFilter(e.target.value)}
+            className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs font-bold text-slate-700 outline-none cursor-pointer"
+          >
+            <option value="ALL">Все категории</option>
+            <option value="Оплата по договорам">Оплата по договорам</option>
+            <option value="Инвестиции партнёров">Инвестиции партнёров</option>
+            <option value="Внутренние перемещения между кассами">Внутренние перемещения между кассами</option>
+            <option value="Прочие приходы">Прочие приходы</option>
+            {incomeCategories.map(cat => (
+              <option key={cat.id || cat.name} value={cat.name}>{cat.name}</option>
+            ))}
+          </select>
+
           <div className="flex items-center gap-1.5 bg-slate-50 p-1 rounded-2xl border border-slate-200">
             <span className="text-[11px] font-bold text-slate-500 px-2">Год:</span>
             {['ALL', ...availableYears].map(y => (
@@ -406,7 +433,87 @@ export const IncomePage = () => {
         </div>
       </div>
 
-      {/* Chart */}
+      {/* Category Breakdown & Structure Card */}
+      <div className="w-full rounded-3xl bg-white p-6 shadow-2xs border border-slate-200 flex flex-col justify-between overflow-hidden">
+        <div>
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-4 pb-3 border-b border-slate-100">
+            <h3 className="text-sm font-extrabold text-slate-900 flex items-center gap-2">
+              <Tag className="h-4 w-4 text-emerald-600" />
+              <span>Структура доходов по категориям ({incomeData.chartCurrency || 'USD'})</span>
+            </h3>
+            {totalChartAmount > 0 && (
+              <span className="text-xs font-black text-emerald-700 bg-emerald-50 px-2.5 py-1 rounded-xl border border-emerald-100 whitespace-nowrap self-start sm:self-auto">
+                Итого: {totalChartAmount.toLocaleString('ru-RU', { minimumFractionDigits: 2 })} {incomeData.chartCurrency || 'USD'}
+              </span>
+            )}
+          </div>
+
+          {incomeData.categoriesChart && incomeData.categoriesChart.length > 0 ? (
+            <div className="grid grid-cols-1 md:grid-cols-12 gap-6 items-center">
+              {/* Left: Pie Chart */}
+              <div className="md:col-span-5 h-60 flex items-center justify-center relative">
+                <ResponsiveContainer width="100%" height="100%">
+                  <PieChart>
+                    <Pie
+                      data={incomeData.categoriesChart}
+                      cx="50%"
+                      cy="50%"
+                      innerRadius={55}
+                      outerRadius={85}
+                      paddingAngle={3}
+                      dataKey="amount"
+                    >
+                      {incomeData.categoriesChart.map((entry, index) => (
+                        <Cell key={`cell-${index}`} fill={INCOME_COLORS[index % INCOME_COLORS.length]} />
+                      ))}
+                    </Pie>
+                    <Tooltip
+                      formatter={(value) => [`${Number(value).toLocaleString('ru-RU', { minimumFractionDigits: 2 })} ${incomeData.chartCurrency || 'USD'}`, 'Приход']}
+                      contentStyle={{ borderRadius: '16px', border: '1px solid #e2e8f0', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.05)' }}
+                    />
+                  </PieChart>
+                </ResponsiveContainer>
+              </div>
+
+              {/* Right: Legend & Categories List */}
+              <div className="md:col-span-7 max-h-60 overflow-y-auto pr-1 space-y-2">
+                {incomeData.categoriesChart.map((cat, idx) => {
+                  const catColor = INCOME_COLORS[idx % INCOME_COLORS.length];
+                  const pct = totalChartAmount > 0 ? ((cat.amount / totalChartAmount) * 100).toFixed(1) : '0';
+                  return (
+                    <div
+                      key={cat.name}
+                      className="flex items-center justify-between text-xs p-2.5 rounded-xl bg-slate-50 hover:bg-slate-100/80 border border-slate-100 transition gap-2"
+                    >
+                      <div className="flex items-center gap-2.5 min-w-0 flex-1">
+                        <span className="h-3 w-3 rounded-full shrink-0 shadow-2xs" style={{ backgroundColor: catColor }} />
+                        <span className="font-bold text-slate-800 break-words text-xs leading-snug" title={cat.name}>
+                          {cat.name}
+                        </span>
+                      </div>
+                      <div className="text-right shrink-0">
+                        <span className="font-black text-slate-900 block leading-tight">
+                          {cat.amount.toLocaleString('ru-RU', { minimumFractionDigits: 2 })} {incomeData.chartCurrency || 'USD'}
+                        </span>
+                        <span className="text-[10px] text-slate-400 font-semibold">
+                          {pct}% от всего
+                        </span>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          ) : (
+            <div className="flex flex-col items-center justify-center h-60 text-slate-400 text-xs">
+              <Wallet className="h-8 w-8 mb-2 opacity-30" />
+              <span>Нет данных о приходах по выбранным фильтрам ({incomeData.chartCurrency || 'USD'})</span>
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Monthly Chart */}
       <div className="rounded-3xl bg-white p-6 shadow-2xs border border-slate-200">
         <h3 className="text-sm font-bold text-slate-900 mb-4 flex items-center justify-between">
           <span className="flex items-center gap-2">
@@ -434,14 +541,24 @@ export const IncomePage = () => {
 
       {/* Payments Table */}
       <div className="rounded-3xl bg-white shadow-2xs border border-slate-200 overflow-hidden">
-        <div className="p-5 border-b border-slate-100 flex items-center justify-between">
-          <h3 className="text-sm font-extrabold text-slate-900 flex items-center gap-2">
-            <FileText className="h-4 w-4 text-emerald-600" />
-            <span>Журнал приходных кассовых ордеров (ПКО)</span>
-          </h3>
-          <span className="text-xs font-semibold text-slate-400">
-            Записей: {list.length}
-          </span>
+        <div className="p-5 border-b border-slate-100 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <div className="flex items-center gap-3">
+            <h3 className="text-sm font-extrabold text-slate-900 flex items-center gap-2">
+              <FileText className="h-4 w-4 text-emerald-600" />
+              <span>Журнал приходных кассовых ордеров (ПКО)</span>
+            </h3>
+            <span className="text-xs font-semibold text-slate-400">
+              Записей: {list.length}
+            </span>
+          </div>
+
+          <button
+            onClick={() => setShowAddModal(true)}
+            className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl border border-dashed border-emerald-300 bg-emerald-50/50 hover:bg-emerald-50 text-emerald-700 text-xs font-bold transition cursor-pointer self-start sm:self-auto"
+          >
+            <Plus className="h-4 w-4" />
+            <span>Оформить приход в журнал</span>
+          </button>
         </div>
 
         <div className="overflow-x-auto w-full">

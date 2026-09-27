@@ -640,136 +640,105 @@ export const ExpensesPage = () => {
       </div>
 
       {/* Chart and Structure */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <div className="lg:col-span-2 rounded-3xl bg-white p-6 shadow-2xs border border-slate-200 flex flex-col justify-between overflow-hidden">
-          <div>
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-4 pb-3 border-b border-slate-100">
-              <h3 className="text-sm font-extrabold text-slate-900 flex items-center gap-2">
-                <Tag className="h-4 w-4 text-rose-600" />
-                <span>Структура расходов по категориям ({expensesData.chartCurrency || 'USD'})</span>
-              </h3>
-              {totalChartAmount > 0 && (
-                <span className="text-xs font-black text-rose-700 bg-rose-50 px-2.5 py-1 rounded-xl border border-rose-100 whitespace-nowrap self-start sm:self-auto">
-                  Итого: {totalChartAmount.toLocaleString('ru-RU', { minimumFractionDigits: 2 })} {expensesData.chartCurrency || 'USD'}
-                </span>
-              )}
-            </div>
-
-            {expensesData.categoriesChart && expensesData.categoriesChart.length > 0 ? (
-              <div className="grid grid-cols-1 md:grid-cols-12 gap-6 items-center">
-                {/* Left: Diagram */}
-                <div className="md:col-span-5 h-60 flex items-center justify-center relative">
-                  <ResponsiveContainer width="100%" height="100%">
-                    <PieChart>
-                      <Pie
-                        data={expensesData.categoriesChart}
-                        cx="50%"
-                        cy="50%"
-                        innerRadius={55}
-                        outerRadius={85}
-                        paddingAngle={3}
-                        dataKey="amount"
-                      >
-                        {expensesData.categoriesChart.map((entry, index) => (
-                          <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                        ))}
-                      </Pie>
-                      <Tooltip
-                        formatter={(value) => [`${Number(value).toLocaleString('ru-RU', { minimumFractionDigits: 2 })} ${expensesData.chartCurrency || 'USD'}`, 'Расход']}
-                        contentStyle={{ borderRadius: '16px', border: '1px solid #e2e8f0', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.05)' }}
-                      />
-                    </PieChart>
-                  </ResponsiveContainer>
-                </div>
-
-                {/* Right: Legend & Categories List */}
-                <div className="md:col-span-7 max-h-60 overflow-y-auto pr-1 space-y-2">
-                  {expensesData.categoriesChart.map((cat, idx) => {
-                    const catColor = COLORS[idx % COLORS.length];
-                    const pct = totalChartAmount > 0 ? ((cat.amount / totalChartAmount) * 100).toFixed(1) : '0';
-                    return (
-                      <div
-                        key={cat.name}
-                        className="flex items-center justify-between text-xs p-2.5 rounded-xl bg-slate-50 hover:bg-slate-100/80 border border-slate-100 transition gap-2"
-                      >
-                        <div className="flex items-center gap-2.5 min-w-0 flex-1">
-                          <span className="h-3 w-3 rounded-full shrink-0 shadow-2xs" style={{ backgroundColor: catColor }} />
-                          <span className="font-bold text-slate-800 truncate" title={cat.name}>
-                            {cat.name}
-                          </span>
-                        </div>
-                        <div className="text-right shrink-0">
-                          <span className="font-black text-slate-900 block leading-tight">
-                            {cat.amount.toLocaleString('ru-RU', { minimumFractionDigits: 2 })} {expensesData.chartCurrency || 'USD'}
-                          </span>
-                          <span className="text-[10px] text-slate-400 font-semibold">
-                            {pct}% от всего
-                          </span>
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              </div>
-            ) : (
-              <div className="flex flex-col items-center justify-center h-60 text-slate-400 text-xs">
-                <Wallet className="h-8 w-8 mb-2 opacity-30" />
-                <span>Нет данных о расходах по выбранной валюте ({expensesData.chartCurrency || 'USD'})</span>
-              </div>
+      <div className="w-full rounded-3xl bg-white p-6 shadow-2xs border border-slate-200 flex flex-col justify-between overflow-hidden">
+        <div>
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-4 pb-3 border-b border-slate-100">
+            <h3 className="text-sm font-extrabold text-slate-900 flex items-center gap-2">
+              <Tag className="h-4 w-4 text-rose-600" />
+              <span>Структура расходов по категориям ({expensesData.chartCurrency || 'USD'})</span>
+            </h3>
+            {totalChartAmount > 0 && (
+              <span className="text-xs font-black text-rose-700 bg-rose-50 px-2.5 py-1 rounded-xl border border-rose-100 whitespace-nowrap self-start sm:self-auto">
+                Итого: {totalChartAmount.toLocaleString('ru-RU', { minimumFractionDigits: 2 })} {expensesData.chartCurrency || 'USD'}
+              </span>
             )}
           </div>
-        </div>
 
-        {/* Quick Category Summary */}
-        <div className="rounded-3xl bg-white p-6 shadow-2xs border border-slate-200 flex flex-col justify-between">
-          <div>
-            <h3 className="text-sm font-bold text-slate-900 mb-3">Категории выплат ({year})</h3>
-            <div className="space-y-2.5 max-h-56 overflow-y-auto pr-1">
-              {expensesData.categoriesChart && expensesData.categoriesChart.length > 0 ? (
-                expensesData.categoriesChart.map((cat, idx) => (
-                  <div key={cat.name} className="flex items-center justify-between text-xs p-2 rounded-xl bg-slate-50 border border-slate-100">
-                    <div className="flex items-center gap-2 min-w-0 flex-1">
-                      <span className="h-2.5 w-2.5 rounded-full shrink-0" style={{ backgroundColor: COLORS[idx % COLORS.length] }} />
-                      <span className="font-bold text-slate-800 truncate" title={cat.name}>{cat.name}</span>
+          {expensesData.categoriesChart && expensesData.categoriesChart.length > 0 ? (
+            <div className="grid grid-cols-1 md:grid-cols-12 gap-6 items-center">
+              {/* Left: Diagram */}
+              <div className="md:col-span-5 h-60 flex items-center justify-center relative">
+                <ResponsiveContainer width="100%" height="100%">
+                  <PieChart>
+                    <Pie
+                      data={expensesData.categoriesChart}
+                      cx="50%"
+                      cy="50%"
+                      innerRadius={55}
+                      outerRadius={85}
+                      paddingAngle={3}
+                      dataKey="amount"
+                    >
+                      {expensesData.categoriesChart.map((entry, index) => (
+                        <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                      ))}
+                    </Pie>
+                    <Tooltip
+                      formatter={(value) => [`${Number(value).toLocaleString('ru-RU', { minimumFractionDigits: 2 })} ${expensesData.chartCurrency || 'USD'}`, 'Расход']}
+                      contentStyle={{ borderRadius: '16px', border: '1px solid #e2e8f0', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.05)' }}
+                    />
+                  </PieChart>
+                </ResponsiveContainer>
+              </div>
+
+              {/* Right: Legend & Categories List */}
+              <div className="md:col-span-7 max-h-60 overflow-y-auto pr-1 space-y-2">
+                {expensesData.categoriesChart.map((cat, idx) => {
+                  const catColor = COLORS[idx % COLORS.length];
+                  const pct = totalChartAmount > 0 ? ((cat.amount / totalChartAmount) * 100).toFixed(1) : '0';
+                  return (
+                    <div
+                      key={cat.name}
+                      className="flex items-center justify-between text-xs p-2.5 rounded-xl bg-slate-50 hover:bg-slate-100/80 border border-slate-100 transition gap-2"
+                    >
+                      <div className="flex items-center gap-2.5 min-w-0 flex-1">
+                        <span className="h-3 w-3 rounded-full shrink-0 shadow-2xs" style={{ backgroundColor: catColor }} />
+                        <span className="font-bold text-slate-800 break-words text-xs leading-snug" title={cat.name}>
+                          {cat.name}
+                        </span>
+                      </div>
+                      <div className="text-right shrink-0">
+                        <span className="font-black text-slate-900 block leading-tight">
+                          {cat.amount.toLocaleString('ru-RU', { minimumFractionDigits: 2 })} {expensesData.chartCurrency || 'USD'}
+                        </span>
+                        <span className="text-[10px] text-slate-400 font-semibold">
+                          {pct}% от всего
+                        </span>
+                      </div>
                     </div>
-                    <div className="text-right shrink-0 pl-2">
-                      <span className="font-black text-rose-700">
-                        {cat.amount.toLocaleString('ru-RU', { minimumFractionDigits: 2 })} {expensesData.chartCurrency || 'USD'}
-                      </span>
-                      {currency === 'ALL' && cat.breakdown?.TJS && (
-                        <div className="text-[10px] text-slate-400 font-medium">
-                          {cat.breakdown.TJS.toLocaleString('ru-RU', { minimumFractionDigits: 2 })} TJS
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                ))
-              ) : (
-                <p className="text-xs text-slate-400 py-4 text-center">Категории не сформированы</p>
-              )}
+                  );
+                })}
+              </div>
             </div>
-          </div>
-
-          <button
-            onClick={() => setShowAddModal(true)}
-            className="w-full mt-4 py-2.5 rounded-xl border border-dashed border-rose-300 bg-rose-50/50 hover:bg-rose-50 text-rose-700 text-xs font-bold transition flex items-center justify-center gap-1.5 cursor-pointer"
-          >
-            <Plus className="h-4 w-4" />
-            <span>Добавить расход в журнал</span>
-          </button>
+          ) : (
+            <div className="flex flex-col items-center justify-center h-60 text-slate-400 text-xs">
+              <Wallet className="h-8 w-8 mb-2 opacity-30" />
+              <span>Нет данных о расходах по выбранной валюте ({expensesData.chartCurrency || 'USD'})</span>
+            </div>
+          )}
         </div>
       </div>
 
       {/* Expenses Table */}
       <div className="rounded-3xl bg-white shadow-2xs border border-slate-200 overflow-hidden">
-        <div className="p-5 border-b border-slate-100 flex items-center justify-between">
-          <h3 className="text-sm font-extrabold text-slate-900 flex items-center gap-2">
-            <FileText className="h-4 w-4 text-rose-600" />
-            <span>Журнал расходных кассовых ордеров (РКО)</span>
-          </h3>
-          <span className="text-xs font-semibold text-slate-400">
-            Всего записей: {list.length}
-          </span>
+        <div className="p-5 border-b border-slate-100 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <div className="flex items-center gap-3">
+            <h3 className="text-sm font-extrabold text-slate-900 flex items-center gap-2">
+              <FileText className="h-4 w-4 text-rose-600" />
+              <span>Журнал расходных кассовых ордеров (РКО)</span>
+            </h3>
+            <span className="text-xs font-semibold text-slate-400">
+              Всего записей: {list.length}
+            </span>
+          </div>
+
+          <button
+            onClick={() => setShowAddModal(true)}
+            className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl border border-dashed border-rose-300 bg-rose-50/50 hover:bg-rose-50 text-rose-700 text-xs font-bold transition cursor-pointer self-start sm:self-auto"
+          >
+            <Plus className="h-4 w-4" />
+            <span>Добавить расход в журнал</span>
+          </button>
         </div>
 
         <div className="overflow-x-auto w-full">
