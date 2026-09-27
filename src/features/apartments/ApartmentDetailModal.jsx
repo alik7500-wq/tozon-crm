@@ -86,6 +86,8 @@ export const ApartmentDetailModal = ({
 
   const isAdmin = user?.role === 'ADMIN' || hasPermission(user, 'deals.manage');
 
+  const contentScrollRef = React.useRef(null);
+
   const fetchUnit = async () => {
     if (!unitId) return;
     setIsLoading(true);
@@ -103,8 +105,17 @@ export const ApartmentDetailModal = ({
   useEffect(() => {
     if (isOpen && unitId) {
       fetchUnit();
+      if (contentScrollRef.current) {
+        contentScrollRef.current.scrollTop = 0;
+      }
     }
   }, [isOpen, unitId]);
+
+  useEffect(() => {
+    if (unit && contentScrollRef.current) {
+      contentScrollRef.current.scrollTop = 0;
+    }
+  }, [unit?.id]);
 
   const { requestClose } = useModalDismiss({
     isOpen: Boolean(isOpen && unitId),
@@ -378,12 +389,12 @@ export const ApartmentDetailModal = ({
 
   return (
     <>
-      <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-5 bg-slate-900/60 backdrop-blur-xs animate-in fade-in overflow-y-auto">
-        <div className="relative w-full max-w-4xl rounded-3xl border border-slate-100 bg-white p-4 sm:p-5 shadow-2xl space-y-3.5 flex flex-col">
+      <div className="fixed inset-0 z-50 flex items-start sm:items-center justify-center p-2 sm:p-4 bg-slate-900/60 backdrop-blur-xs animate-in fade-in overflow-y-auto">
+        <div className="relative w-full max-w-4xl max-h-[calc(100vh-1rem)] sm:max-h-[calc(100vh-2.5rem)] my-auto rounded-3xl border border-slate-100 bg-white p-4 sm:p-5 shadow-2xl flex flex-col overflow-hidden">
         {/* Modal Header */}
-        <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+        <div className="flex items-center justify-between border-b border-slate-100 pb-3 shrink-0 bg-white z-10">
           <div className="flex items-center gap-3">
-            <div className={`flex h-10 w-10 items-center justify-center rounded-2xl text-white shadow-xs ${
+            <div className={`flex h-10 w-10 items-center justify-center rounded-2xl text-white shadow-xs shrink-0 ${
               isReserved
                 ? 'bg-gradient-to-tr from-amber-500 to-orange-600'
                 : isSold
@@ -411,23 +422,23 @@ export const ApartmentDetailModal = ({
 
           <button
             onClick={requestClose}
-            className="p-1.5 text-slate-400 hover:bg-slate-100 hover:text-slate-700 rounded-xl transition cursor-pointer"
+            className="p-1.5 text-slate-400 hover:bg-slate-100 hover:text-slate-700 rounded-xl transition cursor-pointer shrink-0"
           >
             <X className="h-5 w-5" />
           </button>
         </div>
 
         {isLoading ? (
-          <div className="h-48 flex flex-col items-center justify-center gap-3">
+          <div className="h-48 flex flex-col items-center justify-center gap-3 shrink-0">
             <div className="h-8 w-8 animate-spin rounded-full border-4 border-blue-600 border-t-transparent" />
             <span className="text-xs text-slate-500">Загрузка информации о квартире...</span>
           </div>
         ) : !unit ? (
-          <div className="p-8 text-center text-slate-500 text-sm">
+          <div className="p-8 text-center text-slate-500 text-sm shrink-0">
             Информация о квартире не найдена.
           </div>
         ) : (
-          <div className="space-y-4">
+          <div ref={contentScrollRef} className="space-y-4 flex-1 overflow-y-auto pt-1 pr-1">
             {/* Interactive Presentation View */}
             <InteractiveApartmentView
               unitId={unit.id}
