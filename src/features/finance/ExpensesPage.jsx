@@ -487,38 +487,36 @@ export const ExpensesPage = () => {
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <div className="rounded-3xl border border-rose-200 bg-gradient-to-br from-rose-50 to-red-50/40 p-5 shadow-2xs relative overflow-hidden">
           <div className="flex items-center justify-between">
-            <span className="text-xs font-bold text-rose-700 uppercase tracking-wider">Расход в USD ($)</span>
+            <span className="text-xs font-bold text-rose-700 uppercase tracking-wider">Выплачено из кассы USD ($)</span>
             <span className="p-2 rounded-xl bg-rose-500/10 text-rose-600">💵</span>
           </div>
           <div className="text-2xl font-black text-rose-950 mt-2">
             ${(totals.USD || 0).toLocaleString('ru-RU', { minimumFractionDigits: 2 })}
           </div>
-          <p className="text-[11px] text-rose-600/90 mt-1 font-medium">Выплачено в долларах США ({year} г.)</p>
+          <p className="text-[11px] text-rose-600/90 mt-1 font-medium">Все оприходованные кассовые выплаты в USD ({year === 'ALL' ? 'все года' : `${year} г.`})</p>
         </div>
 
         <div className="rounded-3xl border border-amber-200 bg-gradient-to-br from-amber-50 to-orange-50/40 p-5 shadow-2xs relative overflow-hidden">
           <div className="flex items-center justify-between">
-            <span className="text-xs font-bold text-amber-700 uppercase tracking-wider">Расход в TJS (Сомони)</span>
+            <span className="text-xs font-bold text-amber-700 uppercase tracking-wider">Выплачено из кассы TJS (Сомони)</span>
             <span className="p-2 rounded-xl bg-amber-500/10 text-amber-600">🇹🇯</span>
           </div>
           <div className="text-2xl font-black text-amber-950 mt-2">
             {(totals.TJS || 0).toLocaleString('ru-RU', { minimumFractionDigits: 2 })} <span className="text-sm font-semibold">TJS</span>
           </div>
-          <p className="text-[11px] text-amber-600/90 mt-1 font-medium">Выплачено в сомони ({year} г.)</p>
+          <p className="text-[11px] text-amber-600/90 mt-1 font-medium">Все оприходованные выплаты в сомони ({year === 'ALL' ? 'все года' : `${year} г.`})</p>
         </div>
 
-        {totals.RUB !== undefined && (
-          <div className="rounded-3xl border border-purple-200 bg-gradient-to-br from-purple-50 to-pink-50/40 p-5 shadow-2xs relative overflow-hidden">
-            <div className="flex items-center justify-between">
-              <span className="text-xs font-bold text-purple-700 uppercase tracking-wider">Расход в RUB (Рубли)</span>
-              <span className="p-2 rounded-xl bg-purple-500/10 text-purple-600">🇷🇺</span>
-            </div>
-            <div className="text-2xl font-black text-purple-950 mt-2">
-              {(totals.RUB || 0).toLocaleString('ru-RU', { minimumFractionDigits: 2 })} <span className="text-sm font-semibold">₽</span>
-            </div>
-            <p className="text-[11px] text-purple-600/90 mt-1 font-medium">Выплачено в рублях ({year} г.)</p>
+        <div className="rounded-3xl border border-purple-200 bg-gradient-to-br from-purple-50 to-indigo-50/40 p-5 shadow-2xs relative overflow-hidden">
+          <div className="flex items-center justify-between">
+            <span className="text-xs font-bold text-purple-700 uppercase tracking-wider">Автоконвертации в TJS</span>
+            <span className="p-2 rounded-xl bg-purple-500/10 text-purple-600">🔄</span>
           </div>
-        )}
+          <div className="text-2xl font-black text-purple-950 mt-2">
+            ${(expensesData.conversionDifferenceUsd || 0).toLocaleString('ru-RU', { minimumFractionDigits: 2 })}
+          </div>
+          <p className="text-[11px] text-purple-600/90 mt-1 font-medium">Объем USD, конвертированный для расходов в TJS</p>
+        </div>
 
         <div className="rounded-3xl border border-slate-200 bg-white p-5 shadow-2xs flex flex-col justify-between">
           <div className="flex items-center justify-between">
@@ -528,7 +526,7 @@ export const ExpensesPage = () => {
           <div className="text-2xl font-black text-slate-900 mt-2">
             {list.length} <span className="text-xs font-normal text-slate-400">РКО</span>
           </div>
-          <p className="text-[11px] text-slate-400 mt-1">Оформлено выплат</p>
+          <p className="text-[11px] text-slate-400 mt-1">Действующие РКО в кассах системы</p>
         </div>
       </div>
 

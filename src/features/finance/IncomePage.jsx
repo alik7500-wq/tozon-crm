@@ -283,7 +283,7 @@ export const IncomePage = () => {
           <div className="text-2xl font-black text-emerald-950 mt-2">
             ${(totals.USD || 0).toLocaleString('ru-RU', { minimumFractionDigits: 2 })}
           </div>
-          <p className="text-[11px] text-emerald-600/90 mt-1 font-medium">Все оприходованные кассовые ордера ПКО ({year === 'ALL' ? 'все года' : `${year} г.`})</p>
+          <p className="text-[11px] text-emerald-600/90 mt-1 font-medium">Все оприходованные ордера ПКО ({year === 'ALL' ? 'все года' : `${year} г.`})</p>
         </div>
 
         <div className="rounded-3xl border border-blue-200 bg-gradient-to-br from-blue-50 to-indigo-50/40 p-5 shadow-2xs relative overflow-hidden">
@@ -294,21 +294,19 @@ export const IncomePage = () => {
           <div className="text-2xl font-black text-blue-950 mt-2">
             {(totals.TJS || 0).toLocaleString('ru-RU', { minimumFractionDigits: 2 })} <span className="text-sm font-semibold">TJS</span>
           </div>
-          <p className="text-[11px] text-blue-600/90 mt-1 font-medium">Оприходовано в сомони ({year} г.)</p>
+          <p className="text-[11px] text-blue-600/90 mt-1 font-medium">Поступления в кассу TJS ({year === 'ALL' ? 'все года' : `${year} г.`})</p>
         </div>
 
-        {totals.RUB !== undefined && (
-          <div className="rounded-3xl border border-purple-200 bg-gradient-to-br from-purple-50 to-pink-50/40 p-5 shadow-2xs relative overflow-hidden">
-            <div className="flex items-center justify-between">
-              <span className="text-xs font-bold text-purple-700 uppercase tracking-wider">Приход в RUB (Рубли)</span>
-              <span className="p-2 rounded-xl bg-purple-500/10 text-purple-600">🇷🇺</span>
-            </div>
-            <div className="text-2xl font-black text-purple-950 mt-2">
-              {(totals.RUB || 0).toLocaleString('ru-RU', { minimumFractionDigits: 2 })} <span className="text-sm font-semibold">₽</span>
-            </div>
-            <p className="text-[11px] text-purple-600/90 mt-1 font-medium">Оприходовано в рублях ({year} г.)</p>
+        <div className="rounded-3xl border border-teal-200 bg-gradient-to-br from-teal-50 to-cyan-50/40 p-5 shadow-2xs relative overflow-hidden">
+          <div className="flex items-center justify-between">
+            <span className="text-xs font-bold text-teal-700 uppercase tracking-wider">Чистый доход компании</span>
+            <span className="p-2 rounded-xl bg-teal-500/10 text-teal-600">📈</span>
           </div>
-        )}
+          <div className="text-2xl font-black text-teal-950 mt-2">
+            ${(incomeData.netCompanyIncome?.USD || 0).toLocaleString('ru-RU', { minimumFractionDigits: 2 })}
+          </div>
+          <p className="text-[11px] text-teal-600/90 mt-1 font-medium">Исключены внутренние перемещения и автоконвертации</p>
+        </div>
 
         <div className="rounded-3xl border border-slate-200 bg-white p-5 shadow-2xs flex flex-col justify-between">
           <div className="flex items-center justify-between">
@@ -318,7 +316,7 @@ export const IncomePage = () => {
           <div className="text-2xl font-black text-slate-900 mt-2">
             {list.length} <span className="text-xs font-normal text-slate-400">ордеров</span>
           </div>
-          <p className="text-[11px] text-slate-400 mt-1">Зафиксировано в кассах системы</p>
+          <p className="text-[11px] text-slate-400 mt-1">Действующие ПКО в кассах системы</p>
         </div>
       </div>
 
