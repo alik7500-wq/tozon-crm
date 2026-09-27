@@ -295,6 +295,11 @@ export const ExpensesPage = () => {
     ? expensesData.availableYears
     : [year - 1, year, year + 1, year + 2];
 
+  const totalChartAmount = useMemo(() => {
+    if (!expensesData.categoriesChart || !Array.isArray(expensesData.categoriesChart)) return 0;
+    return expensesData.categoriesChart.reduce((sum, item) => sum + (Number(item.amount) || 0), 0);
+  }, [expensesData.categoriesChart]);
+
   const [isTransfer, setIsTransfer] = useState(false);
   const [createdTransferPair, setCreatedTransferPair] = useState(null);
   const [createdConversionReport, setCreatedConversionReport] = useState(null);
@@ -636,39 +641,78 @@ export const ExpensesPage = () => {
 
       {/* Chart and Structure */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <div className="lg:col-span-2 rounded-3xl bg-white p-6 shadow-2xs border border-slate-200">
-          <h3 className="text-sm font-bold text-slate-900 mb-4 flex items-center justify-between">
-            <span className="flex items-center gap-2">
-              <Tag className="h-4 w-4 text-rose-600" />
-              Структура расходов по категориям ({expensesData.chartCurrency || 'USD'})
-            </span>
-          </h3>
-          <div className="h-64">
+        <div className="lg:col-span-2 rounded-3xl bg-white p-6 shadow-2xs border border-slate-200 flex flex-col justify-between overflow-hidden">
+          <div>
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-4 pb-3 border-b border-slate-100">
+              <h3 className="text-sm font-extrabold text-slate-900 flex items-center gap-2">
+                <Tag className="h-4 w-4 text-rose-600" />
+                <span>Структура расходов по категориям ({expensesData.chartCurrency || 'USD'})</span>
+              </h3>
+              {totalChartAmount > 0 && (
+                <span className="text-xs font-black text-rose-700 bg-rose-50 px-2.5 py-1 rounded-xl border border-rose-100 whitespace-nowrap self-start sm:self-auto">
+                  Итого: {totalChartAmount.toLocaleString('ru-RU', { minimumFractionDigits: 2 })} {expensesData.chartCurrency || 'USD'}
+                </span>
+              )}
+            </div>
+
             {expensesData.categoriesChart && expensesData.categoriesChart.length > 0 ? (
-              <ResponsiveContainer width="100%" height="100%">
-                <PieChart>
-                  <Pie
-                    data={expensesData.categoriesChart}
-                    cx="50%"
-                    cy="50%"
-                    innerRadius={65}
-                    outerRadius={95}
-                    paddingAngle={4}
-                    dataKey="amount"
-                  >
-                    {expensesData.categoriesChart.map((entry, index) => (
-                      <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                    ))}
-                  </Pie>
-                  <Tooltip
-                    formatter={(value) => [`${value.toLocaleString()} ${expensesData.chartCurrency || 'USD'}`, 'Расход']}
-                    contentStyle={{ borderRadius: '16px', border: '1px solid #e2e8f0', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.05)' }}
-                  />
-                  <Legend verticalAlign="middle" align="right" layout="vertical" iconType="circle" />
-                </PieChart>
-              </ResponsiveContainer>
+              <div className="grid grid-cols-1 md:grid-cols-12 gap-6 items-center">
+                {/* Left: Diagram */}
+                <div className="md:col-span-5 h-60 flex items-center justify-center relative">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <PieChart>
+                      <Pie
+                        data={expensesData.categoriesChart}
+                        cx="50%"
+                        cy="50%"
+                        innerRadius={55}
+                        outerRadius={85}
+                        paddingAngle={3}
+                        dataKey="amount"
+                      >
+                        {expensesData.categoriesChart.map((entry, index) => (
+                          <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                        ))}
+                      </Pie>
+                      <Tooltip
+                        formatter={(value) => [`${Number(value).toLocaleString('ru-RU', { minimumFractionDigits: 2 })} ${expensesData.chartCurrency || 'USD'}`, 'Расход']}
+                        contentStyle={{ borderRadius: '16px', border: '1px solid #e2e8f0', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.05)' }}
+                      />
+                    </PieChart>
+                  </ResponsiveContainer>
+                </div>
+
+                {/* Right: Legend & Categories List */}
+                <div className="md:col-span-7 max-h-60 overflow-y-auto pr-1 space-y-2">
+                  {expensesData.categoriesChart.map((cat, idx) => {
+                    const catColor = COLORS[idx % COLORS.length];
+                    const pct = totalChartAmount > 0 ? ((cat.amount / totalChartAmount) * 100).toFixed(1) : '0';
+                    return (
+                      <div
+                        key={cat.name}
+                        className="flex items-center justify-between text-xs p-2.5 rounded-xl bg-slate-50 hover:bg-slate-100/80 border border-slate-100 transition gap-2"
+                      >
+                        <div className="flex items-center gap-2.5 min-w-0 flex-1">
+                          <span className="h-3 w-3 rounded-full shrink-0 shadow-2xs" style={{ backgroundColor: catColor }} />
+                          <span className="font-bold text-slate-800 truncate" title={cat.name}>
+                            {cat.name}
+                          </span>
+                        </div>
+                        <div className="text-right shrink-0">
+                          <span className="font-black text-slate-900 block leading-tight">
+                            {cat.amount.toLocaleString('ru-RU', { minimumFractionDigits: 2 })} {expensesData.chartCurrency || 'USD'}
+                          </span>
+                          <span className="text-[10px] text-slate-400 font-semibold">
+                            {pct}% от всего
+                          </span>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
             ) : (
-              <div className="flex flex-col items-center justify-center h-full text-slate-400 text-xs">
+              <div className="flex flex-col items-center justify-center h-60 text-slate-400 text-xs">
                 <Wallet className="h-8 w-8 mb-2 opacity-30" />
                 <span>Нет данных о расходах по выбранной валюте ({expensesData.chartCurrency || 'USD'})</span>
               </div>
@@ -684,17 +728,17 @@ export const ExpensesPage = () => {
               {expensesData.categoriesChart && expensesData.categoriesChart.length > 0 ? (
                 expensesData.categoriesChart.map((cat, idx) => (
                   <div key={cat.name} className="flex items-center justify-between text-xs p-2 rounded-xl bg-slate-50 border border-slate-100">
-                    <div className="flex items-center gap-2">
-                      <span className="h-2.5 w-2.5 rounded-full" style={{ backgroundColor: COLORS[idx % COLORS.length] }} />
-                      <span className="font-bold text-slate-800">{cat.name}</span>
+                    <div className="flex items-center gap-2 min-w-0 flex-1">
+                      <span className="h-2.5 w-2.5 rounded-full shrink-0" style={{ backgroundColor: COLORS[idx % COLORS.length] }} />
+                      <span className="font-bold text-slate-800 truncate" title={cat.name}>{cat.name}</span>
                     </div>
-                    <div className="text-right">
+                    <div className="text-right shrink-0 pl-2">
                       <span className="font-black text-rose-700">
-                        {cat.amount.toLocaleString()} {expensesData.chartCurrency || 'USD'}
+                        {cat.amount.toLocaleString('ru-RU', { minimumFractionDigits: 2 })} {expensesData.chartCurrency || 'USD'}
                       </span>
                       {currency === 'ALL' && cat.breakdown?.TJS && (
                         <div className="text-[10px] text-slate-400 font-medium">
-                          {cat.breakdown.TJS.toLocaleString()} TJS
+                          {cat.breakdown.TJS.toLocaleString('ru-RU', { minimumFractionDigits: 2 })} TJS
                         </div>
                       )}
                     </div>
