@@ -299,13 +299,13 @@ export const IncomePage = () => {
 
         <div className="rounded-3xl border border-teal-200 bg-gradient-to-br from-teal-50 to-cyan-50/40 p-5 shadow-2xs relative overflow-hidden">
           <div className="flex items-center justify-between">
-            <span className="text-xs font-bold text-teal-700 uppercase tracking-wider">Чистый доход компании</span>
+            <span className="text-xs font-bold text-teal-700 uppercase tracking-wider">Внешние поступления (без перекачек)</span>
             <span className="p-2 rounded-xl bg-teal-500/10 text-teal-600">📈</span>
           </div>
           <div className="text-2xl font-black text-teal-950 mt-2">
             ${(incomeData.netCompanyIncome?.USD || 0).toLocaleString('ru-RU', { minimumFractionDigits: 2 })}
           </div>
-          <p className="text-[11px] text-teal-600/90 mt-1 font-medium">Исключены внутренние перемещения и автоконвертации</p>
+          <p className="text-[11px] text-teal-600/90 mt-1 font-medium">Внешние поступления без внутренних переводов касс</p>
         </div>
 
         <div className="rounded-3xl border border-slate-200 bg-white p-5 shadow-2xs flex flex-col justify-between">

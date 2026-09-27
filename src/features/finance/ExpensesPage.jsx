@@ -509,13 +509,13 @@ export const ExpensesPage = () => {
 
         <div className="rounded-3xl border border-purple-200 bg-gradient-to-br from-purple-50 to-indigo-50/40 p-5 shadow-2xs relative overflow-hidden">
           <div className="flex items-center justify-between">
-            <span className="text-xs font-bold text-purple-700 uppercase tracking-wider">Автоконвертации в TJS</span>
-            <span className="p-2 rounded-xl bg-purple-500/10 text-purple-600">🔄</span>
+            <span className="text-xs font-bold text-purple-700 uppercase tracking-wider">Выплаты без конвертаций</span>
+            <span className="p-2 rounded-xl bg-purple-500/10 text-purple-600">📊</span>
           </div>
           <div className="text-2xl font-black text-purple-950 mt-2">
-            ${(expensesData.conversionDifferenceUsd || 0).toLocaleString('ru-RU', { minimumFractionDigits: 2 })}
+            ${(expensesData.operationalExpenses?.USD || 0).toLocaleString('ru-RU', { minimumFractionDigits: 2 })}
           </div>
-          <p className="text-[11px] text-purple-600/90 mt-1 font-medium">Объем USD, конвертированный для расходов в TJS</p>
+          <p className="text-[11px] text-purple-600/90 mt-1 font-medium">Прямые расходы без учета автоконвертаций в TJS</p>
         </div>
 
         <div className="rounded-3xl border border-slate-200 bg-white p-5 shadow-2xs flex flex-col justify-between">
