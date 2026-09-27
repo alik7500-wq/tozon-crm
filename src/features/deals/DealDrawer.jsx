@@ -28,9 +28,65 @@ import {
   ChevronRight,
   TrendingUp,
   MapPin,
-  MessageSquare
+  MessageSquare,
+  Sparkles
 } from 'lucide-react';
 import { useAuth } from '../auth/AuthContext';
+
+const monthNamesRu = [
+  'Январь', 'Февраль', 'Март', 'Апрель', 'Май', 'Июнь',
+  'Июль', 'Август', 'Сентябрь', 'Октябрь', 'Ноябрь', 'Декабрь'
+];
+
+const generateMonthlyPkoGroups = (pkoAllocations = []) => {
+  if (!pkoAllocations || pkoAllocations.length === 0) return [];
+  const validPkos = pkoAllocations.filter(p => p.payment_date);
+  if (validPkos.length === 0) return [];
+
+  const sortedDates = validPkos.map(p => p.payment_date).sort();
+  const minDateStr = sortedDates[0];
+  const maxDateStr = sortedDates[sortedDates.length - 1];
+
+  const [minY, minM] = minDateStr.split('-').map(Number);
+  const [maxY, maxM] = maxDateStr.split('-').map(Number);
+
+  const groups = [];
+  let curY = minY;
+  let curM = minM;
+
+  while (curY < maxY || (curY === maxY && curM <= maxM)) {
+    const monthKey = `${curY}-${String(curM).padStart(2, '0')}`;
+    const label = `${monthNamesRu[curM - 1]} ${curY}`;
+
+    const monthPkos = validPkos.filter(p => p.payment_date.startsWith(monthKey));
+
+    const totalAmountMinor = monthPkos.reduce((sum, p) => sum + (p.amount_minor || 0), 0);
+    const dpAmountMinor = monthPkos.reduce((sum, p) => sum + (p.down_payment_allocated_minor || 0), 0);
+    const schedAmountMinor = monthPkos.reduce((sum, p) => {
+      const saSum = (p.schedule_allocations || []).reduce((acc, sa) => acc + (sa.allocated_minor || 0), 0);
+      return sum + saSum;
+    }, 0);
+    const advanceAmountMinor = monthPkos.reduce((sum, p) => sum + (p.advance_remainder_minor || 0), 0);
+
+    groups.push({
+      monthKey,
+      label,
+      pkos: monthPkos,
+      totalAmountMinor,
+      dpAmountMinor,
+      schedAmountMinor,
+      advanceAmountMinor
+    });
+
+    curM++;
+    if (curM > 12) {
+      curM = 1;
+      curY++;
+    }
+  }
+
+  return groups;
+};
 
 export const DealDrawer = ({
   isOpen,
@@ -55,6 +111,8 @@ export const DealDrawer = ({
   const [newExtendExpiresAt, setNewExtendExpiresAt] = useState('');
   const [isSmsModalOpen, setIsSmsModalOpen] = useState(false);
   const [actionLoading, setActionLoading] = useState(false);
+  const [isPkoHistoryOpen, setIsPkoHistoryOpen] = useState(false);
+  const [selectedPkoId, setSelectedPkoId] = useState(null);
 
   const fetchDealDetail = async () => {
     if (!dealId) return;
@@ -229,7 +287,7 @@ export const DealDrawer = ({
 
   return (
     <div className="print:hidden fixed inset-0 z-50 overflow-hidden bg-slate-900/50 backdrop-blur-xs flex justify-end animate-in fade-in">
-      <div className="relative w-full max-w-3xl bg-white shadow-2xl flex flex-col h-full overflow-y-auto">
+      <div className={`relative w-full ${isPkoHistoryOpen ? 'max-w-7xl' : 'max-w-3xl'} bg-white shadow-2xl flex flex-col h-full overflow-y-auto transition-all duration-300`}>
         {/* Top Sticky Header */}
         <div className="sticky top-0 z-10 border-b border-slate-200 bg-white/95 backdrop-blur-md px-6 py-4 flex items-center justify-between shadow-xs">
           <div className="flex items-center gap-3">
@@ -618,85 +676,347 @@ export const DealDrawer = ({
             {/* SECTION 4: Payment Schedule */}
             {deal.schedules && deal.schedules.length > 0 && (
               <div className="rounded-2xl border border-slate-200 bg-white p-5 space-y-4 shadow-xs">
-                <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+                <div className="flex items-center justify-between border-b border-slate-100 pb-3 flex-wrap gap-2">
                   <div>
                     <h3 className="text-xs font-bold uppercase tracking-wider text-slate-800 flex items-center gap-1.5">
                       <Calendar className="h-4 w-4 text-blue-600" />
                       График платежей по рассрочке ({deal.schedules.length} мес.)
                     </h3>
                     <p className="text-[11px] text-slate-500 mt-0.5">
-                      Ежемесячные плановые платежи и статус их фактического погашения
+                      Ежемесячные плановые платежи, фактические поступления за месяц и зачёт по правилу FIFO
                     </p>
                   </div>
 
-                  {remainingDebt > 0 && (
+                  <div className="flex items-center gap-2">
                     <button
-                      onClick={() => handleOpenPayment(null)}
-                      className="flex items-center gap-1 rounded-xl bg-blue-50 px-3 py-1.5 text-xs font-bold text-blue-700 hover:bg-blue-100 border border-blue-200 transition cursor-pointer"
+                      type="button"
+                      onClick={() => {
+                        const nextState = !isPkoHistoryOpen;
+                        setIsPkoHistoryOpen(nextState);
+                        if (nextState && !selectedPkoId && deal?.pko_allocations?.length > 0) {
+                          setSelectedPkoId(deal.pko_allocations[0].payment_id);
+                        }
+                      }}
+                      className={`flex items-center gap-1.5 rounded-xl px-3 py-1.5 text-xs font-bold transition cursor-pointer border ${
+                        isPkoHistoryOpen
+                          ? 'bg-indigo-600 text-white border-indigo-700 shadow-sm'
+                          : 'bg-indigo-50 text-indigo-700 hover:bg-indigo-100 border-indigo-200'
+                      }`}
                     >
-                      <Plus className="h-3.5 w-3.5" />
-                      <span>Внести платеж</span>
+                      <FileText className="h-3.5 w-3.5" />
+                      <span>{isPkoHistoryOpen ? 'Скрыть историю' : 'История поступлений'}</span>
                     </button>
-                  )}
+
+                    {remainingDebt > 0 && (
+                      <button
+                        onClick={() => handleOpenPayment(null)}
+                        className="flex items-center gap-1 rounded-xl bg-blue-50 px-3 py-1.5 text-xs font-bold text-blue-700 hover:bg-blue-100 border border-blue-200 transition cursor-pointer"
+                      >
+                        <Plus className="h-3.5 w-3.5" />
+                        <span>Внести платеж</span>
+                      </button>
+                    )}
+                  </div>
                 </div>
 
-                <div className="overflow-x-auto">
-                  <table className="w-full text-left text-xs border-collapse">
-                    <thead>
-                      <tr className="border-b border-slate-200 bg-slate-50 text-[11px] font-bold text-slate-600">
-                        <th className="py-2.5 px-3">№</th>
-                        <th className="py-2.5 px-3">Срок оплаты</th>
-                        <th className="py-2.5 px-3 text-right">План ({currency})</th>
-                        <th className="py-2.5 px-3 text-right">Оплачено ({currency})</th>
-                        <th className="py-2.5 px-3 text-right">Остаток ({currency})</th>
-                        <th className="py-2.5 px-3 text-center">Статус</th>
-                        <th className="py-2.5 px-3 text-right">Действие</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-slate-100">
-                      {deal.schedules.map((s) => {
-                        const amount = s.amount_minor / 100;
-                        const paid = (s.paid_amount_minor || 0) / 100;
-                        const remain = Math.max(0, amount - paid);
+                {/* Explanation Banner */}
+                <div className="rounded-xl bg-blue-50/70 border border-blue-100 p-3 text-xs text-blue-900 space-y-1">
+                  <div className="font-bold flex items-center gap-1.5 text-blue-950">
+                    <Sparkles className="h-3.5 w-3.5 text-blue-600" />
+                    <span>Пояснение к расчёту платежей:</span>
+                  </div>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-[11px] text-blue-800">
+                    <div>
+                      <strong>• Из поступлений направлено на рассрочку:</strong> Часть фактически внесённых ПКО за данный месяц, зачисленная в рассрочку (без первоначального взноса).
+                    </div>
+                    <div>
+                      <strong>• Зачтено FIFO:</strong> Сумма, зачисленная в платёж по порядку возникновения обязательств.
+                    </div>
+                  </div>
+                </div>
 
-                        return (
-                          <tr key={s.id} className="hover:bg-slate-50/80 transition">
-                            <td className="py-2.5 px-3 font-bold text-slate-700">№{s.payment_number}</td>
-                            <td className="py-2.5 px-3 font-medium text-slate-900 flex items-center gap-1">
-                              <Calendar className="h-3 w-3 text-slate-400" />
-                              {s.due_date}
-                            </td>
-                            <td className="py-2.5 px-3 text-right font-bold text-slate-900">
-                              {amount.toLocaleString()}
-                            </td>
-                            <td className="py-2.5 px-3 text-right font-semibold text-emerald-700">
-                              {paid > 0 ? paid.toLocaleString() : '—'}
-                            </td>
-                            <td className="py-2.5 px-3 text-right font-bold text-rose-600">
-                              {remain > 0 ? remain.toLocaleString() : '0'}
-                            </td>
-                            <td className="py-2.5 px-3 text-center">
-                              {getScheduleStatusBadge(s.status)}
-                            </td>
-                            <td className="py-2.5 px-3 text-right">
-                              {remain > 0 ? (
-                                <button
-                                  onClick={() => handleOpenPayment(s.id)}
-                                  className="rounded-lg bg-emerald-50 px-2.5 py-1 text-[11px] font-bold text-emerald-700 border border-emerald-200 hover:bg-emerald-100 transition cursor-pointer"
-                                >
-                                  Оплатить
-                                </button>
-                              ) : (
-                                <span className="text-[11px] text-emerald-600 font-bold flex items-center justify-end gap-0.5">
-                                  <CheckCircle2 className="h-3 w-3" /> Закрыт
-                                </span>
-                              )}
-                            </td>
+                {/* Layout Container for Table & Side Breakdown */}
+                <div className={isPkoHistoryOpen ? "grid grid-cols-1 xl:grid-cols-12 gap-5 items-start" : "space-y-4"}>
+                  {/* Schedule Table Column */}
+                  <div className={isPkoHistoryOpen ? "xl:col-span-7 space-y-3 overflow-hidden" : "w-full space-y-3"}>
+                    <div className="overflow-x-auto">
+                      <table className="w-full text-left text-xs border-collapse">
+                        <thead>
+                          <tr className="border-b border-slate-200 bg-slate-50 text-[11px] font-bold text-slate-600">
+                            <th className="py-2.5 px-3">№</th>
+                            <th className="py-2.5 px-3">Срок оплаты</th>
+                            <th className="py-2.5 px-3 text-right">План ({currency})</th>
+                            <th className="py-2.5 px-3 text-right bg-blue-50/50 text-blue-900">Из поступлений направлено на рассрочку ({currency})</th>
+                            <th className="py-2.5 px-3 text-right bg-emerald-50/50 text-emerald-900">Зачтено FIFO ({currency})</th>
+                            <th className="py-2.5 px-3 text-right">Остаток ({currency})</th>
+                            <th className="py-2.5 px-3 text-center">Статус</th>
+                            <th className="py-2.5 px-3 text-right">Действие</th>
                           </tr>
-                        );
-                      })}
-                    </tbody>
-                  </table>
+                        </thead>
+                        <tbody className="divide-y divide-slate-100">
+                          {deal.schedules.map((s) => {
+                            const amount = s.amount_minor / 100;
+                            const paid = (s.paid_amount_minor || 0) / 100;
+                            const monthlyPko = s.monthly_pko_minor ? s.monthly_pko_minor / 100 : 0;
+                            const remain = Math.max(0, amount - paid);
+
+                            return (
+                              <tr key={s.id} className="hover:bg-slate-50/80 transition">
+                                <td className="py-2.5 px-3 font-bold text-slate-700">№{s.payment_number}</td>
+                                <td className="py-2.5 px-3 font-medium text-slate-900 flex items-center gap-1 whitespace-nowrap">
+                                  <Calendar className="h-3 w-3 text-slate-400 shrink-0" />
+                                  {s.due_date}
+                                </td>
+                                <td className="py-2.5 px-3 text-right font-bold text-slate-900">
+                                  {amount.toLocaleString()}
+                                </td>
+                                <td className="py-2.5 px-3 text-right font-bold text-blue-700 bg-blue-50/30">
+                                  {monthlyPko > 0 ? monthlyPko.toLocaleString('ru-RU', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : '—'}
+                                </td>
+                                <td className="py-2.5 px-3 text-right font-bold text-emerald-700 bg-emerald-50/30">
+                                  {paid > 0 ? paid.toLocaleString('ru-RU', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : '—'}
+                                </td>
+                                <td className="py-2.5 px-3 text-right font-bold text-rose-600">
+                                  {remain > 0 ? remain.toLocaleString('ru-RU', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : '0,00'}
+                                </td>
+                                <td className="py-2.5 px-3 text-center">
+                                  {getScheduleStatusBadge(s.status)}
+                                </td>
+                                <td className="py-2.5 px-3 text-right">
+                                  {remain > 0 ? (
+                                    <button
+                                      onClick={() => handleOpenPayment(s.id)}
+                                      className="rounded-lg bg-emerald-50 px-2.5 py-1 text-[11px] font-bold text-emerald-700 border border-emerald-200 hover:bg-emerald-100 transition cursor-pointer"
+                                    >
+                                      Оплатить
+                                    </button>
+                                  ) : (
+                                    <span className="text-[11px] text-emerald-600 font-bold flex items-center justify-end gap-0.5 whitespace-nowrap">
+                                      <CheckCircle2 className="h-3 w-3" /> Закрыт
+                                    </span>
+                                  )}
+                                </td>
+                              </tr>
+                            );
+                          })}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+
+                  {/* Side Panel for PKO History & Breakdown Column */}
+                  {isPkoHistoryOpen && (
+                    <div className="xl:col-span-5 space-y-4">
+                      <div className="rounded-2xl border border-indigo-200 bg-indigo-50/30 p-4 space-y-4 animate-in fade-in">
+                        <div className="flex items-center justify-between border-b border-indigo-100 pb-2.5">
+                          <div className="flex items-center gap-2 text-xs font-bold text-indigo-950">
+                            <FileText className="h-4 w-4 text-indigo-600" />
+                            <span>История поступлений и зачёт FIFO</span>
+                          </div>
+                          <button
+                            onClick={() => setIsPkoHistoryOpen(false)}
+                            className="text-slate-400 hover:text-slate-600 p-1 rounded-lg transition cursor-pointer"
+                          >
+                            <X className="h-4 w-4" />
+                          </button>
+                        </div>
+
+                        <div className="rounded-xl bg-amber-50/80 border border-amber-200 p-3 text-[11px] text-amber-900 leading-relaxed flex items-start gap-2">
+                          <Sparkles className="h-4 w-4 text-amber-600 shrink-0 mt-0.5" />
+                          <div>
+                            <strong>Обратите внимание:</strong> Дата поступления ПКО (когда клиент фактически внёс деньги) может отличаться от срока строки графика, на которую этот ПКО зачтён по правилу FIFO.
+                          </div>
+                        </div>
+
+                        <div className="grid grid-cols-1 gap-4">
+                          {/* Monthly Groups List */}
+                          <div className="space-y-3 max-h-[380px] overflow-y-auto pr-1">
+                            <h4 className="text-[11px] font-bold uppercase tracking-wider text-slate-600">
+                              Поступления ПКО по месяцам:
+                            </h4>
+                            {generateMonthlyPkoGroups(deal.pko_allocations || []).map((group) => (
+                              <div key={group.monthKey} className="rounded-xl border border-slate-200 bg-white p-2.5 space-y-1.5 shadow-2xs">
+                                <div className="border-b border-slate-100 pb-1.5 mb-1">
+                                  <div className="text-[11px] font-bold text-slate-800 flex items-center justify-between">
+                                    <span>{group.label}</span>
+                                    {group.totalAmountMinor > 0 && (
+                                      <span className="text-[11px] font-extrabold text-indigo-700">
+                                        Поступило: {(group.totalAmountMinor / 100).toLocaleString('ru-RU', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} USD
+                                      </span>
+                                    )}
+                                  </div>
+                                  {group.totalAmountMinor > 0 && (
+                                    <div className="text-[10px] text-slate-500 font-medium mt-0.5">
+                                      {group.dpAmountMinor > 0 && group.schedAmountMinor > 0 ? (
+                                        `(${(group.dpAmountMinor / 100).toLocaleString('ru-RU', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} USD — в первоначальный взнос, ${(group.schedAmountMinor / 100).toLocaleString('ru-RU', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} USD — в график)`
+                                      ) : group.dpAmountMinor > 0 ? (
+                                        `(${(group.dpAmountMinor / 100).toLocaleString('ru-RU', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} USD — в первоначальный взнос)`
+                                      ) : group.schedAmountMinor > 0 ? (
+                                        `(${(group.schedAmountMinor / 100).toLocaleString('ru-RU', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} USD — в график по FIFO)`
+                                      ) : (
+                                        `(${(group.advanceAmountMinor / 100).toLocaleString('ru-RU', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} USD — авансовый остаток)`
+                                      )}
+                                    </div>
+                                  )}
+                                </div>
+
+                                {group.pkos.length === 0 ? (
+                                  <p className="text-[11px] italic text-slate-400 py-1 text-center bg-slate-50 rounded-lg border border-dashed border-slate-200">
+                                    ПКО не поступали
+                                  </p>
+                                ) : (
+                                  <div className="space-y-1">
+                                    {group.pkos.map((pko) => {
+                                      const isSelected = selectedPkoId === pko.payment_id;
+                                      const amtUsd = (pko.amount_minor / 100).toLocaleString('ru-RU', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+                                      return (
+                                        <button
+                                          key={pko.payment_id}
+                                          type="button"
+                                          onClick={() => setSelectedPkoId(pko.payment_id)}
+                                          className={`w-full text-left p-2 rounded-lg border text-xs transition cursor-pointer flex items-center justify-between ${
+                                            isSelected
+                                              ? 'bg-indigo-600 text-white border-indigo-700 shadow-xs'
+                                              : 'bg-slate-50 hover:bg-slate-100 text-slate-800 border-slate-200'
+                                          }`}
+                                        >
+                                          <div>
+                                            <div className="font-bold flex items-center gap-1.5">
+                                              <span>ПКО #{pko.payment_id}</span>
+                                              {pko.reference && (
+                                                <span className={`text-[10px] font-mono opacity-80 ${isSelected ? 'text-indigo-100' : 'text-slate-500'}`}>
+                                                  ({pko.reference})
+                                                </span>
+                                              )}
+                                            </div>
+                                            <div className={`text-[10px] ${isSelected ? 'text-indigo-200' : 'text-slate-500'}`}>
+                                              Дата: {pko.payment_date}
+                                            </div>
+                                          </div>
+                                          <div className="text-right font-extrabold">
+                                            {amtUsd} {pko.currency || 'USD'}
+                                          </div>
+                                        </button>
+                                      );
+                                    })}
+                                  </div>
+                                )}
+                              </div>
+                            ))}
+                          </div>
+
+                          {/* Selected PKO Detailed Breakdown */}
+                          <div>
+                            {(() => {
+                              const pkoAllocations = deal.pko_allocations || [];
+                              const selectedPko = pkoAllocations.find(p => p.payment_id === selectedPkoId) || pkoAllocations[0];
+
+                              if (!selectedPko) {
+                                return (
+                                  <div className="rounded-xl border border-slate-200 bg-white p-4 text-center text-xs text-slate-500">
+                                    Выберите ПКО для просмотра детализации зачёта
+                                  </div>
+                                );
+                              }
+
+                              const totalAmtUsd = (selectedPko.amount_minor / 100).toLocaleString('ru-RU', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+                              const dpAmtUsd = (selectedPko.down_payment_allocated_minor / 100).toLocaleString('ru-RU', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+                              const advAmtUsd = (selectedPko.advance_remainder_minor / 100).toLocaleString('ru-RU', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+
+                              const partsSumMinor = (selectedPko.down_payment_allocated_minor || 0) +
+                                (selectedPko.schedule_allocations || []).reduce((acc, sa) => acc + (sa.allocated_minor || 0), 0) +
+                                (selectedPko.advance_remainder_minor || 0);
+
+                              const isExactMatch = partsSumMinor === selectedPko.amount_minor;
+
+                              return (
+                                <div className="rounded-xl border border-indigo-200 bg-white p-4 space-y-3 shadow-sm">
+                                  <div className="border-b border-indigo-100 pb-2 flex items-center justify-between">
+                                    <div>
+                                      <h4 className="text-xs font-bold text-slate-900 flex items-center gap-1.5">
+                                        <ShieldCheck className="h-4 w-4 text-indigo-600" />
+                                        <span>Расшифровка зачёта ПКО #{selectedPko.payment_id}</span>
+                                      </h4>
+                                      <p className="text-[10px] text-slate-500">
+                                        Дата ПКО: {selectedPko.payment_date} • Валюта: {selectedPko.currency || 'USD'}
+                                      </p>
+                                    </div>
+                                    <div className="text-right">
+                                      <span className="text-[10px] text-slate-400 block">Сумма ПКО</span>
+                                      <span className="text-sm font-black text-indigo-900">{totalAmtUsd} {selectedPko.currency || 'USD'}</span>
+                                    </div>
+                                  </div>
+
+                                  <div className="space-y-2 text-xs">
+                                    {selectedPko.down_payment_allocated_minor > 0 && (
+                                      <div className="p-2 rounded-lg bg-emerald-50 border border-emerald-200 flex items-center justify-between">
+                                        <div>
+                                          <span className="font-bold text-emerald-900 block text-[11px]">Первоначальный взнос:</span>
+                                          <span className="text-[10px] text-emerald-700">Зачислено на покрытие взноса</span>
+                                        </div>
+                                        <span className="font-extrabold text-emerald-800 text-xs">
+                                          {dpAmtUsd} {selectedPko.currency || 'USD'}
+                                        </span>
+                                      </div>
+                                    )}
+
+                                    {(selectedPko.schedule_allocations || []).length > 0 && (
+                                      <div className="space-y-1">
+                                        <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500 block">
+                                          Зачислено в строки графика (FIFO):
+                                        </span>
+                                        {selectedPko.schedule_allocations.map((sa, i) => {
+                                          const saUsd = (sa.allocated_minor / 100).toLocaleString('ru-RU', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+                                          return (
+                                            <div key={i} className="p-2 rounded-lg bg-slate-50 border border-slate-200 flex items-center justify-between">
+                                              <div>
+                                                <span className="font-bold text-slate-900 block text-[11px]">
+                                                  Строка №{sa.payment_number} (срок {sa.due_date})
+                                                </span>
+                                              </div>
+                                              <span className="font-bold text-indigo-700 text-xs">
+                                                {saUsd} {selectedPko.currency || 'USD'}
+                                              </span>
+                                            </div>
+                                          );
+                                        })}
+                                      </div>
+                                    )}
+
+                                    {selectedPko.advance_remainder_minor > 0 && (
+                                      <div className="p-2 rounded-lg bg-amber-50 border border-amber-200 flex items-center justify-between">
+                                        <div>
+                                          <span className="font-bold text-amber-900 block text-[11px]">Нераспределённый аванс:</span>
+                                          <span className="text-[10px] text-amber-700">Остаток средств до наступления новых сроков</span>
+                                        </div>
+                                        <span className="font-extrabold text-amber-800 text-xs">
+                                          {advAmtUsd} {selectedPko.currency || 'USD'}
+                                        </span>
+                                      </div>
+                                    )}
+                                  </div>
+
+                                  {/* Exact match checksum badge */}
+                                  <div className="pt-2 border-t border-slate-100 flex items-center justify-between text-[11px]">
+                                    <span className="text-slate-500 font-medium">Контроль равенства частей:</span>
+                                    {isExactMatch ? (
+                                      <span className="font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-md border border-emerald-200 flex items-center gap-1">
+                                        <CheckCircle2 className="h-3 w-3" /> Точное совпадение ({totalAmtUsd})
+                                      </span>
+                                    ) : (
+                                      <span className="font-bold text-rose-700 bg-rose-50 px-2 py-0.5 rounded-md border border-rose-200">
+                                        Расхождение сумм
+                                      </span>
+                                    )}
+                                  </div>
+                                </div>
+                              );
+                            })()}
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  )}
                 </div>
               </div>
             )}

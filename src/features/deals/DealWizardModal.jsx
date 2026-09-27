@@ -84,10 +84,33 @@ export const DealWizardModal = ({
   const [downPaymentAmount, setDownPaymentAmount] = useState(0);
   const [installmentMonths, setInstallmentMonths] = useState(12);
   const [dealDate, setDealDate] = useState(new Date().toISOString().split('T')[0]);
-  const [firstPaymentDate, setFirstPaymentDate] = useState(
-    new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]
-  );
+  const [firstPaymentDate, setFirstPaymentDate] = useState('');
   const [schedule, setSchedule] = useState([]);
+
+  // Auto-set firstPaymentDate to the next month with the contractual day of month (Requirement 3)
+  useEffect(() => {
+    if (dealDate) {
+      const parts = dealDate.split('-');
+      if (parts.length === 3 && parts[0].length === 4) {
+        const year = parseInt(parts[0], 10);
+        const month = parseInt(parts[1], 10);
+        const day = parseInt(parts[2], 10);
+
+        let nextMonth = month + 1;
+        let nextYear = year;
+        if (nextMonth > 12) {
+          nextMonth = 1;
+          nextYear += 1;
+        }
+
+        const maxDays = new Date(nextYear, nextMonth, 0).getDate();
+        const actualDay = Math.min(day, maxDays);
+
+        const nextDateStr = `${nextYear}-${String(nextMonth).padStart(2, '0')}-${String(actualDay).padStart(2, '0')}`;
+        setFirstPaymentDate(nextDateStr);
+      }
+    }
+  }, [dealDate]);
 
   // Initial Payment PKO controls
   const [initialPaymentReference, setInitialPaymentReference] = useState('');

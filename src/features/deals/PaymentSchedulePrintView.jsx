@@ -119,21 +119,19 @@ export const PaymentSchedulePrintView = ({ deal, onClose, initialLang = 'TJ' }) 
     num: 1,
     planDate: advanceDate,
     planAmount: deal.down_payment_minor || 0,
-    actualDate: deal.down_payment_minor > 0 ? advanceDate : '',
-    actualAmount: deal.down_payment_minor > 0 ? deal.down_payment_minor : null,
+    monthlyPkoAmount: deal.down_payment_minor > 0 ? deal.down_payment_minor : null,
+    fifoPaidAmount: deal.down_payment_minor > 0 ? deal.down_payment_minor : null,
     note: isTJ ? 'Маблағи пешпардохти аввал' : 'Сумма первоначального взноса',
   });
 
   // Remaining schedules (rows 2..N+1)
   schedules.forEach((s, idx) => {
-    const isPaid = s.status === 'PAID';
-    const isPartial = s.status === 'PARTIAL';
     tableRows.push({
       num: idx + 2,
       planDate: formatDate(s.due_date),
       planAmount: s.amount_minor,
-      actualDate: isPaid || isPartial ? formatDate(s.updated_at || s.due_date) : '',
-      actualAmount: s.paid_amount_minor > 0 ? s.paid_amount_minor : null,
+      monthlyPkoAmount: s.monthly_pko_minor > 0 ? s.monthly_pko_minor : null,
+      fifoPaidAmount: s.paid_amount_minor > 0 ? s.paid_amount_minor : null,
       note: s.note || '',
     });
   });
@@ -296,20 +294,20 @@ export const PaymentSchedulePrintView = ({ deal, onClose, initialLang = 'TJ' }) 
                     {isTJ ? <>№<br />б/т</> : <>№<br />п/п</>}
                   </th>
                   <th colSpan="2" className="border-r border-slate-900 p-1.5 bg-slate-200/70">
-                    {isTJ ? 'Мувофиқи ҷадвал' : 'По графику (план)'}
+                    {isTJ ? 'Мувофиқи ҷадвал (план)' : 'По графику (план)'}
                   </th>
-                  <th colSpan="2" className="border-r border-slate-900 p-1.5 bg-slate-200/70">
-                    {isTJ ? 'Дар асл' : 'По факту (оплачено)'}
+                  <th colSpan="2" className="border-r border-slate-900 p-1.5 bg-blue-100/70 text-blue-950">
+                    {isTJ ? 'Пардохтҳо ва забткунӣ (факт)' : 'Поступления и зачёт (факт)'}
                   </th>
-                  <th rowSpan="2" className="p-1.5 min-w-[140px]">
+                  <th rowSpan="2" className="p-1.5 min-w-[120px]">
                     {isTJ ? 'Эзоҳ' : 'Примечание'}
                   </th>
                 </tr>
                 <tr className="bg-slate-50 border-b-2 border-slate-900 font-bold text-slate-800 text-[10px] sm:text-xs">
                   <th className="border-r border-slate-900 p-1 w-20 sm:w-24">{isTJ ? 'Сана' : 'Дата'}</th>
-                  <th className="border-r border-slate-900 p-1 w-24 sm:w-28">{isTJ ? 'Маблағ' : 'Сумма'}, {currencyShort}</th>
-                  <th className="border-r border-slate-900 p-1 w-20 sm:w-24">{isTJ ? 'Сана' : 'Дата'}</th>
-                  <th className="border-r border-slate-900 p-1 w-24 sm:w-28">{isTJ ? 'Маблағ' : 'Сумма'}, {currencyShort}</th>
+                  <th className="border-r border-slate-900 p-1 w-24 sm:w-28">{isTJ ? 'План' : 'План'}, {currencyShort}</th>
+                  <th className="border-r border-slate-900 p-1 w-24 sm:w-28 text-blue-900">{isTJ ? 'Ворид шуд' : 'Поступило в мес.'}, {currencyShort}</th>
+                  <th className="border-r border-slate-900 p-1 w-24 sm:w-28 text-emerald-900">{isTJ ? 'Гузаронида шуд (FIFO)' : 'Зачтено FIFO'}, {currencyShort}</th>
                 </tr>
               </thead>
               <tbody>
@@ -324,13 +322,13 @@ export const PaymentSchedulePrintView = ({ deal, onClose, initialLang = 'TJ' }) 
                     <td className="border-r border-slate-900 p-1 text-right pr-2 font-bold text-slate-900">
                       {formatMoney(row.planAmount)}
                     </td>
-                    <td className="border-r border-slate-900 p-1 text-slate-700">
-                      {row.actualDate || ''}
+                    <td className="border-r border-slate-900 p-1 text-right pr-2 font-bold text-blue-800 bg-blue-50/30">
+                      {row.monthlyPkoAmount !== null ? formatMoney(row.monthlyPkoAmount) : '—'}
                     </td>
-                    <td className="border-r border-slate-900 p-1 text-right pr-2 font-bold text-slate-900">
-                      {row.actualAmount !== null ? formatMoney(row.actualAmount) : ''}
+                    <td className="border-r border-slate-900 p-1 text-right pr-2 font-bold text-emerald-800 bg-emerald-50/30">
+                      {row.fifoPaidAmount !== null ? formatMoney(row.fifoPaidAmount) : '—'}
                     </td>
-                    <td className="p-1 text-left pl-2 text-slate-700 truncate max-w-[180px]">
+                    <td className="p-1 text-left pl-2 text-slate-700 truncate max-w-[160px]">
                       {row.note}
                     </td>
                   </tr>
@@ -345,7 +343,7 @@ export const PaymentSchedulePrintView = ({ deal, onClose, initialLang = 'TJ' }) 
                     {finalPrice}
                   </td>
                   <td className="border-r border-slate-900 p-1.5"></td>
-                  <td className="border-r border-slate-900 p-1.5 text-right pr-2">
+                  <td className="border-r border-slate-900 p-1.5 text-right pr-2 font-black text-emerald-900">
                     {formatMoney(totalPaidMinor)}
                   </td>
                   <td className="p-1.5"></td>
