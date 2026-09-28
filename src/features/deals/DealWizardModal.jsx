@@ -23,8 +23,10 @@ import {
   Building2,
   Home,
   Clock,
-  Tag
+  Tag,
+  Sparkles
 } from 'lucide-react';
+import { PassportScannerModal } from '../documents/PassportScannerModal';
 
 export const DealWizardModal = ({
   isOpen,
@@ -65,6 +67,22 @@ export const DealWizardModal = ({
     registration_address: 'г. Душанбе, ул. Рудаки 100',
     inn: '',
   });
+
+  const [isScannerOpen, setIsScannerOpen] = useState(false);
+
+  const handleScannerConfirmedInDeal = (scanned) => {
+    setNewLeadData((prev) => ({
+      ...prev,
+      full_name: scanned.full_name || prev.full_name,
+      passport_series: scanned.passport_series || prev.passport_series,
+      passport_number: scanned.passport_number || prev.passport_number,
+      passport_issued_by: scanned.passport_issued_by || prev.passport_issued_by,
+      passport_issue_date: scanned.passport_issue_date || prev.passport_issue_date,
+      birth_date: scanned.birth_date || prev.birth_date,
+      registration_address: scanned.registration_address || prev.registration_address,
+      inn: scanned.inn || prev.inn
+    }));
+  };
 
   // Deal Financials
   const [dealStatus, setDealStatus] = useState('SIGNED'); // 'SIGNED' or 'RESERVED'
@@ -624,13 +642,23 @@ export const DealWizardModal = ({
                 <div className="space-y-3 p-4 rounded-xl bg-slate-50 border border-slate-200">
                   <div className="flex items-center justify-between pb-2 border-b border-slate-200">
                     <span className="text-xs font-bold text-slate-900">Новый покупатель (с паспортом для договора)</span>
-                    <button
-                      type="button"
-                      onClick={() => setIsCreatingNewLead(false)}
-                      className="text-xs text-slate-500 hover:text-slate-800"
-                    >
-                      Отмена
-                    </button>
+                    <div className="flex items-center gap-2">
+                      <button
+                        type="button"
+                        onClick={() => setIsScannerOpen(true)}
+                        className="flex items-center gap-1.5 px-3 py-1 rounded-xl bg-gradient-to-r from-indigo-600 to-blue-600 hover:from-indigo-500 hover:to-blue-500 text-white font-bold text-[11px] shadow-xs transition cursor-pointer"
+                      >
+                        <Sparkles className="h-3.5 w-3.5 text-indigo-200 animate-pulse" />
+                        <span>Сканировать с AI</span>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setIsCreatingNewLead(false)}
+                        className="text-xs text-slate-500 hover:text-slate-800"
+                      >
+                        Отмена
+                      </button>
+                    </div>
                   </div>
 
                   <div className="grid grid-cols-2 gap-3">
@@ -1324,6 +1352,12 @@ export const DealWizardModal = ({
           </div>
         </div>
       </div>
+
+      <PassportScannerModal
+        isOpen={isScannerOpen}
+        onClose={() => setIsScannerOpen(false)}
+        onConfirmData={handleScannerConfirmedInDeal}
+      />
     </div>
   );
 };

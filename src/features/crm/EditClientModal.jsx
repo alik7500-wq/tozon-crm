@@ -13,8 +13,10 @@ import {
   AlertCircle,
   FileText,
   ShieldCheck,
-  CreditCard
+  CreditCard,
+  Sparkles
 } from 'lucide-react';
+import { PassportScannerModal } from '../documents/PassportScannerModal';
 
 export const EditClientModal = ({
   isOpen,
@@ -25,6 +27,18 @@ export const EditClientModal = ({
   const [users, setUsers] = useState([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState('');
+  const [isScannerOpen, setIsScannerOpen] = useState(false);
+
+  const handleScannerConfirmed = (scanned) => {
+    if (scanned.full_name) setFullName(scanned.full_name);
+    if (scanned.passport_series) setPassportSeries(scanned.passport_series);
+    if (scanned.passport_number) setPassportNumber(scanned.passport_number);
+    if (scanned.passport_issued_by) setPassportIssuedBy(scanned.passport_issued_by);
+    if (scanned.passport_issue_date) setPassportIssueDate(scanned.passport_issue_date);
+    if (scanned.birth_date) setBirthDate(scanned.birth_date);
+    if (scanned.registration_address) setRegistrationAddress(scanned.registration_address);
+    if (scanned.inn) setInn(scanned.inn);
+  };
 
   // Form State
   const [fullName, setFullName] = useState('');
@@ -276,6 +290,14 @@ export const EditClientModal = ({
                   <FileText className="h-3.5 w-3.5 text-amber-600" />
                   <span>Паспортные данные и прописка</span>
                 </div>
+                <button
+                  type="button"
+                  onClick={() => setIsScannerOpen(true)}
+                  className="flex items-center gap-1.5 px-3 py-1 rounded-xl bg-gradient-to-r from-indigo-600 to-blue-600 hover:from-indigo-500 hover:to-blue-500 text-white font-bold text-[11px] shadow-xs transition cursor-pointer"
+                >
+                  <Sparkles className="h-3.5 w-3.5 text-indigo-200 animate-pulse" />
+                  <span>Сканировать паспорт с AI</span>
+                </button>
               </div>
 
               <div className="grid grid-cols-3 gap-2.5">
@@ -382,6 +404,13 @@ export const EditClientModal = ({
           </div>
         </form>
       </div>
+
+      <PassportScannerModal
+        isOpen={isScannerOpen}
+        onClose={() => setIsScannerOpen(false)}
+        onConfirmData={handleScannerConfirmed}
+        existingClientData={client}
+      />
     </div>
   );
 };

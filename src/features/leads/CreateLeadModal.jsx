@@ -15,6 +15,7 @@ import {
   Sparkles,
   Layers
 } from 'lucide-react';
+import { PassportScannerModal } from '../documents/PassportScannerModal';
 
 export const CreateLeadModal = ({ isOpen, onClose, onCreated, leadToEdit = null, projects = [] }) => {
   const [activeTab, setActiveTab] = useState('main'); // 'main', 'preferences', 'passport'
@@ -41,6 +42,21 @@ export const CreateLeadModal = ({ isOpen, onClose, onCreated, leadToEdit = null,
 
   const [error, setError] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isScannerOpen, setIsScannerOpen] = useState(false);
+
+  const handleScannerConfirmed = (scanned) => {
+    setFormData((prev) => ({
+      ...prev,
+      full_name: scanned.full_name || prev.full_name,
+      passport_series: scanned.passport_series || prev.passport_series,
+      passport_number: scanned.passport_number || prev.passport_number,
+      passport_issued_by: scanned.passport_issued_by || prev.passport_issued_by,
+      passport_issue_date: scanned.passport_issue_date || prev.passport_issue_date,
+      birth_date: scanned.birth_date || prev.birth_date,
+      registration_address: scanned.registration_address || prev.registration_address,
+      inn: scanned.inn || prev.inn
+    }));
+  };
 
   useEffect(() => {
     dictionariesApi.getItems('LEAD_SOURCE')
@@ -371,6 +387,21 @@ export const CreateLeadModal = ({ isOpen, onClose, onCreated, leadToEdit = null,
           {/* TAB 3: PASSPORT DATA */}
           {activeTab === 'passport' && (
             <div className="space-y-4">
+              <div className="flex items-center justify-between p-3 rounded-2xl bg-gradient-to-r from-indigo-50 to-blue-50 border border-indigo-100">
+                <div className="flex items-center gap-2">
+                  <Sparkles className="h-4 w-4 text-indigo-600 animate-pulse" />
+                  <span className="text-xs font-bold text-slate-800">Автоматическое заполнение из фото паспорта</span>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setIsScannerOpen(true)}
+                  className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs shadow-xs transition cursor-pointer"
+                >
+                  <Sparkles className="h-3.5 w-3.5" />
+                  <span>Сканировать с AI</span>
+                </button>
+              </div>
+
               <div className="grid grid-cols-3 gap-3">
                 <div>
                   <label className="block text-xs font-semibold text-slate-700 mb-1">Серия паспорта</label>
@@ -476,6 +507,13 @@ export const CreateLeadModal = ({ isOpen, onClose, onCreated, leadToEdit = null,
           </div>
         </form>
       </div>
+
+      <PassportScannerModal
+        isOpen={isScannerOpen}
+        onClose={() => setIsScannerOpen(false)}
+        onConfirmData={handleScannerConfirmed}
+        existingClientData={leadToEdit}
+      />
     </div>
   );
 };
