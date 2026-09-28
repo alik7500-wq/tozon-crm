@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { api } from '../../api/client';
 import { ClientDetailModal } from './ClientDetailModal';
 import { EditClientModal } from './EditClientModal';
@@ -26,9 +27,11 @@ import {
 } from 'lucide-react';
 
 export const ClientsPage = () => {
+  const [searchParams, setSearchParams] = useSearchParams();
+  const initialSearch = searchParams.get('search') || '';
   const [clients, setClients] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [search, setSearch] = useState('');
+  const [search, setSearch] = useState(initialSearch);
   const [selectedClient, setSelectedClient] = useState(null);
   const [clientToEdit, setClientToEdit] = useState(null);
   const [smsClient, setSmsClient] = useState(null);
@@ -42,6 +45,23 @@ export const ClientsPage = () => {
     inn: '',
     registration_address: '',
   });
+
+  // Sync search state if URL searchParam changes (e.g. from GlobalSearch)
+  useEffect(() => {
+    const query = searchParams.get('search') || '';
+    if (query !== search) {
+      setSearch(query);
+    }
+  }, [searchParams]);
+
+  const handleSearchChange = (val) => {
+    setSearch(val);
+    if (val) {
+      setSearchParams({ search: val }, { replace: true });
+    } else {
+      setSearchParams({}, { replace: true });
+    }
+  };
 
   const fetchClients = async () => {
     try {
@@ -62,7 +82,7 @@ export const ClientsPage = () => {
         const clientKey = (d.lead_phone || d.lead_name || `deal-${d.id}`).trim().toLowerCase();
         if (!map.has(clientKey)) {
           map.set(clientKey, {
-            id: d.id,
+            id: `deal-${d.id}`,
             lead_id: d.lead_id,
             deal_id: d.id,
             name: d.lead_name || 'Клиент',
@@ -108,7 +128,7 @@ export const ClientsPage = () => {
         const clientKey = (l.phone || l.full_name || `lead-${l.id}`).trim().toLowerCase();
         if (!map.has(clientKey)) {
           map.set(clientKey, {
-            id: l.id,
+            id: `lead-${l.id}`,
             lead_id: l.id,
             name: l.full_name || 'Лид',
             phone: l.phone || '',
@@ -232,7 +252,7 @@ export const ClientsPage = () => {
             type="text"
             placeholder="Поиск по ФИО, телефону или паспорту..."
             value={search}
-            onChange={(e) => setSearch(e.target.value)}
+            onChange={(e) => handleSearchChange(e.target.value)}
             className="w-full rounded-xl border border-slate-200 bg-slate-50 pl-10 pr-3.5 py-2 text-xs text-slate-900 outline-none focus:border-tozon-blue focus:bg-white focus:ring-4 focus:ring-tozon-blue/10 transition"
           />
         </div>
