@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { matchSearchQuery } from '../../utils/searchUtils';
 import {
   Smartphone,
   Send,
@@ -68,12 +69,8 @@ export const SmsNotificationsPage = () => {
     }, 600);
   };
 
-  const filtered = logs.filter(
-    (l) =>
-      !search ||
-      l.recipient.includes(search) ||
-      l.client_name.toLowerCase().includes(search.toLowerCase()) ||
-      l.text.toLowerCase().includes(search.toLowerCase())
+  const filtered = logs.filter((l) =>
+    matchSearchQuery(l, ['client_name', 'text', 'recipient'], search, { phoneFields: ['recipient'] })
   );
 
   return (

@@ -5,6 +5,7 @@ import { DealDrawer } from '../deals/DealDrawer';
 import { ContractPrintView } from '../deals/ContractPrintView';
 import { FinanceTabs } from '../../components/FinanceTabs';
 import { formatContractNumber } from '../../utils/formatters';
+import { matchSearchQuery } from '../../utils/searchUtils';
 import {
   CreditCard,
   Plus,
@@ -43,14 +44,19 @@ export const PaymentsPage = () => {
     fetchDeals();
   }, []);
 
-  const filteredDeals = deals.filter((d) => {
-    return (
-      !search ||
-      (d.contract_number && d.contract_number.toLowerCase().includes(search.toLowerCase())) ||
-      (d.lead_name && d.lead_name.toLowerCase().includes(search.toLowerCase())) ||
-      (d.project_name && d.project_name.toLowerCase().includes(search.toLowerCase()))
-    );
-  });
+  const filteredDeals = deals.filter((d) =>
+    matchSearchQuery(
+      d,
+      ['lead_name', 'lead_phone', 'project_name', 'passport_series', 'passport_number', 'inn', 'buyer_name'],
+      search,
+      {
+        phoneFields: ['lead_phone'],
+        contractFields: ['contract_number'],
+        unitFields: ['unit_number'],
+        innFields: ['inn']
+      }
+    )
+  );
 
   const signedDeals = filteredDeals.filter(d => d.status === 'SIGNED' || d.status === 'COMPLETED');
   const totalContractAmount = signedDeals.reduce((acc, d) => acc + (d.final_price_minor || 0), 0);

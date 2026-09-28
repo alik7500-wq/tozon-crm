@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { matchSearchQuery } from '../../utils/searchUtils';
 import {
   MessageSquare,
   Plus,
@@ -119,7 +120,7 @@ export const SmsTemplatesPage = () => {
   };
 
   const filtered = templates.filter((t) =>
-    !search || t.text.toLowerCase().includes(search.toLowerCase())
+    matchSearchQuery(t, ['text'], search)
   );
 
   return (

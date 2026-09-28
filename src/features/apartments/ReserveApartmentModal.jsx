@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { api } from '../../api/client';
 import { useModalDismiss } from '../../hooks/useModalDismiss';
+import { matchSearchQuery } from '../../utils/searchUtils';
 import {
   X,
   Clock,
@@ -102,14 +103,11 @@ export const ReserveApartmentModal = ({
   const expiryDate = getCalculatedExpiryDate();
   const calculatedTotalPrice = Math.round(areaM2 * (parseFloat(pricePerM2) || 0));
 
-  const filteredLeads = leads.filter((l) => {
-    if (!searchLead) return true;
-    const s = searchLead.toLowerCase();
-    return (
-      (l.full_name && l.full_name.toLowerCase().includes(s)) ||
-      (l.phone && l.phone.toLowerCase().includes(s))
-    );
-  });
+  const filteredLeads = leads.filter((l) =>
+    matchSearchQuery(l, ['full_name', 'phone', 'passport_series', 'passport_number', 'inn'], searchLead, {
+      phoneFields: ['phone']
+    })
+  );
 
   const handleSubmit = async (e) => {
     e.preventDefault();

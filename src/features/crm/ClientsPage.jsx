@@ -3,6 +3,7 @@ import { api } from '../../api/client';
 import { ClientDetailModal } from './ClientDetailModal';
 import { EditClientModal } from './EditClientModal';
 import { SendSmsModal } from '../../components/sms/SendSmsModal';
+import { matchSearchQuery } from '../../utils/searchUtils';
 import {
   Users,
   Plus,
@@ -76,6 +77,9 @@ export const ClientsPage = () => {
             totalPaidMinor: d.total_paid_minor || d.paid_amount_minor || 0,
             projectName: d.project_name || 'ЖК',
             unitNumber: d.unit_number || '—',
+            contract_number: d.contract_number || '',
+            contractsList: d.contract_number ? [String(d.contract_number)] : [],
+            unitsList: d.unit_number ? [String(d.unit_number)] : [],
             manager_name: d.manager_name || 'Admin',
             source: 'DEAL',
             status: d.status || 'SIGNED',
@@ -87,6 +91,15 @@ export const ClientsPage = () => {
           existing.dealsCount += 1;
           existing.totalPurchasesMinor += (d.final_price_minor || 0);
           existing.totalPaidMinor += (d.total_paid_minor || d.paid_amount_minor || 0);
+          if (d.contract_number && !existing.contractsList.includes(String(d.contract_number))) {
+            existing.contractsList.push(String(d.contract_number));
+          }
+          if (d.unit_number && !existing.unitsList.includes(String(d.unit_number))) {
+            existing.unitsList.push(String(d.unit_number));
+          }
+          if (!existing.passport_series && d.passport_series) existing.passport_series = d.passport_series;
+          if (!existing.passport_number && d.passport_number) existing.passport_number = d.passport_number;
+          if (!existing.inn && d.inn) existing.inn = d.inn;
         }
       });
 
@@ -109,6 +122,9 @@ export const ClientsPage = () => {
             totalPaidMinor: 0,
             projectName: l.interested_project_name || '—',
             unitNumber: '—',
+            contract_number: '',
+            contractsList: [],
+            unitsList: [],
             manager_name: l.responsible_user_name || 'Admin',
             source: l.source || 'DIRECT',
             status: l.status || 'NEW',
@@ -119,6 +135,8 @@ export const ClientsPage = () => {
           const existing = map.get(clientKey);
           if (!existing.lead_id) existing.lead_id = l.id;
           if (!existing.inn && l.inn) existing.inn = l.inn;
+          if (!existing.passport_series && l.passport_series) existing.passport_series = l.passport_series;
+          if (!existing.passport_number && l.passport_number) existing.passport_number = l.passport_number;
           if (!existing.address && l.registration_address) existing.address = l.registration_address;
         }
       });
@@ -169,13 +187,18 @@ export const ClientsPage = () => {
     }
   };
 
-  const filtered = clients.filter(
-    (c) =>
-      !search ||
-      c.name.toLowerCase().includes(search.toLowerCase()) ||
-      (c.phone && c.phone.toLowerCase().includes(search.toLowerCase())) ||
-      (c.passport && c.passport.toLowerCase().includes(search.toLowerCase())) ||
-      (c.projectName && c.projectName.toLowerCase().includes(search.toLowerCase()))
+  const filtered = clients.filter((c) =>
+    matchSearchQuery(
+      c,
+      ['name', 'phone', 'passport', 'passport_series', 'passport_number', 'inn', 'projectName', 'address'],
+      search,
+      {
+        phoneFields: ['phone'],
+        contractFields: ['contract_number', 'contractsList'],
+        unitFields: ['unitNumber', 'unitsList'],
+        innFields: ['inn']
+      }
+    )
   );
 
   return (

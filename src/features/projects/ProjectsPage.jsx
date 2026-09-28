@@ -16,6 +16,8 @@ import {
   AlertCircle
 } from 'lucide-react';
 
+import { matchSearchQuery } from '../../utils/searchUtils';
+
 export const ProjectsPage = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
@@ -48,9 +50,7 @@ export const ProjectsPage = () => {
   };
 
   const filteredProjects = projects.filter((p) =>
-    p.name.toLowerCase().includes(search.toLowerCase()) ||
-    p.code.toLowerCase().includes(search.toLowerCase()) ||
-    p.address.toLowerCase().includes(search.toLowerCase())
+    matchSearchQuery(p, ['name', 'code', 'address', 'developer_name', 'description'], search)
   );
 
   return (

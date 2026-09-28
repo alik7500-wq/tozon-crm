@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { api } from '../../api/client';
 import { ApartmentDetailModal } from './ApartmentDetailModal';
+import { matchSearchQuery } from '../../utils/searchUtils';
 import {
   Home,
   Building2,
@@ -81,7 +82,7 @@ export const ApartmentsPage = () => {
   );
 
   const filteredUnits = allUnits.filter((u) => {
-    const matchesSearch = !search || String(u.unit_number).includes(search);
+    const matchesSearch = matchSearchQuery(u, ['building_name', 'section_name'], search, { unitFields: ['unit_number'] });
     const matchesStatus = !statusFilter || u.status === statusFilter;
     const matchesRooms = !roomsFilter || String(u.rooms) === roomsFilter;
     return matchesSearch && matchesStatus && matchesRooms;

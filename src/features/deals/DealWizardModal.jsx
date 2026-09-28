@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { api } from '../../api/client';
 import { useModalDismiss } from '../../hooks/useModalDismiss';
+import { matchSearchQuery } from '../../utils/searchUtils';
 import {
   X,
   User,
@@ -396,22 +397,14 @@ export const DealWizardModal = ({
 
   const filteredUnits = (availableUnits || []).filter((u) => {
     if (unitRoomsFilter !== 'ALL' && String(u.rooms) !== String(unitRoomsFilter)) return false;
-    if (unitSearch) {
-      const q = unitSearch.toLowerCase();
-      const uNum = String(u.unit_number || '').toLowerCase();
-      const pName = String(u.project_name || u.floors?.sections?.buildings?.projects?.name || '').toLowerCase();
-      const bName = String(u.building_name || u.floors?.sections?.buildings?.name || '').toLowerCase();
-      return uNum.includes(q) || pName.includes(q) || bName.includes(q);
-    }
-    return true;
+    return matchSearchQuery(u, ['project_name', 'building_name'], unitSearch, { unitFields: ['unit_number'] });
   });
 
-  const filteredLeads = (leads || []).filter((l) => {
-    const q = (searchLead || '').toLowerCase();
-    const name = String(l.full_name || '').toLowerCase();
-    const phone = String(l.phone || '').toLowerCase();
-    return name.includes(q) || phone.includes(q);
-  });
+  const filteredLeads = (leads || []).filter((l) =>
+    matchSearchQuery(l, ['full_name', 'phone', 'passport_series', 'passport_number', 'inn'], searchLead, {
+      phoneFields: ['phone']
+    })
+  );
 
   const currency = selectedUnit?.project_currency || selectedUnit?.floors?.sections?.buildings?.projects?.currency || initialCurrency || 'USD';
 

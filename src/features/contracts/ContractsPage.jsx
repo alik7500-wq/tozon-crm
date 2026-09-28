@@ -3,6 +3,7 @@ import { api } from '../../api/client';
 import { ContractPrintView } from '../deals/ContractPrintView';
 import { DealDrawer } from '../deals/DealDrawer';
 import { formatContractNumber } from '../../utils/formatters';
+import { matchSearchQuery } from '../../utils/searchUtils';
 import {
   FileText,
   Search,
@@ -41,14 +42,19 @@ export const ContractsPage = () => {
     fetchContracts();
   }, []);
 
-  const filteredDeals = deals.filter((d) => {
-    return (
-      !search ||
-      (d.contract_number && d.contract_number.toLowerCase().includes(search.toLowerCase())) ||
-      (d.lead_name && d.lead_name.toLowerCase().includes(search.toLowerCase())) ||
-      (d.project_name && d.project_name.toLowerCase().includes(search.toLowerCase()))
-    );
-  });
+  const filteredDeals = deals.filter((d) =>
+    matchSearchQuery(
+      d,
+      ['lead_name', 'lead_phone', 'project_name', 'passport_series', 'passport_number', 'inn'],
+      search,
+      {
+        phoneFields: ['lead_phone'],
+        contractFields: ['contract_number'],
+        unitFields: ['unit_number'],
+        innFields: ['inn']
+      }
+    )
+  );
 
   return (
     <div className="max-w-7xl mx-auto pb-12">

@@ -5,6 +5,7 @@ import { ContractPrintView } from '../deals/ContractPrintView';
 import { FinanceTabs } from '../../components/FinanceTabs';
 import { formatContractNumber } from '../../utils/formatters';
 import { SendSmsModal } from '../../components/sms/SendSmsModal';
+import { matchSearchQuery } from '../../utils/searchUtils';
 import {
   AlertCircle,
   Search,
@@ -50,11 +51,17 @@ export const DebtorsPage = () => {
   }, []);
 
   const filtered = deals.filter((d) => {
-    const matchesSearch =
-      !search ||
-      (d.contract_number && d.contract_number.toLowerCase().includes(search.toLowerCase())) ||
-      (d.lead_name && d.lead_name.toLowerCase().includes(search.toLowerCase())) ||
-      (d.project_name && d.project_name.toLowerCase().includes(search.toLowerCase()));
+    const matchesSearch = matchSearchQuery(
+      d,
+      ['lead_name', 'lead_phone', 'project_name', 'passport_series', 'passport_number', 'inn'],
+      search,
+      {
+        phoneFields: ['lead_phone'],
+        contractFields: ['contract_number'],
+        unitFields: ['unit_number'],
+        innFields: ['inn']
+      }
+    );
 
     if (!matchesSearch) return false;
 

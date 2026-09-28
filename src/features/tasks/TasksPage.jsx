@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { api } from '../../api/client';
 import { useModalDismiss } from '../../hooks/useModalDismiss';
+import { matchSearchQuery } from '../../utils/searchUtils';
 import {
   CheckSquare,
   Plus,
@@ -129,16 +130,14 @@ export const TasksPage = () => {
     }
   };
 
-  const filteredTasks = tasks.filter((t) => {
-    if (!search) return true;
-    const s = search.toLowerCase();
-    return (
-      (t.title && t.title.toLowerCase().includes(s)) ||
-      (t.client_name && t.client_name.toLowerCase().includes(s)) ||
-      (t.phone && t.phone.toLowerCase().includes(s)) ||
-      (t.project_name && t.project_name.toLowerCase().includes(s))
-    );
-  });
+  const filteredTasks = tasks.filter((t) =>
+    matchSearchQuery(
+      t,
+      ['title', 'client_name', 'phone', 'project_name', 'description'],
+      search,
+      { phoneFields: ['phone'] }
+    )
+  );
 
   const openTasksCount = tasks.filter((t) => t.status === 'OPEN').length;
   const completedTasksCount = tasks.filter((t) => t.status === 'COMPLETED').length;
