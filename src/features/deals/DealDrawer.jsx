@@ -88,6 +88,8 @@ const generateMonthlyPkoGroups = (pkoAllocations = []) => {
   return groups;
 };
 
+import { DEFAULT_CASH_DESKS } from '../../utils/cashDesks';
+
 export const DealDrawer = ({
   isOpen,
   onClose,
@@ -113,6 +115,16 @@ export const DealDrawer = ({
   const [actionLoading, setActionLoading] = useState(false);
   const [isPkoHistoryOpen, setIsPkoHistoryOpen] = useState(false);
   const [selectedPkoId, setSelectedPkoId] = useState(null);
+
+  // Termination modal states for ADMIN
+  const [isTerminatePromptOpen, setIsTerminatePromptOpen] = useState(false);
+  const [terminateReason, setTerminateReason] = useState('');
+  const [terminateComment, setTerminateComment] = useState('');
+  const [terminateDate, setTerminateDate] = useState(() => new Date().toISOString().split('T')[0]);
+  const [settlementMode, setSettlementMode] = useState('FULL_REFUND');
+  const [customRefundAmount, setCustomRefundAmount] = useState('');
+  const [retentionReason, setRetentionReason] = useState('');
+  const [selectedCashDeskId, setSelectedCashDeskId] = useState(DEFAULT_CASH_DESKS[0]?.id || '');
 
   const fetchDealDetail = async () => {
     if (!dealId) return;
@@ -199,6 +211,69 @@ export const DealDrawer = ({
       if (onDealUpdated) onDealUpdated(updated);
     } catch (err) {
       alert(err.message || 'Ошибка продления брони');
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  const handleTerminateDeal = async () => {
+    if (!terminateReason.trim()) {
+      alert('Укажите причину расторжения договора');
+      return;
+    }
+
+    const paidTotalMinor = deal?.paid_amount_minor || 0;
+    let refundMinor = 0;
+
+    if (paidTotalMinor > 0) {
+      if (settlementMode === 'FULL_REFUND') {
+        refundMinor = paidTotalMinor;
+      } else if (settlementMode === 'PARTIAL_REFUND') {
+        const val = parseFloat(customRefundAmount);
+        if (isNaN(val) || val < 0) {
+          alert('Введите корректную сумму возврата');
+          return;
+        }
+        refundMinor = Math.round(val * 100);
+        if (refundMinor > paidTotalMinor) {
+          alert('Сумма возврата не может превышать фактически полученную сумму');
+          return;
+        }
+      } else {
+        refundMinor = 0;
+      }
+
+      const retainedMinor = paidTotalMinor - refundMinor;
+      if (retainedMinor > 0 && !retentionReason.trim()) {
+        alert('Укажите основание удержания суммы');
+        return;
+      }
+
+      if (refundMinor > 0 && !selectedCashDeskId) {
+        alert('Выберите кассу для списания возвратного РКО');
+        return;
+      }
+    }
+
+    setActionLoading(true);
+    try {
+      const payload = {
+        reason: terminateReason,
+        effective_date: terminateDate,
+        comment: terminateComment,
+        refund_amount_minor: refundMinor,
+        retention_reason: retentionReason,
+        cash_desk_id: selectedCashDeskId,
+        idempotency_key: `TERMINATE_DEAL_${deal.id}_${Date.now()}`
+      };
+
+      const res = await api.post(`/deals/${deal.id}/terminate`, payload);
+      const updated = res.data?.deal || res.deal;
+      setDeal(updated);
+      setIsTerminatePromptOpen(false);
+      if (onDealUpdated) onDealUpdated(updated);
+    } catch (err) {
+      alert(err.message || 'Ошибка расторжения договора');
     } finally {
       setActionLoading(false);
     }
@@ -403,14 +478,217 @@ export const DealDrawer = ({
 
                 {deal.status !== 'CANCELLED' && (
                   <button
-                    onClick={() => setIsCancelPromptOpen(true)}
+                    onClick={() => {
+                      if (deal.status === 'SIGNED' || (deal.paid_amount_minor || 0) > 0) {
+                        setIsTerminatePromptOpen(true);
+                      } else {
+                        setIsCancelPromptOpen(true);
+                      }
+                    }}
                     className="rounded-xl bg-slate-800/80 border border-slate-700/80 px-3 py-2 text-xs font-bold text-rose-300 hover:bg-rose-950/50 hover:text-rose-200 transition cursor-pointer"
                   >
-                    Отменить
+                    {deal.status === 'SIGNED' || (deal.paid_amount_minor || 0) > 0 ? 'Расторгнуть договор' : 'Отменить бронь'}
+                  </button>
+                )}
+
+                {isAdmin && deal.status !== 'CANCELLED' && deal.status === 'SIGNED' && (
+                  <button
+                    onClick={() => setIsTerminatePromptOpen(true)}
+                    className="rounded-xl bg-rose-900/80 border border-rose-700/80 px-3 py-2 text-xs font-bold text-rose-200 hover:bg-rose-800 transition cursor-pointer flex items-center gap-1.5"
+                  >
+                    <XCircle className="h-3.5 w-3.5 text-rose-400" />
+                    <span>Расторгнуть договор</span>
                   </button>
                 )}
               </div>
             </div>
+
+            {/* Terminate Contract Modal for ADMIN */}
+            {isTerminatePromptOpen && (
+              <div className="rounded-2xl border-2 border-rose-300 bg-slate-900 p-5 space-y-4 animate-in fade-in text-slate-100 shadow-2xl">
+                <div className="flex items-center justify-between border-b border-rose-800/50 pb-3">
+                  <h4 className="text-sm font-bold text-rose-300 flex items-center gap-2">
+                    <AlertCircle className="h-5 w-5 text-rose-400" />
+                    РАСТОРЖЕНИЕ ДОГОВОРА №{deal.contract_number || deal.id}
+                  </h4>
+                  <button onClick={() => setIsTerminatePromptOpen(false)} className="text-xs text-slate-400 hover:text-white cursor-pointer">
+                    ✕
+                  </button>
+                </div>
+
+                {/* Financial Summary */}
+                <div className="grid grid-cols-3 gap-2 bg-slate-950/80 p-3 rounded-xl border border-slate-800 text-center">
+                  <div>
+                    <div className="text-[10px] text-slate-400 uppercase font-semibold">Сумма договора</div>
+                    <div className="text-xs font-bold text-white">${((deal.final_price_minor || 0) / 100).toLocaleString()}</div>
+                  </div>
+                  <div>
+                    <div className="text-[10px] text-slate-400 uppercase font-semibold">Получено</div>
+                    <div className="text-xs font-bold text-emerald-400">${((deal.paid_amount_minor || 0) / 100).toLocaleString()}</div>
+                  </div>
+                  <div>
+                    <div className="text-[10px] text-slate-400 uppercase font-semibold">Остаток долга</div>
+                    <div className="text-xs font-bold text-amber-400">${((deal.remaining_debt_minor || 0) / 100).toLocaleString()}</div>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-[11px] font-semibold text-rose-200 mb-1">Причина расторжения *</label>
+                    <input
+                      type="text"
+                      value={terminateReason}
+                      onChange={(e) => setTerminateReason(e.target.value)}
+                      placeholder="Например: отказ клиента, неплатежеспособность..."
+                      className="w-full rounded-xl border border-rose-700/80 bg-slate-950 px-3 py-1.5 text-xs text-white outline-none focus:border-rose-400"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-[11px] font-semibold text-rose-200 mb-1">Дата расторжения *</label>
+                    <input
+                      type="date"
+                      value={terminateDate}
+                      onChange={(e) => setTerminateDate(e.target.value)}
+                      className="w-full rounded-xl border border-rose-700/80 bg-slate-950 px-3 py-1.5 text-xs text-white outline-none focus:border-rose-400"
+                    />
+                  </div>
+                </div>
+
+                {/* Paid Scenario Settlement Options */}
+                {(deal.paid_amount_minor || 0) > 0 && (
+                  <div className="space-y-3 bg-slate-950/90 p-4 rounded-xl border border-rose-900/50">
+                    <label className="block text-xs font-bold text-rose-200">Финансовое решение по полученной сумме (${((deal.paid_amount_minor || 0) / 100).toLocaleString()})</label>
+                    
+                    <div className="grid grid-cols-3 gap-2">
+                      <button
+                        type="button"
+                        onClick={() => setSettlementMode('FULL_REFUND')}
+                        className={`p-2 rounded-xl border text-xs font-bold cursor-pointer transition text-center ${settlementMode === 'FULL_REFUND' ? 'bg-emerald-950/80 border-emerald-500 text-emerald-300' : 'bg-slate-800/80 border-slate-700 text-slate-400'}`}
+                      >
+                        Полный возврат
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => setSettlementMode('PARTIAL_REFUND')}
+                        className={`p-2 rounded-xl border text-xs font-bold cursor-pointer transition text-center ${settlementMode === 'PARTIAL_REFUND' ? 'bg-amber-950/80 border-amber-500 text-amber-300' : 'bg-slate-800/80 border-slate-700 text-slate-400'}`}
+                      >
+                        Частичный
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => setSettlementMode('NO_REFUND')}
+                        className={`p-2 rounded-xl border text-xs font-bold cursor-pointer transition text-center ${settlementMode === 'NO_REFUND' ? 'bg-rose-950/80 border-rose-500 text-rose-300' : 'bg-slate-800/80 border-slate-700 text-slate-400'}`}
+                      >
+                        Без возврата
+                      </button>
+                    </div>
+
+                    {/* Calculated Totals Preview */}
+                    <div className="flex justify-between items-center text-xs p-2.5 bg-slate-900 rounded-lg border border-slate-800">
+                      <div>
+                        <span className="text-slate-400">Возврат клиенту: </span>
+                        <span className="font-bold text-emerald-400">
+                          ${(
+                            settlementMode === 'FULL_REFUND' ? ((deal.paid_amount_minor || 0) / 100) :
+                            settlementMode === 'NO_REFUND' ? 0 :
+                            (parseFloat(customRefundAmount) || 0)
+                          ).toLocaleString()}
+                        </span>
+                      </div>
+                      <div>
+                        <span className="text-slate-400">Удержание компанией: </span>
+                        <span className="font-bold text-amber-400">
+                          ${(
+                            settlementMode === 'FULL_REFUND' ? 0 :
+                            settlementMode === 'NO_REFUND' ? ((deal.paid_amount_minor || 0) / 100) :
+                            Math.max(0, ((deal.paid_amount_minor || 0) / 100) - (parseFloat(customRefundAmount) || 0))
+                          ).toLocaleString()}
+                        </span>
+                      </div>
+                    </div>
+
+                    {/* Custom Refund Input for PARTIAL_REFUND */}
+                    {settlementMode === 'PARTIAL_REFUND' && (
+                      <div>
+                        <label className="block text-[11px] font-semibold text-amber-300 mb-1">Сумма возврата клиенту ($) *</label>
+                        <input
+                          type="number"
+                          value={customRefundAmount}
+                          onChange={(e) => setCustomRefundAmount(e.target.value)}
+                          placeholder="Укажите сумму возврата..."
+                          className="w-full rounded-xl border border-amber-500/80 bg-slate-900 px-3 py-1.5 text-xs text-white outline-none focus:border-amber-400"
+                        />
+                      </div>
+                    )}
+
+                    {/* Cash Desk Selection if refund > 0 */}
+                    {(settlementMode === 'FULL_REFUND' || (settlementMode === 'PARTIAL_REFUND' && (parseFloat(customRefundAmount) || 0) > 0)) && (
+                      <div>
+                        <label className="block text-[11px] font-semibold text-emerald-300 mb-1">Касса списания (РКО) *</label>
+                        <select
+                          value={selectedCashDeskId}
+                          onChange={(e) => setSelectedCashDeskId(e.target.value)}
+                          className="w-full rounded-xl border border-emerald-600/80 bg-slate-900 px-3 py-1.5 text-xs text-white outline-none focus:border-emerald-400"
+                        >
+                          {DEFAULT_CASH_DESKS.map((d) => (
+                            <option key={d.id} value={d.id}>
+                              {d.icon} {d.name}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+                    )}
+
+                    {/* Retention Reason if retained > 0 */}
+                    {(settlementMode === 'NO_REFUND' || settlementMode === 'PARTIAL_REFUND') && (
+                      <div>
+                        <label className="block text-[11px] font-semibold text-amber-300 mb-1">Основание удержания суммы *</label>
+                        <input
+                          type="text"
+                          value={retentionReason}
+                          onChange={(e) => setRetentionReason(e.target.value)}
+                          placeholder="Например: пункт 4.2 договора, штраф за расторжение..."
+                          className="w-full rounded-xl border border-amber-600/80 bg-slate-900 px-3 py-1.5 text-xs text-white outline-none focus:border-amber-400"
+                        />
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                <div>
+                  <label className="block text-[11px] font-semibold text-rose-200 mb-1">Дополнительный комментарий:</label>
+                  <input
+                    type="text"
+                    value={terminateComment}
+                    onChange={(e) => setTerminateComment(e.target.value)}
+                    placeholder="Служебная заметка..."
+                    className="w-full rounded-xl border border-rose-700/80 bg-slate-950 px-3 py-1.5 text-xs text-white outline-none focus:border-rose-400"
+                  />
+                </div>
+
+                <div className="p-3 bg-rose-950/80 rounded-xl border border-rose-800/80 text-[11px] text-rose-200 leading-relaxed">
+                  ⚠️ <strong>Предупреждение:</strong> Договор будет расторгнут, будущие обязательства по графику прекратятся, а квартира №{deal.unit_number} сразу вернется в статус <strong>СВОБОДНА</strong>. История договора и платежей останется сохраненной.
+                </div>
+
+                <div className="flex justify-end gap-2 pt-2">
+                  <button
+                    onClick={() => setIsTerminatePromptOpen(false)}
+                    className="rounded-lg bg-slate-800 border border-slate-700 px-3 py-1.5 text-xs font-bold text-slate-300 hover:bg-slate-700 cursor-pointer"
+                  >
+                    Отмена
+                  </button>
+                  <button
+                    onClick={handleTerminateDeal}
+                    disabled={actionLoading}
+                    className="rounded-lg bg-rose-600 px-4 py-1.5 text-xs font-bold text-white shadow-xs hover:bg-rose-700 disabled:opacity-50 flex items-center gap-1.5 cursor-pointer"
+                  >
+                    <XCircle className="h-4 w-4" /> Подтвердить расторжение договора
+                  </button>
+                </div>
+              </div>
+            )}
 
             {/* Cancel Modal inline dialog */}
             {isCancelPromptOpen && (
