@@ -49,7 +49,7 @@ export const PaymentRecordModal = ({
   const [showConfirmModal, setShowConfirmModal] = useState(false);
   const [cashDesksDict, setCashDesksDict] = useState([]);
   const [cashCurrency, setCashCurrency] = useState('TJS'); // Default TJS (национальная валюта)
-  const [exchangeRate, setExchangeRate] = useState('9.27'); // default Eskhata USD/TJS rate
+  const [exchangeRate, setExchangeRate] = useState(''); // Eskhata USD/TJS rate
   const [paymentMethods, setPaymentMethods] = useState([]);
   const [formIdempotencyKey, setFormIdempotencyKey] = useState('');
 
@@ -75,8 +75,10 @@ export const PaymentRecordModal = ({
       setFormIdempotencyKey(`pko_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`);
       financeApi.getEskhataRate()
         .then(res => {
-          const rate = res?.data?.sellRate || res?.sellRate;
-          if (rate) setExchangeRate(String(rate));
+          const rateData = res?.data || res;
+          if (rateData?.sellRate && rateData?.available !== false) {
+            setExchangeRate(String(rateData.sellRate));
+          }
         })
         .catch(() => {});
 

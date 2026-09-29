@@ -81,13 +81,18 @@ export const ExpensesPage = () => {
     queryFn: () => dictionariesApi.getItems('PAYMENT_METHOD')
   });
 
-  const { data: eskhataRateData } = useQuery({
+  const { data: eskhataRateResponse } = useQuery({
     queryKey: ['eskhata-rate'],
     queryFn: financeApi.getEskhataRate,
     staleTime: 10 * 60 * 1000
   });
 
-  const liveEskhataRate = eskhataRateData?.sellRate ? String(eskhataRateData.sellRate) : '9.27';
+  const eskhataData = eskhataRateResponse?.data || eskhataRateResponse || {};
+  const isEskhataAvailable = Boolean(eskhataData?.available !== false && eskhataData?.sellRate);
+  const liveEskhataRate = isEskhataAvailable ? String(eskhataData.sellRate) : '';
+  const isEskhataStale = Boolean(eskhataData?.isStale);
+  const eskhataSource = eskhataData?.source || 'UNAVAILABLE';
+  const eskhataUpdatedAt = eskhataData?.updatedAt ? dayjs(eskhataData.updatedAt).format('DD.MM.YYYY HH:mm') : null;
 
   const [formData, setFormData] = useState({
     amount: '',
@@ -102,7 +107,7 @@ export const ExpensesPage = () => {
     description: '',
     attachment: '',
     auto_convert: true,
-    exchange_rate: '9.27',
+    exchange_rate: '',
     source_currency: 'USD',
     idempotency_key: `EXP-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`
   });
@@ -147,14 +152,17 @@ export const ExpensesPage = () => {
   }, [expenseCategories]);
 
   useEffect(() => {
-    if (eskhataRateData?.sellRate) {
-      const rateStr = String(eskhataRateData.sellRate);
+    if (isEskhataAvailable && liveEskhataRate) {
       setFormData(prev => {
-        if (prev.exchange_rate === rateStr) return prev;
-        return { ...prev, exchange_rate: rateStr };
+        if (prev.exchange_rate === liveEskhataRate) return prev;
+        return { ...prev, exchange_rate: liveEskhataRate };
+      });
+      setTransferForm(prev => {
+        if (prev.exchange_rate === liveEskhataRate) return prev;
+        return { ...prev, exchange_rate: liveEskhataRate };
       });
     }
-  }, [eskhataRateData]);
+  }, [isEskhataAvailable, liveEskhataRate]);
 
   const isAddDirty = Boolean(formData.amount && parseFloat(formData.amount) > 0 || formData.recipient.trim() || formData.description.trim());
   const { requestClose: requestCloseAdd } = useModalDismiss({
@@ -331,16 +339,6 @@ export const ExpensesPage = () => {
       });
     }
   }, [cashDesksDict]);
-
-  useEffect(() => {
-    if (eskhataRateData?.sellRate) {
-      const rateStr = String(eskhataRateData.sellRate);
-      setTransferForm(prev => {
-        if (prev.exchange_rate === rateStr) return prev;
-        return { ...prev, exchange_rate: rateStr };
-      });
-    }
-  }, [eskhataRateData]);
 
   const transferMutation = useMutation({
     mutationFn: financeApi.createTransfer,
@@ -1447,19 +1445,49 @@ export const ExpensesPage = () => {
                         </label>
 
                         {formData.auto_convert && (
-                          <div className="flex items-center gap-1.5 text-[11px]">
-                            <span className="inline-flex items-center gap-1 font-bold text-amber-900 bg-amber-200/80 px-2 py-0.5 rounded-md border border-amber-300">
-                              🏦 Эсхата (Продажа):
-                            </span>
-                            <span className="text-amber-800 font-semibold">1 USD =</span>
-                            <input
-                              type="number"
-                              step="0.01"
-                              value={formData.exchange_rate}
-                              onChange={e => setFormData({ ...formData, exchange_rate: e.target.value })}
-                              className="w-16 rounded-md border border-amber-300 bg-white px-1.5 py-0.5 text-xs font-black text-amber-950 outline-none text-center shadow-xs"
-                            />
-                            <span className="text-amber-800 font-bold">{formData.currency}</span>
+                          <div className="flex items-center gap-1.5 text-[11px] flex-wrap">
+                            {isEskhataAvailable ? (
+                              <>
+                                <span className={`inline-flex items-center gap-1 font-bold px-2 py-0.5 rounded-md border ${
+                                  isEskhataStale 
+                                    ? 'bg-amber-200/90 text-amber-900 border-amber-400' 
+                                    : 'bg-amber-200/80 text-amber-900 border-amber-300'
+                                }`}>
+                                  {isEskhataStale ? '⚠️ Курс временно недоступен. Последний курс:' : '🏦 Эсхата (Продажа):'}
+                                </span>
+                                <span className="text-amber-800 font-semibold">1 USD =</span>
+                                <input
+                                  type="number"
+                                  step="0.01"
+                                  value={formData.exchange_rate}
+                                  onChange={e => setFormData({ ...formData, exchange_rate: e.target.value })}
+                                  placeholder="0.00"
+                                  className="w-16 rounded-md border border-amber-300 bg-white px-1.5 py-0.5 text-xs font-black text-amber-950 outline-none text-center shadow-xs"
+                                />
+                                <span className="text-amber-800 font-bold">{formData.currency}</span>
+                                {eskhataUpdatedAt && (
+                                  <span className="text-[10px] text-slate-500 font-semibold ml-1">
+                                    ({isEskhataStale ? `от ${eskhataUpdatedAt}` : `Обновлено: ${eskhataUpdatedAt}`})
+                                  </span>
+                                )}
+                              </>
+                            ) : (
+                              <div className="w-full text-rose-800 bg-rose-50 border border-rose-200 p-2 rounded-lg font-bold text-xs mt-1">
+                                ⚠️ Не удалось получить актуальный курс Эсхата. Укажите курс вручную:
+                                <div className="flex items-center gap-1.5 mt-1">
+                                  <span>1 USD =</span>
+                                  <input
+                                    type="number"
+                                    step="0.01"
+                                    value={formData.exchange_rate}
+                                    onChange={e => setFormData({ ...formData, exchange_rate: e.target.value })}
+                                    placeholder="Курс..."
+                                    className="w-20 rounded-md border border-rose-300 bg-white px-2 py-0.5 text-xs font-black text-rose-950 outline-none"
+                                  />
+                                  <span>{formData.currency}</span>
+                                </div>
+                              </div>
+                            )}
                           </div>
                         )}
                       </div>

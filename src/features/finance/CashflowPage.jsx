@@ -197,24 +197,26 @@ export const CashflowPage = () => {
 
   const allCashDesks = useMemo(() => buildCashDesksList(cashDesksDict, usersList), [cashDesksDict, usersList]);
 
-  const { data: eskhataRateData } = useQuery({
+  const { data: eskhataRateResponse } = useQuery({
     queryKey: ['eskhata-rate'],
     queryFn: financeApi.getEskhataRate,
     staleTime: 10 * 60 * 1000
   });
 
-  const liveEskhataRate = eskhataRateData?.sellRate ? String(eskhataRateData.sellRate) : '9.27';
+  const eskhataData = eskhataRateResponse?.data || eskhataRateResponse || {};
+  const isEskhataAvailable = Boolean(eskhataData?.available !== false && eskhataData?.sellRate);
+  const liveEskhataRate = isEskhataAvailable ? String(eskhataData.sellRate) : '';
+  const isEskhataStale = Boolean(eskhataData?.isStale);
 
   useEffect(() => {
-    if (eskhataRateData?.sellRate) {
-      const rateStr = String(eskhataRateData.sellRate);
-      setGlobalRate(prev => prev === rateStr ? prev : rateStr);
+    if (isEskhataAvailable && liveEskhataRate) {
+      setGlobalRate(prev => prev === liveEskhataRate ? prev : liveEskhataRate);
       setConvertForm(prev => {
-        if (prev.exchange_rate === rateStr) return prev;
-        return { ...prev, exchange_rate: rateStr };
+        if (prev.exchange_rate === liveEskhataRate) return prev;
+        return { ...prev, exchange_rate: liveEskhataRate };
       });
     }
-  }, [eskhataRateData]);
+  }, [isEskhataAvailable, liveEskhataRate]);
 
   const [convertForm, setConvertForm] = useState({
     from_currency: 'USD',
@@ -222,7 +224,7 @@ export const CashflowPage = () => {
     from_cash_desk_id: '',
     to_cash_desk_id: '',
     from_amount: '',
-    exchange_rate: '9.27',
+    exchange_rate: '',
     date: dayjs().format('YYYY-MM-DD'),
     method: 'CASH',
     reference: '',
