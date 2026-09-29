@@ -476,22 +476,16 @@ export const DealDrawer = ({
                   </button>
                 )}
 
-                {deal.status !== 'CANCELLED' && (
+                {deal.status === 'RESERVED' && (deal.paid_amount_minor || 0) === 0 && (
                   <button
-                    onClick={() => {
-                      if (deal.status === 'SIGNED' || (deal.paid_amount_minor || 0) > 0) {
-                        setIsTerminatePromptOpen(true);
-                      } else {
-                        setIsCancelPromptOpen(true);
-                      }
-                    }}
+                    onClick={() => setIsCancelPromptOpen(true)}
                     className="rounded-xl bg-slate-800/80 border border-slate-700/80 px-3 py-2 text-xs font-bold text-rose-300 hover:bg-rose-950/50 hover:text-rose-200 transition cursor-pointer"
                   >
-                    {deal.status === 'SIGNED' || (deal.paid_amount_minor || 0) > 0 ? 'Расторгнуть договор' : 'Отменить бронь'}
+                    Отменить бронь
                   </button>
                 )}
 
-                {isAdmin && deal.status !== 'CANCELLED' && deal.status === 'SIGNED' && (
+                {isAdmin && deal.status !== 'CANCELLED' && (deal.status === 'SIGNED' || (deal.paid_amount_minor || 0) > 0) && (
                   <button
                     onClick={() => setIsTerminatePromptOpen(true)}
                     className="rounded-xl bg-rose-900/80 border border-rose-700/80 px-3 py-2 text-xs font-bold text-rose-200 hover:bg-rose-800 transition cursor-pointer flex items-center gap-1.5"
