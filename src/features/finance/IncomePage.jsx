@@ -52,7 +52,12 @@ export const IncomePage = () => {
     return resolveManagerDeskId(user, allCashDesks);
   }, [isManager, user, allCashDesks]);
 
-  const [selectedDeskId, setSelectedDeskId] = useState(() => isManager ? resolveManagerDeskId(user) : 'ALL');
+  const managerDesk = useMemo(() => {
+    if (!managerDeskId) return null;
+    return allCashDesks.find(d => String(d.id) === String(managerDeskId)) || null;
+  }, [managerDeskId, allCashDesks]);
+
+  const [selectedDeskId, setSelectedDeskId] = useState(() => isManager ? resolveManagerDeskId(user, allCashDesks) : 'ALL');
 
   useEffect(() => {
     if (isManager && managerDeskId) {
@@ -92,21 +97,22 @@ export const IncomePage = () => {
     date: dayjs().format('YYYY-MM-DD'),
     method: 'CASH',
     reference: '',
-    cash_desk: isManager ? 'Касса менеджера (Дадочон)' : 'Главная касса компании (Бухгалтерия)',
-    cash_desk_id: isManager ? DADOJON_DESK_ID : '',
+    cash_desk: isManager && managerDesk ? managerDesk.name : 'Главная касса компании (Бухгалтерия)',
+    cash_desk_id: isManager ? (managerDeskId || '') : '',
     comment: ''
   });
 
   useEffect(() => {
-    if (isManager) {
+    if (isManager && managerDeskId) {
+      const deskName = managerDesk?.name || 'Касса менеджера (Дадочон)';
       setFormData(prev => ({
         ...prev,
-        cash_desk: 'Касса менеджера (Дадочон)',
-        cash_desk_id: DADOJON_DESK_ID
+        cash_desk: deskName,
+        cash_desk_id: managerDeskId
       }));
-      setSelectedDeskId(prev => prev === DADOJON_DESK_ID ? prev : DADOJON_DESK_ID);
+      setSelectedDeskId(prev => prev === managerDeskId ? prev : managerDeskId);
     }
-  }, [isManager]);
+  }, [isManager, managerDeskId, managerDesk]);
 
   const { data: response, isLoading, refetch } = useQuery({
     queryKey: ['finance-income', year, currency, categoryFilter, selectedDeskId, search],
@@ -225,8 +231,8 @@ export const IncomePage = () => {
     e.preventDefault();
     const cleanAmount = String(formData.amount || '').replace(',', '.').trim();
     if (!cleanAmount || Number(cleanAmount) <= 0) return;
-    const finalDeskName = isManager ? 'Касса менеджера (Дадочон)' : formData.cash_desk;
-    const finalDeskId = isManager ? DADOJON_DESK_ID : formData.cash_desk_id;
+    const finalDeskName = isManager ? (managerDesk?.name || 'Касса менеджера (Дадочон)') : formData.cash_desk;
+    const finalDeskId = isManager ? (managerDeskId || formData.cash_desk_id) : formData.cash_desk_id;
     const finalComment = updateCommentWithCashDesk(formData.comment, finalDeskName);
     addMutation.mutate({
       ...formData,

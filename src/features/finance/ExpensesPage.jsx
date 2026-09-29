@@ -50,7 +50,12 @@ export const ExpensesPage = () => {
     return resolveManagerDeskId(user, allCashDesks);
   }, [isManager, user, allCashDesks]);
 
-  const [selectedDeskId, setSelectedDeskId] = useState(() => isManager ? resolveManagerDeskId(user) : 'ALL');
+  const managerDesk = useMemo(() => {
+    if (!managerDeskId) return null;
+    return allCashDesks.find(d => String(d.id) === String(managerDeskId)) || null;
+  }, [managerDeskId, allCashDesks]);
+
+  const [selectedDeskId, setSelectedDeskId] = useState(() => isManager ? resolveManagerDeskId(user, allCashDesks) : 'ALL');
 
   useEffect(() => {
     if (isManager && managerDeskId) {
@@ -99,8 +104,8 @@ export const ExpensesPage = () => {
     currency: 'TJS',
     date: dayjs().format('YYYY-MM-DD'),
     category: 'Строительные материалы',
-    cash_desk: isManager ? 'Касса менеждера (Дадочон)' : 'Касса Отдела продаж (Акмалхон)',
-    cash_desk_id: isManager ? DADOJON_DESK_ID : 'ab90800a-73af-4cf7-88c2-397c304e2edf',
+    cash_desk: isManager && managerDesk ? managerDesk.name : (allCashDesks[0]?.name || 'Касса Отдела продаж (Акмалхон)'),
+    cash_desk_id: isManager ? (managerDeskId || null) : (allCashDesks[0]?.id || 'ab90800a-73af-4cf7-88c2-397c304e2edf'),
     method: 'CASH',
     reference: '',
     recipient: '',
@@ -113,19 +118,20 @@ export const ExpensesPage = () => {
   });
 
   useEffect(() => {
-    if (isManager) {
+    if (isManager && managerDeskId) {
+      const mName = managerDesk?.name || 'Касса менеждера (Дадочон)';
       setFormData(prev => {
-        if (prev.cash_desk_id === DADOJON_DESK_ID && prev.cash_desk === 'Касса менеждера (Дадочон)') {
+        if (prev.cash_desk_id === managerDeskId && prev.cash_desk === mName) {
           return prev;
         }
         return {
           ...prev,
-          cash_desk: 'Касса менеждера (Дадочон)',
-          cash_desk_id: DADOJON_DESK_ID
+          cash_desk: mName,
+          cash_desk_id: managerDeskId
         };
       });
-      setSelectedDeskId(prev => prev === DADOJON_DESK_ID ? prev : DADOJON_DESK_ID);
-    } else if (allCashDesks.length > 0) {
+      setSelectedDeskId(prev => prev === managerDeskId ? prev : managerDeskId);
+    } else if (!isManager && allCashDesks.length > 0) {
       setFormData(prev => {
         const resolved = resolveCashDesk(prev.cash_desk_id || prev.cash_desk, allCashDesks);
         const nextName = resolved?.name || allCashDesks[0]?.name;
@@ -140,7 +146,7 @@ export const ExpensesPage = () => {
         };
       });
     }
-  }, [allCashDesks, isManager]);
+  }, [allCashDesks, isManager, managerDeskId, managerDesk]);
 
   useEffect(() => {
     if (expenseCategories.length > 0) {
@@ -246,8 +252,8 @@ export const ExpensesPage = () => {
       }
 
       // Определяем кассу для сброса формы (сохраняем текущую кассу)
-      const resetDeskName = isManager ? 'Касса менеждера (Дадочон)' : (formData.cash_desk || 'Касса Отдела продаж (Акмалхон)');
-      const resetDeskId = isManager ? DADOJON_DESK_ID : (formData.cash_desk_id || 'ab90800a-73af-4cf7-88c2-397c304e2edf');
+      const resetDeskName = isManager ? (managerDesk?.name || 'Касса менеждера (Дадочон)') : (formData.cash_desk || 'Касса Отдела продаж (Акмалхон)');
+      const resetDeskId = isManager ? managerDeskId : (formData.cash_desk_id || 'ab90800a-73af-4cf7-88c2-397c304e2edf');
 
       setFormData({
         amount: '',
@@ -429,8 +435,8 @@ export const ExpensesPage = () => {
       return;
     }
     const resolved = resolveCashDesk(formData.cash_desk_id || formData.cash_desk, allCashDesks);
-    const finalDeskName = isManager ? 'Касса менеждера (Дадочон)' : (resolved?.name || formData.cash_desk || 'Касса Отдела продаж (Акмалхон)');
-    const finalDeskId = isManager ? DADOJON_DESK_ID : (resolved?.id || formData.cash_desk_id || 'ab90800a-73af-4cf7-88c2-397c304e2edf');
+    const finalDeskName = isManager ? (managerDesk?.name || 'Касса менеждера (Дадочон)') : (resolved?.name || formData.cash_desk || 'Касса Отдела продаж (Акмалхон)');
+    const finalDeskId = isManager ? managerDeskId : (resolved?.id || formData.cash_desk_id || 'ab90800a-73af-4cf7-88c2-397c304e2edf');
     const cleanDesc = cleanCashDeskFromComment(formData.description);
     const finalDesc = updateCommentWithCashDesk(cleanDesc, finalDeskName);
     const keyToUse = `EXP-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
