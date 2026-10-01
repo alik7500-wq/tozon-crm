@@ -103,12 +103,21 @@ export const PaymentSchedulePrintView = ({ deal, onClose, initialLang = 'TJ' }) 
   const finalPrice = formatMoney(deal.final_price_minor || 0);
   const downPayment = formatMoney(deal.down_payment_minor || 0);
 
-  // Total paid calculation
-  const totalPaidMinor =
-    (deal.payments || []).reduce((sum, p) => sum + (p.amount_minor || 0), 0) ||
-    (deal.schedules || []).reduce((sum, s) => sum + (s.paid_amount_minor || 0), 0) ||
-    (deal.down_payment_minor || 0);
+  // Canonical Down Payment Covered resolution
+  const activePayments = (deal.payments || []).filter(p => p.status !== 'VOIDED');
+  const totalActivePaidMinor = activePayments.length > 0
+    ? activePayments.reduce((sum, p) => sum + (p.amount_minor || 0), 0)
+    : (deal.paid_amount_minor ?? deal.total_paid_minor ?? 0);
 
+  const plannedDpMinor = deal.down_payment_minor || 0;
+
+  const actualDpPaidMinor = deal.down_payment_covered_minor !== undefined
+    ? deal.down_payment_covered_minor
+    : (deal.pko_allocations && deal.pko_allocations.length > 0
+        ? deal.pko_allocations.reduce((sum, p) => sum + (p.down_payment_allocated_minor || 0), 0)
+        : Math.min(totalActivePaidMinor, plannedDpMinor));
+
+  const totalPaidMinor = totalActivePaidMinor;
   const remainingDebtMinor = Math.max(0, (deal.final_price_minor || 0) - totalPaidMinor);
 
   // Table rows: row 1 is Down Payment / Advance, rows 2..N are monthly schedules
@@ -118,9 +127,9 @@ export const PaymentSchedulePrintView = ({ deal, onClose, initialLang = 'TJ' }) 
   tableRows.push({
     num: 1,
     planDate: advanceDate,
-    planAmount: deal.down_payment_minor || 0,
-    monthlyPkoAmount: deal.down_payment_minor > 0 ? deal.down_payment_minor : null,
-    fifoPaidAmount: deal.down_payment_minor > 0 ? deal.down_payment_minor : null,
+    planAmount: plannedDpMinor,
+    monthlyPkoAmount: actualDpPaidMinor > 0 ? actualDpPaidMinor : null,
+    fifoPaidAmount: actualDpPaidMinor > 0 ? actualDpPaidMinor : null,
     note: isTJ ? 'Маблағи пешпардохти аввал' : 'Сумма первоначального взноса',
   });
 
