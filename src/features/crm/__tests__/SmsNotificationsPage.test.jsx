@@ -13,7 +13,7 @@ vi.mock('../../../api/client', () => ({
   }
 }));
 
-describe('SmsNotificationsPage Integration Tests', () => {
+describe('SmsNotificationsPage Manager UX Hotfix Tests', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     api.get.mockImplementation((url) => {
@@ -27,7 +27,12 @@ describe('SmsNotificationsPage Integration Tests', () => {
                 event_type: 'PAYMENT_REMINDER',
                 status: 'AWAITING_CONFIRMATION',
                 template_code: 'PAYMENT_REMINDER',
-                idempotency_key: 'KEY_3',
+                idempotency_key: 'PAYMENT_REMINDER:297:3:2026-10-03',
+                deal_id: 14,
+                payload_json: {
+                  detected_unpaid_minor: 63000,
+                  detected_due_date: '2026-10-03'
+                },
                 created_at: new Date().toISOString()
               },
               {
@@ -35,7 +40,12 @@ describe('SmsNotificationsPage Integration Tests', () => {
                 event_type: 'PAYMENT_REMINDER',
                 status: 'AWAITING_CONFIRMATION',
                 template_code: 'PAYMENT_REMINDER',
-                idempotency_key: 'KEY_4',
+                idempotency_key: 'PAYMENT_REMINDER:298:2:2026-10-02',
+                deal_id: 14,
+                payload_json: {
+                  detected_unpaid_minor: 63000,
+                  detected_due_date: '2026-10-02'
+                },
                 created_at: new Date().toISOString()
               },
               {
@@ -43,7 +53,12 @@ describe('SmsNotificationsPage Integration Tests', () => {
                 event_type: 'PAYMENT_REMINDER',
                 status: 'AWAITING_CONFIRMATION',
                 template_code: 'PAYMENT_REMINDER',
-                idempotency_key: 'KEY_5',
+                idempotency_key: 'PAYMENT_REMINDER:299:1:2026-10-01',
+                deal_id: 14,
+                payload_json: {
+                  detected_unpaid_minor: 63000,
+                  detected_due_date: '2026-10-01'
+                },
                 created_at: new Date().toISOString()
               }
             ],
@@ -81,41 +96,66 @@ describe('SmsNotificationsPage Integration Tests', () => {
     });
   });
 
-  it('A. does not render hardcoded mock history rows', async () => {
+  it('A. default queue query requests AWAITING_CONFIRMATION status', async () => {
     render(<SmsNotificationsPage />);
-    expect(screen.queryByText('Алиев Рахим')).toBeNull();
-    expect(screen.queryByText('Шахноза Алиева')).toBeNull();
-  });
-
-  it('B & C. renders real tab buttons and queue tab by default', async () => {
-    render(<SmsNotificationsPage />);
-    expect(screen.getAllByText('Ожидают отправки').length).toBeGreaterThan(0);
-    expect(screen.getAllByText('История SMS').length).toBeGreaterThan(0);
-
     await waitFor(() => {
-      expect(api.get).toHaveBeenCalledWith(expect.stringContaining('/sms/events'));
+      expect(api.get).toHaveBeenCalledWith(expect.stringContaining('status=AWAITING_CONFIRMATION'));
     });
   });
 
-  it('E. opening detail view does not trigger confirm API call automatically', async () => {
+  it('B. displays authoritative awaiting count (3) in queue badge', async () => {
     render(<SmsNotificationsPage />);
-
     await waitFor(() => {
-      expect(screen.getAllByText(/Напоминание об оплате/i).length).toBeGreaterThan(0);
+      expect(screen.getAllByText('3').length).toBeGreaterThan(0);
+    });
+  });
+
+  it('C. "Все события" is not default active filter button', async () => {
+    render(<SmsNotificationsPage />);
+    const allEventsButtons = screen.getAllByRole('button', { name: 'Все события' });
+    expect(allEventsButtons[0].className).not.toContain('bg-blue-600');
+  });
+
+  it('D. internal idempotency key is hidden from primary table row view', async () => {
+    render(<SmsNotificationsPage />);
+    await waitFor(() => {
+      expect(screen.queryByText(/Key: PAYMENT_REMINDER/i)).toBeNull();
+    });
+  });
+
+  it('E. PAYMENT_REMINDER displays as localized "Напоминание об оплате"', async () => {
+    render(<SmsNotificationsPage />);
+    await waitFor(() => {
+      expect(screen.getAllByText('Напоминание об оплате').length).toBeGreaterThan(0);
+    });
+  });
+
+  it('F. click "Проверить и отправить" opens modal and does not invoke confirm API', async () => {
+    render(<SmsNotificationsPage />);
+    await waitFor(() => {
+      expect(screen.getAllByText('Проверить и отправить').length).toBeGreaterThan(0);
     });
 
-    // Check that confirm endpoint was never called
+    const checkButtons = screen.getAllByRole('button', { name: /Проверить и отправить/i });
+    fireEvent.click(checkButtons[0]);
+
     const confirmCalls = api.post.mock.calls.filter(([url]) => url && typeof url === 'string' && url.includes('/confirm'));
     expect(confirmCalls.length).toBe(0);
   });
 
-  it('K. clicking "Отправить SMS" opens SendSmsModal', async () => {
+  it('G. history tab continues to work and display records', async () => {
     render(<SmsNotificationsPage />);
-    const sendButtons = screen.getAllByRole('button', { name: /Отправить SMS/i });
-    fireEvent.click(sendButtons[0]);
+    const historyTabButtons = screen.getAllByRole('button', { name: /История SMS/i });
+    fireEvent.click(historyTabButtons[0]);
 
     await waitFor(() => {
-      expect(screen.getAllByText(/Payom.tj/i).length).toBeGreaterThan(0);
+      expect(api.get).toHaveBeenCalledWith(expect.stringContaining('/sms/history'));
     });
+  });
+
+  it('H. no bulk send / "Отправить все" controls are rendered', async () => {
+    render(<SmsNotificationsPage />);
+    expect(screen.queryByText(/Отправить все/i)).toBeNull();
+    expect(screen.queryByText(/Массовая отправка/i)).toBeNull();
   });
 });

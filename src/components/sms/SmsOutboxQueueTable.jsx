@@ -179,11 +179,11 @@ export function SmsOutboxQueueTable({ onCountChange }) {
         <div className="flex items-center gap-1.5 overflow-x-auto pb-1 sm:pb-0">
           {[
             { id: 'AWAITING_CONFIRMATION', label: 'Ожидают подтверждения' },
-            { id: 'ALL', label: 'Все события' },
             { id: 'SENT', label: 'Отправлено' },
             { id: 'DELIVERY_UNKNOWN', label: 'Неизвестная доставка' },
             { id: 'CANCELLED', label: 'Отменено' },
-            { id: 'FAILED', label: 'Ошибки' }
+            { id: 'FAILED', label: 'Ошибки' },
+            { id: 'ALL', label: 'Все события' }
           ].map((tab) => (
             <button
               key={tab.id}
@@ -246,7 +246,7 @@ export function SmsOutboxQueueTable({ onCountChange }) {
             </h4>
             <p className="text-xs text-slate-400 mt-1">
               {statusFilter === 'AWAITING_CONFIRMATION'
-                ? 'Когда появяться плановые уведомления, менеджеры смогут подтвердить или отклонить их здесь.'
+                ? 'Когда появятся плановые уведомления, менеджеры смогут подтвердить или отклонить их здесь.'
                 : 'Попробуйте изменить фильтры или выбрать другой статус.'}
             </p>
           </div>
@@ -259,39 +259,57 @@ export function SmsOutboxQueueTable({ onCountChange }) {
                 <tr>
                   <th className="px-6 py-3 font-medium">Дата / Время</th>
                   <th className="px-6 py-3 font-medium">Тип уведомления</th>
-                  <th className="px-6 py-3 font-medium">Шаблон</th>
+                  <th className="px-6 py-3 font-medium">Договор / Сделка</th>
+                  <th className="px-6 py-3 font-medium">Сумма / Срок</th>
                   <th className="px-6 py-3 font-medium">Статус</th>
-                  <th className="px-6 py-3 font-medium text-right">Действия</th>
+                  <th className="px-6 py-3 font-medium text-right">Действие</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-800/60">
-                {events.map((evt) => (
-                  <tr key={evt.id} className="hover:bg-slate-800/40 transition-colors">
-                    <td className="px-6 py-3.5 text-xs font-mono text-slate-400 whitespace-nowrap">
-                      {new Date(evt.created_at).toLocaleString('ru-RU')}
-                    </td>
-                    <td className="px-6 py-3.5 font-semibold text-slate-200 whitespace-nowrap">
-                      <div>{getEventTypeLabel(evt.event_type)}</div>
-                      <div className="text-[11px] font-mono text-slate-500 font-normal">Key: {evt.idempotency_key}</div>
-                    </td>
-                    <td className="px-6 py-3.5 text-xs font-mono text-blue-400 whitespace-nowrap">
-                      {evt.template_code}
-                    </td>
-                    <td className="px-6 py-3.5 whitespace-nowrap">
-                      {getStatusBadge(evt.status)}
-                    </td>
-                    <td className="px-6 py-3.5 whitespace-nowrap text-right">
-                      <button
-                        type="button"
-                        onClick={() => handleOpenDetail(evt.id)}
-                        className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-slate-700 bg-slate-800 hover:bg-slate-700 text-xs text-slate-200 transition font-medium cursor-pointer"
-                      >
-                        <Eye className="w-3.5 h-3.5 text-blue-400" />
-                        Просмотреть
-                      </button>
-                    </td>
-                  </tr>
-                ))}
+                {events.map((evt) => {
+                  const unpaidMinor = evt.payload_json?.detected_unpaid_minor;
+                  const dueDate = evt.payload_json?.detected_due_date;
+                  return (
+                    <tr key={evt.id} className="hover:bg-slate-800/40 transition-colors">
+                      <td className="px-6 py-3.5 text-xs font-mono text-slate-400 whitespace-nowrap">
+                        {new Date(evt.created_at).toLocaleString('ru-RU')}
+                      </td>
+                      <td className="px-6 py-3.5 font-semibold text-slate-200 whitespace-nowrap">
+                        {getEventTypeLabel(evt.event_type)}
+                      </td>
+                      <td className="px-6 py-3.5 text-xs font-mono text-blue-400 whitespace-nowrap">
+                        {evt.deal_id ? `Сделка №${evt.deal_id}` : '—'}
+                      </td>
+                      <td className="px-6 py-3.5 text-xs font-medium text-slate-200 whitespace-nowrap">
+                        {unpaidMinor !== undefined && unpaidMinor !== null ? (
+                          <span>
+                            <strong className="text-emerald-400 font-mono">{(unpaidMinor / 100).toLocaleString('ru-RU')} USD</strong>
+                            {dueDate && (
+                              <span className="text-slate-400 font-normal ml-1.5">
+                                (до {new Date(dueDate).toLocaleDateString('ru-RU')})
+                              </span>
+                            )}
+                          </span>
+                        ) : (
+                          '—'
+                        )}
+                      </td>
+                      <td className="px-6 py-3.5 whitespace-nowrap">
+                        {getStatusBadge(evt.status)}
+                      </td>
+                      <td className="px-6 py-3.5 whitespace-nowrap text-right">
+                        <button
+                          type="button"
+                          onClick={() => handleOpenDetail(evt.id)}
+                          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-slate-700 bg-slate-800 hover:bg-slate-700 text-xs text-slate-200 transition font-medium cursor-pointer"
+                        >
+                          <Eye className="w-3.5 h-3.5 text-blue-400" />
+                          Проверить и отправить
+                        </button>
+                      </td>
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
           </div>

@@ -3,6 +3,20 @@ import { api } from '../../api/client';
 import { MessageSquare, Clock, CheckCircle2, AlertTriangle, RefreshCw, ShieldAlert, Inbox, History } from 'lucide-react';
 import { SmsOutboxQueueTable } from './SmsOutboxQueueTable';
 
+function maskPhone(phone) {
+  if (!phone || typeof phone !== 'string') return '—';
+  const trimmed = phone.trim();
+  if (trimmed === 'PENDING') return 'PENDING';
+  if (trimmed.length < 7) return trimmed;
+  if (trimmed.startsWith('+992') && trimmed.length === 13) {
+    return `${trimmed.slice(0, 7)} *** ${trimmed.slice(9)}`;
+  }
+  if (trimmed.length >= 10) {
+    return `${trimmed.slice(0, 6)} *** ${trimmed.slice(-4)}`;
+  }
+  return trimmed;
+}
+
 export function SmsHistoryTable({ clientId = null, refreshTrigger = 0, onCountChange, onOpenSendModal, defaultTab = null }) {
   const [activeTab, setActiveTab] = useState(defaultTab || (clientId ? 'HISTORY' : 'OUTBOX'));
   const [outboxPendingCount, setOutboxPendingCount] = useState(0);
@@ -202,8 +216,8 @@ export function SmsHistoryTable({ clientId = null, refreshTrigger = 0, onCountCh
                           {row.client_name || '—'}
                         </td>
                       )}
-                      <td className="px-6 py-3.5 font-mono text-emerald-400 text-xs whitespace-nowrap">
-                        {row.phone}
+                      <td className="px-6 py-3.5 font-mono text-emerald-400 text-xs whitespace-nowrap" title={row.phone}>
+                        {maskPhone(row.phone)}
                       </td>
                       <td className="px-6 py-3.5 text-slate-300 max-w-sm break-words">
                         <p className="line-clamp-3 hover:line-clamp-none transition-all">{row.message}</p>
