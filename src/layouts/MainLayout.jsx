@@ -100,7 +100,6 @@ export const MainLayout = () => {
         { label: 'Сделки', path: '/deals', icon: FileCheck, permission: 'deals.view' },
         { label: 'Клиенты', path: '/clients', icon: Users, permission: 'leads.view' },
         { label: 'SMS-оповещения', path: '/crm/sms-notifications', icon: Smartphone, permission: 'automation.manage' },
-        { label: 'SMS шаблоны', path: '/crm/sms-templates', icon: MessageSquare, permission: 'automation.manage' },
       ],
     },
     {
