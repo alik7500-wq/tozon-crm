@@ -14,6 +14,34 @@ import {
   RefreshCw
 } from 'lucide-react';
 
+function formatDateDDMMYYYY(dateStr) {
+  if (!dateStr || typeof dateStr !== 'string') return '—';
+  const trimmed = dateStr.trim().split('T')[0];
+  const parts = trimmed.split('-');
+  if (parts.length === 3) {
+    const [yyyy, mm, dd] = parts;
+    return `${dd}.${mm}.${yyyy}`;
+  }
+  return dateStr;
+}
+
+const getEventTypeLabel = (type) => {
+  switch (type) {
+    case 'PAYMENT_REMINDER':
+      return 'Напоминание об оплате';
+    case 'DEBT_OVERDUE':
+      return 'Задолженность';
+    case 'MEETING_REMINDER':
+      return 'Встреча';
+    case 'CONTRACT_SIGNED':
+      return 'Договор подписан';
+    case 'PAYMENT_RECEIVED':
+      return 'Подтверждение оплаты';
+    default:
+      return type || 'Уведомление';
+  }
+};
+
 export function SmsOutboxEventDetailModal({ eventId, isOpen, onClose, onRefreshQueue }) {
   const [previewData, setPreviewData] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -59,6 +87,23 @@ export function SmsOutboxEventDetailModal({ eventId, isOpen, onClose, onRefreshQ
   const eventObj = previewData?.event || {};
   const isAwaitingConfirmation = eventObj.status === 'AWAITING_CONFIRMATION';
   const isApplicable = previewData?.isApplicable !== false && isAwaitingConfirmation;
+
+  const contractNum =
+    previewData?.contractNumber ||
+    eventObj.contract_number ||
+    eventObj.payload_json?.contract_number ||
+    eventObj.payload_json?.detected_contract_number ||
+    eventObj.deals?.contract_number ||
+    eventObj.contract?.contract_number;
+  const contractDisplay = contractNum ? `№${contractNum}` : 'Не указан';
+
+  const unpaidMinor = eventObj.payload_json?.detected_unpaid_minor;
+  const amountDisplay = unpaidMinor !== undefined && unpaidMinor !== null
+    ? `${(unpaidMinor / 100).toLocaleString('ru-RU')} USD`
+    : '—';
+
+  const rawDueDate = eventObj.payload_json?.detected_due_date;
+  const dueDateDisplay = formatDateDDMMYYYY(rawDueDate);
 
   const handleConfirmSend = async () => {
     if (!isApplicable || isSending) return;
@@ -210,30 +255,32 @@ export function SmsOutboxEventDetailModal({ eventId, isOpen, onClose, onRefreshQ
             </div>
           ) : previewData ? (
             <>
-              {/* Event Metadata Banner */}
-              <div className="bg-slate-950/60 rounded-xl p-4 border border-slate-800 space-y-2 text-xs text-slate-300">
+              {/* Business Event Metadata Banner */}
+              <div className="bg-slate-950/60 rounded-xl p-4 border border-slate-800 space-y-2.5 text-xs text-slate-300">
                 <div className="flex justify-between items-center pb-2 border-b border-slate-800/60">
-                  <span className="font-semibold text-white">Тип уведомления:</span>
-                  <span className="font-mono text-blue-400 font-bold">{eventObj.event_type}</span>
+                  <span className="text-slate-400">Тип уведомления:</span>
+                  <span className="font-semibold text-white font-mono">{getEventTypeLabel(eventObj.event_type)}</span>
                 </div>
-                <div className="flex justify-between items-center pt-1">
+                <div className="flex justify-between items-center">
+                  <span className="text-slate-400">Договор:</span>
+                  <span className="font-mono text-blue-400 font-bold">{contractDisplay}</span>
+                </div>
+                {amountDisplay !== '—' && (
+                  <div className="flex justify-between items-center">
+                    <span className="text-slate-400">Сумма:</span>
+                    <span className="font-mono text-emerald-400 font-bold">{amountDisplay}</span>
+                  </div>
+                )}
+                {dueDateDisplay !== '—' && (
+                  <div className="flex justify-between items-center">
+                    <span className="text-slate-400">Срок оплаты:</span>
+                    <span className="font-mono text-slate-200">{dueDateDisplay}</span>
+                  </div>
+                )}
+                <div className="flex justify-between items-center pt-2 border-t border-slate-800/60">
                   <span className="text-slate-400">Статус:</span>
                   <div>{getStatusBadge(eventObj.status)}</div>
                 </div>
-                {eventObj.template_code && (
-                  <div className="flex justify-between items-center">
-                    <span className="text-slate-400">Шаблон:</span>
-                    <span className="font-mono text-slate-200">{eventObj.template_code}</span>
-                  </div>
-                )}
-                {eventObj.created_at && (
-                  <div className="flex justify-between items-center text-slate-400">
-                    <span>Запланировано / Создано:</span>
-                    <span className="font-mono text-slate-300">
-                      {new Date(eventObj.created_at).toLocaleString('ru-RU')}
-                    </span>
-                  </div>
-                )}
               </div>
 
               {/* Stale / Not Applicable Warning */}
@@ -277,7 +324,7 @@ export function SmsOutboxEventDetailModal({ eventId, isOpen, onClose, onRefreshQ
                 <div className="p-4 rounded-xl bg-rose-500/10 border border-rose-500/20 space-y-3">
                   <h4 className="text-xs font-bold text-rose-300 flex items-center gap-1.5">
                     <AlertTriangle className="w-4 h-4" />
-                    Подтвердите отмену сообщения
+                    Отменить это SMS-уведомление? Оно исчезнет из очереди ожидающих отправки.
                   </h4>
                   <input
                     type="text"
@@ -348,7 +395,7 @@ export function SmsOutboxEventDetailModal({ eventId, isOpen, onClose, onRefreshQ
                 ) : (
                   <>
                     <Send className="w-4 h-4" />
-                    <span>Отправить SMS</span>
+                    <span>Подтвердить отправку</span>
                   </>
                 )}
               </button>

@@ -171,4 +171,54 @@ describe('SmsNotificationsPage Manager UX Hotfix Tests', () => {
     expect(screen.getAllByText(/Договор не указан/).length).toBeGreaterThan(0);
     expect(screen.queryByText(/Сделка №14/)).toBeNull();
   });
+
+  it('J. preview modal displays localized labels, DD.MM.YYYY date, "Подтвердить отправку" button, and cancel prompt', async () => {
+    api.post.mockImplementation((url) => {
+      if (url.includes('/preview')) {
+        return Promise.resolve({
+          success: true,
+          data: {
+            event: {
+              id: 3,
+              event_type: 'PAYMENT_REMINDER',
+              template_code: 'PAYMENT_REMINDER',
+              status: 'AWAITING_CONFIRMATION',
+              contract_number: '0004',
+              payload_json: {
+                detected_unpaid_minor: 63000,
+                detected_due_date: '2026-10-03'
+              }
+            },
+            isApplicable: true,
+            text: 'Здравствуйте! Напоминаем об очередной оплате по договору №0004 в размере 630 USD до 03.10.2026. TOZON-PLAZA.',
+            characterCount: 115,
+            smsSegments: 2,
+            isUnicode: true,
+            previewHash: 'hash123'
+          }
+        });
+      }
+      return Promise.resolve({ success: true, data: {} });
+    });
+
+    render(<SmsNotificationsPage />);
+    await waitFor(() => {
+      expect(screen.getAllByText('Проверить и отправить').length).toBeGreaterThan(0);
+    });
+
+    const checkButtons = screen.getAllByRole('button', { name: /Проверить и отправить/i });
+    fireEvent.click(checkButtons[0]);
+
+    await waitFor(() => {
+      expect(screen.getByText('Подтвердить отправку')).toBeInTheDocument();
+      expect(screen.getAllByText('Напоминание об оплате').length).toBeGreaterThan(0);
+      expect(screen.getByText('03.10.2026')).toBeInTheDocument();
+      expect(screen.queryByText(/Шаблон:/i)).toBeNull();
+    });
+
+    const notSendBtn = screen.getByRole('button', { name: /Не отправлять/i });
+    fireEvent.click(notSendBtn);
+
+    expect(screen.getByText(/Отменить это SMS-уведомление\? Оно исчезнет из очереди ожидающих отправки\./i)).toBeInTheDocument();
+  });
 });
