@@ -52,11 +52,14 @@ export function SendSmsModal({ isOpen, onClose, client, context = 'lead', onSucc
   const [isPreviewLoading, setIsPreviewLoading] = useState(false);
   const [error, setError] = useState(null);
   const [successResult, setSuccessResult] = useState(null);
+  const [manualPhone, setManualPhone] = useState('');
+  const [manualName, setManualName] = useState('');
 
   const reqSeqRef = useRef(0);
   const previewSeqRef = useRef(0);
 
-  const displayPhone = formatPhoneDisplay(client?.phone || client?.secondary_phone);
+  const targetPhone = client?.phone || client?.secondary_phone || manualPhone;
+  const displayPhone = formatPhoneDisplay(targetPhone);
 
   const clientId = client?.id || client?.clientId || client?.lead_id || null;
   const dealId = client?.deal_id || client?.dealId || null;
@@ -70,6 +73,8 @@ export function SendSmsModal({ isOpen, onClose, client, context = 'lead', onSucc
       setSelectedTemplateCode('');
       setIsPreviewLoading(false);
       setAvailability({});
+      setManualPhone('');
+      setManualName('');
       fetchTemplatesAndAvailability();
     }
   }, [isOpen, context, clientId, dealId, taskId]);
@@ -277,16 +282,36 @@ export function SendSmsModal({ isOpen, onClose, client, context = 'lead', onSucc
           <div className="grid grid-cols-2 gap-4 bg-slate-950/60 p-3.5 rounded-xl border border-slate-800/80 text-sm">
             <div>
               <span className="text-xs text-slate-500 block mb-0.5">Получатель (ФИО)</span>
-              <span
-                className="font-medium text-slate-200 truncate block cursor-help"
-                title={fullName}
-              >
-                {fullName}
-              </span>
+              {client?.full_name || client?.name ? (
+                <span
+                  className="font-medium text-slate-200 truncate block cursor-help"
+                  title={fullName}
+                >
+                  {fullName}
+                </span>
+              ) : (
+                <input
+                  type="text"
+                  placeholder="ФИО получателя"
+                  value={manualName}
+                  onChange={(e) => setManualName(e.target.value)}
+                  className="w-full bg-slate-900 border border-slate-700 rounded-lg px-2.5 py-1 text-xs text-slate-200 focus:outline-none focus:border-blue-500"
+                />
+              )}
             </div>
             <div>
-              <span className="text-xs text-slate-500 block mb-0.5">Телефон</span>
-              <span className="font-mono text-emerald-400 font-medium block">{displayPhone}</span>
+              <span className="text-xs text-slate-500 block mb-0.5">Телефон *</span>
+              {client?.phone || client?.secondary_phone ? (
+                <span className="font-mono text-emerald-400 font-medium block">{displayPhone}</span>
+              ) : (
+                <input
+                  type="text"
+                  placeholder="+992 90 000 0000"
+                  value={manualPhone}
+                  onChange={(e) => setManualPhone(e.target.value)}
+                  className="w-full bg-slate-900 border border-slate-700 rounded-lg px-2.5 py-1 text-xs text-emerald-400 font-mono focus:outline-none focus:border-blue-500"
+                />
+              )}
             </div>
           </div>
 
