@@ -88,20 +88,14 @@ export function SmsOutboxEventDetailModal({ eventId, isOpen, onClose, onRefreshQ
   const isAwaitingConfirmation = eventObj.status === 'AWAITING_CONFIRMATION';
   const isApplicable = previewData?.isApplicable !== false && isAwaitingConfirmation;
 
-  const extractedContractFromText = previewData?.text
-    ? previewData.text.match(/договору\s*№?\s*([A-Za-z0-9_-]+)/i)?.[1] || null
-    : null;
-
   const contractNum =
+    previewData?.contract_number ||
     previewData?.contractNumber ||
-    previewData?.context?.contract_number ||
-    previewData?.context?.contractNumber ||
     eventObj.contract_number ||
     eventObj.payload_json?.contract_number ||
     eventObj.payload_json?.detected_contract_number ||
     eventObj.deals?.contract_number ||
-    eventObj.contract?.contract_number ||
-    extractedContractFromText;
+    eventObj.contract?.contract_number;
   const contractDisplay = contractNum ? `№${contractNum}` : 'Не указан';
 
   const unpaidMinor = eventObj.payload_json?.detected_unpaid_minor;

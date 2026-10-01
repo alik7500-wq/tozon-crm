@@ -226,18 +226,20 @@ describe('SmsNotificationsPage Manager UX Hotfix Tests', () => {
     expect(screen.getByText(/Отменить это SMS-уведомление\? Оно исчезнет из очереди ожидающих отправки\./i)).toBeInTheDocument();
   });
 
-  it('K. regression test: modal resolves contract_number from preview text fallback when structured field is absent, preserving leading zeros', async () => {
+  it('K. regression test: modal resolves structured contract_number from previewData or event, preserving leading zeros without regex parsing', async () => {
     api.post.mockImplementation((url) => {
       if (url.includes('/preview')) {
         return Promise.resolve({
           success: true,
           data: {
+            contract_number: '0003',
             event: {
               id: 4,
               event_type: 'PAYMENT_REMINDER',
               template_code: 'PAYMENT_REMINDER',
               status: 'AWAITING_CONFIRMATION',
               deal_id: 13,
+              contract_number: '0003',
               payload_json: {
                 detected_unpaid_minor: 85000,
                 detected_due_date: '2026-10-03'
