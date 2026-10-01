@@ -3,9 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { api } from '../../api/client';
 import {
   Bell,
-  CheckCircle2,
   AlertCircle,
-  Clock,
   CreditCard,
   UserPlus,
   FileCheck,
@@ -24,10 +22,13 @@ export const NotificationsPage = () => {
     setError('');
     try {
       const res = await api.get('/notifications');
-      setNotifications(res.data || res || []);
+      // Extract array safely from canonical API response { success: true, data: [...] }
+      const list = Array.isArray(res?.data) ? res.data : (Array.isArray(res) ? res : []);
+      setNotifications(list);
     } catch (err) {
-      // Graceful fallback if empty or offline
+      // Graceful error handling without crashing ErrorBoundary
       setError(err.message || 'Ошибка загрузки уведомлений');
+      setNotifications([]);
     } finally {
       setIsLoading(false);
     }
@@ -40,7 +41,9 @@ export const NotificationsPage = () => {
   const markAllAsRead = async () => {
     try {
       await api.post('/notifications/read-all');
-      setNotifications((prev) => prev.map((n) => ({ ...n, is_read: true })));
+      setNotifications((prev) =>
+        Array.isArray(prev) ? prev.map((n) => ({ ...n, is_read: true })) : []
+      );
     } catch (err) {
       alert(err.message || 'Ошибка обновления уведомлений');
     }
@@ -51,18 +54,20 @@ export const NotificationsPage = () => {
       try {
         await api.patch(`/notifications/${n.id}/read`);
         setNotifications((prev) =>
-          prev.map((item) => (item.id === n.id ? { ...item, is_read: true } : item))
+          Array.isArray(prev)
+            ? prev.map((item) => (item.id === n.id ? { ...item, is_read: true } : item))
+            : []
         );
       } catch (err) {
         console.warn('Failed to mark notification as read:', err);
       }
     }
 
-    // Navigation based on entity_type & entity_id
+    // Deep-link navigation based on entity_type & entity_id
     if (n.entity_type === 'LEAD') {
-      navigate('/clients');
+      navigate(n.entity_id ? `/clients?clientId=${n.entity_id}` : '/clients');
     } else if (n.entity_type === 'DEAL') {
-      navigate(`/deals?dealId=${n.entity_id}`);
+      navigate(n.entity_id ? `/deals?dealId=${n.entity_id}` : '/deals');
     } else if (n.entity_type === 'SMS') {
       navigate('/crm/sms-notifications');
     }
@@ -98,7 +103,9 @@ export const NotificationsPage = () => {
     });
   };
 
-  const unreadCount = notifications.filter(n => !n.is_read).length;
+  // Always enforce array guarantee
+  const safeNotifications = Array.isArray(notifications) ? notifications : [];
+  const unreadCount = safeNotifications.filter(n => !n?.is_read).length;
 
   return (
     <div className="space-y-6 max-w-4xl mx-auto pb-12">
@@ -136,17 +143,23 @@ export const NotificationsPage = () => {
         <div className="rounded-2xl border border-rose-200 bg-rose-50/50 p-6 text-center text-rose-700">
           <AlertCircle className="h-6 w-6 mx-auto mb-2 text-rose-500" />
           <p className="text-xs font-bold">{error}</p>
+          <button
+            onClick={fetchNotifications}
+            className="mt-3 inline-flex items-center px-3 py-1.5 rounded-lg bg-rose-100 hover:bg-rose-200 text-rose-800 text-xs font-bold transition cursor-pointer"
+          >
+            Повторить попытку
+          </button>
         </div>
       ) : (
         <div className="space-y-3">
-          {notifications.length === 0 ? (
+          {safeNotifications.length === 0 ? (
             <div className="flex flex-col items-center justify-center rounded-2xl border border-dashed border-slate-200 bg-white p-12 text-center shadow-xs">
               <Bell className="h-10 w-10 text-slate-300 mb-2" />
               <h3 className="text-base font-bold text-slate-900">Уведомлений нет</h3>
               <p className="text-xs text-slate-500 mt-1">Все важные события обработаны.</p>
             </div>
           ) : (
-            notifications.map((n) => (
+            safeNotifications.map((n) => (
               <div
                 key={n.id}
                 onClick={() => handleNotificationClick(n)}
@@ -157,7 +170,7 @@ export const NotificationsPage = () => {
                 }`}
               >
                 <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-slate-50 border border-slate-200 group-hover:scale-105 transition-transform">
-                  {getIcon(n.type)}
+                  {getIcon(n.type || n.event_type)}
                 </div>
 
                 <div className="flex-1 min-w-0">

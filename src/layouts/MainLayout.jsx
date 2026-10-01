@@ -52,9 +52,10 @@ export const MainLayout = () => {
   const fetchUnreadCount = async () => {
     try {
       const res = await api.get('/notifications/unread-count');
-      setUnreadCount(res.count !== undefined ? res.count : (res.data?.count || 0));
+      const count = typeof res?.count === 'number' ? res.count : (typeof res?.data?.count === 'number' ? res.data.count : 0);
+      setUnreadCount(count);
     } catch (e) {
-      // Quiet fallback
+      setUnreadCount(0);
     }
   };
 
