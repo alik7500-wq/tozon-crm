@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { NavLink, Outlet, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../features/auth/AuthContext';
+import { api } from '../api/client';
 import {
   LayoutDashboard,
   Building2,
@@ -46,6 +47,22 @@ export const MainLayout = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
+  const [unreadCount, setUnreadCount] = useState(0);
+
+  const fetchUnreadCount = async () => {
+    try {
+      const res = await api.get('/notifications/unread-count');
+      setUnreadCount(res.count !== undefined ? res.count : (res.data?.count || 0));
+    } catch (e) {
+      // Quiet fallback
+    }
+  };
+
+  useEffect(() => {
+    fetchUnreadCount();
+    const interval = setInterval(fetchUnreadCount, 45000);
+    return () => clearInterval(interval);
+  }, [location.pathname]);
 
   // Expand state for nested menus
   const [expandedMenus, setExpandedMenus] = useState({
@@ -322,7 +339,11 @@ export const MainLayout = () => {
               className="relative rounded-xl border border-slate-200 bg-white p-2 text-slate-500 hover:bg-tozon-blue-50 hover:text-tozon-blue-800 transition cursor-pointer"
             >
               <Bell className="h-4 w-4" />
-              <span className="absolute top-1.5 right-1.5 h-2 w-2 rounded-full bg-tozon-red ring-2 ring-white"></span>
+              {unreadCount > 0 && (
+                <span className="absolute -top-1 -right-1 flex h-4 min-w-[16px] items-center justify-center rounded-full bg-rose-600 px-1 text-[10px] font-extrabold text-white shadow-2xs ring-2 ring-white">
+                  {unreadCount > 9 ? '9+' : unreadCount}
+                </span>
+              )}
             </NavLink>
           </div>
         </header>

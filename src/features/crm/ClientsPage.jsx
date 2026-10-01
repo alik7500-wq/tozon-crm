@@ -38,13 +38,20 @@ export const ClientsPage = () => {
   const [smsClient, setSmsClient] = useState(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
 
-  // Sync search state if URL searchParam changes (e.g. from GlobalSearch)
+  // Sync search state or clientId deep link if URL searchParams change
   useEffect(() => {
     const query = searchParams.get('search') || '';
     if (query !== search) {
       setSearch(query);
     }
-  }, [searchParams]);
+    const clientIdParam = searchParams.get('clientId') || searchParams.get('leadId');
+    if (clientIdParam && clients.length > 0) {
+      const match = clients.find(c => String(c.id) === String(clientIdParam));
+      if (match) {
+        setSelectedClient(match);
+      }
+    }
+  }, [searchParams, clients]);
 
   const handleSearchChange = (val) => {
     setSearch(val);

@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { api } from '../../api/client';
 import { DealsTableView } from './DealsTableView';
 import { DealsKanbanView } from './DealsKanbanView';
@@ -28,6 +29,7 @@ import {
 } from 'lucide-react';
 
 export const DealsPage = () => {
+  const [searchParams] = useSearchParams();
   const [deals, setDeals] = useState([]);
   const [stats, setStats] = useState(null);
   const [projects, setProjects] = useState([]);
@@ -43,6 +45,13 @@ export const DealsPage = () => {
   // Modals & Drawers state
   const [isWizardOpen, setIsWizardOpen] = useState(false);
   const [selectedDealId, setSelectedDealId] = useState(null);
+
+  useEffect(() => {
+    const dId = searchParams.get('dealId');
+    if (dId) {
+      setSelectedDealId(Number(dId));
+    }
+  }, [searchParams]);
   const [dealToPrint, setDealToPrint] = useState(null);
   const [dealForPayment, setDealForPayment] = useState(null);
   const [dealToEdit, setDealToEdit] = useState(null);
