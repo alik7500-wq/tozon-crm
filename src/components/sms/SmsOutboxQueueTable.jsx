@@ -259,7 +259,7 @@ export function SmsOutboxQueueTable({ onCountChange }) {
                 <tr>
                   <th className="px-6 py-3 font-medium">Дата / Время</th>
                   <th className="px-6 py-3 font-medium">Тип уведомления</th>
-                  <th className="px-6 py-3 font-medium">Договор / Сделка</th>
+                  <th className="px-6 py-3 font-medium">Договор</th>
                   <th className="px-6 py-3 font-medium">Сумма / Срок</th>
                   <th className="px-6 py-3 font-medium">Статус</th>
                   <th className="px-6 py-3 font-medium text-right">Действие</th>
@@ -269,6 +269,16 @@ export function SmsOutboxQueueTable({ onCountChange }) {
                 {events.map((evt) => {
                   const unpaidMinor = evt.payload_json?.detected_unpaid_minor;
                   const dueDate = evt.payload_json?.detected_due_date;
+                  const contractNumber =
+                    evt.contract_number ||
+                    evt.payload_json?.contract_number ||
+                    evt.payload_json?.detected_contract_number ||
+                    evt.deals?.contract_number ||
+                    evt.contract?.contract_number ||
+                    evt.contract_no;
+                  const contractDisplay = contractNumber
+                    ? `Договор №${contractNumber}`
+                    : 'Договор не указан';
                   return (
                     <tr key={evt.id} className="hover:bg-slate-800/40 transition-colors">
                       <td className="px-6 py-3.5 text-xs font-mono text-slate-400 whitespace-nowrap">
@@ -278,7 +288,7 @@ export function SmsOutboxQueueTable({ onCountChange }) {
                         {getEventTypeLabel(evt.event_type)}
                       </td>
                       <td className="px-6 py-3.5 text-xs font-mono text-blue-400 whitespace-nowrap">
-                        {evt.deal_id ? `Сделка №${evt.deal_id}` : '—'}
+                        {contractDisplay}
                       </td>
                       <td className="px-6 py-3.5 text-xs font-medium text-slate-200 whitespace-nowrap">
                         {unpaidMinor !== undefined && unpaidMinor !== null ? (

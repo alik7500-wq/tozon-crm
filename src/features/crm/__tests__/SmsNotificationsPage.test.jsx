@@ -29,6 +29,7 @@ describe('SmsNotificationsPage Manager UX Hotfix Tests', () => {
                 template_code: 'PAYMENT_REMINDER',
                 idempotency_key: 'PAYMENT_REMINDER:297:3:2026-10-03',
                 deal_id: 14,
+                contract_number: '0004',
                 payload_json: {
                   detected_unpaid_minor: 63000,
                   detected_due_date: '2026-10-03'
@@ -42,6 +43,7 @@ describe('SmsNotificationsPage Manager UX Hotfix Tests', () => {
                 template_code: 'PAYMENT_REMINDER',
                 idempotency_key: 'PAYMENT_REMINDER:298:2:2026-10-02',
                 deal_id: 14,
+                contract_number: '0005',
                 payload_json: {
                   detected_unpaid_minor: 63000,
                   detected_due_date: '2026-10-02'
@@ -157,5 +159,16 @@ describe('SmsNotificationsPage Manager UX Hotfix Tests', () => {
     render(<SmsNotificationsPage />);
     expect(screen.queryByText(/Отправить все/i)).toBeNull();
     expect(screen.queryByText(/Массовая отправка/i)).toBeNull();
+  });
+
+  it('I. displays contract_number preserving leading zeros and uses safe fallback when missing', async () => {
+    render(<SmsNotificationsPage />);
+    await waitFor(() => {
+      expect(screen.getAllByText('Напоминание об оплате').length).toBeGreaterThan(0);
+    });
+    expect(screen.getAllByText(/Договор №0004/).length).toBeGreaterThan(0);
+    expect(screen.getAllByText(/Договор №0005/).length).toBeGreaterThan(0);
+    expect(screen.getAllByText(/Договор не указан/).length).toBeGreaterThan(0);
+    expect(screen.queryByText(/Сделка №14/)).toBeNull();
   });
 });
