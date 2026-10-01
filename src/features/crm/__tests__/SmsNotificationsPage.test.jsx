@@ -1,8 +1,8 @@
 // @vitest-environment jsdom
 import React from 'react';
 import '@testing-library/jest-dom/vitest';
-import { render, screen, fireEvent, waitFor } from '@testing-library/react';
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { render, screen, fireEvent, waitFor, cleanup } from '@testing-library/react';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { SmsNotificationsPage } from '../SmsNotificationsPage';
 import { api } from '../../../api/client';
 
@@ -14,6 +14,10 @@ vi.mock('../../../api/client', () => ({
 }));
 
 describe('SmsNotificationsPage Manager UX Hotfix Tests', () => {
+  afterEach(() => {
+    cleanup();
+  });
+
   beforeEach(() => {
     vi.clearAllMocks();
     api.get.mockImplementation((url) => {
@@ -220,5 +224,51 @@ describe('SmsNotificationsPage Manager UX Hotfix Tests', () => {
     fireEvent.click(notSendBtn);
 
     expect(screen.getByText(/Отменить это SMS-уведомление\? Оно исчезнет из очереди ожидающих отправки\./i)).toBeInTheDocument();
+  });
+
+  it('K. regression test: modal resolves contract_number from preview text fallback when structured field is absent, preserving leading zeros', async () => {
+    api.post.mockImplementation((url) => {
+      if (url.includes('/preview')) {
+        return Promise.resolve({
+          success: true,
+          data: {
+            event: {
+              id: 4,
+              event_type: 'PAYMENT_REMINDER',
+              template_code: 'PAYMENT_REMINDER',
+              status: 'AWAITING_CONFIRMATION',
+              deal_id: 13,
+              payload_json: {
+                detected_unpaid_minor: 85000,
+                detected_due_date: '2026-10-03'
+              }
+            },
+            isApplicable: true,
+            text: 'Здравствуйте, Мухаммадназарова Малика Саидбаевна! Напоминаем об очередной оплате по договору №0003 в размере 850 USD до 03.10.2026. TOZON-PLAZA.',
+            characterCount: 130,
+            smsSegments: 2,
+            isUnicode: true,
+            previewHash: 'hash456'
+          }
+        });
+      }
+      return Promise.resolve({ success: true, data: {} });
+    });
+
+    render(<SmsNotificationsPage />);
+    await waitFor(() => {
+      expect(screen.getAllByText('Проверить и отправить').length).toBeGreaterThan(0);
+    });
+
+    const checkButtons = screen.getAllByRole('button', { name: /Проверить и отправить/i });
+    fireEvent.click(checkButtons[0]);
+
+    await waitFor(() => {
+      expect(screen.getByText('№0003')).toBeInTheDocument();
+      expect(screen.getByText('Просмотр события Outbox #3')).toBeInTheDocument();
+    });
+
+    const confirmCalls = api.post.mock.calls.filter(([url]) => url && typeof url === 'string' && url.includes('/confirm'));
+    expect(confirmCalls.length).toBe(0);
   });
 });
