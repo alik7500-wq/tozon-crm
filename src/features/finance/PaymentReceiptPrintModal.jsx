@@ -143,43 +143,36 @@ export const PaymentReceiptPrintModal = ({ payment, deal, onClose, initialLang =
   let amountTJS = null;
   if (paymentCur === 'TJS') {
     amountTJS = rawAmount;
+  } else if (payment.amount_tjs !== undefined && payment.amount_tjs !== null && Number(payment.amount_tjs) > 0) {
+    amountTJS = Number(payment.amount_tjs);
   } else if (explicitTjs !== null) {
     amountTJS = explicitTjs;
   } else if (paymentCur === 'USD' && effectiveRate) {
     amountTJS = rawAmount * effectiveRate;
   }
 
-  // Determine what amount and currency to display on the receipt:
-  // If we have an official converted TJS amount (or operation is TJS), print in TJS.
-  // Otherwise, print in the operation's currency (e.g., USD).
-  const printCur = (amountTJS !== null) ? 'TJS' : paymentCur;
-  const printAmount = (amountTJS !== null) ? amountTJS : rawAmount;
+  const isTjsDefined = amountTJS !== null && !isNaN(amountTJS) && amountTJS > 0;
+  const amountNumber = isTjsDefined ? Number(amountTJS.toFixed(2)) : 0;
 
-  const amountNumber = Number(printAmount.toFixed(2));
-  const amountFormatted = amountNumber.toLocaleString('ru-RU', {
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2,
-  });
+  const amountFormatted = isTjsDefined
+    ? `${amountNumber.toLocaleString('ru-RU', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ${isTJ ? 'сомонӣ' : 'сомони'}`
+    : (isTJ ? 'Суммаи ПКО дар TJS муайян нашудааст' : 'Сумма ПКО в TJS не определена');
 
-  // USD Equivalent calculation for official coding table (strict: NO fallback when rate is missing)
+  // USD Reference calculation (shown ONLY as reference for USD operations)
   let amountUSD = null;
-  if (effectiveRate && effectiveRate > 0) {
-    if (paymentCur === 'USD' && rawAmount > 0 && rawAmount !== explicitTjs) {
-      amountUSD = rawAmount;
-    } else if (amountTJS > 0) {
-      amountUSD = amountTJS / effectiveRate;
-    }
+  if (paymentCur === 'USD' && rawAmount > 0) {
+    amountUSD = rawAmount;
+  } else if (payment.amount_usd !== undefined && payment.amount_usd !== null && Number(payment.amount_usd) > 0) {
+    amountUSD = Number(payment.amount_usd);
+  } else if (effectiveRate && effectiveRate > 0 && isTjsDefined) {
+    amountUSD = amountTJS / effectiveRate;
   }
 
   const hasValidExchangeData = Boolean(
     effectiveRate &&
     effectiveRate > 0 &&
     !isNaN(effectiveRate) &&
-    isFinite(effectiveRate) &&
-    amountUSD &&
-    amountUSD > 0 &&
-    !isNaN(amountUSD) &&
-    isFinite(amountUSD)
+    isFinite(effectiveRate)
   );
 
   const rateFormatted = hasValidExchangeData
@@ -189,16 +182,16 @@ export const PaymentReceiptPrintModal = ({ payment, deal, onClose, initialLang =
       }).replace('.', ',')
     : null;
 
-  const amountUsdFormatted = hasValidExchangeData
+  const amountUsdFormatted = amountUSD && amountUSD > 0
     ? `${Number(amountUSD.toFixed(2)).toLocaleString('ru-RU', {
         minimumFractionDigits: 2,
         maximumFractionDigits: 2,
       })} USD`
     : null;
 
-  const wordsFormatted = isTJ 
-    ? numberToWordsTJ(amountNumber, printCur)
-    : numberToWordsRU(amountNumber, printCur);
+  const wordsFormatted = isTjsDefined
+    ? (isTJ ? numberToWordsTJ(amountNumber, 'TJS') : numberToWordsRU(amountNumber, 'TJS'))
+    : (isTJ ? 'Суммаи ПКО дар TJS муайян нашудааст (маълумот оид ба қурб/маблағи TJS нест)' : 'Сумма ПКО в TJS не определена (отсутствуют данные о курсе или сумме в TJS)');
 
   // Client / Payer Name
   const payerName = (
@@ -507,7 +500,7 @@ export const PaymentReceiptPrintModal = ({ payment, deal, onClose, initialLang =
               <div className="flex items-center justify-between text-xs font-bold pt-0.5">
                 <span>{isTJ ? 'Маблағ' : 'Сумма'}</span>
                 <span className="font-sans text-sm font-black underline">
-                  {amountFormatted} {printCur === 'USD' ? 'USD' : (isTJ ? 'сомонӣ' : 'сомони')}
+                  {amountFormatted}
                 </span>
               </div>
 

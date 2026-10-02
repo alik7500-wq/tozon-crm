@@ -755,8 +755,30 @@ export const IncomePage = () => {
 
             <form onSubmit={(e) => {
               e.preventDefault();
-              updateMutation.mutate(editingItem);
+              updateMutation.mutate({
+                id: editingItem.id,
+                amount: editingItem.amount,
+                currency: editingItem.currency,
+                date: editingItem.date,
+                method: editingItem.method,
+                reference: editingItem.reference,
+                comment: editingItem.comment,
+                cash_desk_id: editingItem.cash_desk_id,
+                payer_name: editingItem.payer_name
+              });
             }} className="p-6 space-y-3.5 text-xs">
+              {editingItem.currency === 'USD' && (
+                <div className="p-3 rounded-xl bg-amber-50 border border-amber-200 text-xs text-amber-900 space-y-1">
+                  <div className="font-bold flex items-center justify-between">
+                    <span>💵 Оплата по договору (USD):</span>
+                    <span className="font-black text-sm">${Number(editingItem.amount).toLocaleString('ru-RU', { minimumFractionDigits: 2 })} USD</span>
+                  </div>
+                  <p className="text-[11px] text-amber-700">
+                    Приходный кассовый ордер (ПКО) оформляется в сомони (TJS). Учёт сделки сохраняется в USD.
+                  </p>
+                </div>
+              )}
+
               <div className="grid grid-cols-3 gap-3">
                 <div className="col-span-2">
                   <label className="block font-bold text-slate-700 mb-1">Сумма прихода *</label>
