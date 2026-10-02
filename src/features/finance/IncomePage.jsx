@@ -14,6 +14,7 @@ import {
   updateCommentWithCashDesk,
   resolveManagerDeskId 
 } from '../../utils/cashDesks';
+import { getPkoJournalDisplay } from '../../utils/pkoJournalFormatter';
 import { 
   TrendingUp, Plus, Search, Calendar, DollarSign, Coins, CreditCard, 
   User, FileText, CheckCircle2, RefreshCw, Filter, ArrowUpRight, Building2, X,
@@ -625,8 +626,36 @@ export const IncomePage = () => {
                       {item.method === 'CASH' ? 'Наличные' : item.method === 'BANK_TRANSFER' ? 'Банк' : item.method === 'CARD' ? 'Карта' : item.method}
                     </span>
                   </td>
-                  <td className="py-2.5 px-2.5 font-black text-xs sm:text-sm text-emerald-600 whitespace-nowrap">
-                    +{item.amount.toLocaleString('ru-RU', { minimumFractionDigits: 2 })} {item.currency}
+                  <td className="py-2.5 px-2.5 whitespace-nowrap">
+                    {(() => {
+                      const display = getPkoJournalDisplay(item);
+                      if (!display.isDefined) {
+                        return (
+                          <div>
+                            <div className="font-bold text-xs text-amber-600">
+                              {display.primary}
+                            </div>
+                            {display.secondary && (
+                              <div className="text-[10px] text-slate-400 font-normal mt-0.5">
+                                {display.secondary}
+                              </div>
+                            )}
+                          </div>
+                        );
+                      }
+                      return (
+                        <div>
+                          <div className="font-black text-xs sm:text-sm text-emerald-600">
+                            {display.primary}
+                          </div>
+                          {display.secondary && (
+                            <div className="text-[10px] text-slate-400 font-normal mt-0.5">
+                              {display.secondary}
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })()}
                   </td>
                   <td className="py-2.5 px-2.5">
                     <div className="text-[11px] font-semibold text-slate-700 leading-tight line-clamp-1">{item.createdByName}</div>
@@ -658,6 +687,9 @@ export const IncomePage = () => {
                             amount: item.amount,
                             amount_minor: Math.round(item.amount * 100),
                             currency: item.currency,
+                            amount_tjs: item.amount_tjs ?? item.amountTjs ?? null,
+                            amount_usd: item.amount_usd ?? item.amountUsd ?? null,
+                            exchange_rate: item.exchange_rate ?? item.exchangeRate ?? null,
                             payment_date: item.date,
                             payer_name: item.clientName,
                             contract: item.contract,
@@ -689,6 +721,9 @@ export const IncomePage = () => {
                                 id: item.id,
                                 amount: item.amount,
                                 currency: item.currency,
+                                amount_tjs: item.amount_tjs ?? item.amountTjs ?? null,
+                                amount_usd: item.amount_usd ?? item.amountUsd ?? null,
+                                exchange_rate: item.exchange_rate ?? item.exchangeRate ?? null,
                                 date: item.date,
                                 method: item.method || 'CASH',
                                 reference: cleanRef,
@@ -768,12 +803,24 @@ export const IncomePage = () => {
               });
             }} className="p-6 space-y-3.5 text-xs">
               {editingItem.currency === 'USD' && (
-                <div className="p-3 rounded-xl bg-amber-50 border border-amber-200 text-xs text-amber-900 space-y-1">
+                <div className="p-3 rounded-xl bg-amber-50 border border-amber-200 text-xs text-amber-900 space-y-1.5">
+                  {editingItem.amount_tjs ? (
+                    <div className="font-bold flex items-center justify-between text-emerald-900 border-b border-amber-200/80 pb-1.5">
+                      <span>Фактически поступило в кассу (TJS):</span>
+                      <span className="font-black text-sm">{Number(editingItem.amount_tjs).toLocaleString('ru-RU', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} TJS</span>
+                    </div>
+                  ) : null}
                   <div className="font-bold flex items-center justify-between">
-                    <span>💵 Оплата по договору (USD):</span>
+                    <span>💵 Зачтено по договору (USD):</span>
                     <span className="font-black text-sm">${Number(editingItem.amount).toLocaleString('ru-RU', { minimumFractionDigits: 2 })} USD</span>
                   </div>
-                  <p className="text-[11px] text-amber-700">
+                  {editingItem.exchange_rate && (
+                    <div className="text-[11px] text-amber-700 flex items-center justify-between">
+                      <span>Курс обмена в ПКО:</span>
+                      <span className="font-bold">{editingItem.exchange_rate}</span>
+                    </div>
+                  )}
+                  <p className="text-[10px] text-amber-700 pt-0.5">
                     Приходный кассовый ордер (ПКО) оформляется в сомони (TJS). Учёт сделки сохраняется в USD.
                   </p>
                 </div>
