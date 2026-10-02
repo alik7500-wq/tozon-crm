@@ -140,16 +140,22 @@ export const PaymentReceiptPrintModal = ({ payment, deal, onClose, initialLang =
 
   const paymentCur = (payment.cash_currency || payment.currency || activeDeal?.currency || 'TJS').toUpperCase();
 
-  let amountTJS = rawAmount;
+  let amountTJS = null;
   if (paymentCur === 'TJS') {
     amountTJS = rawAmount;
   } else if (explicitTjs !== null) {
     amountTJS = explicitTjs;
-  } else if (paymentCur === 'USD') {
-    amountTJS = effectiveRate ? rawAmount * effectiveRate : rawAmount;
+  } else if (paymentCur === 'USD' && effectiveRate) {
+    amountTJS = rawAmount * effectiveRate;
   }
 
-  const amountNumber = Number(amountTJS.toFixed(2));
+  // Determine what amount and currency to display on the receipt:
+  // If we have an official converted TJS amount (or operation is TJS), print in TJS.
+  // Otherwise, print in the operation's currency (e.g., USD).
+  const printCur = (amountTJS !== null) ? 'TJS' : paymentCur;
+  const printAmount = (amountTJS !== null) ? amountTJS : rawAmount;
+
+  const amountNumber = Number(printAmount.toFixed(2));
   const amountFormatted = amountNumber.toLocaleString('ru-RU', {
     minimumFractionDigits: 2,
     maximumFractionDigits: 2,
@@ -191,8 +197,8 @@ export const PaymentReceiptPrintModal = ({ payment, deal, onClose, initialLang =
     : null;
 
   const wordsFormatted = isTJ 
-    ? numberToWordsTJ(amountNumber, 'TJS')
-    : numberToWordsRU(amountNumber, 'TJS');
+    ? numberToWordsTJ(amountNumber, printCur)
+    : numberToWordsRU(amountNumber, printCur);
 
   // Client / Payer Name
   const payerName = (
@@ -501,7 +507,7 @@ export const PaymentReceiptPrintModal = ({ payment, deal, onClose, initialLang =
               <div className="flex items-center justify-between text-xs font-bold pt-0.5">
                 <span>{isTJ ? 'Маблағ' : 'Сумма'}</span>
                 <span className="font-sans text-sm font-black underline">
-                  {amountFormatted} {isTJ ? 'сомонӣ' : 'сомони'}
+                  {amountFormatted} {printCur === 'USD' ? 'USD' : (isTJ ? 'сомонӣ' : 'сомони')}
                 </span>
               </div>
 

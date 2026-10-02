@@ -26,6 +26,7 @@ import {
 import dayjs from 'dayjs';
 
 const INCOME_COLORS = ['#10b981', '#06b6d4', '#3b82f6', '#8b5cf6', '#f59e0b', '#ec4899', '#14b8a6', '#6366f1'];
+const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 
 export const IncomePage = () => {
@@ -97,14 +98,14 @@ export const IncomePage = () => {
     date: dayjs().format('YYYY-MM-DD'),
     method: 'CASH',
     reference: '',
-    cash_desk: isManager && managerDesk ? managerDesk.name : 'Главная касса компании (Бухгалтерия)',
+    cash_desk: isManager && managerDesk ? managerDesk.name : '',
     cash_desk_id: isManager ? (managerDeskId || '') : '',
     comment: ''
   });
 
   useEffect(() => {
     if (isManager && managerDeskId) {
-      const deskName = managerDesk?.name || 'Касса менеджера (Дадочон)';
+      const deskName = managerDesk?.name || 'Касса менеджера';
       setFormData(prev => ({
         ...prev,
         cash_desk: deskName,
@@ -680,7 +681,10 @@ export const IncomePage = () => {
                               if (cleanRef === 'ПВ при подписании' || cleanRef.includes('ПВ')) {
                                 cleanRef = `ПКО-${item.contract || item.id}`;
                               }
-                              const desk = extractCashDeskFromComment(item.comment) || 'Главная касса компании (Бухгалтерия)';
+                              const commentDesk = extractCashDeskFromComment(item.comment);
+                              const resolvedDesk = resolveCashDesk(item.cash_desk_id || commentDesk || item.cash_desk, allCashDesks);
+                              const deskName = resolvedDesk ? resolvedDesk.name : (commentDesk || item.cash_desk || '');
+                              const deskId = resolvedDesk ? resolvedDesk.id : (item.cash_desk_id || null);
                               setEditingItem({
                                 id: item.id,
                                 amount: item.amount,
@@ -689,7 +693,8 @@ export const IncomePage = () => {
                                 method: item.method || 'CASH',
                                 reference: cleanRef,
                                 comment: item.comment || '',
-                                cash_desk: desk,
+                                cash_desk: deskName,
+                                cash_desk_id: deskId,
                                 payer_name: item.clientName || '',
                                 contract: item.contract || ''
                               });
@@ -785,37 +790,41 @@ export const IncomePage = () => {
                     <Wallet className="h-3.5 w-3.5 text-blue-600" />
                     <span>Касса зачисления средств *</span>
                   </span>
-                  {editingItem.cash_desk && (
+                  {(editingItem.cash_desk_id || editingItem.cash_desk) ? (
                     <span className="text-[10px] text-blue-600 font-bold bg-blue-50 px-2 py-0.5 rounded-md border border-blue-100">
                       Выбрана касса
+                    </span>
+                  ) : (
+                    <span className="text-[10px] text-amber-600 font-bold bg-amber-50 px-2 py-0.5 rounded-md border border-amber-200">
+                      ⚠️ Касса не определена
                     </span>
                   )}
                 </label>
                 <select
-                  value={editingItem.cash_desk || ''}
+                  value={editingItem.cash_desk_id || editingItem.cash_desk || ''}
                   onChange={(e) => {
-                    const newDesk = e.target.value;
-                    const updatedComment = updateCommentWithCashDesk(editingItem.comment, newDesk);
+                    const selectedVal = e.target.value;
+                    const selectedObj = allCashDesks.find(c => String(c.id) === String(selectedVal) || c.name === selectedVal);
+                    const newDeskName = selectedObj?.name || selectedVal;
+                    const newDeskId = selectedObj?.id || (UUID_REGEX.test(selectedVal) ? selectedVal : null);
+                    const updatedComment = updateCommentWithCashDesk(editingItem.comment, newDeskName);
                     setEditingItem({
                       ...editingItem,
-                      cash_desk: newDesk,
+                      cash_desk: newDeskName,
+                      cash_desk_id: newDeskId,
                       comment: updatedComment
                     });
                   }}
                   className="w-full rounded-xl border border-slate-300 bg-slate-50 px-3 py-2 text-xs font-bold text-slate-800 outline-none focus:border-blue-500 focus:bg-white transition cursor-pointer"
                 >
-                  {(() => {
-                    const customOption = editingItem.cash_desk && !allCashDesks.some(c => c.name === editingItem.cash_desk) ? [{
-                      id: 'CUSTOM_DESK',
-                      name: editingItem.cash_desk,
-                      icon: '🏷️'
-                    }] : [];
-                    return [...customOption, ...allCashDesks].map((c) => (
-                      <option key={c.id || c.name} value={c.name}>
-                        {c.icon} {c.name}
-                      </option>
-                    ));
-                  })()}
+                  {(!editingItem.cash_desk_id && !editingItem.cash_desk) && (
+                    <option value="">-- Выберите кассу --</option>
+                  )}
+                  {allCashDesks.map((c) => (
+                    <option key={c.id || c.name} value={c.id || c.name}>
+                      {c.icon} {c.name}
+                    </option>
+                  ))}
                 </select>
               </div>
 

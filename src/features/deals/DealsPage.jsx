@@ -140,8 +140,16 @@ export const DealsPage = () => {
     setDealForPayment(deal);
   };
 
-  const handleOpenPrint = (deal) => {
-    setDealToPrint(deal);
+  const handleOpenPrint = async (deal) => {
+    const dealId = deal?.id || deal;
+    if (!dealId) return;
+    try {
+      const res = await api.get(`/deals/${dealId}`);
+      const fullDeal = res?.data?.deal || res?.data || res || deal;
+      setDealToPrint(fullDeal);
+    } catch {
+      setDealToPrint(deal);
+    }
   };
 
   return (

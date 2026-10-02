@@ -9,12 +9,13 @@ import {
   Globe
 } from 'lucide-react';
 
-export const ContractPrintView = ({ deal, onClose, initialLang = 'TJ' }) => {
+export const ContractPrintView = ({ deal: initialDeal, onClose, initialLang = 'TJ' }) => {
   const [activeTab, setActiveTab] = useState('CONTRACT'); // 'CONTRACT' or 'SCHEDULE'
   const [lang, setLang] = useState(initialLang); // 'TJ' (Тоҷикӣ) or 'RU' (Русский)
+  const [asyncDeal, setAsyncDeal] = useState(initialDeal);
 
   const { requestClose } = useModalDismiss({
-    isOpen: Boolean(deal),
+    isOpen: Boolean(initialDeal),
     onClose,
     isDirty: false
   });
@@ -26,7 +27,24 @@ export const ContractPrintView = ({ deal, onClose, initialLang = 'TJ' }) => {
     };
   }, []);
 
-  if (!deal) return null;
+  useEffect(() => {
+    setAsyncDeal(initialDeal);
+    const targetId = initialDeal?.id || initialDeal?.deal_id;
+    if (targetId && (!initialDeal?.schedules || initialDeal.schedules.length === 0 || !initialDeal?.passport_number)) {
+      import('../../api/client').then(({ api }) => {
+        api.get(`/deals/${targetId}`)
+          .then(res => {
+            const d = res?.data?.deal || res?.data || res;
+            if (d && d.id) setAsyncDeal(d);
+          })
+          .catch(err => console.warn('Could not fetch canonical deal for print:', err));
+      });
+    }
+  }, [initialDeal]);
+
+  if (!initialDeal) return null;
+
+  const deal = asyncDeal || initialDeal;
 
   const handlePrint = () => {
     window.print();
