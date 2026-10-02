@@ -141,12 +141,12 @@ export const PaymentReceiptPrintModal = ({ payment, deal, onClose, initialLang =
   const paymentCur = (payment.cash_currency || payment.currency || activeDeal?.currency || 'TJS').toUpperCase();
 
   let amountTJS = null;
-  if (paymentCur === 'TJS') {
-    amountTJS = rawAmount;
-  } else if (payment.amount_tjs !== undefined && payment.amount_tjs !== null && Number(payment.amount_tjs) > 0) {
+  if (payment.amount_tjs !== undefined && payment.amount_tjs !== null && Number(payment.amount_tjs) > 0) {
     amountTJS = Number(payment.amount_tjs);
   } else if (explicitTjs !== null) {
     amountTJS = explicitTjs;
+  } else if (paymentCur === 'TJS') {
+    amountTJS = rawAmount;
   } else if (paymentCur === 'USD' && effectiveRate) {
     amountTJS = rawAmount * effectiveRate;
   }
