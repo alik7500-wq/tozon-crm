@@ -16,6 +16,11 @@ export const financeApi = {
     return res?.data || res;
   },
 
+  reconcileIncomeTjs: async ({ id, ...data }) => {
+    const res = await api.post(`/finance/income/${id}/reconcile-tjs`, data);
+    return res?.data || res;
+  },
+
   deleteIncome: async (id) => {
     const res = await api.delete(`/finance/income/${id}`);
     return res?.data || res;

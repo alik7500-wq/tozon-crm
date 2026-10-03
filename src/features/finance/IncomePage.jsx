@@ -5,6 +5,7 @@ import { financeApi } from '../../api/finance.api';
 import { dictionariesApi } from '../../api/dictionaries.api';
 import { useModalDismiss } from '../../hooks/useModalDismiss';
 import { PaymentReceiptPrintModal } from './PaymentReceiptPrintModal';
+import { HistoricalPkoReconcileModal } from './HistoricalPkoReconcileModal';
 import { FinanceTabs } from '../../components/FinanceTabs';
 import { useAuth } from '../auth/AuthContext';
 import { 
@@ -38,6 +39,7 @@ export const IncomePage = () => {
   const [year, setYear] = useState(new Date().getFullYear());
   const [currency, setCurrency] = useState('ALL');
   const [categoryFilter, setCategoryFilter] = useState('ALL');
+  const [tjsFilter, setTjsFilter] = useState('ALL'); // 'ALL' | 'DEFINED' | 'REQUIRES_RECONCILIATION'
   const [search, setSearch] = useState('');
   
   const queryClient = useQueryClient();
@@ -69,6 +71,7 @@ export const IncomePage = () => {
 
   const [showAddModal, setShowAddModal] = useState(false);
   const [editingItem, setEditingItem] = useState(null);
+  const [reconcilingItem, setReconcilingItem] = useState(null);
   const [printableIncome, setPrintableIncome] = useState(null);
   const [dealsList, setDealsList] = useState([]);
 
@@ -203,7 +206,32 @@ export const IncomePage = () => {
 
   const incomeData = response || { list: [], totalsByCurrency: {}, availableCurrencies: ['USD', 'TJS'], chartData: [], categoriesChart: [] };
   const totals = incomeData.totalsByCurrency || incomeData.totals || {};
-  const list = incomeData.list || [];
+  const rawList = incomeData.list || [];
+
+  const unreconciledCount = useMemo(() => {
+    return rawList.filter(item => {
+      const isVoided = item.status === 'VOIDED' || item.status === 'CANCELLED';
+      const amountTjs = item.amount_tjs ?? item.amountTjs ?? null;
+      return !isVoided && (amountTjs === null || amountTjs === undefined);
+    }).length;
+  }, [rawList]);
+
+  const list = useMemo(() => {
+    if (tjsFilter === 'DEFINED') {
+      return rawList.filter(item => {
+        const amountTjs = item.amount_tjs ?? item.amountTjs ?? null;
+        return amountTjs !== null && amountTjs !== undefined;
+      });
+    }
+    if (tjsFilter === 'REQUIRES_RECONCILIATION') {
+      return rawList.filter(item => {
+        const isVoided = item.status === 'VOIDED' || item.status === 'CANCELLED';
+        const amountTjs = item.amount_tjs ?? item.amountTjs ?? null;
+        return !isVoided && (amountTjs === null || amountTjs === undefined);
+      });
+    }
+    return rawList;
+  }, [rawList, tjsFilter]);
   const availableYears = incomeData.availableYears && incomeData.availableYears.length > 0
     ? incomeData.availableYears
     : [year - 1, year, year + 1, year + 2];
@@ -391,6 +419,47 @@ export const IncomePage = () => {
               {cur === 'ALL' ? 'Все валюты' : cur}
             </button>
           ))}
+
+          <div className="h-4 w-px bg-slate-200 mx-1 hidden sm:block" />
+
+          <span className="text-xs font-bold text-slate-500 mr-1">TJS данные:</span>
+          <button
+            onClick={() => setTjsFilter('ALL')}
+            className={`px-3 py-1.5 rounded-xl text-xs font-bold transition cursor-pointer ${
+              tjsFilter === 'ALL'
+                ? 'bg-slate-800 text-white shadow-xs'
+                : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+            }`}
+          >
+            Все
+          </button>
+          <button
+            onClick={() => setTjsFilter('DEFINED')}
+            className={`px-3 py-1.5 rounded-xl text-xs font-bold transition cursor-pointer ${
+              tjsFilter === 'DEFINED'
+                ? 'bg-emerald-600 text-white shadow-xs'
+                : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+            }`}
+          >
+            Определены
+          </button>
+          <button
+            onClick={() => setTjsFilter('REQUIRES_RECONCILIATION')}
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition cursor-pointer ${
+              tjsFilter === 'REQUIRES_RECONCILIATION'
+                ? 'bg-amber-500 text-white shadow-xs'
+                : 'bg-amber-50 text-amber-700 hover:bg-amber-100 border border-amber-200'
+            }`}
+          >
+            <span>Требуют сверки</span>
+            {unreconciledCount > 0 && (
+              <span className={`px-1.5 py-0.5 rounded-full text-[10px] font-black ${
+                tjsFilter === 'REQUIRES_RECONCILIATION' ? 'bg-white text-amber-600' : 'bg-amber-500 text-white'
+              }`}>
+                {unreconciledCount}
+              </span>
+            )}
+          </button>
         </div>
 
         <div className="flex items-center gap-3 flex-wrap">
@@ -630,15 +699,29 @@ export const IncomePage = () => {
                     {(() => {
                       const display = getPkoJournalDisplay(item);
                       if (!display.isDefined) {
+                        const isVoided = item.status === 'VOIDED' || item.status === 'CANCELLED';
+                        const amountTjs = item.amount_tjs ?? item.amountTjs ?? null;
+                        const canReconcile = isAdmin && !isVoided && (amountTjs === null || amountTjs === undefined);
                         return (
-                          <div>
-                            <div className="font-bold text-xs text-amber-600">
-                              {display.primary}
-                            </div>
-                            {display.secondary && (
-                              <div className="text-[10px] text-slate-400 font-normal mt-0.5">
-                                {display.secondary}
+                          <div className="flex items-center gap-2">
+                            <div>
+                              <div className="font-bold text-xs text-amber-600">
+                                {display.primary}
                               </div>
+                              {display.secondary && (
+                                <div className="text-[10px] text-slate-400 font-normal mt-0.5">
+                                  {display.secondary}
+                                </div>
+                              )}
+                            </div>
+                            {canReconcile && (
+                              <button
+                                onClick={() => setReconcilingItem(item)}
+                                title="Вручную указать фактическую сумму в TJS"
+                                className="px-2 py-1 rounded-lg bg-amber-500 hover:bg-amber-600 text-white font-bold text-[10px] shadow-xs transition cursor-pointer shrink-0"
+                              >
+                                Указать сумму
+                              </button>
                             )}
                           </div>
                         );
@@ -1452,6 +1535,13 @@ export const IncomePage = () => {
           payment={printableIncome}
           deal={printableIncome.deal}
           onClose={() => setPrintableIncome(null)}
+        />
+      )}
+      {/* Historical PKO TJS Reconciliation Modal */}
+      {reconcilingItem && (
+        <HistoricalPkoReconcileModal
+          payment={reconcilingItem}
+          onClose={() => setReconcilingItem(null)}
         />
       )}
     </div>
