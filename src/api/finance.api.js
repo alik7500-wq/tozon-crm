@@ -94,5 +94,21 @@ export const financeApi = {
   createTransfer: async (transferData) => {
     const res = await api.post('/finance/transfers', transferData);
     return res?.data || res;
+  },
+
+  reconcileIncomeTjs: async ({ id, amount_tjs, exchange_rate, amount_usd, reason, comment }) => {
+    const res = await api.post(`/finance/income/${id}/reconcile-tjs`, {
+      amount_tjs,
+      exchange_rate,
+      amount_usd,
+      reason,
+      comment
+    });
+    return res?.data || res;
+  },
+
+  reconcileIncomeTjsBulk: async ({ items }) => {
+    const res = await api.post('/finance/income/reconcile-tjs/bulk', { items });
+    return res?.data || res;
   }
 };

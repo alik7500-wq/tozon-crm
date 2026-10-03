@@ -6,6 +6,7 @@ import { dictionariesApi } from '../../api/dictionaries.api';
 import { useModalDismiss } from '../../hooks/useModalDismiss';
 import { PaymentReceiptPrintModal } from './PaymentReceiptPrintModal';
 import { HistoricalPkoReconcileModal } from './HistoricalPkoReconcileModal';
+import { BulkPkoReconcileModal } from './BulkPkoReconcileModal';
 import { FinanceTabs } from '../../components/FinanceTabs';
 import { useAuth } from '../auth/AuthContext';
 import { 
@@ -19,7 +20,7 @@ import { getPkoJournalDisplay } from '../../utils/pkoJournalFormatter';
 import { 
   TrendingUp, Plus, Search, Calendar, DollarSign, Coins, CreditCard, 
   User, FileText, CheckCircle2, RefreshCw, Filter, ArrowUpRight, Building2, X,
-  Edit, Trash2, Save, Printer, Wallet, Tag
+  Edit, Trash2, Save, Printer, Wallet, Tag, Layers
 } from 'lucide-react';
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
@@ -72,6 +73,7 @@ export const IncomePage = () => {
   const [showAddModal, setShowAddModal] = useState(false);
   const [editingItem, setEditingItem] = useState(null);
   const [reconcilingItem, setReconcilingItem] = useState(null);
+  const [showBulkModal, setShowBulkModal] = useState(false);
   const [printableIncome, setPrintableIncome] = useState(null);
   const [dealsList, setDealsList] = useState([]);
 
@@ -460,6 +462,17 @@ export const IncomePage = () => {
               </span>
             )}
           </button>
+
+          {isAdmin && unreconciledCount > 0 && (
+            <button
+              onClick={() => setShowBulkModal(true)}
+              title="Открыть окно массовой сверки исторических ПКО"
+              className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-white font-extrabold text-xs shadow-xs transition cursor-pointer"
+            >
+              <Layers className="h-3.5 w-3.5" />
+              <span>Массовая сверка</span>
+            </button>
+          )}
         </div>
 
         <div className="flex items-center gap-3 flex-wrap">
@@ -1542,6 +1555,17 @@ export const IncomePage = () => {
         <HistoricalPkoReconcileModal
           payment={reconcilingItem}
           onClose={() => setReconcilingItem(null)}
+        />
+      )}
+      {/* Bulk Historical PKO Reconciliation Modal */}
+      {showBulkModal && (
+        <BulkPkoReconcileModal
+          items={rawList.filter(item => {
+            const isVoided = item.status === 'VOIDED' || item.status === 'CANCELLED';
+            const amountTjs = item.amount_tjs ?? item.amountTjs ?? null;
+            return !isVoided && (amountTjs === null || amountTjs === undefined);
+          })}
+          onClose={() => setShowBulkModal(false)}
         />
       )}
     </div>
