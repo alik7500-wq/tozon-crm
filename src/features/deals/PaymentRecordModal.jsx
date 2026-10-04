@@ -515,6 +515,11 @@ export const PaymentRecordModal = ({
         ? (reference.trim().toUpperCase().startsWith('ПКО') ? reference.trim() : `ПКО-${reference.trim()}`)
         : `ПКО-${Date.now().toString().slice(-4)}`;
 
+      const cashAmountTJS = cashCurrency === 'TJS' 
+        ? parsedAmount 
+        : Number((parsedAmount * (parseFloat(exchangeRate) || 9.27)).toFixed(2));
+      const rateVal = parseFloat(exchangeRate) || 9.27;
+
       const res = await api.post(`/deals/${deal.id}/payments`, {
         amount_minor: amountMinor,
         payment_date: paymentDate,
@@ -523,13 +528,12 @@ export const PaymentRecordModal = ({
         reference: cleanRef,
         comment: fullCommentParts.join(' • '),
         cash_desk_id: activeDeskId,
-        idempotency_key: formIdempotencyKey
+        idempotency_key: formIdempotencyKey,
+        amount_tjs: cashAmountTJS,
+        amount_usd: equivalentInDealCurrency,
+        exchange_rate: rateVal,
+        currency: dealCurrency
       });
-
-      // Cash payment details in TJS for official PKO receipt
-      const cashAmountTJS = cashCurrency === 'TJS' 
-        ? parsedAmount 
-        : Number((parsedAmount * (parseFloat(exchangeRate) || 9.27)).toFixed(2));
 
       const createdPayment = {
         id: res.data?.payment?.id || res.data?.id || res.id || 'ПКО',

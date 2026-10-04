@@ -398,6 +398,12 @@ export const DealWizardModal = ({
         initial_payment_reference: initialPaymentReference,
         initial_payment_date: initialPaymentDate || dealDate,
         initial_payment_method: initialPaymentMethod,
+        initial_payment_amount_tjs: recordInitialPayment ? Math.round(downPaymentValue * 9.27 * 100) / 100 : null,
+        initial_payment_amount_usd: recordInitialPayment ? downPaymentValue : null,
+        initial_payment_exchange_rate: recordInitialPayment ? 9.27 : null,
+        amount_tjs: recordInitialPayment ? Math.round(downPaymentValue * 9.27 * 100) / 100 : null,
+        amount_usd: recordInitialPayment ? downPaymentValue : null,
+        exchange_rate: recordInitialPayment ? 9.27 : null,
         schedules: (paymentType === 'INSTALLMENT' || paymentType === 'PARTIAL_BARTER') ? schedule : [],
       });
 
