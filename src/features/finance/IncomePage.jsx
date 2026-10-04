@@ -16,7 +16,7 @@ import {
   updateCommentWithCashDesk,
   resolveManagerDeskId 
 } from '../../utils/cashDesks';
-import { getPkoJournalDisplay } from '../../utils/pkoJournalFormatter';
+import { getPkoJournalDisplay, requiresTjsReconciliation } from '../../utils/pkoJournalFormatter';
 import { 
   TrendingUp, Plus, Search, Calendar, DollarSign, Coins, CreditCard, 
   User, FileText, CheckCircle2, RefreshCw, Filter, ArrowUpRight, Building2, X,
@@ -210,27 +210,26 @@ export const IncomePage = () => {
   const totals = incomeData.totalsByCurrency || incomeData.totals || {};
   const rawList = incomeData.list || [];
 
-  const unreconciledCount = useMemo(() => {
-    return rawList.filter(item => {
-      const isVoided = item.status === 'VOIDED' || item.status === 'CANCELLED';
-      const amountTjs = item.amount_tjs ?? item.amountTjs ?? null;
-      return !isVoided && (amountTjs === null || amountTjs === undefined);
-    }).length;
+  const { data: allYearsResponse } = useQuery({
+    queryKey: ['finance-income-all-unreconciled'],
+    queryFn: () => financeApi.getIncome({ year: 'ALL', currency: 'USD' })
+  });
+
+  const totalUnreconciledCount = useMemo(() => {
+    const allList = allYearsResponse?.list || [];
+    return allList.filter(requiresTjsReconciliation).length;
+  }, [allYearsResponse]);
+
+  const yearUnreconciledCount = useMemo(() => {
+    return rawList.filter(requiresTjsReconciliation).length;
   }, [rawList]);
 
   const list = useMemo(() => {
     if (tjsFilter === 'DEFINED') {
-      return rawList.filter(item => {
-        const amountTjs = item.amount_tjs ?? item.amountTjs ?? null;
-        return amountTjs !== null && amountTjs !== undefined;
-      });
+      return rawList.filter(item => !requiresTjsReconciliation(item));
     }
     if (tjsFilter === 'REQUIRES_RECONCILIATION') {
-      return rawList.filter(item => {
-        const isVoided = item.status === 'VOIDED' || item.status === 'CANCELLED';
-        const amountTjs = item.amount_tjs ?? item.amountTjs ?? null;
-        return !isVoided && (amountTjs === null || amountTjs === undefined);
-      });
+      return rawList.filter(requiresTjsReconciliation);
     }
     return rawList;
   }, [rawList, tjsFilter]);
@@ -454,23 +453,28 @@ export const IncomePage = () => {
             }`}
           >
             <span>Требуют сверки</span>
-            {unreconciledCount > 0 && (
+            {totalUnreconciledCount > 0 && (
               <span className={`px-1.5 py-0.5 rounded-full text-[10px] font-black ${
                 tjsFilter === 'REQUIRES_RECONCILIATION' ? 'bg-white text-amber-600' : 'bg-amber-500 text-white'
               }`}>
-                {unreconciledCount}
+                {totalUnreconciledCount}
+                {year !== 'ALL' && (
+                  <span className="font-normal opacity-90 ml-1">
+                    (в {year} г.: {yearUnreconciledCount})
+                  </span>
+                )}
               </span>
             )}
           </button>
 
-          {isAdmin && unreconciledCount > 0 && (
+          {isAdmin && totalUnreconciledCount > 0 && (
             <button
               onClick={() => setShowBulkModal(true)}
               title="Открыть окно массовой сверки исторических ПКО"
               className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-white font-extrabold text-xs shadow-xs transition cursor-pointer"
             >
               <Layers className="h-3.5 w-3.5" />
-              <span>Массовая сверка</span>
+              <span>Массовая сверка ({totalUnreconciledCount})</span>
             </button>
           )}
         </div>
@@ -712,9 +716,7 @@ export const IncomePage = () => {
                     {(() => {
                       const display = getPkoJournalDisplay(item);
                       if (!display.isDefined) {
-                        const isVoided = item.status === 'VOIDED' || item.status === 'CANCELLED';
-                        const amountTjs = item.amount_tjs ?? item.amountTjs ?? null;
-                        const canReconcile = isAdmin && !isVoided && (amountTjs === null || amountTjs === undefined);
+                        const canReconcile = isAdmin && requiresTjsReconciliation(item);
                         return (
                           <div className="flex items-center gap-2">
                             <div>
@@ -1560,11 +1562,7 @@ export const IncomePage = () => {
       {/* Bulk Historical PKO Reconciliation Modal */}
       {showBulkModal && (
         <BulkPkoReconcileModal
-          items={rawList.filter(item => {
-            const isVoided = item.status === 'VOIDED' || item.status === 'CANCELLED';
-            const amountTjs = item.amount_tjs ?? item.amountTjs ?? null;
-            return !isVoided && (amountTjs === null || amountTjs === undefined);
-          })}
+          items={(allYearsResponse?.list || rawList).filter(requiresTjsReconciliation)}
           onClose={() => setShowBulkModal(false)}
         />
       )}

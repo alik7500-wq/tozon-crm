@@ -87,3 +87,17 @@ export function getPkoJournalDisplay(item) {
     isDefined: true
   };
 }
+
+/**
+ * Shared Canonical Predicate for TJS Reconciliation Eligibility
+ * Active USD payments where amount_tjs IS NULL require historical TJS reconciliation.
+ */
+export function requiresTjsReconciliation(item) {
+  if (!item) return false;
+  const isVoided = item.status === 'VOIDED' || item.status === 'CANCELLED';
+  if (isVoided) return false;
+  const cur = (item.currency || 'USD').toUpperCase();
+  if (cur !== 'USD') return false;
+  const rawTjs = item.amount_tjs ?? item.amountTjs ?? null;
+  return rawTjs === null || rawTjs === undefined;
+}
