@@ -99,20 +99,35 @@ export const ExpenseReceiptPrintModal = ({ expense, onClose, initialLang = 'TJ' 
 
   const expenseCur = (expense.cash_currency || expense.currency || 'TJS').toUpperCase();
 
-  let amountTJS = rawAmount;
-  if (expenseCur === 'TJS') {
-    amountTJS = rawAmount;
+  const isTransfer = Boolean(
+    expense.transfer_id ||
+    expense.transferId ||
+    expense.operation_type === 'INTERNAL_CASH_TRANSFER' ||
+    expense.operationType === 'INTERNAL_CASH_TRANSFER' ||
+    (expense.reference && String(expense.reference).includes('ПЕРЕМ')) ||
+    expense.category === 'Внутренние перемещения между кассами'
+  );
+
+  let amountTJS = null;
+  if (expense.amount_tjs !== undefined && expense.amount_tjs !== null && Number(expense.amount_tjs) > 0) {
+    amountTJS = Number(expense.amount_tjs);
   } else if (explicitTjs !== null) {
     amountTJS = explicitTjs;
-  } else if (expenseCur === 'USD') {
-    amountTJS = effectiveRate ? rawAmount * effectiveRate : rawAmount;
+  } else if (expenseCur === 'TJS') {
+    amountTJS = rawAmount;
+  } else if (expenseCur === 'USD' && effectiveRate) {
+    amountTJS = rawAmount * effectiveRate;
   }
 
-  const amountNumber = Number(amountTJS.toFixed(2));
-  const amountFormatted = amountNumber.toLocaleString('ru-RU', {
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2,
-  });
+  const isPureUsd = expenseCur === 'USD' && amountTJS === null && (isTransfer || expense.is_pure_usd || expense.isPureUsd);
+  const isTjsDefined = amountTJS !== null && !isNaN(amountTJS) && amountTJS > 0;
+  const amountNumber = isTjsDefined ? Number(amountTJS.toFixed(2)) : (isPureUsd ? Number(rawAmount.toFixed(2)) : Number(rawAmount.toFixed(2)));
+
+  const amountFormatted = isTjsDefined
+    ? `${amountNumber.toLocaleString('ru-RU', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ${isTJ ? 'сомонӣ' : 'сомони'}`
+    : (isPureUsd
+        ? `${amountNumber.toLocaleString('ru-RU', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} USD`
+        : `${amountNumber.toLocaleString('ru-RU', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ${isTJ ? 'сомонӣ' : 'сомони'}`);
 
   // USD Equivalent: prefer saved amount_usd, then calculate from rate
   let amountUSD = null;
@@ -159,10 +174,11 @@ export const ExpenseReceiptPrintModal = ({ expense, onClose, initialLang = 'TJ' 
       })} USD`
     : null;
 
-  const currency = 'TJS'; // Always TJS (Сомони)
-  const wordsFormatted = isTJ 
-    ? numberToWordsTJ(amountNumber, 'TJS')
-    : numberToWordsRU(amountNumber, 'TJS');
+  const wordsFormatted = isTjsDefined
+    ? (isTJ ? numberToWordsTJ(amountNumber, 'TJS') : numberToWordsRU(amountNumber, 'TJS'))
+    : (isPureUsd
+        ? (isTJ ? numberToWordsTJ(amountNumber, 'USD') : numberToWordsRU(amountNumber, 'USD'))
+        : (isTJ ? numberToWordsTJ(amountNumber, 'TJS') : numberToWordsRU(amountNumber, 'TJS')));
 
   // Document Number
   const docNumber = expense.reference 

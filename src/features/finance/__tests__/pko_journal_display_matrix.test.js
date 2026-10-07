@@ -106,4 +106,25 @@ describe('PKO Journal TJS Display & Accounting Semantics Matrix', () => {
     expect(dealUsdCredit).toBe(5399.57);
     expect(appliedRate).toBe(9.26);
   });
+
+  // CASE 6: Pure USD cash transfer (Payment #477 / PKO-ПЕРЕМ-477)
+  it('CASE 6: Pure USD cash transfer without amount_tjs displays +318,57 USD primary, no warning, and requiresTjsReconciliation=false', () => {
+    const pureUsdTransfer = {
+      id: 477,
+      reference: 'ПКО-ПЕРЕМ-477',
+      currency: 'USD',
+      amount: 318.57,
+      amount_tjs: null,
+      amount_usd: 318.57,
+      exchange_rate: null,
+      operation_type: 'INTERNAL_CASH_TRANSFER',
+      transfer_id: 'ba6c90cf-c6a7-48ef-9570-72a3a3a2d156'
+    };
+
+    const display = getPkoJournalDisplay(pureUsdTransfer);
+
+    expect(display.isDefined).toBe(true);
+    expect(display.primary).toBe('+318,57 USD');
+    expect(display.secondary).toBeNull();
+  });
 });

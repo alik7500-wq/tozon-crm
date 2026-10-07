@@ -1,11 +1,25 @@
-/**
- * PKO Journal Table Display Formatter
- * Formats PKO amounts for the income journal table following canonical accounting rules:
- * - PRIMARY AMOUNT = physical cash received in TJS (amount_tjs / amountTjs).
- * - SECONDARY TEXT = deal equivalent in USD & exchange rate, if applicable.
- * - Standard TJS PKOs retain primary TJS amount without synthetic USD equivalents.
- * - USD payments without TJS cash amount display controlled state: "Сумма в TJS не определена".
- */
+export function isPureUsdOperation(item) {
+  if (!item) return false;
+  const cur = (item.currency || 'USD').toUpperCase();
+  if (cur !== 'USD') return false;
+
+  const rawTjs = item.amount_tjs ?? item.amountTjs ?? null;
+  if (rawTjs !== null && rawTjs !== undefined && Number(rawTjs) > 0) {
+    return false; // Has physical TJS snapshot
+  }
+
+  const isTransfer = Boolean(
+    item.transfer_id ||
+    item.transferId ||
+    item.operation_type === 'INTERNAL_CASH_TRANSFER' ||
+    item.operationType === 'INTERNAL_CASH_TRANSFER' ||
+    (item.reference && String(item.reference).includes('ПЕРЕМ')) ||
+    item.category === 'Внутренние перемещения между кассами'
+  );
+
+  return isTransfer || Boolean(item.is_pure_usd || item.isPureUsd);
+}
+
 export function getPkoJournalDisplay(item) {
   if (!item) {
     return {
@@ -25,7 +39,7 @@ export function getPkoJournalDisplay(item) {
     return val.toLocaleString('ru-RU', { minimumFractionDigits: minDec, maximumFractionDigits: maxDec }).replace(/\u00A0/g, ' ');
   };
 
-  // CASE A: amount_tjs exists and > 0
+  // CASE A: amount_tjs exists and > 0 (TJS physical cash snapshot)
   if (rawTjs !== null && rawTjs !== undefined && Number(rawTjs) > 0) {
     const tjsVal = Number(rawTjs);
     const primaryText = `+${formatNum(tjsVal)} TJS`;
@@ -69,7 +83,17 @@ export function getPkoJournalDisplay(item) {
     };
   }
 
-  // CASE C: currency === 'USD' (or other non-TJS) and amount_tjs absent / null / <= 0
+  // CASE C: Pure USD cash operation (e.g. USD cash transfer, pure USD cash desk movement)
+  if (cur === 'USD' && isPureUsdOperation(item)) {
+    const formattedUsd = formatNum(amt);
+    return {
+      primary: `+${formattedUsd} USD`,
+      secondary: null,
+      isDefined: true
+    };
+  }
+
+  // CASE D: USD deal payment without physical TJS amount recorded (historical deal PKO requiring reconciliation)
   if (cur === 'USD') {
     const formattedUsd = formatNum(amt);
     return {
@@ -90,7 +114,8 @@ export function getPkoJournalDisplay(item) {
 
 /**
  * Shared Canonical Predicate for TJS Reconciliation Eligibility
- * Active USD payments where amount_tjs IS NULL require historical TJS reconciliation.
+ * Active USD deal payments where amount_tjs IS NULL require historical TJS reconciliation.
+ * Pure USD transfers and pure USD operations do NOT require TJS reconciliation.
  */
 export function requiresTjsReconciliation(item) {
   if (!item) return false;
@@ -98,6 +123,9 @@ export function requiresTjsReconciliation(item) {
   if (isVoided) return false;
   const cur = (item.currency || 'USD').toUpperCase();
   if (cur !== 'USD') return false;
+
+  if (isPureUsdOperation(item)) return false;
+
   const rawTjs = item.amount_tjs ?? item.amountTjs ?? null;
   return rawTjs === null || rawTjs === undefined;
 }

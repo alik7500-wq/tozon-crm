@@ -140,6 +140,15 @@ export const PaymentReceiptPrintModal = ({ payment, deal, onClose, initialLang =
 
   const paymentCur = (payment.cash_currency || payment.currency || activeDeal?.currency || 'TJS').toUpperCase();
 
+  const isTransfer = Boolean(
+    payment.transfer_id ||
+    payment.transferId ||
+    payment.operation_type === 'INTERNAL_CASH_TRANSFER' ||
+    payment.operationType === 'INTERNAL_CASH_TRANSFER' ||
+    (payment.reference && String(payment.reference).includes('ПЕРЕМ')) ||
+    payment.category === 'Внутренние перемещения между кассами'
+  );
+
   let amountTJS = null;
   if (payment.amount_tjs !== undefined && payment.amount_tjs !== null && Number(payment.amount_tjs) > 0) {
     amountTJS = Number(payment.amount_tjs);
@@ -151,12 +160,15 @@ export const PaymentReceiptPrintModal = ({ payment, deal, onClose, initialLang =
     amountTJS = rawAmount * effectiveRate;
   }
 
+  const isPureUsd = paymentCur === 'USD' && amountTJS === null && (isTransfer || payment.is_pure_usd || payment.isPureUsd);
   const isTjsDefined = amountTJS !== null && !isNaN(amountTJS) && amountTJS > 0;
-  const amountNumber = isTjsDefined ? Number(amountTJS.toFixed(2)) : 0;
+  const amountNumber = isTjsDefined ? Number(amountTJS.toFixed(2)) : (isPureUsd ? Number(rawAmount.toFixed(2)) : 0);
 
   const amountFormatted = isTjsDefined
     ? `${amountNumber.toLocaleString('ru-RU', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ${isTJ ? 'сомонӣ' : 'сомони'}`
-    : (isTJ ? 'Суммаи ПКО дар TJS муайян нашудааст' : 'Сумма ПКО в TJS не определена');
+    : (isPureUsd
+        ? `${amountNumber.toLocaleString('ru-RU', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} USD`
+        : (isTJ ? 'Суммаи ПКО дар TJS муайян нашудааст' : 'Сумма ПКО в TJS не определена'));
 
   // USD Reference calculation (shown ONLY as reference for USD operations)
   let amountUSD = null;
@@ -191,7 +203,9 @@ export const PaymentReceiptPrintModal = ({ payment, deal, onClose, initialLang =
 
   const wordsFormatted = isTjsDefined
     ? (isTJ ? numberToWordsTJ(amountNumber, 'TJS') : numberToWordsRU(amountNumber, 'TJS'))
-    : (isTJ ? 'Суммаи ПКО дар TJS муайян нашудааст (маълумот оид ба қурб/маблағи TJS нест)' : 'Сумма ПКО в TJS не определена (отсутствуют данные о курсе или сумме в TJS)');
+    : (isPureUsd
+        ? (isTJ ? numberToWordsTJ(amountNumber, 'USD') : numberToWordsRU(amountNumber, 'USD'))
+        : (isTJ ? 'Суммаи ПКО дар TJS муайян нашудааст (маълумот оид ба қурб/маблағи TJS нест)' : 'Сумма ПКО в TJS не определена (отсутствуют данные о курсе или сумме в TJS)'));
 
   // Client / Payer Name
   const payerName = (
