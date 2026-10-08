@@ -26,6 +26,12 @@ export const EditDealModal = ({
   onDealUpdated
 }) => {
   const [users, setUsers] = useState([]);
+  const [amending, setAmending] = useState(false);
+  const [units, setUnits] = useState([]);
+  const [unitsLoading, setUnitsLoading] = useState(false);
+  const [unitId, setUnitId] = useState('');
+  const [amendmentReason, setAmendmentReason] = useState('');
+  const [amendments, setAmendments] = useState([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState('');
 
@@ -52,16 +58,20 @@ export const EditDealModal = ({
 
   // Paid deal lock status
   const totalPaidMinor = deal
-    ? (deal.total_paid_minor || 0) || (deal.payments || []).reduce((s, p) => s + (p.amount_minor || 0), 0)
+    ? (deal.total_paid_minor || 0) || (deal.payments || []).filter(p => p.status === 'ACTIVE' || p.status === 'POSTED').reduce((s, p) => s + (p.amount_minor || 0), 0)
     : 0;
   const isPaidDeal = totalPaidMinor > 0;
-  const remainingDebtMinor = deal ? Math.max(0, (deal.final_price_minor || 0) - totalPaidMinor) : 0;
+  const previewPriceMinor = amending ? Math.round(Number(finalPrice) * 100) : (deal?.final_price_minor || 0);
+  const remainingDebtMinor = Math.max(0, previewPriceMinor - totalPaidMinor);
+  const overpaymentMinor = Math.max(0, totalPaidMinor - previewPriceMinor);
+  const selectedUnit = units.find(u => String(u.id) === unitId);
+  const canAmend = ['SIGNED', 'RESERVED'].includes(deal?.status) && ['FULL', 'INSTALLMENT'].includes(deal?.payment_type);
 
-  const areaM2 = deal
+  const areaM2 = amending && selectedUnit ? selectedUnit.area_m2_x100 / 100 : deal
     ? (deal.area_m2_x100 ? deal.area_m2_x100 / 100 : (deal.units?.area_m2_x100 ? deal.units.area_m2_x100 / 100 : 0))
     : 0;
 
-  const unitCommercialPricePerM2 = deal
+  const unitCommercialPricePerM2 = amending && selectedUnit ? selectedUnit.price_per_m2_minor / 100 : deal
     ? (deal.unit_price_per_m2_minor
         ? deal.unit_price_per_m2_minor / 100
         : (deal.units?.price_per_m2_minor ? deal.units.price_per_m2_minor / 100 : 0))
@@ -70,6 +80,10 @@ export const EditDealModal = ({
   // Populate form from deal prop
   useEffect(() => {
     if (deal) {
+      setAmending(false);
+      setUnitId(String(deal.unit_id));
+      setAmendmentReason('');
+      setUnits([]);
       setContractNumber(deal.contract_number || '');
       setDealDate(deal.deal_date || deal.created_at?.split('T')[0] || '');
       setLeadName(deal.lead_name || '');
@@ -98,14 +112,24 @@ export const EditDealModal = ({
     }
   }, [deal, isOpen]);
 
+  useEffect(() => {
+    if (!isOpen || !deal?.id) return;
+    let cancelled = false;
+    setAmendments([]);
+    api.get(`/deals/${deal.id}/amendments`).then(res => {
+      if (!cancelled) setAmendments(res.data?.amendments || res.amendments || []);
+    }).catch(() => { /* Older servers may not yet expose amendment history. */ });
+    return () => { cancelled = true; };
+  }, [isOpen, deal?.id]);
+
   // Auto calculate final price when pricePerM2 changes if area is available
   const handlePricePerM2Change = (val) => {
-    if (isPaidDeal) return;
+    if (isPaidDeal && !amending) return;
     setPricePerM2(val);
     const p = parseFloat(val);
     const disc = parseFloat(discount) || 0;
     if (!isNaN(p) && areaM2 > 0) {
-      setFinalPrice(String(Math.round(areaM2 * p - disc)));
+      setFinalPrice(String(Math.round((areaM2 * p - disc) * 100) / 100));
     }
   };
 
@@ -118,8 +142,20 @@ export const EditDealModal = ({
     }
   }, [isOpen]);
 
+  useEffect(() => {
+    if (!isOpen || !amending) return;
+    let cancelled = false;
+    setUnitsLoading(true);
+    api.get('/deals/available-units', { params: { projectId: deal.project_id } })
+      .then(res => { if (!cancelled) setUnits((res.data?.units || res.units || []).filter(u => u.project_currency === deal.currency)); })
+      .catch(err => { if (!cancelled) setError(err.message || 'Не удалось загрузить квартиры'); })
+      .finally(() => { if (!cancelled) setUnitsLoading(false); });
+    return () => { cancelled = true; };
+  }, [isOpen, amending, deal?.id, deal?.project_id, deal?.currency]);
+
   const isDirty = Boolean(
     deal && (
+      amending || amendmentReason || unitId !== String(deal.unit_id) ||
       contractNumber !== (deal.contract_number || '') ||
       dealDate !== (deal.deal_date || deal.created_at?.split('T')[0] || '') ||
       leadName !== (deal.lead_name || '') ||
@@ -166,6 +202,19 @@ export const EditDealModal = ({
       const dPmt = parseFloat(downPayment) || 0;
       const rate = exchangeRate ? parseFloat(exchangeRate) : null;
 
+      if (amending) {
+        if (!amendmentReason.trim()) throw new Error('Укажите причину изменения договора');
+        if (!Number.isFinite(fPrice) || fPrice <= 0 || !Number.isFinite(pM2) || pM2 <= 0) throw new Error('Укажите положительную стоимость');
+        const res = await api.post(`/deals/${deal.id}/amend`, {
+          unit_id: Number(unitId), final_price_minor: Math.round(fPrice * 100),
+          deal_price_per_m2_minor: Math.round(pM2 * 100),
+          reason: amendmentReason.trim(), expected_updated_at: deal.updated_at
+        });
+        onDealUpdated?.(res.data?.deal || res.deal);
+        onClose();
+        return;
+      }
+
       const payload = {
         contract_number: contractNumber.trim(),
         deal_date: dealDate,
@@ -181,6 +230,11 @@ export const EditDealModal = ({
         barter_description: barterDescription.trim() || null
       };
 
+      // Paid metadata edits must not accidentally include locked financial keys.
+      if (isPaidDeal) {
+        delete payload.payment_type;
+        delete payload.installment_months;
+      }
       // Only include financial terms in payload if unpaid
       if (!isPaidDeal) {
         payload.deal_price_per_m2_minor = Math.round(pM2 * 100);
@@ -246,8 +300,38 @@ export const EditDealModal = ({
             </div>
           )}
 
+          {canAmend && (
+            <label className="flex gap-2 items-center font-bold text-blue-800">
+              <input type="checkbox" checked={amending} onChange={e => {
+                setAmending(e.target.checked); setError(''); setUnitId(String(deal.unit_id));
+                setPricePerM2(String((deal.deal_price_per_m2_minor || (deal.area_m2_x100 > 0 ? Math.round(deal.final_price_minor / (deal.area_m2_x100 / 100)) : 0)) / 100));
+                setFinalPrice(String(deal.final_price_minor / 100));
+              }} />
+              Изменить квартиру и стоимость
+            </label>
+          )}
+          {amending && (
+            <div className="rounded-xl border border-blue-200 bg-blue-50 p-3 space-y-3">
+              <p>Договор №{deal.contract_number} от {deal.deal_date} сохраняется. Все платежи и ПКО остаются на месте. Даты графика сохраняются, плановые суммы пересчитываются пропорционально новой стоимости.</p>
+              <label className="block font-bold">Квартира
+                <select aria-label="Квартира" value={unitId} disabled={unitsLoading || isSubmitting} className="block w-full border rounded-lg p-2 bg-white" onChange={e => {
+                  setUnitId(e.target.value);
+                  const unit = units.find(u => String(u.id) === e.target.value);
+                  const area = unit ? unit.area_m2_x100 / 100 : deal.area_m2_x100 / 100;
+                  setFinalPrice(String(Math.round((area * Number(pricePerM2) - Number(discount)) * 100) / 100));
+                }}>
+                  <option value={String(deal.unit_id)}>Текущая: №{deal.unit_number} — {deal.area_m2_x100 / 100} м²</option>
+                  {units.filter(u => String(u.id) !== String(deal.unit_id)).map(u => <option key={u.id} value={String(u.id)}>{u.section_name}, этаж {u.floor_number}, №{u.unit_number} — {u.area_m2_x100 / 100} м²</option>)}
+                </select>
+              </label>
+              <p>Стоимость: ${(deal.final_price_minor / 100).toLocaleString('ru-RU', { minimumFractionDigits: 2 })} → ${Number(finalPrice).toLocaleString('ru-RU', { minimumFractionDigits: 2 })}. Площадь: {deal.area_m2_x100 / 100} → {areaM2} м².</p>
+              <label className="block font-bold">Причина изменения
+                <textarea aria-label="Причина изменения" required maxLength={2000} value={amendmentReason} onChange={e => setAmendmentReason(e.target.value)} className="block w-full border rounded-lg p-2 bg-white" />
+              </label>
+            </div>
+          )}
           {/* Paid Deal Protection Banner */}
-          {isPaidDeal && (
+          {isPaidDeal && !amending && (
             <div className="flex items-center gap-2.5 rounded-2xl bg-amber-500/10 border border-amber-500/30 p-3 text-amber-900 text-xs font-semibold">
               <Lock className="h-4 w-4 shrink-0 text-amber-600" />
               <span>
@@ -259,7 +343,7 @@ export const EditDealModal = ({
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
             
             {/* Block A: Dates, Contract & Payment Terms */}
-            <div className="bg-amber-50/30 rounded-2xl p-4 border border-amber-200/60 space-y-3">
+            <div hidden={amending} className="bg-amber-50/30 rounded-2xl p-4 border border-amber-200/60 space-y-3">
               <div className="flex items-center justify-between font-bold text-slate-900 text-xs pb-1 border-b border-amber-200/50">
                 <div className="flex items-center gap-2">
                   <Calendar className="h-3.5 w-3.5 text-amber-600" />
@@ -321,7 +405,7 @@ export const EditDealModal = ({
                   </label>
                   <select
                     value={paymentType}
-                    disabled={isPaidDeal}
+                    disabled={isPaidDeal || amending}
                     onChange={(e) => setPaymentType(e.target.value)}
                     className="w-full rounded-xl border border-slate-200 bg-white px-2.5 py-1.5 text-xs font-semibold text-slate-900 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition cursor-pointer disabled:bg-slate-100 disabled:text-slate-500 disabled:cursor-not-allowed"
                   >
@@ -342,7 +426,7 @@ export const EditDealModal = ({
                     type="number"
                     min="1"
                     max="60"
-                    disabled={isPaidDeal}
+                    disabled={isPaidDeal || amending}
                     value={installmentMonths}
                     onChange={(e) => setInstallmentMonths(e.target.value)}
                     className="w-full rounded-xl border border-slate-200 bg-white px-3 py-1.5 text-xs font-semibold text-slate-900 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition disabled:bg-slate-100 disabled:text-slate-500 disabled:cursor-not-allowed"
@@ -385,9 +469,9 @@ export const EditDealModal = ({
               <div className="flex items-center justify-between font-bold text-slate-900 text-xs pb-1 border-b border-blue-200/50">
                 <div className="flex items-center gap-2">
                   <Coins className="h-3.5 w-3.5 text-blue-600" />
-                  <span>Блок B. Финансовые условия и Snapshot</span>
+                  <span>Стоимость и расчёты</span>
                 </div>
-                {isPaidDeal && (
+                {isPaidDeal && !amending && (
                   <span className="text-[10px] font-bold text-amber-700 bg-amber-100 px-2 py-0.5 rounded-md border border-amber-300">
                     Read-Only
                   </span>
@@ -401,7 +485,7 @@ export const EditDealModal = ({
                   <span className="font-extrabold text-slate-900">{areaM2} м²</span>
                 </div>
                 <div>
-                  <span className="text-slate-500 block">Цена по прайсу (Unit):</span>
+                  <span className="text-slate-500 block">Цена по прайсу:</span>
                   <span className="font-extrabold text-slate-700">{unitCommercialPricePerM2 > 0 ? `${unitCommercialPricePerM2.toLocaleString('ru-RU')} USD/м²` : '—'}</span>
                 </div>
               </div>
@@ -414,7 +498,7 @@ export const EditDealModal = ({
                   <input
                     type="number"
                     step="0.01"
-                    disabled={isPaidDeal}
+                    disabled={isPaidDeal && !amending}
                     value={pricePerM2}
                     onChange={(e) => handlePricePerM2Change(e.target.value)}
                     className="w-full rounded-xl border border-slate-200 bg-white px-2.5 py-1.5 text-xs font-extrabold text-blue-700 outline-none focus:border-blue-500 transition disabled:bg-slate-100 disabled:text-slate-600 disabled:cursor-not-allowed"
@@ -428,9 +512,12 @@ export const EditDealModal = ({
                   <input
                     type="number"
                     step="0.01"
-                    disabled={isPaidDeal}
+                    disabled={isPaidDeal && !amending}
                     value={finalPrice}
-                    onChange={(e) => setFinalPrice(e.target.value)}
+                    onChange={(e) => {
+                      setFinalPrice(e.target.value);
+                      if (amending && areaM2 > 0) setPricePerM2(String(Math.round((Number(e.target.value) + Number(discount)) / areaM2 * 100) / 100));
+                    }}
                     className="w-full rounded-xl border border-slate-200 bg-white px-2.5 py-1.5 text-xs font-extrabold text-emerald-700 outline-none focus:border-blue-500 transition disabled:bg-slate-100 disabled:text-slate-600 disabled:cursor-not-allowed"
                   />
                 </div>
@@ -444,7 +531,7 @@ export const EditDealModal = ({
                   <input
                     type="number"
                     step="0.01"
-                    disabled={isPaidDeal}
+                    disabled={isPaidDeal || amending}
                     value={discount}
                     onChange={(e) => setDiscount(e.target.value)}
                     className="w-full rounded-xl border border-slate-200 bg-white px-2 py-1.5 text-xs font-semibold text-slate-800 outline-none focus:border-blue-500 transition disabled:bg-slate-100 disabled:text-slate-600 disabled:cursor-not-allowed"
@@ -458,7 +545,7 @@ export const EditDealModal = ({
                   <input
                     type="number"
                     step="0.01"
-                    disabled={isPaidDeal}
+                    disabled={isPaidDeal || amending}
                     value={downPayment}
                     onChange={(e) => setDownPayment(e.target.value)}
                     className="w-full rounded-xl border border-slate-200 bg-white px-2 py-1.5 text-xs font-semibold text-slate-800 outline-none focus:border-blue-500 transition disabled:bg-slate-100 disabled:text-slate-600 disabled:cursor-not-allowed"
@@ -472,7 +559,7 @@ export const EditDealModal = ({
                   <input
                     type="number"
                     step="0.0001"
-                    disabled={isPaidDeal}
+                    disabled={isPaidDeal || amending}
                     value={exchangeRate}
                     placeholder="—"
                     onChange={(e) => setExchangeRate(e.target.value)}
@@ -481,6 +568,7 @@ export const EditDealModal = ({
                 </div>
               </div>
 
+              {overpaymentMinor > 0 && <p className="font-bold text-amber-800">Переплата: ${(overpaymentMinor / 100).toLocaleString('ru-RU', { minimumFractionDigits: 2 })}. Возврат оформляется отдельно.</p>}
               {/* Paid vs Remaining Stats */}
               <div className="grid grid-cols-2 gap-2 bg-emerald-50/60 p-2.5 rounded-xl border border-emerald-200/60 text-[11px]">
                 <div>
@@ -498,7 +586,7 @@ export const EditDealModal = ({
           </div>
 
           {/* Block C: Buyer & Passport Info (Full-width card below) */}
-          <div className="bg-slate-50/70 rounded-2xl p-4 border border-slate-200/90 space-y-3">
+          <div hidden={amending} className="bg-slate-50/70 rounded-2xl p-4 border border-slate-200/90 space-y-3">
             <div className="flex items-center gap-2 font-bold text-slate-900 text-xs pb-1 border-b border-slate-200/60">
               <User className="h-3.5 w-3.5 text-blue-600" />
               <span>Блок C. Данные покупателя (Разрешено для редактирования)</span>
@@ -572,6 +660,16 @@ export const EditDealModal = ({
             </div>
           </div>
 
+          {amendments.length > 0 && (
+            <details className="rounded-xl border p-3 text-slate-700">
+              <summary className="cursor-pointer font-bold">История изменений договора ({amendments.length})</summary>
+              {amendments.map(entry => <div key={entry.id} className="border-t mt-2 pt-2">
+                <p>{new Date(entry.created_at).toLocaleString('ru-RU')} · Администратор #{entry.user_id}</p>
+                <p>Квартира №{entry.changes_json.old_unit?.unit_number || entry.changes_json.old?.unit_id} → №{entry.changes_json.new_unit?.unit_number || entry.changes_json.new?.unit_id}; стоимость ${(entry.changes_json.old?.final_price_minor / 100).toLocaleString('ru-RU')} → ${(entry.changes_json.new?.final_price_minor / 100).toLocaleString('ru-RU')}</p>
+                <p>{entry.changes_json.reason}</p>
+              </div>)}
+            </details>
+          )}
           {/* Footer actions */}
           <div className="flex items-center justify-end gap-3 pt-3 border-t border-slate-100 shrink-0">
             <button
@@ -583,7 +681,7 @@ export const EditDealModal = ({
             </button>
             <button
               type="submit"
-              disabled={isSubmitting}
+              disabled={isSubmitting || (amending && unitsLoading)}
               className="flex items-center gap-2 px-5 py-2 rounded-xl bg-amber-600 hover:bg-amber-500 text-white font-bold transition shadow-xs cursor-pointer text-xs disabled:opacity-50"
             >
               <Save className="h-4 w-4" />
