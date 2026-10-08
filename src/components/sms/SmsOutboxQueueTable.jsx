@@ -126,6 +126,18 @@ export function SmsOutboxQueueTable({ onCountChange }) {
 
   const getEventTypeLabel = (type) => {
     switch (type) {
+case 'RESERVATION_CREATED': return 'Бронь создана';
+case 'RESERVATION_EXPIRING': return 'Истекает бронь';
+case 'RESERVATION_CANCELLED': return 'Бронь отменена';
+case 'CONTRACT_CREATED': return 'Договор оформлен';
+case 'CONTRACT_CHANGED': return 'Договор изменён';
+case 'SCHEDULE_CHANGED': return 'График изменён';
+case 'CONTRACT_TERMINATED': return 'Договор расторгнут';
+case 'CONTRACT_PAID': return 'Договор оплачен';
+case 'PAYMENT_CANCELLED': return 'Платёж отменён';
+case 'BIRTHDAY': return 'День рождения';
+case 'DEBTOR_REMINDER': return 'Задолженность';
+
       case 'PAYMENT_REMINDER':
         return 'Напоминание об оплате';
       case 'DEBT_OVERDUE':
@@ -214,7 +226,7 @@ export function SmsOutboxQueueTable({ onCountChange }) {
             className="bg-slate-950 border border-slate-800 rounded-lg px-2.5 py-1.5 text-xs text-slate-300 focus:outline-none focus:border-blue-500"
           >
             <option value="ALL">Все типы</option>
-            <option value="PAYMENT_REMINDER">Напоминание об оплате</option>
+            <option value="RESERVATION_CREATED">Бронь создана</option><option value="RESERVATION_EXPIRING">Истекает бронь</option><option value="RESERVATION_CANCELLED">Бронь отменена</option><option value="CONTRACT_CREATED">Договор оформлен</option><option value="CONTRACT_CHANGED">Договор изменён</option><option value="SCHEDULE_CHANGED">График изменён</option><option value="CONTRACT_TERMINATED">Договор расторгнут</option><option value="CONTRACT_PAID">Договор оплачен</option><option value="PAYMENT_CANCELLED">Платёж отменён</option><option value="BIRTHDAY">День рождения</option><option value="DEBTOR_REMINDER">Задолженность</option><option value="PAYMENT_REMINDER">Напоминание об оплате</option>
             <option value="DEBT_OVERDUE">Задолженность</option>
             <option value="MEETING_REMINDER">Встреча</option>
             <option value="CONTRACT_SIGNED">Договор подписан</option>

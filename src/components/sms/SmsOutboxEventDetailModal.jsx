@@ -27,6 +27,18 @@ function formatDateDDMMYYYY(dateStr) {
 
 const getEventTypeLabel = (type) => {
   switch (type) {
+case 'RESERVATION_CREATED': return 'Бронь создана';
+case 'RESERVATION_EXPIRING': return 'Истекает бронь';
+case 'RESERVATION_CANCELLED': return 'Бронь отменена';
+case 'CONTRACT_CREATED': return 'Договор оформлен';
+case 'CONTRACT_CHANGED': return 'Договор изменён';
+case 'SCHEDULE_CHANGED': return 'График изменён';
+case 'CONTRACT_TERMINATED': return 'Договор расторгнут';
+case 'CONTRACT_PAID': return 'Договор оплачен';
+case 'PAYMENT_CANCELLED': return 'Платёж отменён';
+case 'BIRTHDAY': return 'День рождения';
+case 'DEBTOR_REMINDER': return 'Задолженность';
+
     case 'PAYMENT_REMINDER':
       return 'Напоминание об оплате';
     case 'DEBT_OVERDUE':

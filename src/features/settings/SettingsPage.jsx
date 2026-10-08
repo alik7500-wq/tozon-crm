@@ -183,7 +183,7 @@ export const SettingsPage = () => {
 
       {activeTab === 'overview' && <div className="grid sm:grid-cols-2 xl:grid-cols-4 gap-4">{[
         ['Жилые комплексы','Создание ЖК, корпуса, этажи и квартиры',()=>setActiveTab('projects'),Building2],
-        ['Настройки сообщений','SMS, шаблоны и история отправки',()=>navigate('/crm/sms-notifications'),FileText],
+        ['Настройки сообщений','SMS, шаблоны и история отправки',()=>navigate('/settings/messages'),FileText],
         ['Бланки документов','Договор, акт, ПКО, РКО, график и другие формы Word',()=>setActiveTab('templates'),FileText],
         ['Компания','Реквизиты и подписанты для ваших бланков',()=>setActiveTab('company'),Briefcase],
         ['Настройки интерфейса','Основной цвет и язык печатных форм',()=>setActiveTab('interface'),Settings],

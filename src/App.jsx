@@ -12,6 +12,7 @@ import { ProjectDetailPage } from './features/projects/ProjectDetailPage';
 import { LeadsPage } from './features/leads/LeadsPage';
 import { DealsPage } from './features/deals/DealsPage';
 import { PaymentsPage } from './features/payments/PaymentsPage';
+import { MessageSettingsPage } from './features/settings/MessageSettingsPage';
 import { SettingsPage } from './features/settings/SettingsPage';
 import { ApartmentsPage } from './features/apartments/ApartmentsPage';
 import { TasksPage } from './features/tasks/TasksPage';
@@ -64,6 +65,7 @@ function App() {
                   <Route path="/leads" element={<LeadsPage />} />
                   <Route path="/pipeline" element={<Navigate to="/leads" replace />} />
                   <Route path="/clients" element={<ClientsPage />} />
+                  <Route path="/settings/messages" element={<PermissionGuard requiredPermission="settings.manage"><MessageSettingsPage /></PermissionGuard>} />
                   <Route path="/crm/sms-notifications" element={<SmsNotificationsPage />} />
                   <Route path="/crm/sms-templates" element={<SmsTemplatesPage />} />
                   <Route path="/tasks" element={<TasksPage />} />
