@@ -601,7 +601,7 @@ export const CashflowPage = () => {
             </span>
           </td>
           <td className="py-2 px-2 font-bold text-slate-900 font-mono whitespace-nowrap">
-            {t.reference}
+            {t.document_number || t.reference}
           </td>
           <td className="py-2 px-2 whitespace-nowrap">
             {t.account_name || t.method === 'BANK_TRANSFER' ? (
@@ -683,6 +683,7 @@ export const CashflowPage = () => {
                   onClick={() => {
                     if (t.type === 'INCOME') {
                       setPrintableIncome({
+                        document_number: t.document_number,
                         id: t.rawId,
                         deal_id: t.dealId,
                         dealId: t.dealId,
@@ -702,6 +703,7 @@ export const CashflowPage = () => {
                       });
                     } else {
                       setPrintableExpense({
+                        document_number: t.document_number,
                         id: t.rawId,
                         amount: t.amount,
                         amount_minor: t.amount_minor || Math.round(t.amount * 100),

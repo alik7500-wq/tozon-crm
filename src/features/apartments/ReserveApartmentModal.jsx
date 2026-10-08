@@ -39,6 +39,9 @@ export const ReserveApartmentModal = ({
 
   // Reservation Terms
   const [reservationDays, setReservationDays] = useState(3);
+  useEffect(() => {
+    if (isOpen) api.get('/document-settings/configuration').then(r => setReservationDays(r.data.settings.data.reservation_days ?? 3)).catch(() => {});
+  }, [isOpen]);
   const [customDate, setCustomDate] = useState('');
   const [isCustomDate, setIsCustomDate] = useState(false);
 

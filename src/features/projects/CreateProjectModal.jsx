@@ -1,9 +1,11 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { api } from '../../api/client';
 import { useModalDismiss } from '../../hooks/useModalDismiss';
 import { X, Building2, MapPin, Briefcase, FileCode, Coins, AlertCircle } from 'lucide-react';
 
 export const CreateProjectModal = ({ isOpen, onClose, onCreated }) => {
+  const [builders,setBuilders]=useState([]);
+  useEffect(()=>{if(isOpen) api.get('/document-settings/configuration').then(r=>setBuilders(r.data.settings.data.builders || [])).catch(()=>setBuilders([]));},[isOpen]);
   const [formData, setFormData] = useState({
     name: '',
     code: '',
@@ -54,6 +56,7 @@ export const CreateProjectModal = ({ isOpen, onClose, onCreated }) => {
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-xs animate-in fade-in">
       <div className="relative w-full max-w-lg rounded-2xl border border-slate-200 bg-white p-6 shadow-2xl">
+        {builders.length>0 && <label className="block text-sm mb-3">Выбрать застройщика из справочника<select className="w-full border rounded-xl p-2" value="" onChange={e=>setFormData(prev=>({...prev,developer_name:e.target.value}))}><option value="">Выберите компанию</option>{builders.map((b,i)=><option key={i} value={b.name}>{b.name}</option>)}</select></label>}
         {/* Modal Header */}
         <div className="flex items-center justify-between border-b border-slate-100 pb-4">
           <div className="flex items-center gap-2.5">

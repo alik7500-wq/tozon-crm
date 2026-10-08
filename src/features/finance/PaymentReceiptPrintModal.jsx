@@ -1,3 +1,6 @@
+import { defaultPrintLanguage } from '../settings/InterfaceSettingsTab';
+import { TemplateDocumentButton } from '../settings/TemplateDocumentButton';
+import { dealDocumentContext } from '../settings/documentTemplates';
 import React, { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { Printer, ArrowLeft, Receipt } from 'lucide-react';
@@ -17,7 +20,7 @@ const MONTHS_RU = [
   'Июля', 'Августа', 'Сентября', 'Октября', 'Ноября', 'Декабря'
 ];
 
-export const PaymentReceiptPrintModal = ({ payment, deal, onClose, initialLang = 'TJ' }) => {
+export const PaymentReceiptPrintModal = ({ payment, deal, onClose, initialLang = defaultPrintLanguage() }) => {
   const [lang, setLang] = useState(initialLang);
   const [asyncDeal, setAsyncDeal] = useState(deal || payment?.deal || null);
 
@@ -230,6 +233,7 @@ export const PaymentReceiptPrintModal = ({ payment, deal, onClose, initialLang =
 
   // Document Number (Clean numeric or formatted PKO number)
   const docNumber = (() => {
+    if (payment.document_number) return payment.document_number;
     const raw = payment.reference || payment.payment_number || payment.id || '1';
     const cleanDigits = String(raw).replace(/\s*\(.*?\)\s*/g, '').replace(/^[^\d]+/g, '').trim();
     return cleanDigits || String(payment.id) || '1';
@@ -294,6 +298,7 @@ export const PaymentReceiptPrintModal = ({ payment, deal, onClose, initialLang =
               </button>
             </div>
 
+            <TemplateDocumentButton kind={'PKO'} language={lang} projectId={activeDeal?.project_id} context={{...dealDocumentContext(activeDeal || {}),document_number:String(docNumber),document_date:fullDateFormatted,amount:amountFormatted,amount_words:wordsFormatted,amount_tjs:isTjsDefined ? String(amountNumber) : '—',amount_usd:amountUSD == null ? '—' : Number(amountUSD).toFixed(2),exchange_rate:effectiveRate == null ? '—' : String(effectiveRate),payer_name:payerName,client_name:payerName,client_inn:payerInn,basis:basisText,cash_desk:payment.cashDeskName || payment.cash_desk_name || ''}}/>
             <button
               type="button"
               onClick={handlePrint}

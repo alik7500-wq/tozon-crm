@@ -87,6 +87,9 @@ export const DealWizardModal = ({
   // Deal Financials
   const [dealStatus, setDealStatus] = useState('SIGNED'); // 'SIGNED' or 'RESERVED'
   const [reservationDays, setReservationDays] = useState(3);
+  useEffect(() => {
+    if (isOpen) api.get('/document-settings/configuration').then(r => setReservationDays(r.data.settings.data.reservation_days ?? 3)).catch(() => {});
+  }, [isOpen]);
   const [recordInitialPayment, setRecordInitialPayment] = useState(false);
 
   const [pricePerM2, setPricePerM2] = useState(500);

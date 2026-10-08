@@ -1,3 +1,6 @@
+import { defaultPrintLanguage } from '../settings/InterfaceSettingsTab';
+import { TemplateDocumentButton } from '../settings/TemplateDocumentButton';
+import { dealDocumentContext } from '../settings/documentTemplates';
 import React, { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { Printer, ArrowLeft, Receipt } from 'lucide-react';
@@ -5,7 +8,7 @@ import { numberToWordsTJ, numberToWordsRU } from '../../utils/numberToWords';
 import { useModalDismiss } from '../../hooks/useModalDismiss';
 import { getRkoBasisText } from '../../utils/receiptBasis';
 
-export const ExpenseReceiptPrintModal = ({ expense, onClose, initialLang = 'TJ' }) => {
+export const ExpenseReceiptPrintModal = ({ expense, onClose, initialLang = defaultPrintLanguage() }) => {
   const [lang, setLang] = useState(initialLang);
   const [appendix, setAppendix] = useState(expense?.attachment || expense?.appendix || '');
 
@@ -181,9 +184,9 @@ export const ExpenseReceiptPrintModal = ({ expense, onClose, initialLang = 'TJ' 
         : (isTJ ? numberToWordsTJ(amountNumber, 'TJS') : numberToWordsRU(amountNumber, 'TJS')));
 
   // Document Number
-  const docNumber = expense.reference 
+  const docNumber = expense.document_number || (expense.reference
     ? String(expense.reference).replace(/^[^\d]+/g, '') || expense.id || '1'
-    : expense.id || '1';
+    : expense.id || '1');
 
   // Recipient
   const recipientName = (expense.recipient || '—').trim();
@@ -245,6 +248,7 @@ export const ExpenseReceiptPrintModal = ({ expense, onClose, initialLang = 'TJ' 
               </button>
             </div>
 
+            <TemplateDocumentButton kind={'RKO'} language={lang} projectId={expense.project_id} context={{document_number:String(docNumber),document_date:[dayStr,monthNumStr,yearStr].join('.'),amount:amountFormatted,amount_words:wordsFormatted,amount_tjs:isTjsDefined ? String(amountNumber) : '—',amount_usd:amountUSD == null ? '—' : Number(amountUSD).toFixed(2),exchange_rate:effectiveRate == null ? '—' : String(effectiveRate),recipient_name:recipientName,client_name:recipientName,basis:basisText,attachment:appendix,company_name:companyTitle,cash_desk:expense.cashDeskName || expense.cash_desk_name || ''}}/>
             <button
               type="button"
               onClick={handlePrint}

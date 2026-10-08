@@ -1,3 +1,6 @@
+import { defaultPrintLanguage } from '../settings/InterfaceSettingsTab';
+import { TemplateDocumentButton } from '../settings/TemplateDocumentButton';
+import { dealDocumentContext } from '../settings/documentTemplates';
 import React, { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { useModalDismiss } from '../../hooks/useModalDismiss';
@@ -9,7 +12,7 @@ import {
   Globe
 } from 'lucide-react';
 
-export const ContractPrintView = ({ deal: initialDeal, onClose, initialLang = 'TJ' }) => {
+export const ContractPrintView = ({ deal: initialDeal, onClose, initialLang = defaultPrintLanguage() }) => {
   const [activeTab, setActiveTab] = useState('CONTRACT'); // 'CONTRACT' or 'SCHEDULE'
   const [lang, setLang] = useState(initialLang); // 'TJ' (Тоҷикӣ) or 'RU' (Русский)
   const [asyncDeal, setAsyncDeal] = useState(initialDeal);
@@ -78,7 +81,7 @@ export const ContractPrintView = ({ deal: initialDeal, onClose, initialLang = 'T
     if (!raw && raw !== 0) return '____';
     const str = String(raw).trim();
     const parts = str.split('-');
-    if (parts.length >= 2) {
+    if (/^\d+-\d{4}-\d+$/.test(str)) {
       const lastPart = parts[parts.length - 1];
       if (/^\d+$/.test(lastPart)) return lastPart;
     }
@@ -340,7 +343,7 @@ export const ContractPrintView = ({ deal: initialDeal, onClose, initialLang = 'T
             </div>
           </div>
 
-          <div className="flex items-center gap-2.5">
+          <div className="flex flex-wrap items-center gap-2.5">
             {/* Language Selector (TJ / RU) */}
             <div className="flex items-center bg-slate-800 p-1 rounded-xl border border-slate-700 gap-1">
               <span className="text-[11px] font-semibold text-slate-400 pl-1.5 pr-1 flex items-center gap-1">
@@ -372,6 +375,11 @@ export const ContractPrintView = ({ deal: initialDeal, onClose, initialLang = 'T
             </div>
 
             {/* Print Button */}
+            <TemplateDocumentButton kind={activeTab === 'SCHEDULE' ? 'SCHEDULE' : 'CONTRACT'} language={lang} projectId={deal.project_id} context={dealDocumentContext(deal)}/>
+            <TemplateDocumentButton kind="ACT" label="Акт Word" language={lang} projectId={deal.project_id} context={dealDocumentContext(deal)}/>
+            <TemplateDocumentButton kind="OFFER" label="Предложение Word" language={lang} projectId={deal.project_id} context={dealDocumentContext(deal)}/>
+            <TemplateDocumentButton kind="APARTMENT" label="Квартира Word" language={lang} projectId={deal.project_id} context={dealDocumentContext(deal)}/>
+            {deal.status === 'RESERVED' && <TemplateDocumentButton kind="RESERVATION" label="Бронь Word" language={lang} projectId={deal.project_id} context={dealDocumentContext(deal)}/>}
             <button
               onClick={handlePrint}
               className="flex items-center gap-2 rounded-xl bg-blue-600 hover:bg-blue-700 px-4 py-2 text-xs font-bold text-white shadow-md transition cursor-pointer"

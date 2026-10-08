@@ -764,7 +764,7 @@ export const ExpensesPage = () => {
                     {dayjs(item.date).format('DD.MM.YYYY')}
                   </td>
                   <td className="py-2.5 px-2 font-bold text-slate-900 font-mono text-[11px] whitespace-nowrap">
-                    {item.reference || `РКО-${item.id}`}
+                    {item.document_number || item.reference || `РКО-${item.id}`}
                   </td>
                   <td className="py-2.5 px-2.5 font-bold text-slate-900 text-xs leading-tight line-clamp-1" title={item.recipient}>
                     {item.recipient}
@@ -791,6 +791,7 @@ export const ExpensesPage = () => {
                     <div className="flex items-center justify-end gap-1">
                       <button
                         onClick={() => setPrintableExpense({
+                          document_number: item.document_number,
                           id: item.id,
                           amount: item.amount,
                           amount_minor: Math.round(item.amount * 100),
