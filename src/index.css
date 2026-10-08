@@ -223,3 +223,10 @@
 }
 
 
+
+/* User-selected primary accent, scoped to screen display. */
+@media screen {
+  .bg-blue-600 { background-color: var(--tozon-accent, #2563eb); }
+  .text-blue-600 { color: var(--tozon-accent, #2563eb); }
+  .border-blue-600 { border-color: var(--tozon-accent, #2563eb); }
+}

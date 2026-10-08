@@ -5,6 +5,9 @@ import { useAuth } from '../auth/AuthContext';
 import { CreateProjectModal } from '../projects/CreateProjectModal';
 import { BatchGeneratorModal } from '../projects/tabs/BatchGeneratorModal';
 import { DictionariesTab } from './DictionariesTab';
+import { DocumentTemplatesTab } from './DocumentTemplatesTab';
+import { CompanySettingsTab } from './CompanySettingsTab';
+import { InterfaceSettingsTab } from './InterfaceSettingsTab';
 import { ALL_PERMISSIONS } from '../../utils/permissions';
 import {
   Settings,
@@ -31,7 +34,7 @@ import {
 export const SettingsPage = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
-  const [activeTab, setActiveTab] = useState('projects'); // 'projects', 'users', 'backups'
+  const [activeTab, setActiveTab] = useState('overview');
   
   const [projects, setProjects] = useState([]);
   const [layouts, setLayouts] = useState([]);
@@ -178,8 +181,27 @@ export const SettingsPage = () => {
         )}
       </div>
 
+      {activeTab === 'overview' && <div className="grid sm:grid-cols-2 xl:grid-cols-4 gap-4">{[
+        ['Жилые комплексы','Создание ЖК, корпуса, этажи и квартиры',()=>setActiveTab('projects'),Building2],
+        ['Настройки сообщений','SMS, шаблоны и история отправки',()=>navigate('/crm/sms-notifications'),FileText],
+        ['Бланки документов','Договор, акт, ПКО, РКО, график и другие формы Word',()=>setActiveTab('templates'),FileText],
+        ['Компания','Реквизиты и подписанты для ваших бланков',()=>setActiveTab('company'),Briefcase],
+        ['Настройки интерфейса','Основной цвет и язык печатных форм',()=>setActiveTab('interface'),Settings],
+        ['Нумерация','Маски номеров новых договоров, ПКО и РКО',()=>setActiveTab('numbering'),Layers],
+        ['Скидки и бронирование','Лимит скидки и срок брони по умолчанию',()=>setActiveTab('rules'),CheckCircle2],
+        ['Строительные компании','Справочник застройщиков',()=>setActiveTab('builders'),Building2],
+        ['Филиалы','Адреса и контакты подразделений',()=>setActiveTab('branches'),MapPin],
+        ['Персонал и права','Пользователи, роли и доступ к кассам',()=>navigate('/users'),Users],
+        ['Настройки оплаты','Кассы, способы оплаты и статьи ПКО / РКО',()=>setActiveTab('dictionaries'),BookOpen],
+        ['Интеграции','Настройки автоматизации и каналов',()=>navigate('/automation'),Sparkles],
+        ['Отчёты и показатели','Отчёты о продажах и платежах',()=>navigate('/reports'),Database],
+        ['События','Уведомления и события CRM',()=>navigate('/notifications'),CheckCircle2],
+        ['Безопасность','Управление ролями и правами пользователей',()=>navigate('/users'),Shield],
+      ].map(([title,desc,onClick,Icon])=><button key={title} onClick={onClick} className="text-left rounded-2xl border bg-white p-5 hover:border-blue-400 hover:shadow-sm transition"><Icon className="text-blue-600 h-7 w-7 mb-5"/><h2 className="font-bold text-sm">{title}</h2><p className="text-xs text-slate-500 mt-2">{desc}</p></button>)}</div>}
       {/* Tabs */}
       <div className="flex items-center gap-2 border-b border-slate-200">
+        <button onClick={()=>setActiveTab('overview')} className="px-4 py-3 text-xs font-bold text-blue-600">Все настройки</button>
+        {['templates','company','numbering','rules','builders','branches'].includes(activeTab) && <span className="text-xs font-bold">{({templates:'Бланки',company:'Компания',numbering:'Нумерация',rules:'Скидки и бронь',builders:'Застройщики',branches:'Филиалы'})[activeTab]}</span>}
         <button
           onClick={() => setActiveTab('projects')}
           className={`flex items-center gap-2 border-b-2 px-4 py-3 text-xs font-bold transition cursor-pointer ${
@@ -230,6 +252,9 @@ export const SettingsPage = () => {
       </div>
 
       {/* TAB: DICTIONARIES */}
+      {activeTab === 'templates' && user?.role === 'ADMIN' && <DocumentTemplatesTab projects={projects}/>}
+      {activeTab === 'interface' && <InterfaceSettingsTab/>}
+      {['company','numbering','rules','builders','branches'].includes(activeTab) && user?.role === 'ADMIN' && <CompanySettingsTab key={activeTab} section={activeTab}/>}
       {activeTab === 'dictionaries' && <DictionariesTab />}
 
       {/* TAB 1: PROJECTS & STRUCTURE */}

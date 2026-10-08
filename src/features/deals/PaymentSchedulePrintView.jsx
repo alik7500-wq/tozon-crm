@@ -1,3 +1,6 @@
+import { defaultPrintLanguage } from '../settings/InterfaceSettingsTab';
+import { TemplateDocumentButton } from '../settings/TemplateDocumentButton';
+import { dealDocumentContext } from '../settings/documentTemplates';
 import React, { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { useModalDismiss } from '../../hooks/useModalDismiss';
@@ -23,7 +26,7 @@ import {
 } from 'lucide-react';
 import { formatContractNumber } from '../../utils/formatters';
 
-export const PaymentSchedulePrintView = ({ deal, onClose, initialLang = 'TJ' }) => {
+export const PaymentSchedulePrintView = ({ deal, onClose, initialLang = defaultPrintLanguage() }) => {
   const [lang, setLang] = useState(initialLang); // 'TJ' or 'RU'
 
   const { requestClose } = useModalDismiss({
@@ -197,6 +200,7 @@ export const PaymentSchedulePrintView = ({ deal, onClose, initialLang = 'TJ' }) 
               </button>
             </div>
 
+            <TemplateDocumentButton kind={'SCHEDULE'} language={lang} projectId={deal.project_id} context={dealDocumentContext(deal)}/>
             <button
               onClick={handlePrint}
               className="flex items-center gap-2 rounded-xl bg-blue-600 hover:bg-blue-700 px-4 py-2 text-xs font-bold text-white shadow-md transition cursor-pointer"

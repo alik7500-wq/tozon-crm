@@ -679,6 +679,7 @@ export const IncomePage = () => {
                   </td>
                   <td className="py-2.5 px-2 font-bold text-slate-900 font-mono text-[11px] whitespace-nowrap">
                     {(() => {
+                      if (item.document_number) return item.document_number;
                       const ref = item.reference;
                       if (!ref) return `ПКО-${item.id}`;
                       const clean = String(ref).replace(/\s*\(.*?\)\s*/g, '').trim();
@@ -777,6 +778,7 @@ export const IncomePage = () => {
                             else if (!clean.startsWith('Касса:')) cleanDoc = `ПКО-${clean}`;
                           }
                           setPrintableIncome({
+                            document_number: item.document_number,
                             id: item.id,
                             deal_id: item.dealId,
                             dealId: item.dealId,
