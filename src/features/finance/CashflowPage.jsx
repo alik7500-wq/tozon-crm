@@ -1,3 +1,4 @@
+import { InvestmentSummaryCard } from './InvestmentSummaryCard';
 import React, { useState, useEffect, useMemo } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { api } from '../../api/client';
@@ -1734,8 +1735,10 @@ export const CashflowPage = () => {
                 </div>
               );
             })}
+            <InvestmentSummaryCard />
           </div>
         )}
+        {displayedDesks.length === 0 && <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-3.5"><InvestmentSummaryCard /></div>}
       </div>
 
       {/* Filter and Currency Toolbar */}
