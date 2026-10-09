@@ -14,7 +14,8 @@ import {
   buildCashDesksList,
   extractCashDeskFromComment, 
   updateCommentWithCashDesk,
-  resolveManagerDeskId 
+  resolveManagerDeskId,
+  resolveCashDesk
 } from '../../utils/cashDesks';
 import { getPkoJournalDisplay, requiresTjsReconciliation } from '../../utils/pkoJournalFormatter';
 import { 
@@ -275,7 +276,7 @@ export const IncomePage = () => {
   };
 
   return (
-    <div className="space-y-6 max-w-7xl mx-auto pb-16">
+    <div className="space-y-6 w-full min-w-0 pb-16">
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
@@ -654,7 +655,17 @@ export const IncomePage = () => {
         </div>
 
         <div className="overflow-x-auto w-full">
-          <table className="w-full text-xs text-left">
+          <table className="w-full min-w-[1100px] table-fixed text-xs text-left">
+            <colgroup>
+              <col className="w-[8%]" />
+              <col className="w-[15%]" />
+              <col className="w-[17%]" />
+              <col className="w-[10%]" />
+              <col className="w-[9%]" />
+              <col className="w-[17%]" />
+              <col className="w-[15%]" />
+              <col className="w-[108px]" />
+            </colgroup>
             <thead className="bg-slate-50/80 border-b border-slate-200 text-slate-500 font-bold text-[11px] uppercase tracking-wider">
               <tr>
                 <th className="py-2.5 pl-4 pr-2 whitespace-nowrap">Дата</th>
@@ -664,7 +675,7 @@ export const IncomePage = () => {
                 <th className="py-2.5 px-2 text-center whitespace-nowrap">Оплата</th>
                 <th className="py-2.5 px-2.5 whitespace-nowrap">Сумма прихода</th>
                 <th className="py-2.5 px-2.5">Ответственный</th>
-                <th className="py-2.5 pr-4 text-right whitespace-nowrap">Действия</th>
+                <th className="sticky right-0 z-10 bg-slate-50 py-2.5 px-2 text-right whitespace-nowrap">Действия</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100 font-medium">
@@ -677,7 +688,7 @@ export const IncomePage = () => {
                       return parts.length === 3 ? `${parts[2]}.${parts[1]}.${parts[0]}` : dayjs(item.date).format('DD.MM.YYYY');
                     })()}
                   </td>
-                  <td className="py-2.5 px-2 font-bold text-slate-900 font-mono text-[11px] whitespace-nowrap">
+                  <td className="py-2.5 px-2 font-bold text-slate-900 font-mono text-[11px] truncate" title={item.document_number || item.reference}>
                     {(() => {
                       if (item.document_number) return item.document_number;
                       const ref = item.reference;
@@ -764,8 +775,8 @@ export const IncomePage = () => {
                       </div>
                     )}
                   </td>
-                  <td className="py-2.5 pr-4 text-right whitespace-nowrap">
-                    <div className="flex items-center justify-end gap-1">
+                  <td className="sticky right-0 z-10 bg-white py-2.5 px-2 text-right whitespace-nowrap shadow-[-4px_0_6px_-4px_rgba(0,0,0,0.15)]">
+                    <div className="flex items-center justify-end gap-1 [&>button]:shrink-0">
                       <button
                         onClick={() => {
                           const ref = item.reference;
@@ -835,7 +846,7 @@ export const IncomePage = () => {
                               });
                             }}
                             title="Редактировать ПКО (Админ)"
-                            className="p-1.5 rounded-lg text-slate-400 hover:text-blue-600 hover:bg-blue-50 transition cursor-pointer"
+                            className="p-1.5 rounded-lg text-blue-600 hover:text-blue-700 hover:bg-blue-50 transition cursor-pointer"
                           >
                             <Edit className="h-4 w-4" />
                           </button>
