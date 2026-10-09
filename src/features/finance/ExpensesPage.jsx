@@ -452,7 +452,7 @@ export const ExpensesPage = () => {
   };
 
   return (
-    <div className="space-y-6 max-w-7xl mx-auto pb-16">
+    <div className="space-y-6 w-full min-w-0 pb-16">
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
@@ -744,7 +744,17 @@ export const ExpensesPage = () => {
         </div>
 
         <div className="overflow-x-auto w-full">
-          <table className="w-full text-xs text-left">
+          <table className="w-full min-w-[1100px] table-fixed text-xs text-left">
+            <colgroup>
+              <col className="w-[8%]" />
+              <col className="w-[12%]" />
+              <col className="w-[15%]" />
+              <col className="w-[19%]" />
+              <col className="w-[10%]" />
+              <col className="w-[13%]" />
+              <col className="w-[14%]" />
+              <col className="w-[108px]" />
+            </colgroup>
             <thead className="bg-slate-50/80 border-b border-slate-200 text-slate-500 font-bold text-[11px] uppercase tracking-wider">
               <tr>
                 <th className="py-2.5 pl-4 pr-2 whitespace-nowrap">Дата</th>
@@ -754,7 +764,7 @@ export const ExpensesPage = () => {
                 <th className="py-2.5 px-2 text-center whitespace-nowrap">Оплата</th>
                 <th className="py-2.5 px-2.5 whitespace-nowrap">Сумма расхода</th>
                 <th className="py-2.5 px-2.5">Назначение</th>
-                <th className="py-2.5 pr-4 text-right whitespace-nowrap">Действия</th>
+                <th className="sticky right-0 z-10 bg-slate-50 py-2.5 px-2 text-right whitespace-nowrap">Действия</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100 font-medium">
@@ -763,16 +773,16 @@ export const ExpensesPage = () => {
                   <td className="py-2.5 pl-4 pr-2 whitespace-nowrap text-slate-600 font-semibold text-[11px]">
                     {dayjs(item.date).format('DD.MM.YYYY')}
                   </td>
-                  <td className="py-2.5 px-2 font-bold text-slate-900 font-mono text-[11px] whitespace-nowrap">
+                  <td className="py-2.5 px-2 font-bold text-slate-900 font-mono text-[11px] truncate" title={item.document_number || item.reference}>
                     {item.document_number || item.reference || `РКО-${item.id}`}
                   </td>
-                  <td className="py-2.5 px-2.5 font-bold text-slate-900 text-xs leading-tight line-clamp-1" title={item.recipient}>
+                  <td className="py-2.5 px-2.5 font-bold text-slate-900 text-xs leading-tight truncate" title={item.recipient}>
                     {item.recipient}
                   </td>
                   <td className="py-2.5 px-2 text-center whitespace-nowrap">
-                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-bold bg-slate-100 text-slate-700">
-                      <Tag className="h-2.5 w-2.5 text-slate-500" />
-                      {item.category}
+                    <span className="inline-flex max-w-full items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-bold bg-slate-100 text-slate-700" title={item.category}>
+                      <Tag className="h-2.5 w-2.5 shrink-0 text-slate-500" />
+                      <span className="truncate">{item.category}</span>
                     </span>
                   </td>
                   <td className="py-2.5 px-2 text-center whitespace-nowrap">
@@ -787,8 +797,8 @@ export const ExpensesPage = () => {
                   <td className="py-2.5 px-2.5 text-slate-500 text-[11px] max-w-[200px] truncate" title={item.description}>
                     {item.description ? item.description.replace(/\[Касса:\s*[^\]]+\]\s*/gi, '').replace(/\[IDEMP:[^\]]+\]\s*/gi, '').trim() || '-' : '-'}
                   </td>
-                  <td className="py-2.5 pr-4 text-right whitespace-nowrap">
-                    <div className="flex items-center justify-end gap-1">
+                  <td className="sticky right-0 z-10 bg-white py-2.5 px-2 text-right whitespace-nowrap shadow-[-4px_0_6px_-4px_rgba(0,0,0,0.15)]">
+                    <div className="flex items-center justify-end gap-1 [&>button]:shrink-0">
                       <button
                         onClick={() => setPrintableExpense({
                           document_number: item.document_number,
