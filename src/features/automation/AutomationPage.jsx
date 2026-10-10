@@ -709,6 +709,28 @@ export const AutomationPage = () => {
               <ConnectionActions links={[['Подключить Green API', 'https://green-api.com/'], ['Открыть Meta', 'https://business.facebook.com/']]} onSettings={() => setActiveTab('CHANNELS')} onCopy={copyWebhookUrl} copied={copiedUrl} />
             </div>
 
+            {/* Google Sheets quick connection */}
+            <div className="rounded-3xl border border-emerald-200 bg-gradient-to-br from-white to-emerald-50 p-5 shadow-2xs space-y-3">
+              <div className="flex items-center gap-3">
+                <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-emerald-600 text-white shadow-xs">
+                  <FileCode className="h-5 w-5" />
+                </div>
+                <div>
+                  <h4 className="text-sm font-bold text-slate-900">Google Таблицы</h4>
+                  <p className="text-[11px] text-slate-500">Передача заявок из таблицы в TOZON CRM</p>
+                </div>
+              </div>
+              <p className="text-xs text-slate-600 leading-relaxed">
+                Откройте Google Таблицы и настройте в Make или Albato отправку новой строки на Webhook URL CRM.
+              </p>
+              <div className="rounded-xl bg-white/80 p-3 text-[11px] text-slate-600 space-y-1">
+                <div>1. Выберите таблицу и лист с заявками.</div>
+                <div>2. Сопоставьте ФИО, телефон и примечание с полями CRM.</div>
+                <div>3. Скопируйте Webhook URL и включите сценарий в выбранном сервисе.</div>
+              </div>
+              <ConnectionActions links={[['Открыть Google Таблицы', 'https://docs.google.com/spreadsheets/'], ['Подключить через Make', 'https://www.make.com/en/integrations/google-sheets'], ['Подключить через Albato', 'https://albato.com/']]} onCopy={copyWebhookUrl} copied={copiedUrl} />
+            </div>
+
             {/* Card 4: Сайт / Tilda / WordPress */}
             <div className="rounded-3xl border border-slate-200 bg-white p-5 shadow-2xs space-y-3">
               <div className="flex items-center gap-3">
