@@ -17,7 +17,9 @@ export function isPureUsdOperation(item) {
     item.category === 'Внутренние перемещения между кассами'
   );
 
-  return isTransfer || Boolean(item.is_pure_usd || item.isPureUsd);
+  const directReceipt = (item.dealId === null || item.deal_id === null || item.contract === 'Прямой приход' || item.contract === 'Инвестиция партнёра')
+    && !item.dealId && !item.deal_id && !item.deal?.id;
+  return isTransfer || directReceipt || Boolean(item.is_pure_usd || item.isPureUsd);
 }
 
 export function getPkoJournalDisplay(item) {
