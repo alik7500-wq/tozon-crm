@@ -156,9 +156,11 @@ export const NotificationsPage = () => {
       });
     }
 
-    // Deep-link navigation based on entity_type & entity_id
+    // Deep-link navigation based on action_url, entity_type & type
     const type = n.event_type || n.type;
-    if (n.entity_type === 'LEAD' || type === 'LEAD_CREATED') {
+    if (n.action_url) {
+      navigate(n.action_url);
+    } else if (n.entity_type === 'LEAD' || type === 'LEAD_CREATED' || type === 'LEAD_UNASSIGNED') {
       navigate(n.entity_id ? `/clients?clientId=${n.entity_id}` : '/clients');
     } else if (n.entity_type === 'DEAL' || type === 'RESERVATION_CREATED' || type === 'PAYMENT_DUE' || type === 'PAYMENT_OVERDUE') {
       navigate(n.entity_id ? `/deals?dealId=${n.entity_id}` : '/deals');
@@ -180,11 +182,16 @@ export const NotificationsPage = () => {
       case 'PAYMENT_DUE':
         return <CreditCard className="h-5 w-5 text-emerald-600" />;
       case 'PAYMENT_OVERDUE':
+      case 'MANAGER_TASK_OVERDUE':
         return <AlertCircle className="h-5 w-5 text-rose-600" />;
       case 'LEAD_CREATED':
+      case 'LEAD_UNASSIGNED':
         return <UserPlus className="h-5 w-5 text-purple-600" />;
       case 'RESERVATION_CREATED':
+      case 'MEETING_REMINDER':
         return <FileCheck className="h-5 w-5 text-blue-600" />;
+      case 'CALL_REMINDER':
+        return <Bell className="h-5 w-5 text-blue-600" />;
       case 'SMS_FAILED':
         return <Smartphone className="h-5 w-5 text-amber-600" />;
       default:
