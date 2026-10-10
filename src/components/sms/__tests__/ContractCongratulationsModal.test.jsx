@@ -23,7 +23,7 @@ describe('Contract congratulations', () => {
   });
   it('confirms the existing queued event with the server preview hash', async () => {
     await open();
-    api.post.mockResolvedValueOnce({ success: true });
+    api.post.mockResolvedValueOnce({ success: true, data: { status: 'SENT' } });
     fireEvent.click(screen.getByText('Отправить SMS'));
     await screen.findByText('SMS отправлено');
     expect(api.post).toHaveBeenLastCalledWith('/sms/events/32/confirm', { previewHash: 'server-hash' });

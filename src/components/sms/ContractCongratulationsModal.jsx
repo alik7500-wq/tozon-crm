@@ -35,7 +35,7 @@ export function ContractCongratulationsModal() {
     sendLock.current = true; setSending(true); setError('');
     try {
       const result = await api.post(`/sms/events/${preview.event.id}/confirm`, { previewHash: preview.previewHash });
-      if (!result.success) throw new Error(result.message || 'Не удалось подтвердить отправку');
+      if (!result.success || result.data?.status !== 'SENT') throw new Error('Отправка не подтверждена. Проверьте статус сообщения в очереди SMS.');
       setSent(true);
     } catch (err) { setError(err.message || 'Ошибка отправки. Проверьте статус в истории SMS перед повторной попыткой.'); }
     finally { sendLock.current = false; setSending(false); }
