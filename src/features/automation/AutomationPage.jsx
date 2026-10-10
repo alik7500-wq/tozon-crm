@@ -222,6 +222,31 @@ export const AutomationPage = () => {
         })}
       </div>
 
+      {/* Quick access to My Calls setup */}
+      <section aria-label="Подключение Мои Звонки" className="rounded-3xl border border-cyan-200 bg-gradient-to-r from-blue-50 to-cyan-50 p-6 shadow-2xs">
+        <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-5">
+          <div className="flex items-start gap-4">
+            <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-cyan-600 text-white">
+              <Smartphone className="h-6 w-6" />
+            </div>
+            <div>
+              <h2 className="text-lg font-extrabold text-slate-900">Мои Звонки</h2>
+              <p className="mt-1 text-sm text-slate-600">Быстрый переход к подключению телефонов менеджеров и настройке сервиса звонков.</p>
+              <p className="mt-2 text-xs text-slate-500">Войдите в кабинет сервиса, установите приложение на Android и настройте связь с CRM.</p>
+            </div>
+          </div>
+          <div className="flex flex-wrap items-center gap-3 shrink-0">
+            <a href="https://www.moizvonki.ru/accounts/login/" target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-2 rounded-xl bg-blue-600 px-4 py-2.5 text-xs font-bold text-white hover:bg-blue-700 transition">
+              Подключить Мои Звонки <ExternalLink className="h-4 w-4" />
+            </a>
+            <a href="https://www.moizvonki.ru/guide/app_install/" target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-2 rounded-xl border border-cyan-200 bg-white px-4 py-2.5 text-xs font-bold text-blue-700 hover:bg-blue-50 transition">
+              Установить на Android <Smartphone className="h-4 w-4" />
+            </a>
+            <a href="https://www.moizvonki.ru/" target="_blank" rel="noopener noreferrer" className="text-xs font-bold text-blue-700 hover:underline">Сайт сервиса</a>
+          </div>
+        </div>
+      </section>
+
       {/* Tab 1: Channels & Adapters */}
       {activeTab === 'CHANNELS' && settings && (
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
