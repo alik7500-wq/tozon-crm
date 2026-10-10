@@ -26,6 +26,18 @@ import {
   Play
 } from 'lucide-react';
 
+const ConnectionActions = ({ links, onSettings, onCopy, copied }) => (
+  <div className="flex flex-wrap items-center gap-2 border-t border-slate-100 pt-3">
+    {links.map(([label, href], index) => (
+      <a key={href} href={href} target="_blank" rel="noopener noreferrer" className={`inline-flex items-center gap-1.5 rounded-xl px-3 py-2 text-xs font-bold transition ${index === 0 ? 'bg-blue-600 text-white hover:bg-blue-700' : 'border border-slate-200 bg-white text-blue-700 hover:bg-blue-50'}`}>
+        {label}<ExternalLink className="h-3.5 w-3.5" />
+      </a>
+    ))}
+    {onSettings && <button type="button" onClick={onSettings} className="inline-flex items-center gap-1.5 rounded-xl border border-slate-200 px-3 py-2 text-xs font-bold text-slate-700 hover:bg-slate-50"><Settings className="h-3.5 w-3.5" />Настройки в CRM</button>}
+    {onCopy && <button type="button" onClick={onCopy} className="inline-flex items-center gap-1.5 rounded-xl border border-slate-200 px-3 py-2 text-xs font-bold text-slate-700 hover:bg-slate-50"><Copy className="h-3.5 w-3.5" />{copied ? 'URL скопирован' : 'Копировать Webhook URL'}</button>}
+  </div>
+);
+
 export const AutomationPage = () => {
   const [activeTab, setActiveTab] = useState('CHANNELS'); // 'CHANNELS', 'RULES', 'TEMPLATES', 'LOGS', 'WEBHOOKS'
   const [settings, setSettings] = useState(null);
@@ -305,6 +317,8 @@ export const AutomationPage = () => {
               </div>
             </div>
 
+            <ConnectionActions links={[["Открыть BotFather","https://t.me/BotFather"]]} />
+
             <button
               onClick={() => openTestModal('TELEGRAM')}
               className="w-full flex items-center justify-center gap-2 rounded-xl bg-blue-50 border border-blue-200 py-2.5 text-xs font-bold text-blue-700 hover:bg-blue-100 transition cursor-pointer"
@@ -369,6 +383,8 @@ export const AutomationPage = () => {
               </div>
             </div>
 
+            <ConnectionActions links={[["Подключить Green API","https://green-api.com/"]]} />
+
             <button
               onClick={() => openTestModal('WHATSAPP')}
               className="w-full flex items-center justify-center gap-2 rounded-xl bg-emerald-50 border border-emerald-200 py-2.5 text-xs font-bold text-emerald-700 hover:bg-emerald-100 transition cursor-pointer"
@@ -432,6 +448,8 @@ export const AutomationPage = () => {
                 </div>
               </div>
             </div>
+
+            <ConnectionActions links={[["Открыть Payom.tj","https://payom.tj/"]]} />
 
             <button
               onClick={() => openTestModal('SMS')}
@@ -646,6 +664,7 @@ export const AutomationPage = () => {
                 <div>✓ Авто-создание Лида со статусом NEW</div>
                 <div>✓ Авто-задача менеджеру: «Первичный звонок»</div>
               </div>
+              <ConnectionActions links={[['Открыть Meta', 'https://business.facebook.com/'], ['Подключить через Albato', 'https://albato.com/'], ['Подключить через Make', 'https://www.make.com/']]} onCopy={copyWebhookUrl} copied={copiedUrl} />
             </div>
 
             {/* Card 2: Telegram Bot */}
@@ -666,6 +685,7 @@ export const AutomationPage = () => {
                 <div>✓ Мгновенное оповещение в рабочий Telegram-чат</div>
                 <div>✓ Автоматическая фиксация номера телефона</div>
               </div>
+              <ConnectionActions links={[['Создать / настроить бота', 'https://t.me/BotFather']]} onSettings={() => setActiveTab('CHANNELS')} onCopy={copyWebhookUrl} copied={copiedUrl} />
             </div>
 
             {/* Card 3: WhatsApp Business */}
@@ -686,6 +706,7 @@ export const AutomationPage = () => {
                 <div>✓ Прямая ссылка для звонка и переписки из CRM</div>
                 <div>✓ Привязка истории сообщений</div>
               </div>
+              <ConnectionActions links={[['Подключить Green API', 'https://green-api.com/'], ['Открыть Meta', 'https://business.facebook.com/']]} onSettings={() => setActiveTab('CHANNELS')} onCopy={copyWebhookUrl} copied={copiedUrl} />
             </div>
 
             {/* Card 4: Сайт / Tilda / WordPress */}
@@ -706,6 +727,7 @@ export const AutomationPage = () => {
                 <div>✓ Фиксация выбранного ЖК и бюджета</div>
                 <div>✓ Передача UTM-меток маркетинга</div>
               </div>
+              <ConnectionActions links={[['Открыть Tilda', 'https://tilda.cc/'], ['Инструкция подключения', 'https://help.tilda.cc/forms/webhook']]} onCopy={copyWebhookUrl} copied={copiedUrl} />
             </div>
           </div>
 
