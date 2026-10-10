@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { api } from '../../api/client';
+import { LeadCalls } from './LeadCalls';
 import { useModalDismiss } from '../../hooks/useModalDismiss';
 import { formatContractNumber } from '../../utils/formatters';
 import { SendSmsModal } from '../../components/sms/SendSmsModal';
@@ -301,7 +302,8 @@ export const LeadDrawer = ({ isOpen, onClose, leadId, onLeadUpdated, onEditLead 
             </div>
 
             {/* Navigation Tabs */}
-            <div className="flex border-b border-slate-200 px-5 bg-slate-50/50 gap-2">
+            <div className="flex overflow-x-auto shrink-0 border-b border-slate-200 px-5 bg-slate-50/50 gap-2">
+              <button type="button" onClick={() => setActiveTab('calls')} className={`shrink-0 py-3 px-3 text-xs font-bold border-b-2 flex items-center gap-1.5 ${activeTab === 'calls' ? 'border-purple-600 text-purple-700' : 'border-transparent text-slate-500'}`}><Phone className="h-3.5 w-3.5" />Звонки</button>
               <button
                 type="button"
                 onClick={() => setActiveTab('notes')}
@@ -366,6 +368,7 @@ export const LeadDrawer = ({ isOpen, onClose, leadId, onLeadUpdated, onEditLead 
 
             {/* Tab Body */}
             <div className="p-6 space-y-6 flex-1">
+              {activeTab === 'calls' && <LeadCalls key={lead.id} lead={lead} />}
               {/* TAB 1: NOTES & TIMELINE */}
               {activeTab === 'notes' && (
                 <div className="space-y-4">
