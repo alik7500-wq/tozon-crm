@@ -163,7 +163,8 @@ export const PaymentReceiptPrintModal = ({ payment, deal, onClose, initialLang =
     amountTJS = rawAmount * effectiveRate;
   }
 
-  const isPureUsd = paymentCur === 'USD' && amountTJS === null && (isTransfer || payment.is_pure_usd || payment.isPureUsd);
+  const isDirectUsd = !activeDeal?.id && !payment.deal_id && !payment.dealId && !payment.deal?.id;
+  const isPureUsd = paymentCur === 'USD' && amountTJS === null && (isTransfer || isDirectUsd || payment.is_pure_usd || payment.isPureUsd);
   const isTjsDefined = amountTJS !== null && !isNaN(amountTJS) && amountTJS > 0;
   const amountNumber = isTjsDefined ? Number(amountTJS.toFixed(2)) : (isPureUsd ? Number(rawAmount.toFixed(2)) : 0);
 
