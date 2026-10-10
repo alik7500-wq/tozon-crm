@@ -167,6 +167,14 @@ export const NotificationsPage = () => {
     }
   };
 
+  const maskPhoneNumber = (text) => {
+    if (!text || typeof text !== 'string') return text;
+    return text.replace(/(\+?992)?[\s-]*(\d{2})[\s-]*(\d{3})[\s-]*(\d{2})[\s-]*(\d{2})/g, (match, prefix, p1, p2, p3, p4) => {
+      const p = prefix ? prefix : '+992';
+      return `${p}******${p4}`;
+    });
+  };
+
   const getIcon = (type) => {
     switch (type) {
       case 'PAYMENT_DUE':
@@ -246,6 +254,7 @@ export const NotificationsPage = () => {
           <button
             onClick={fetchNotifications}
             title="Обновить список"
+            aria-label="Обновить список"
             className="flex items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-bold text-slate-700 hover:bg-slate-50 transition cursor-pointer shadow-2xs"
           >
             <RefreshCw className={`h-3.5 w-3.5 text-slate-500 ${isLoading ? 'animate-spin' : ''}`} />
@@ -256,6 +265,8 @@ export const NotificationsPage = () => {
             <button
               onClick={markAllAsRead}
               disabled={isMarkingAllRead}
+              title="Отметить все как прочитанные"
+              aria-label="Отметить все как прочитанные"
               className="flex items-center gap-1.5 rounded-xl border border-blue-200 bg-blue-50 px-3.5 py-2 text-xs font-bold text-blue-700 hover:bg-blue-100 disabled:opacity-50 transition cursor-pointer shadow-2xs"
             >
               <CheckCheck className="h-4 w-4" />
@@ -265,11 +276,15 @@ export const NotificationsPage = () => {
         </div>
       </div>
 
-      {/* 1. Clickable Metric Banners (Server-backed Counts) */}
+      {/* 1. Clickable Metric Banners (Primary Filter Mechanism) */}
       <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
         {/* Banner: Все */}
         <div
           onClick={() => setActiveCategory('all')}
+          title="Фильтр: Все уведомления"
+          role="button"
+          tabIndex={0}
+          aria-label="Фильтр: Все уведомления"
           className={`p-3.5 rounded-2xl border transition cursor-pointer flex flex-col justify-between ${
             activeCategory === 'all'
               ? 'bg-blue-50/80 border-blue-300 ring-2 ring-blue-500/20 shadow-xs'
@@ -289,6 +304,10 @@ export const NotificationsPage = () => {
         {/* Banner: Непрочитанные */}
         <div
           onClick={() => setActiveCategory('unread')}
+          title="Фильтр: Непрочитанные"
+          role="button"
+          tabIndex={0}
+          aria-label="Фильтр: Непрочитанные"
           className={`p-3.5 rounded-2xl border transition cursor-pointer flex flex-col justify-between ${
             activeCategory === 'unread'
               ? 'bg-rose-50/80 border-rose-300 ring-2 ring-rose-500/20 shadow-xs'
@@ -314,6 +333,10 @@ export const NotificationsPage = () => {
         {/* Banner: Платежи */}
         <div
           onClick={() => setActiveCategory('payments')}
+          title="Фильтр: Платежи"
+          role="button"
+          tabIndex={0}
+          aria-label="Фильтр: Платежи"
           className={`p-3.5 rounded-2xl border transition cursor-pointer flex flex-col justify-between ${
             activeCategory === 'payments'
               ? 'bg-emerald-50/80 border-emerald-300 ring-2 ring-emerald-500/20 shadow-xs'
@@ -333,6 +356,10 @@ export const NotificationsPage = () => {
         {/* Banner: Лиды и брони */}
         <div
           onClick={() => setActiveCategory('leads')}
+          title="Фильтр: Лиды и брони"
+          role="button"
+          tabIndex={0}
+          aria-label="Фильтр: Лиды и брони"
           className={`p-3.5 rounded-2xl border transition cursor-pointer flex flex-col justify-between ${
             activeCategory === 'leads'
               ? 'bg-purple-50/80 border-purple-300 ring-2 ring-purple-500/20 shadow-xs'
@@ -352,6 +379,10 @@ export const NotificationsPage = () => {
         {/* Banner: Ошибки SMS */}
         <div
           onClick={() => setActiveCategory('sms')}
+          title="Фильтр: Ошибки SMS"
+          role="button"
+          tabIndex={0}
+          aria-label="Фильтр: Ошибки SMS"
           className={`p-3.5 rounded-2xl border transition cursor-pointer flex flex-col justify-between ${
             activeCategory === 'sms'
               ? 'bg-amber-50/80 border-amber-300 ring-2 ring-amber-500/20 shadow-xs'
@@ -367,79 +398,6 @@ export const NotificationsPage = () => {
             <span className="text-[11px] font-semibold text-slate-500">сбои</span>
           </div>
         </div>
-      </div>
-
-      {/* 2. Category Filter Tabs */}
-      <div className="flex items-center gap-1.5 overflow-x-auto pb-1 border-b border-slate-200 no-scrollbar">
-        <button
-          onClick={() => setActiveCategory('all')}
-          className={`px-3.5 py-2 rounded-xl text-xs font-bold transition whitespace-nowrap cursor-pointer flex items-center gap-2 ${
-            activeCategory === 'all'
-              ? 'bg-slate-900 text-white shadow-2xs'
-              : 'bg-white border border-slate-200 text-slate-600 hover:bg-slate-50'
-          }`}
-        >
-          <span>Все</span>
-          <span className={`px-1.5 py-0.5 rounded-md text-[10px] font-extrabold ${activeCategory === 'all' ? 'bg-slate-800 text-slate-200' : 'bg-slate-100 text-slate-600'}`}>
-            {stats.total}
-          </span>
-        </button>
-
-        <button
-          onClick={() => setActiveCategory('unread')}
-          className={`px-3.5 py-2 rounded-xl text-xs font-bold transition whitespace-nowrap cursor-pointer flex items-center gap-2 ${
-            activeCategory === 'unread'
-              ? 'bg-rose-600 text-white shadow-2xs'
-              : 'bg-white border border-slate-200 text-slate-600 hover:bg-slate-50'
-          }`}
-        >
-          <span>Непрочитанные</span>
-          <span className={`px-1.5 py-0.5 rounded-md text-[10px] font-extrabold ${activeCategory === 'unread' ? 'bg-rose-700 text-rose-100' : 'bg-rose-50 text-rose-700'}`}>
-            {stats.unread}
-          </span>
-        </button>
-
-        <button
-          onClick={() => setActiveCategory('payments')}
-          className={`px-3.5 py-2 rounded-xl text-xs font-bold transition whitespace-nowrap cursor-pointer flex items-center gap-2 ${
-            activeCategory === 'payments'
-              ? 'bg-emerald-600 text-white shadow-2xs'
-              : 'bg-white border border-slate-200 text-slate-600 hover:bg-slate-50'
-          }`}
-        >
-          <span>Платежи</span>
-          <span className={`px-1.5 py-0.5 rounded-md text-[10px] font-extrabold ${activeCategory === 'payments' ? 'bg-emerald-700 text-emerald-100' : 'bg-emerald-50 text-emerald-700'}`}>
-            {stats.payments}
-          </span>
-        </button>
-
-        <button
-          onClick={() => setActiveCategory('leads')}
-          className={`px-3.5 py-2 rounded-xl text-xs font-bold transition whitespace-nowrap cursor-pointer flex items-center gap-2 ${
-            activeCategory === 'leads'
-              ? 'bg-purple-600 text-white shadow-2xs'
-              : 'bg-white border border-slate-200 text-slate-600 hover:bg-slate-50'
-          }`}
-        >
-          <span>Лиды и бронирования</span>
-          <span className={`px-1.5 py-0.5 rounded-md text-[10px] font-extrabold ${activeCategory === 'leads' ? 'bg-purple-700 text-purple-100' : 'bg-purple-50 text-purple-700'}`}>
-            {stats.leads_and_reservations}
-          </span>
-        </button>
-
-        <button
-          onClick={() => setActiveCategory('sms')}
-          className={`px-3.5 py-2 rounded-xl text-xs font-bold transition whitespace-nowrap cursor-pointer flex items-center gap-2 ${
-            activeCategory === 'sms'
-              ? 'bg-amber-600 text-white shadow-2xs'
-              : 'bg-white border border-slate-200 text-slate-600 hover:bg-slate-50'
-          }`}
-        >
-          <span>Ошибки SMS</span>
-          <span className={`px-1.5 py-0.5 rounded-md text-[10px] font-extrabold ${activeCategory === 'sms' ? 'bg-amber-700 text-amber-100' : 'bg-amber-50 text-amber-700'}`}>
-            {stats.sms_failed}
-          </span>
-        </button>
       </div>
 
       {/* Notifications List Content */}
@@ -495,7 +453,7 @@ export const NotificationsPage = () => {
                         {formatTime(n.created_at)}
                       </span>
                     </div>
-                    <p className="mt-1 text-xs text-slate-600 leading-relaxed">{n.message}</p>
+                    <p className="mt-1 text-xs text-slate-600 leading-relaxed break-words">{maskPhoneNumber(n.message)}</p>
                   </div>
 
                   <div className="flex items-center gap-2 self-center shrink-0">
@@ -504,12 +462,17 @@ export const NotificationsPage = () => {
                         onClick={(e) => markSingleAsRead(e, n.id)}
                         disabled={isPending}
                         title="Отметить прочитанным"
-                        className="p-1.5 rounded-lg border border-slate-200 bg-white text-slate-400 hover:text-blue-600 hover:bg-blue-50 disabled:opacity-50 transition cursor-pointer"
+                        aria-label="Отметить прочитанным"
+                        className="p-2 min-h-[36px] min-w-[36px] flex items-center justify-center rounded-xl border border-slate-200 bg-white text-slate-400 hover:text-blue-600 hover:bg-blue-50 disabled:opacity-50 transition cursor-pointer shadow-2xs"
                       >
                         <Check className="h-4 w-4" />
                       </button>
                     )}
-                    <div className="text-slate-300 group-hover:text-blue-600 transition-colors">
+                    <div
+                      title="Открыть связанную запись"
+                      aria-label="Открыть связанную запись"
+                      className="p-2 min-h-[36px] min-w-[36px] flex items-center justify-center rounded-xl border border-transparent group-hover:border-blue-100 group-hover:bg-blue-50 text-slate-300 group-hover:text-blue-600 transition-all cursor-pointer"
+                    >
                       <ChevronRight className="h-4 w-4" />
                     </div>
                   </div>
