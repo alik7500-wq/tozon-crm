@@ -1,7 +1,7 @@
 import { defaultPrintLanguage } from '../settings/InterfaceSettingsTab';
 import { TemplateDocumentButton } from '../settings/TemplateDocumentButton';
 import { dealDocumentContext } from '../settings/documentTemplates';
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { Printer, ArrowLeft, Receipt } from 'lucide-react';
 import { formatContractNumber } from '../../utils/formatters';
@@ -21,7 +21,9 @@ const MONTHS_RU = [
 ];
 
 export const PaymentReceiptPrintModal = ({ payment, deal, onClose, initialLang = defaultPrintLanguage() }) => {
+  const pkoFormRef = useRef(null);
   const [lang, setLang] = useState(initialLang);
+  const [printHalf, setPrintHalf] = useState('TOP');
   const [asyncDeal, setAsyncDeal] = useState(deal || payment?.deal || null);
 
   const { requestClose } = useModalDismiss({
@@ -55,6 +57,37 @@ export const PaymentReceiptPrintModal = ({ payment, deal, onClose, initialLang =
         .catch(err => console.warn('Could not load deal for receipt:', err));
     }
   }, [deal, payment]);
+
+  useEffect(() => {
+    const fitHalfPage = () => {
+      const form = pkoFormRef.current;
+      if (!form) return;
+      form.style.zoom = '1';
+      form.style.width = '100%';
+      // Reserve 4 mm above the A4 midpoint cutting line.
+      const availableHeight = 132.5 * 96 / 25.4;
+      for (let attempt = 0; attempt < 3; attempt += 1) {
+        const currentZoom = Number(form.style.zoom) || 1;
+        const height = form.getBoundingClientRect().height;
+        if (height <= availableHeight) break;
+        const zoom = currentZoom * availableHeight / height;
+        form.style.zoom = String(zoom);
+        form.style.width = `${100 / zoom}%`;
+      }
+    };
+    const resetFit = () => {
+      if (pkoFormRef.current) {
+        pkoFormRef.current.style.zoom = '';
+        pkoFormRef.current.style.width = '';
+      }
+    };
+    window.addEventListener('beforeprint', fitHalfPage);
+    window.addEventListener('afterprint', resetFit);
+    return () => {
+      window.removeEventListener('beforeprint', fitHalfPage);
+      window.removeEventListener('afterprint', resetFit);
+    };
+  }, []);
 
   if (!payment) return null;
 
@@ -252,7 +285,30 @@ export const PaymentReceiptPrintModal = ({ payment, deal, onClose, initialLang =
 
   return createPortal(
     <div className="print-portal-root fixed inset-0 z-50 overflow-y-auto bg-slate-900/60 backdrop-blur-xs p-2 sm:p-6 flex justify-center animate-in fade-in print:static print:p-0 print:m-0 print:bg-white print:overflow-visible print:block print:h-auto">
-      <div className="print-document-root relative w-full max-w-5xl bg-white rounded-2xl shadow-2xl overflow-hidden flex flex-col my-auto border border-slate-200 print:border-none print:shadow-none print:rounded-none print:max-w-none print:w-full print:overflow-visible print:m-0 print:p-0 print:static print:block print:h-auto">
+      <div className="pko-half-page print-document-root relative w-full max-w-5xl bg-white rounded-2xl shadow-2xl overflow-hidden flex flex-col my-auto border border-slate-200 print:border-none print:shadow-none print:rounded-none print:max-w-none print:w-full print:overflow-visible print:m-0 print:p-0 print:static print:block print:h-auto">
+        <style>{`
+          @page pkoHalfA4 { size: A4 portrait; margin: 8mm; }
+          @media print {
+            .pko-half-page { page: pkoHalfA4; }
+            .pko-half-page #print-section {
+              position: relative !important;
+              height: 281mm !important;
+              box-sizing: border-box;
+              padding: 2mm 0 4mm !important;
+              break-inside: avoid;
+            }
+            .pko-half-page .pko-form { break-inside: avoid; overflow: visible; }
+            .pko-half-page #print-section.pko-bottom-slot { padding-top: 142.5mm !important; }
+            .pko-half-page .pko-form > div:not(.absolute) { padding: 3mm; min-width: 0; }
+            .pko-half-page .pko-form .space-y-3 > :not(:last-child) { margin-bottom: 2mm; }
+            .pko-half-page .pko-form .space-y-2\\.5 > :not(:last-child) { margin-bottom: 1.5mm; }
+            .pko-half-page .pko-form table { break-inside: avoid !important; }
+            .pko-half-page .pko-cut-line {
+              display: block !important; position: absolute; top: 140.5mm; left: 0; right: 0;
+              border-top: 1px dashed #777; height: 0;
+            }
+          }
+        `}</style>
         {/* Controls bar (Hidden during print) */}
         <div className="print:hidden flex items-center justify-between bg-slate-900 text-white px-4 sm:px-6 py-3 border-b border-slate-800 flex-wrap gap-2">
           <div className="flex items-center gap-3">
@@ -272,7 +328,14 @@ export const PaymentReceiptPrintModal = ({ payment, deal, onClose, initialLang =
             </span>
           </div>
 
-          <div className="flex items-center gap-2.5">
+          <div className="flex items-center gap-2.5 flex-wrap">
+            <label className="flex items-center gap-2 text-xs">
+              {isTJ ? 'Нимаи варақ' : 'Половина листа'}
+              <select value={printHalf} onChange={e => setPrintHalf(e.target.value)} className="rounded-lg bg-slate-800 border border-slate-600 px-2 py-1.5 text-white">
+                <option value="TOP">{isTJ ? 'Боло' : 'Верхняя'}</option>
+                <option value="BOTTOM">{isTJ ? 'Поён' : 'Нижняя'}</option>
+              </select>
+            </label>
             {/* Language Toggle */}
             <div className="flex items-center bg-slate-800 p-1 rounded-xl border border-slate-700 gap-1">
               <button
@@ -311,9 +374,12 @@ export const PaymentReceiptPrintModal = ({ payment, deal, onClose, initialLang =
           </div>
         </div>
 
+        <div className="print:hidden px-4 py-2 text-xs text-slate-600 bg-slate-50">
+          {isTJ ? 'А4: як ПКО дар нимаи интихобшудаи варақ. Аз хати нуқтадор буред.' : 'А4: один ПКО в выбранной половине листа. Для второго ПКО используйте свободную половину. Масштаб печати — 100%, колонтитулы отключите.'}
+        </div>
         {/* OFFICIAL DUAL-PANEL PKO DOCUMENT (Шакли КО-1) */}
-        <div id="print-section" className="p-4 sm:p-8 text-black font-serif select-text bg-white">
-          <div className="relative flex flex-row border border-black w-full overflow-hidden">
+        <div id="print-section" className={`${printHalf === 'BOTTOM' ? 'pko-bottom-slot' : ''} p-4 sm:p-8 text-black font-serif select-text bg-white`}>
+          <div ref={pkoFormRef} className="pko-form relative flex flex-row border border-black w-full overflow-hidden">
             {payment?.status === 'VOIDED' && (
               <div className="absolute inset-0 flex items-center justify-center pointer-events-none select-none z-10">
                 <div className="text-red-500/20 text-5xl sm:text-7xl font-black uppercase tracking-widest -rotate-45 border-4 sm:border-8 border-red-500/20 p-6 rounded-3xl text-center">
@@ -563,6 +629,7 @@ export const PaymentReceiptPrintModal = ({ payment, deal, onClose, initialLang =
             </div>
 
           </div>
+          <div className="pko-cut-line hidden" aria-hidden="true" />
         </div>
       </div>
     </div>,
