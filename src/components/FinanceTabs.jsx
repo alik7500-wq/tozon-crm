@@ -10,6 +10,7 @@ export const FinanceTabs = ({ compact = false, className = '' }) => {
     { label: 'Реестр должников', path: '/finance/debtors', icon: AlertCircle },
     { label: 'Реестр приходов (ПКО)', path: '/finance/income', icon: TrendingUp },
     { label: 'Реестр расходов (РКО)', path: '/finance/expenses', icon: TrendingDown },
+    { label: 'Строительный учёт', path: '/finance/construction', icon: Table },
     { label: 'ДДС (Движение средств)', path: '/finance/cashflow', icon: Wallet },
   ];
 

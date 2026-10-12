@@ -154,6 +154,7 @@ export const MainLayout = () => {
         { label: 'Реестр должников', path: '/finance/debtors', icon: AlertCircle, permission: 'finance.debtors' },
         { label: 'Доходы (ПКО)', path: '/finance/income', icon: TrendingUp, permission: 'finance.payments' },
         { label: 'Расходы (РКО)', path: '/finance/expenses', icon: TrendingDown, permission: 'finance.expenses' },
+        { label: 'Строительный учёт', path: '/finance/construction', icon: Table, permission: 'construction.stock', permissionsAny: ['construction.stock','construction.advance','construction.settlements'] },
         { label: 'ДДС (Движение средств)', path: '/finance/cashflow', icon: Wallet, permission: 'finance.cashflow' },
       ],
     },
@@ -173,7 +174,7 @@ export const MainLayout = () => {
       }
       if (item.type === 'group') {
         const allowedChildren = item.children.filter(
-          (child) => !child.permission || hasPermission(user, child.permission)
+          (child) => child.permissionsAny ? child.permissionsAny.some(p=>hasPermission(user,p)) : !child.permission || hasPermission(user, child.permission)
         );
         if (allowedChildren.length === 0) {
           return null;

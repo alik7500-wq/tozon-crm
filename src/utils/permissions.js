@@ -1,4 +1,10 @@
 export const PERMISSION_GROUPS = [
+  { id: 'construction', title: 'Строительный учёт', permissions: [
+    { key: 'construction.stock', label: 'Склад', desc: 'Поступления, выдача и перемещения материалов' },
+    { key: 'construction.advance', label: 'Свой подотчёт', desc: 'Собственные авансовые отчёты и остатки' },
+    { key: 'construction.settlements', label: 'Взаиморасчёты', desc: 'Все долги, авансы и денежные операции подотчёта' },
+    { key: 'construction.settings', label: 'Настройка строительного учёта', desc: 'Справочники, связь сотрудников и назначение утверждающего' },
+  ] },
   {
     id: 'analytics',
     title: 'Аналитика и отчеты',
