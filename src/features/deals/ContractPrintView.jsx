@@ -713,7 +713,7 @@ export const ContractPrintView = ({ deal: initialDeal, onClose, initialLang = de
                       <p className="text-[11px] pt-1"><strong>с/ҳ:</strong> ____________________________________</p>
                       <div className="pt-8">
                         <p className="text-xs font-bold">
-                          {isTJ ? 'Директор:' : 'Директор:'} __________________ {deal.developer_director || 'Иброгимов И. М.'}
+                          {isTJ ? 'Роҳбари иншоот:' : 'Директор:'} __________________ {isTJ ? 'Абдуллоев Акмалхон Раҳматуллоевич' : (deal.developer_director || 'Иброгимов И. М.')}
                         </p>
                         <p className="text-[10px] text-slate-500 mt-0.5">{isTJ ? '(имзо, мӯҳр)' : '(подпись, М.П.)'}</p>
                       </div>
