@@ -18,3 +18,8 @@ it('revokes using a null slot and shows API errors', async () => {
   render(<TelegramFinanceTab/>); await screen.findByText('Synthetic user'); fireEvent.click(screen.getByText('Отозвать доступ'));
   await screen.findByRole('alert'); expect(api.put).toHaveBeenCalledWith('/telegram-finance/subscribers/12345', { slot: null }); expect(screen.getByRole('alert').textContent).toBe('Access failed');
 });
+it('saves the cashier assignment, CRM author and explicit expense permission',async()=>{
+ api.get.mockResolvedValue({data:{tokenConfigured:true,workerActive:true,slots:{ILHOM:'Илхом'},subscribers:[{telegram_id:'12345',display_name:'Synthetic user',slot:'ILHOM',status:'APPROVED'}],deliveries:[],cashDesks:[{id:'desk-a',name:'Own desk'}],crmUsers:[{id:2,name:'Synthetic cashier'}]}});
+ render(<TelegramFinanceTab/>);await screen.findByText('Synthetic user');fireEvent.change(screen.getByLabelText('Касса 12345'),{target:{value:'desk-a'}});fireEvent.change(screen.getByLabelText('Автор РКО 12345'),{target:{value:'2'}});fireEvent.click(screen.getByLabelText('Ввод РКО 12345'));fireEvent.click(screen.getByText('Сохранить кассовый доступ'));
+ await waitFor(()=>expect(api.put).toHaveBeenCalledWith('/telegram-finance/subscribers/12345/cash-access',{cash_desk_id:'desk-a',crm_user_id:2,can_create_expense:true}));
+});
