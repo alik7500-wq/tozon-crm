@@ -1,6 +1,6 @@
 import React from 'react';
 import { describe,it,expect,vi,beforeEach,afterEach } from 'vitest';
-import { render,screen,fireEvent,waitFor,cleanup } from '@testing-library/react';
+import { render,screen,fireEvent,waitFor,cleanup,within } from '@testing-library/react';
 import { QueryClient,QueryClientProvider } from '@tanstack/react-query';
 const mocks=vi.hoisted(()=>({get:vi.fn(),post:vi.fn(),patch:vi.fn()}));
 vi.mock('../../../api/client',()=>({api:mocks}));
@@ -18,6 +18,13 @@ describe('Construction page workflows',()=>{
   expect(screen.queryByRole('button',{name:'Справочники и доступ'})).toBeNull();
   expect(screen.queryByRole('button',{name:'Дебиторы и кредиторы'})).toBeNull();
   expect(screen.getByRole('button',{name:'Подотчёт'})).toBeTruthy();
+ });
+ it('shows opening balance on the first day as opening, not a new period advance',async()=>{
+  const id='b6064e96-2c4b-47f7-95c9-c26fdfd139b9';
+  mocks.get.mockResolvedValue({data:{...initial,documents:[{id,number:1,kind:'OPENING_ADVANCE',doc_date:'2026-10-01',status:'POSTED',currency:'TJS',lines:[]}],settlements:[{id:1,document_id:id,party_id:uid,account:'EMPLOYEE',currency:'TJS',amount:1000}]}});
+  renderPage();await screen.findByText('Строительный учёт');fireEvent.click(screen.getByRole('button',{name:'Подотчёт'}));
+  const cells=within(screen.getByText('Сотрудник должен отчитаться').closest('tr')).getAllByRole('cell');
+  expect(cells[2].textContent.replace(/\s/g,'')).toBe('1000,00');expect(cells[3].textContent).toBe('0,00');
  });
  it('creates an advance report draft with currency, employee and supporting document',async()=>{
   renderPage();await screen.findByText('Строительный учёт');
