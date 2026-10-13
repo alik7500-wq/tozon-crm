@@ -29,7 +29,8 @@ const COLORS = ['#ef4444', '#f97316', '#f59e0b', '#eab308', '#84cc16', '#22c55e'
 export const ExpensesPage = () => {
   const { user } = useAuth();
   const isAdmin = user?.role === 'ADMIN';
-  const isManager = user?.role === 'SALES_MANAGER' || user?.role === 'MANAGER';
+  const isRestrictedFinance = user?.permissions?.includes('finance.restricted');
+  const isManager = isRestrictedFinance || user?.role === 'SALES_MANAGER' || user?.role === 'MANAGER';
 
   const [year, setYear] = useState(new Date().getFullYear());
   const [currency, setCurrency] = useState('ALL');
@@ -47,8 +48,9 @@ export const ExpensesPage = () => {
 
   const managerDeskId = useMemo(() => {
     if (!isManager) return null;
+    if (isRestrictedFinance) return allCashDesks.find(d => d.code === 'MAIN_CASHIER' || d.name?.includes('Илхомчон'))?.id || null;
     return resolveManagerDeskId(user, allCashDesks);
-  }, [isManager, user, allCashDesks]);
+  }, [isManager, isRestrictedFinance, user, allCashDesks]);
 
   const managerDesk = useMemo(() => {
     if (!managerDeskId) return null;
@@ -545,7 +547,7 @@ export const ExpensesPage = () => {
             {isManager ? (
               <div className="flex items-center gap-2 px-3.5 py-1.5 rounded-xl text-xs font-bold bg-rose-600 text-white shadow-xs">
                 <span>💼</span>
-                <span>Касса менеджера (Дадочон)</span>
+                <span>{managerDesk?.name || 'Назначенная касса'}</span>
                 <span className="px-1.5 py-0.5 rounded bg-white/20 text-[10px] ml-1">Персональная</span>
               </div>
             ) : (
