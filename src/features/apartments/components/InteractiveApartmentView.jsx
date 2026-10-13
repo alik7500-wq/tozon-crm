@@ -414,49 +414,49 @@ export const InteractiveApartmentView = ({
           <div className="rounded-xl bg-slate-50 p-3 border border-slate-100">
             <span className="text-[11px] font-semibold text-slate-500">{t('livingArea')}</span>
             <p className="text-sm font-extrabold text-slate-900 mt-0.5">
-              {layout?.living_area ? `${layout.living_area} м²` : `${(unit.area_m2_x100 / 100 * 0.65).toFixed(1)} м²`}
+              {layout?.living_area ? `${layout.living_area} м²` : '—'}
             </p>
           </div>
 
           <div className="rounded-xl bg-slate-50 p-3 border border-slate-100">
             <span className="text-[11px] font-semibold text-slate-500">{t('kitchenArea')}</span>
             <p className="text-sm font-extrabold text-slate-900 mt-0.5">
-              {layout?.kitchen_area ? `${layout.kitchen_area} м²` : '12.5 м²'}
+              {layout?.kitchen_area ? `${layout.kitchen_area} м²` : '—'}
             </p>
           </div>
 
           <div className="rounded-xl bg-slate-50 p-3 border border-slate-100">
             <span className="text-[11px] font-semibold text-slate-500">{t('ceilingHeight')}</span>
             <p className="text-sm font-extrabold text-slate-900 mt-0.5">
-              {layout?.ceiling_height ? `${layout.ceiling_height} м` : '2.80 м'}
+              {layout?.ceiling_height ? `${layout.ceiling_height} м` : '—'}
             </p>
           </div>
 
           <div className="rounded-xl bg-slate-50 p-3 border border-slate-100">
             <span className="text-[11px] font-semibold text-slate-500">{t('bathroomsCount')}</span>
             <p className="text-sm font-extrabold text-slate-900 mt-0.5">
-              {layout?.bathrooms_count ?? 1}
+              {layout?.bathrooms_count ?? '—'}
             </p>
           </div>
 
           <div className="rounded-xl bg-slate-50 p-3 border border-slate-100">
             <span className="text-[11px] font-semibold text-slate-500">{t('balconiesCount')}</span>
             <p className="text-sm font-extrabold text-slate-900 mt-0.5">
-              {layout?.balconies_count ?? 1}
+              {layout?.balconies_count ?? '—'}
             </p>
           </div>
 
           <div className="rounded-xl bg-slate-50 p-3 border border-slate-100">
             <span className="text-[11px] font-semibold text-slate-500">{t('heatingType')}</span>
             <p className="text-xs font-bold text-slate-900 mt-0.5">
-              {layout ? getText(layout.heating_type_tg, layout.heating_type_ru, 'Центральное') : 'Центральное'}
+              {layout ? getText(layout.heating_type_tg, layout.heating_type_ru, '—') : '—'}
             </p>
           </div>
 
           <div className="rounded-xl bg-slate-50 p-3 border border-slate-100">
             <span className="text-[11px] font-semibold text-slate-500">{t('orientation')}</span>
             <p className="text-xs font-bold text-slate-900 mt-0.5">
-              {layout ? getText(layout.orientation_tg, layout.orientation_ru, 'Восток') : 'Восток'}
+              {layout ? getText(layout.orientation_tg, layout.orientation_ru, '—') : '—'}
             </p>
           </div>
         </div>
