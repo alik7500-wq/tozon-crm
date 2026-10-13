@@ -3,6 +3,9 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link rel="manifest" href="/manifest.webmanifest" />
+    <link rel="icon" type="image/svg+xml" href="/tozon-app-icon.svg" />
+    <meta name="theme-color" content="#3154F5" />
     <title>Tozon CRM — Система управления продажами застройщика</title>
     <meta name="description" content="Tozon CRM — Локальная CRM-платформа для отдела продаж застройщика с генпланами, шахматкой и договорами" />
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -11,6 +14,7 @@
   </head>
   <body class="bg-slate-50 text-slate-900 antialiased selection:bg-blue-500 selection:text-white">
     <div id="root"></div>
+    <script src="/install-app.js" defer></script>
     <script type="module" src="/src/main.jsx"></script>
   </body>
 </html>
