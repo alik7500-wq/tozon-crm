@@ -165,6 +165,7 @@ export const MainLayout = () => {
   ];
 
   const filteredNavGroups = navGroups
+    .filter(item => !user?.permissions?.includes('finance.restricted') || item.id === 'finance')
     .map((item) => {
       if (item.type === 'link') {
         if (item.permission && !hasPermission(user, item.permission)) {
