@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { api } from '../../api/client';
 import {
@@ -12,7 +12,10 @@ import {
   CheckCheck,
   Check,
   Inbox,
-  RefreshCw
+  RefreshCw,
+  Clock,
+  AlertTriangle,
+  BarChart2
 } from 'lucide-react';
 
 export const NotificationsPage = () => {
@@ -183,7 +186,14 @@ export const NotificationsPage = () => {
         return <CreditCard className="h-5 w-5 text-emerald-600" />;
       case 'PAYMENT_OVERDUE':
       case 'MANAGER_TASK_OVERDUE':
+      case 'LEAD_FIRST_CONTACT_OVERDUE':
         return <AlertCircle className="h-5 w-5 text-rose-600" />;
+      case 'LEAD_FIRST_CONTACT_WARNING':
+        return <Clock className="h-5 w-5 text-amber-600" />;
+      case 'LEAD_STAGNANT':
+        return <AlertTriangle className="h-5 w-5 text-amber-600" />;
+      case 'LEADS_CONTROL_DIGEST':
+        return <BarChart2 className="h-5 w-5 text-indigo-600" />;
       case 'LEAD_CREATED':
       case 'LEAD_UNASSIGNED':
         return <UserPlus className="h-5 w-5 text-purple-600" />;
