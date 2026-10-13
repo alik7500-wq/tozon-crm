@@ -8,6 +8,7 @@ import { DictionariesTab } from './DictionariesTab';
 import { DocumentTemplatesTab } from './DocumentTemplatesTab';
 import { CompanySettingsTab } from './CompanySettingsTab';
 import { InterfaceSettingsTab } from './InterfaceSettingsTab';
+import { TelegramFinanceTab } from './TelegramFinanceTab';
 import { ALL_PERMISSIONS } from '../../utils/permissions';
 import {
   Settings,
@@ -195,6 +196,7 @@ export const SettingsPage = () => {
         ['Настройки оплаты','Кассы, способы оплаты и статьи ПКО / РКО',()=>setActiveTab('dictionaries'),BookOpen],
         ['Интеграции','Настройки автоматизации и каналов',()=>navigate('/automation'),Sparkles],
         ['Отчёты и показатели','Отчёты о продажах и платежах',()=>navigate('/reports'),Database],
+        ...(['ADMIN','DIRECTOR'].includes(user?.role) ? [['Telegram-отчёты','Продажи, кассы и доступ партнёров · ежедневно в 22:00',()=>setActiveTab('telegram-finance'),ShieldCheck]] : []),
         ['События','Уведомления и события CRM',()=>navigate('/notifications'),CheckCircle2],
         ['Безопасность','Управление ролями и правами пользователей',()=>navigate('/users'),Shield],
       ].map(([title,desc,onClick,Icon])=><button key={title} onClick={onClick} className="text-left rounded-2xl border bg-white p-5 hover:border-blue-400 hover:shadow-sm transition"><Icon className="text-blue-600 h-7 w-7 mb-5"/><h2 className="font-bold text-sm">{title}</h2><p className="text-xs text-slate-500 mt-2">{desc}</p></button>)}</div>}
@@ -254,6 +256,7 @@ export const SettingsPage = () => {
       {/* TAB: DICTIONARIES */}
       {activeTab === 'templates' && user?.role === 'ADMIN' && <DocumentTemplatesTab projects={projects}/>}
       {activeTab === 'interface' && <InterfaceSettingsTab/>}
+      {activeTab === 'telegram-finance' && ['ADMIN','DIRECTOR'].includes(user?.role) && <TelegramFinanceTab/>}
       {['company','numbering','rules','builders','branches'].includes(activeTab) && user?.role === 'ADMIN' && <CompanySettingsTab key={activeTab} section={activeTab}/>}
       {activeTab === 'dictionaries' && <DictionariesTab />}
 

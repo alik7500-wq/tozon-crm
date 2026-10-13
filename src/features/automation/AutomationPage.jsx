@@ -26,6 +26,18 @@ import {
   Play
 } from 'lucide-react';
 
+const ConnectionActions = ({ links, onSettings, onCopy, copied }) => (
+  <div className="flex flex-wrap items-center gap-2 border-t border-slate-100 pt-3">
+    {links.map(([label, href], index) => (
+      <a key={href} href={href} target="_blank" rel="noopener noreferrer" className={`inline-flex items-center gap-1.5 rounded-xl px-3 py-2 text-xs font-bold transition ${index === 0 ? 'bg-blue-600 text-white hover:bg-blue-700' : 'border border-slate-200 bg-white text-blue-700 hover:bg-blue-50'}`}>
+        {label}<ExternalLink className="h-3.5 w-3.5" />
+      </a>
+    ))}
+    {onSettings && <button type="button" onClick={onSettings} className="inline-flex items-center gap-1.5 rounded-xl border border-slate-200 px-3 py-2 text-xs font-bold text-slate-700 hover:bg-slate-50"><Settings className="h-3.5 w-3.5" />Настройки в CRM</button>}
+    {onCopy && <button type="button" onClick={onCopy} className="inline-flex items-center gap-1.5 rounded-xl border border-slate-200 px-3 py-2 text-xs font-bold text-slate-700 hover:bg-slate-50"><Copy className="h-3.5 w-3.5" />{copied ? 'URL скопирован' : 'Копировать Webhook URL'}</button>}
+  </div>
+);
+
 export const AutomationPage = () => {
   const [activeTab, setActiveTab] = useState('CHANNELS'); // 'CHANNELS', 'RULES', 'TEMPLATES', 'LOGS', 'WEBHOOKS'
   const [settings, setSettings] = useState(null);
@@ -222,6 +234,31 @@ export const AutomationPage = () => {
         })}
       </div>
 
+      {/* Quick access to My Calls setup */}
+      <section aria-label="Подключение Мои Звонки" className="rounded-3xl border border-cyan-200 bg-gradient-to-r from-blue-50 to-cyan-50 p-6 shadow-2xs">
+        <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-5">
+          <div className="flex items-start gap-4">
+            <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-cyan-600 text-white">
+              <Smartphone className="h-6 w-6" />
+            </div>
+            <div>
+              <h2 className="text-lg font-extrabold text-slate-900">Мои Звонки</h2>
+              <p className="mt-1 text-sm text-slate-600">Быстрый переход к подключению телефонов менеджеров и настройке сервиса звонков.</p>
+              <p className="mt-2 text-xs text-slate-500">Войдите в кабинет сервиса, установите приложение на Android и настройте связь с CRM.</p>
+            </div>
+          </div>
+          <div className="flex flex-wrap items-center gap-3 shrink-0">
+            <a href="https://www.moizvonki.ru/accounts/login/" target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-2 rounded-xl bg-blue-600 px-4 py-2.5 text-xs font-bold text-white hover:bg-blue-700 transition">
+              Подключить Мои Звонки <ExternalLink className="h-4 w-4" />
+            </a>
+            <a href="https://www.moizvonki.ru/guide/app_install/" target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-2 rounded-xl border border-cyan-200 bg-white px-4 py-2.5 text-xs font-bold text-blue-700 hover:bg-blue-50 transition">
+              Установить на Android <Smartphone className="h-4 w-4" />
+            </a>
+            <a href="https://www.moizvonki.ru/" target="_blank" rel="noopener noreferrer" className="text-xs font-bold text-blue-700 hover:underline">Сайт сервиса</a>
+          </div>
+        </div>
+      </section>
+
       {/* Tab 1: Channels & Adapters */}
       {activeTab === 'CHANNELS' && settings && (
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
@@ -279,6 +316,8 @@ export const AutomationPage = () => {
                 </div>
               </div>
             </div>
+
+            <ConnectionActions links={[["Открыть BotFather","https://t.me/BotFather"]]} />
 
             <button
               onClick={() => openTestModal('TELEGRAM')}
@@ -344,6 +383,8 @@ export const AutomationPage = () => {
               </div>
             </div>
 
+            <ConnectionActions links={[["Подключить Green API","https://green-api.com/"]]} />
+
             <button
               onClick={() => openTestModal('WHATSAPP')}
               className="w-full flex items-center justify-center gap-2 rounded-xl bg-emerald-50 border border-emerald-200 py-2.5 text-xs font-bold text-emerald-700 hover:bg-emerald-100 transition cursor-pointer"
@@ -407,6 +448,8 @@ export const AutomationPage = () => {
                 </div>
               </div>
             </div>
+
+            <ConnectionActions links={[["Открыть Payom.tj","https://payom.tj/"]]} />
 
             <button
               onClick={() => openTestModal('SMS')}
@@ -621,6 +664,7 @@ export const AutomationPage = () => {
                 <div>✓ Авто-создание Лида со статусом NEW</div>
                 <div>✓ Авто-задача менеджеру: «Первичный звонок»</div>
               </div>
+              <ConnectionActions links={[['Открыть Meta', 'https://business.facebook.com/'], ['Подключить через Albato', 'https://albato.com/'], ['Подключить через Make', 'https://www.make.com/']]} onCopy={copyWebhookUrl} copied={copiedUrl} />
             </div>
 
             {/* Card 2: Telegram Bot */}
@@ -641,6 +685,7 @@ export const AutomationPage = () => {
                 <div>✓ Мгновенное оповещение в рабочий Telegram-чат</div>
                 <div>✓ Автоматическая фиксация номера телефона</div>
               </div>
+              <ConnectionActions links={[['Создать / настроить бота', 'https://t.me/BotFather']]} onSettings={() => setActiveTab('CHANNELS')} onCopy={copyWebhookUrl} copied={copiedUrl} />
             </div>
 
             {/* Card 3: WhatsApp Business */}
@@ -661,6 +706,29 @@ export const AutomationPage = () => {
                 <div>✓ Прямая ссылка для звонка и переписки из CRM</div>
                 <div>✓ Привязка истории сообщений</div>
               </div>
+              <ConnectionActions links={[['Подключить Green API', 'https://green-api.com/'], ['Открыть Meta', 'https://business.facebook.com/']]} onSettings={() => setActiveTab('CHANNELS')} onCopy={copyWebhookUrl} copied={copiedUrl} />
+            </div>
+
+            {/* Google Sheets quick connection */}
+            <div className="rounded-3xl border border-emerald-200 bg-gradient-to-br from-white to-emerald-50 p-5 shadow-2xs space-y-3">
+              <div className="flex items-center gap-3">
+                <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-emerald-600 text-white shadow-xs">
+                  <FileCode className="h-5 w-5" />
+                </div>
+                <div>
+                  <h4 className="text-sm font-bold text-slate-900">Google Таблицы</h4>
+                  <p className="text-[11px] text-slate-500">Передача заявок из таблицы в TOZON CRM</p>
+                </div>
+              </div>
+              <p className="text-xs text-slate-600 leading-relaxed">
+                Откройте Google Таблицы и настройте в Make или Albato отправку новой строки на Webhook URL CRM.
+              </p>
+              <div className="rounded-xl bg-white/80 p-3 text-[11px] text-slate-600 space-y-1">
+                <div>1. Выберите таблицу и лист с заявками.</div>
+                <div>2. Сопоставьте ФИО, телефон и примечание с полями CRM.</div>
+                <div>3. Скопируйте Webhook URL и включите сценарий в выбранном сервисе.</div>
+              </div>
+              <ConnectionActions links={[['Открыть Google Таблицы', 'https://docs.google.com/spreadsheets/'], ['Подключить через Make', 'https://www.make.com/en/integrations/google-sheets'], ['Подключить через Albato', 'https://albato.com/']]} onCopy={copyWebhookUrl} copied={copiedUrl} />
             </div>
 
             {/* Card 4: Сайт / Tilda / WordPress */}
@@ -681,6 +749,7 @@ export const AutomationPage = () => {
                 <div>✓ Фиксация выбранного ЖК и бюджета</div>
                 <div>✓ Передача UTM-меток маркетинга</div>
               </div>
+              <ConnectionActions links={[['Открыть Tilda', 'https://tilda.cc/'], ['Инструкция подключения', 'https://help.tilda.cc/forms/webhook']]} onCopy={copyWebhookUrl} copied={copiedUrl} />
             </div>
           </div>
 
