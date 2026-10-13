@@ -1,0 +1,26 @@
+{
+  "id": "/",
+  "name": "TOZON CRM",
+  "short_name": "TOZON CRM",
+  "description": "Управление недвижимостью и финансами TOZON",
+  "lang": "ru",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#f8fafc",
+  "theme_color": "#3154F5",
+  "icons": [
+    {
+      "src": "/tozon-app-icon.svg",
+      "sizes": "192x192",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    },
+    {
+      "src": "/tozon-app-icon.svg",
+      "sizes": "512x512",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    }
+  ]
+}
