@@ -577,13 +577,13 @@ export const CashflowPage = () => {
       const isConversion = t.category === 'Конвертация валюты' || t.title?.includes('Конвертация') || Boolean(t.conversion_id);
       return (
         <tr key={t.id} className={`transition ${isConversion ? 'bg-indigo-50/30 hover:bg-indigo-50/60' : 'hover:bg-slate-50'}`}>
-          <td className="py-2 px-2.5 pl-4 whitespace-nowrap text-slate-600">
+          <td className="py-2 px-2.5 pl-4  text-slate-600">
             <div className="flex items-center gap-1 font-bold">
               <Calendar className="h-3 w-3 text-slate-400" />
               {dayjs(t.date).format('DD.MM.YYYY')}
             </div>
           </td>
-          <td className="py-2 px-2 whitespace-nowrap">
+          <td className="py-2 px-2 ">
             <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[9px] font-extrabold ${
               isConversion
                 ? 'bg-indigo-100 text-indigo-800'
@@ -601,10 +601,10 @@ export const CashflowPage = () => {
               {isConversion ? 'КОНВЕРТАЦИЯ' : isIncome ? 'ПРИХОД' : 'РАСХОД'}
             </span>
           </td>
-          <td className="py-2 px-2 font-bold text-slate-900 font-mono whitespace-nowrap">
+          <td className="py-2 px-2 font-bold text-slate-900 font-mono ">
             {t.document_number || t.reference}
           </td>
-          <td className="py-2 px-2 whitespace-nowrap">
+          <td className="py-2 px-2 ">
             {t.account_name || t.method === 'BANK_TRANSFER' ? (
               <div className="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg bg-cyan-50 border border-cyan-200/80 text-cyan-900 font-bold text-[10px]">
                 <span>🏛️</span>
@@ -652,32 +652,32 @@ export const CashflowPage = () => {
               </div>
             )}
           </td>
-          <td className="py-2 px-2 max-w-[140px] truncate">
-            <div className="font-bold text-slate-900 truncate">{t.counterparty}</div>
-            <div className="text-[9px] text-slate-400 truncate">{t.title}</div>
+          <td className="py-2 px-2 ">
+            <div className="font-bold text-slate-900" title={t.counterparty}>{t.counterparty}</div>
+            <div className="text-[9px] text-slate-400">{t.title}</div>
           </td>
-          <td className="py-2 px-2 whitespace-nowrap">
+          <td className="py-2 px-2 ">
             <span className={`px-1.5 py-0.5 rounded text-[10px] font-medium ${
               isConversion ? 'bg-indigo-100 text-indigo-800 font-bold' : 'bg-slate-100 text-slate-700'
             }`}>
               {t.category}
             </span>
           </td>
-          <td className="py-2 px-2 whitespace-nowrap">
+          <td className="py-2 px-2 ">
             <span className="inline-flex items-center gap-1 text-[10px] font-semibold text-slate-600">
               <CreditCard className="h-2.5 w-2.5 text-slate-400" />
               {t.method === 'CASH' ? 'Наличные' : t.method === 'BANK_TRANSFER' ? 'Банк' : t.method}
             </span>
           </td>
-          <td className={`py-2 px-2.5 text-right font-black text-xs font-mono whitespace-nowrap ${
+          <td className={`py-2 px-2.5 text-right font-black text-xs font-mono  ${
             isIncome ? 'text-emerald-600' : 'text-rose-600'
           }`}>
             {isIncome ? '+' : '-'}{t.amount.toLocaleString('ru-RU', { minimumFractionDigits: 2 })} {t.currency}
           </td>
-          <td className="py-2 px-2 text-slate-500 max-w-[160px] truncate" title={t.comment}>
+          <td className="py-2 px-2 text-slate-500 " title={t.comment}>
             {t.comment ? t.comment.replace(/\[Касса:\s*[^\]]+\]\s*/gi, '').replace(/\[IDEMP:[^\]]+\]\s*/gi, '').trim() || '-' : '-'}
           </td>
-          <td className="py-2 px-2.5 pr-4 text-right whitespace-nowrap">
+          <td className="py-2 px-2.5 pr-4 text-right ">
             <div className="flex items-center justify-end gap-1">
               {!isConversion && (
                 <button
@@ -756,6 +756,19 @@ export const CashflowPage = () => {
 
   return (
     <>
+      <style>{`
+        .dds-journal th, .dds-journal td {
+          padding: 8px 6px;
+          vertical-align: top;
+          white-space: normal;
+          overflow-wrap: anywhere;
+        }
+        .dds-journal th { font-size: 10px; letter-spacing: 0; }
+        .dds-journal td > div, .dds-journal td > span { max-width: 100%; }
+        .dds-journal td:nth-child(4) span { min-width: 0; }
+        .dds-journal td:nth-child(8) { font-size: 11px; }
+        .dds-journal td:last-child > div { gap: 2px; flex-wrap: wrap; }
+      `}</style>
       {viewMode === 'compact' ? (
         <div className="flex flex-col h-[calc(100vh-102px)] min-h-[560px] max-h-[calc(100vh-102px)] gap-2 overflow-hidden animate-in fade-in duration-150">
         {/* Tier 1: Header Row */}
@@ -1196,7 +1209,8 @@ export const CashflowPage = () => {
 
           {/* Table Body with Sticky Header */}
           <div className="flex-1 overflow-y-auto overflow-x-auto min-h-0">
-            <table className="w-full text-left border-collapse text-[11px]">
+            <table className="dds-journal w-full table-fixed text-left border-collapse text-[11px]">
+              <colgroup>{[8, 8, 8, 14, 13, 10, 6, 11, 15, 7].map((width, index) => <col key={index} style={{ width: `${width}%` }} />)}</colgroup>
               <thead className="sticky top-0 bg-slate-100 border-b border-slate-200 text-slate-600 font-bold uppercase tracking-wider text-[10px] z-10 shadow-2xs">
                 <tr>
                   <th className="py-2 px-2.5 pl-4">Дата</th>
@@ -1851,7 +1865,8 @@ export const CashflowPage = () => {
         </div>
 
         <div className="overflow-x-auto">
-          <table className="w-full text-xs text-left">
+          <table className="dds-journal w-full table-fixed text-[11px] text-left">
+            <colgroup>{[8, 8, 8, 14, 13, 10, 6, 11, 15, 7].map((width, index) => <col key={index} style={{ width: `${width}%` }} />)}</colgroup>
             <thead className="bg-slate-50 border-b border-slate-200 text-slate-600 font-bold uppercase tracking-wider">
               <tr>
                 <th className="p-3.5 pl-5">Дата</th>
