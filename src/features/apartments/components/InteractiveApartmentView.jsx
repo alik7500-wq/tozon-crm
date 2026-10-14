@@ -109,8 +109,8 @@ export const InteractiveApartmentView = ({
 
   const furnishedPlanImg = layout?.furnished_plan_path || layout?.image_path;
   const images = [
-    {url:furnishedPlanImg,title:'Планировка квартиры'},
-    {url:layout?.technical_plan_path,title:'Технический план'},
+    {url:furnishedPlanImg,title:lang === 'tg' ? 'Нақшаи манзил' : 'Планировка квартиры'},
+    {url:layout?.technical_plan_path,title:lang === 'tg' ? 'Нақшаи техникӣ' : 'Технический план'},
     ...(layout?.gallery_images || [])
   ].filter((item,i,all)=>item?.url && all.findIndex(x=>x.url===item.url)===i);
   const shownImage = images[imageIndex] || images[0];
@@ -149,7 +149,7 @@ export const InteractiveApartmentView = ({
           <div>
             <div className="flex items-center gap-2 flex-wrap">
               <h3 className="text-base font-bold text-slate-900">
-                {t('unitNumber')} {unit.unit_number} — {layout ? getText(layout.name_tg, layout.name_ru) : ''}
+                {t('unitNumber')} {unit.unit_number} — {layout ? getText(layout.name_tg, layout.name_ru || layout.name) : ''}
               </h3>
               <span className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-0.5 text-xs font-bold ${statusBadge.bg}`}>
                 <span className={`h-1.5 w-1.5 rounded-full ${statusBadge.dot}`} />
@@ -231,7 +231,7 @@ export const InteractiveApartmentView = ({
                 <img
                   src={shownImage.url}
                   alt={shownImage.title || 'Планировка квартиры'}
-                  role="button" tabIndex={0} aria-label="Открыть изображение на весь экран"
+                  role="button" tabIndex={0} aria-label={lang === 'tg' ? 'Кушодани тасвир дар тамоми экран' : 'Открыть изображение на весь экран'}
                   onClick={() => setViewerOpen(true)}
                   onKeyDown={e => { if(e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setViewerOpen(true); } }}
                   className="w-full h-full object-contain cursor-zoom-in p-2"
@@ -282,7 +282,7 @@ export const InteractiveApartmentView = ({
                         activeState ? 'bg-amber-600 text-white' : 'bg-slate-900/85 text-white'
                       }`}
                     >
-                      {r.area != null ? `${r.area} м²` : 'Площадь уточняется'}
+                      {r.area != null ? `${r.area} м²` : (lang === 'tg' ? 'Масоҳат аниқ карда мешавад' : 'Площадь уточняется')}
                     </span>
                   </div>
                 );
@@ -311,7 +311,7 @@ export const InteractiveApartmentView = ({
             </div>
 
             {images.length>0 && <div className="flex gap-2 overflow-x-auto mt-3 pb-2">{images.map((img,i)=><button key={img.url} type="button" onClick={()=>setImageIndex(i)} className={`shrink-0 rounded-xl border-2 p-1 ${i===imageIndex?'border-blue-600':'border-slate-200'}`} aria-label={img.title || `Изображение ${i+1}`}><img src={img.url} alt={img.title || ''} className="w-20 h-16 object-contain bg-white" /></button>)}</div>}
-            {shownImage && <button type="button" onClick={()=>setViewerOpen(true)} className="mt-2 text-sm text-blue-700 flex gap-2 items-center"><Maximize2 className="w-4 h-4" />Открыть на весь экран</button>}
+            {shownImage && <button type="button" onClick={()=>setViewerOpen(true)} className="mt-2 text-sm text-blue-700 flex gap-2 items-center"><Maximize2 className="w-4 h-4" />{lang === 'tg' ? 'Дар тамоми экран кушоед' : 'Открыть на весь экран'}</button>}
             <div className="mt-3 flex items-center justify-between text-xs text-slate-500 px-1">
               <span className="flex items-center gap-1.5">
                 <Info className="h-3.5 w-3.5 text-blue-600" />
@@ -419,7 +419,7 @@ export const InteractiveApartmentView = ({
       )}
 
 
-      {getText(layout?.description_tg,layout?.description_ru || layout?.description) && <section className="rounded-2xl border border-slate-200 bg-white p-5"><h4 className="font-bold mb-2">О квартире</h4><p className="text-sm text-slate-600 whitespace-pre-line">{getText(layout?.description_tg,layout?.description_ru || layout?.description)}</p></section>}
+      {getText(layout?.description_tg,layout?.description_ru || layout?.description) && <section className="rounded-2xl border border-slate-200 bg-white p-5"><h4 className="font-bold mb-2">{lang === 'tg' ? 'Дар бораи манзил' : 'О квартире'}</h4><p className="text-sm text-slate-600 whitespace-pre-line">{getText(layout?.description_tg,layout?.description_ru || layout?.description)}</p></section>}
       {viewerOpen && images.length>0 && <ApartmentImageViewer images={images} index={Math.min(imageIndex,images.length-1)} onNavigate={setImageIndex} onClose={()=>setViewerOpen(false)} />}
       {/* Bottom Section 1: Extended Characteristics */}
       <div className="rounded-2xl bg-white border border-slate-200 p-5 shadow-xs space-y-4">
