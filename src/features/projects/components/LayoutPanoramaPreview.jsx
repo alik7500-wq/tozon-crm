@@ -75,7 +75,7 @@ export function LayoutPanoramaPreview({ layout }) {
         body: fileToSave
       });
       if (!response.ok) throw new Error(`Не удалось загрузить файл (HTTP ${response.status}).`);
-      await tour360Api.createPanorama(tour.id, { name: filename.replace(/\\.[^.]+$/, ''), storage_path: signed.storagePath });
+      await tour360Api.createPanorama(tour.id, { name: filename.replace(/\.[^.]+$/, ''), storage_path: signed.storagePath });
       setSaved('Панорама сохранена в черновике 360°-тура. Публикация не выполнялась.');
     } catch (err) {
       setError(err.message || 'Не удалось сохранить панораму.');
@@ -88,7 +88,7 @@ export function LayoutPanoramaPreview({ layout }) {
     <section className="space-y-4" aria-label="Проверка панорамы 360 градусов">
       <div className="rounded-xl border border-indigo-200 bg-indigo-50 p-4">
         <h4 className="font-bold text-indigo-950">360° панорама — предварительный просмотр</h4>
-        <p className="mt-1 text-sm text-indigo-900">Загрузите готовый сферический JPG/WEBP-файл для локальной проверки. Изображение не отправляется на сервер и не публикуется.</p>
+        <p className="mt-1 text-sm text-indigo-900">Загрузите готовый сферический JPG/WEBP-файл для локальной проверки. Сначала проверьте изображение локально. По кнопке «Сохранить» файл отправляется в защищённое хранилище CRM как черновик без публикации.</p>
       </div>
       <label className="block text-sm font-semibold text-slate-700">
         Выбрать панораму (2:1, от 2048×1024, до 25 МБ)
