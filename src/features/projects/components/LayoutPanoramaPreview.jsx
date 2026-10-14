@@ -69,7 +69,8 @@ export function LayoutPanoramaPreview({ layout }) {
       if (!signed?.signedUploadUrl || !signed?.storagePath) {
         throw new Error('Сервер не предоставил ссылку для загрузки панорамы.');
       }
-      const response = await fetch(signed.signedUploadUrl, {
+      const uploadEndpoint = signed.signedUploadUrl;
+      const response = await fetch(uploadEndpoint, {
         method: 'PUT',
         headers: { 'Content-Type': fileToSave.type, 'x-upsert': 'false' },
         body: fileToSave
