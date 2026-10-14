@@ -5,7 +5,7 @@ import {EditDealModal} from '../EditDealModal';
 import {api} from '../../../api/client';
 vi.mock('../../../api/client',()=>({api:{get:vi.fn(),post:vi.fn(),patch:vi.fn()}}));
 vi.mock('../../../hooks/useModalDismiss',()=>({useModalDismiss:({onClose})=>({requestClose:onClose})}));
-const deal={id:1,unit_id:1,unit_number:'A1',project_id:1,project_name:'Test project',currency:'USD',status:'SIGNED',payment_type:'INSTALLMENT',contract_number:'0006',deal_date:'2026-02-12',updated_at:'2026-10-01T00:00:00Z',area_m2_x100:9220,final_price_minor:4425600,deal_price_per_m2_minor:48000,discount_minor:0,down_payment_minor:664100,installment_months:24,total_paid_minor:1435532};
+const deal={id:1,unit_id:1,unit_number:'A1',project_id:1,project_name:'Test project',currency:'USD',status:'SIGNED',payment_type:'INSTALLMENT',contract_number:'0006',deal_date:'2026-02-12',updated_at:'2026-10-01T00:00:00Z',area_m2_x100:9220,final_price_minor:4425600,deal_price_per_m2_minor:48000,discount_minor:0,down_payment_minor:664100,first_payment_date:'2026-03-12',installment_interval_months:1,installment_months:24,total_paid_minor:1435532};
 beforeEach(()=>{
  vi.clearAllMocks();api.get.mockImplementation(path=>Promise.resolve(path==='/users'?{data:{users:[]}}:{data:{units:[{id:2,unit_number:'A2',area_m2_x100:10000,project_currency:'USD',floor_number:2,section_name:'A'}]}}));
  api.post.mockResolvedValue({data:{deal:{...deal,unit_id:2}}});api.patch.mockResolvedValue({data:{deal}});
@@ -47,3 +47,5 @@ it('allows changing paid installment term and sends concurrency stamp only with 
  open();const field=screen.getByLabelText('Срок рассрочки (мес.)');expect(field.disabled).toBe(false);fireEvent.change(field,{target:{value:'30'}});fireEvent.click(screen.getByRole('button',{name:'Сохранить изменения'}));
  await waitFor(()=>expect(api.patch).toHaveBeenCalled());const payload=api.patch.mock.calls[0][1];expect(payload.installment_months).toBe(30);expect(payload.expected_updated_at).toBe(deal.updated_at);expect(payload).not.toHaveProperty('final_price_minor');expect(payload).not.toHaveProperty('down_payment_minor');
 });
+
+it('submits first payment date and interval for a paid contract without changing amounts',async()=>{open();fireEvent.change(screen.getByLabelText('Дата первого платежа'),{target:{value:'2026-11-15'}});fireEvent.change(screen.getByLabelText('Интервал (месяцев)'),{target:{value:'3'}});fireEvent.click(screen.getByRole('button',{name:'Сохранить изменения'}));await waitFor(()=>expect(api.patch).toHaveBeenCalled());const p=api.patch.mock.calls[0][1];expect(p.first_payment_date).toBe('2026-11-15');expect(p.installment_interval_months).toBe(3);expect(p).not.toHaveProperty('final_price_minor');});

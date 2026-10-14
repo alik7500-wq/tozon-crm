@@ -105,6 +105,7 @@ export const DealWizardModal = ({
   const [downPaymentPercent, setDownPaymentPercent] = useState(30);
   const [downPaymentAmount, setDownPaymentAmount] = useState(0);
   const [installmentMonths, setInstallmentMonths] = useState(12);
+  const [paymentInterval, setPaymentInterval] = useState(1);
   const [dealDate, setDealDate] = useState(new Date().toISOString().split('T')[0]);
   const [firstPaymentDate, setFirstPaymentDate] = useState('');
   const [schedule, setSchedule] = useState([]);
@@ -283,7 +284,7 @@ export const DealWizardModal = ({
       const items = [];
       for (let i = 1; i <= months; i++) {
         // Calculate target month and year with proper calendar day clamping (Rule #21)
-        const totalMonths = (startMonth - 1) + (i - 1);
+        const totalMonths = (startMonth - 1) + (i - 1) * (Number(paymentInterval) || 1);
         const targetYear = startYear + Math.floor(totalMonths / 12);
         const targetMonth = (totalMonths % 12); // 0-indexed for Date
         
@@ -309,7 +310,7 @@ export const DealWizardModal = ({
     } else {
       setSchedule([]);
     }
-  }, [finalPrice, downPaymentAmount, installmentMonths, paymentType, firstPaymentDate, remainingBalance, barterAmount]);
+  }, [finalPrice, downPaymentAmount, installmentMonths, paymentType, firstPaymentDate, paymentInterval, remainingBalance, barterAmount]);
 
   const isDirty = Boolean(selectedLead || (step > (initialUnit ? 1 : 0)) || Boolean(newLeadData?.full_name?.trim()));
 
@@ -372,6 +373,10 @@ export const DealWizardModal = ({
     setError('');
 
     try {
+      if (['INSTALLMENT','PARTIAL_BARTER'].includes(paymentType)) {
+        if (!firstPaymentDate || firstPaymentDate < dealDate) throw new Error('Укажите дату первого платежа не раньше даты договора');
+        if (!Number.isInteger(Number(paymentInterval)) || Number(paymentInterval) < 1 || Number(paymentInterval) > 12) throw new Error('Интервал должен быть от 1 до 12 месяцев');
+      }
       const downPaymentValue = (paymentType === 'INSTALLMENT' || paymentType === 'PARTIAL_BARTER')
         ? downPaymentAmount
         : finalPrice;
@@ -407,6 +412,8 @@ export const DealWizardModal = ({
         amount_tjs: recordInitialPayment ? Math.round(downPaymentValue * 9.27 * 100) / 100 : null,
         amount_usd: recordInitialPayment ? downPaymentValue : null,
         exchange_rate: recordInitialPayment ? 9.27 : null,
+        first_payment_date: firstPaymentDate || null,
+        installment_interval_months: Number(paymentInterval) || 1,
         schedules: (paymentType === 'INSTALLMENT' || paymentType === 'PARTIAL_BARTER') ? schedule : [],
       });
 
@@ -1070,7 +1077,7 @@ export const DealWizardModal = ({
 
                     <div>
                       <label className="block text-xs font-bold text-slate-700 mb-1">
-                        Срок рассрочки (мес.)
+                        Количество платежей по рассрочке
                       </label>
                       <input
                         type="number"
@@ -1095,6 +1102,10 @@ export const DealWizardModal = ({
                     </div>
                   </div>
 
+                  <label className="block text-xs font-bold text-slate-700 mb-3">Интервал между платежами (месяцев)
+                    <input type="number" min="1" max="12" required value={paymentInterval} onChange={e => setPaymentInterval(e.target.value)} className="w-full rounded-xl border border-slate-300 px-3 py-2 mt-1" />
+                    <span className="text-slate-500">1 — ежемесячно, 3 — раз в квартал. До первого срока просрочки нет.</span>
+                  </label>
                   {/* Summary row */}
                   <div className="flex items-center justify-between p-3 rounded-xl bg-blue-50/60 border border-blue-200 text-xs">
                     <div>
@@ -1102,11 +1113,11 @@ export const DealWizardModal = ({
                       <strong className="text-blue-900 text-sm">{remainingBalance.toLocaleString()} {currency}</strong>
                     </div>
                     <div className="text-right">
-                      <span className="text-slate-500 block">Ежемесячный платеж:</span>
+                      <span className="text-slate-500 block">Платёж по графику:</span>
                       <strong className="text-blue-900 text-sm">
                         {installmentMonths > 0 ? (
                           remainingBalance % installmentMonths === 0
-                            ? `${(remainingBalance / installmentMonths).toLocaleString()} ${currency}/мес.`
+                            ? `${(remainingBalance / installmentMonths).toLocaleString()} ${currency}/платёж.`
                             : `~${(remainingBalance / installmentMonths).toFixed(2)} ${currency}/мес.`
                         ) : `0 ${currency}/мес.`}
                       </strong>

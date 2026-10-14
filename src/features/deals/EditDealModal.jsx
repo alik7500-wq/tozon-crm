@@ -46,6 +46,10 @@ export const EditDealModal = ({
   const [responsibleUserId, setResponsibleUserId] = useState('');
   const [paymentType, setPaymentType] = useState('FULL');
   const [installmentMonths, setInstallmentMonths] = useState('0');
+  const [firstPaymentDate, setFirstPaymentDate] = useState('');
+  const [paymentInterval, setPaymentInterval] = useState('1');
+  const originalFirstDate = deal?.first_payment_date || [...(deal?.schedules || [])].sort((a,b) => a.due_date.localeCompare(b.due_date))[0]?.due_date || '';
+  const scheduleChanged = installmentMonths !== String(deal?.installment_months || 0) || firstPaymentDate !== originalFirstDate || paymentInterval !== String(deal?.installment_interval_months || 1);
   const [reservationExpiresAt, setReservationExpiresAt] = useState('');
   const [barterDescription, setBarterDescription] = useState('');
 
@@ -94,6 +98,8 @@ export const EditDealModal = ({
       setResponsibleUserId(deal.responsible_user_id ? String(deal.responsible_user_id) : '');
       setPaymentType(deal.payment_type || 'FULL');
       setInstallmentMonths(String(deal.installment_months || 0));
+      setFirstPaymentDate(deal.first_payment_date || [...(deal.schedules || [])].sort((a,b) => a.due_date.localeCompare(b.due_date))[0]?.due_date || '');
+      setPaymentInterval(String(deal.installment_interval_months || 1));
       setReservationExpiresAt(deal.reservation_expires_at ? deal.reservation_expires_at.split('T')[0] : '');
       setBarterDescription(deal.barter_description || '');
 
@@ -155,7 +161,7 @@ export const EditDealModal = ({
 
   const isDirty = Boolean(
     deal && (
-      amending || amendmentReason || unitId !== String(deal.unit_id) ||
+      scheduleChanged || amending || amendmentReason || unitId !== String(deal.unit_id) ||
       contractNumber !== (deal.contract_number || '') ||
       dealDate !== (deal.deal_date || deal.created_at?.split('T')[0] || '') ||
       leadName !== (deal.lead_name || '') ||
@@ -237,8 +243,16 @@ export const EditDealModal = ({
       // Paid metadata edits must not accidentally include locked financial keys.
       if (isPaidDeal) {
         delete payload.payment_type;
-        if (installmentMonths === String(deal.installment_months || 0)) delete payload.installment_months;
+        if (!scheduleChanged) delete payload.installment_months;
         else payload.expected_updated_at = deal.updated_at;
+      }
+      if (paymentType === 'INSTALLMENT' && scheduleChanged) {
+        if (!firstPaymentDate || firstPaymentDate < dealDate) throw new Error('Укажите дату первого платежа не раньше даты договора');
+        if (!Number.isInteger(Number(paymentInterval)) || Number(paymentInterval) < 1 || Number(paymentInterval) > 12) throw new Error('Интервал должен быть от 1 до 12 месяцев');
+        payload.first_payment_date = firstPaymentDate;
+        payload.installment_interval_months = Number(paymentInterval);
+        payload.expected_updated_at = deal.updated_at;
+        delete payload.payment_type;
       }
       // Only include financial terms in payload if unpaid
       if (!isPaidDeal) {
@@ -425,7 +439,7 @@ export const EditDealModal = ({
               {paymentType === 'INSTALLMENT' && (
                 <div>
                   <label className="block text-[11px] font-bold text-slate-700 mb-1">
-                    Срок рассрочки (мес.)
+                    Количество платежей по рассрочке
                   </label>
                   <input
                     type="number"
@@ -441,9 +455,20 @@ export const EditDealModal = ({
               )}
 
               {paymentType === 'INSTALLMENT' && !amending && installmentMonths !== String(deal.installment_months || 0) && (
-                <p className="text-xs text-blue-700">При сохранении график будет пересчитан на {installmentMonths} месяцев от даты договора. Фактические оплаты сохранятся.</p>
+                <p className="text-xs text-blue-700">При сохранении график будет пересчитан на {installmentMonths} месяцев с указанной даты первого платежа. Фактические оплаты сохранятся.</p>
               )}
 
+              {paymentType === 'INSTALLMENT' && (
+                <div className="grid grid-cols-2 gap-3 mt-3">
+                  <label className="text-xs font-semibold">Дата первого платежа
+                    <input aria-label="Дата первого платежа" type="date" min={dealDate} disabled={amending} value={firstPaymentDate} onChange={e => setFirstPaymentDate(e.target.value)} className="w-full rounded-xl border p-2 mt-1" />
+                  </label>
+                  <label className="text-xs font-semibold">Интервал (месяцев)
+                    <input aria-label="Интервал (месяцев)" type="number" min="1" max="12" disabled={amending} value={paymentInterval} onChange={e => setPaymentInterval(e.target.value)} className="w-full rounded-xl border p-2 mt-1" />
+                  </label>
+                  <p className="col-span-2 text-xs text-blue-700">До даты платежа сумма по графику не считается просроченной. Интервал 1 — ежемесячно, 3 — раз в квартал.</p>
+                </div>
+              )}
               {deal.status === 'RESERVED' && (
                 <div>
                   <label className="block text-[11px] font-bold text-slate-700 mb-1">
