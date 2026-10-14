@@ -28,6 +28,10 @@ export function LayoutPanoramaPreview({ layout, projectId }) {
     setSavedRooms(details.flatMap(t => t?.panoramas || []));
   };
 
+  useEffect(() => {
+    loadSavedRooms().catch(() => setSavedRooms([]));
+  }, [projectId, layout?.id]);
+
   const selectFile = async (event) => {
     const file = event.target.files?.[0];
     event.target.value = '';
@@ -109,6 +113,10 @@ export function LayoutPanoramaPreview({ layout, projectId }) {
         Выбрать панораму (2:1, от 2048×1024, до 25 МБ)
         <input type="file" accept="image/jpeg,image/webp" onChange={selectFile} className="mt-2 block w-full rounded-lg border border-slate-300 bg-white p-2 text-sm" />
       </label>
+      <div className="rounded-xl border border-slate-200 p-4">
+        <div className="flex items-center justify-between"><strong>Черновики помещений</strong><button type="button" onClick={() => loadSavedRooms().catch(e => setError(e.message))} className="text-sm text-indigo-700">Обновить</button></div>
+        {savedRooms.length ? <ul className="mt-2 space-y-1 text-sm">{savedRooms.map(p => <li key={p.id}>{p.name}</li>)}</ul> : <p className="mt-2 text-sm text-slate-500">Сохранённых панорам пока нет</p>}
+      </div>
       {fileToSave && <label className="block text-sm font-semibold text-slate-700">Помещение<select value={roomName} onChange={e => setRoomName(e.target.value)} className="mt-2 block w-full rounded-lg border border-slate-300 bg-white p-2 text-sm">{['Гостиная', 'Спальня', 'Кухня', 'Санузел', 'Коридор'].map(name => <option key={name} value={name}>{name}</option>)}</select></label>}
       {fileToSave && <button type="button" disabled={isSaving || !projectId} onClick={savePanorama} className="rounded-lg bg-indigo-600 px-4 py-2 text-sm font-semibold text-white disabled:opacity-50">{isSaving ? 'Сохранение...' : 'Сохранить в черновик CRM'}</button>}
       {saved && <p role="status" className="rounded-lg bg-emerald-50 p-3 text-sm text-emerald-700">{saved}</p>}
