@@ -5,6 +5,7 @@ import { LeadKanbanView } from './LeadKanbanView';
 import { LeadTableView } from './LeadTableView';
 import { LeadControlView } from './LeadControlView';
 import { ManagerPerformanceView } from './ManagerPerformanceView';
+import { SalesPlanView } from './SalesPlanView';
 import { CreateLeadModal } from './CreateLeadModal';
 import { LeadDrawer } from './LeadDrawer';
 import {
@@ -13,13 +14,14 @@ import {
   Kanban,
   Table as TableIcon,
   ShieldAlert,
-  TrendingUp
+  TrendingUp,
+  Target
 } from 'lucide-react';
 
 export const LeadsPage = () => {
   const [searchParams, setSearchParams] = useSearchParams();
   const tabParam = searchParams.get('tab');
-  const initialMode = tabParam === 'control' ? 'control' : (tabParam === 'performance' ? 'performance' : 'kanban');
+  const initialMode = tabParam === 'control' ? 'control' : (tabParam === 'performance' ? 'performance' : (tabParam === 'sales-plan' ? 'sales-plan' : 'kanban'));
 
   const [leads, setLeads] = useState([]);
   const [projects, setProjects] = useState([]);
@@ -32,6 +34,8 @@ export const LeadsPage = () => {
       setSearchParams({ tab: 'control' });
     } else if (mode === 'performance') {
       setSearchParams({ tab: 'performance' });
+    } else if (mode === 'sales-plan') {
+      setSearchParams({ tab: 'sales-plan' });
     } else {
       setSearchParams({});
     }
@@ -176,6 +180,18 @@ export const LeadsPage = () => {
               <TrendingUp className="h-3.5 w-3.5 text-emerald-500" />
               <span>Эффективность</span>
             </button>
+
+            <button
+              onClick={() => handleSetViewMode('sales-plan')}
+              className={`flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-bold transition cursor-pointer ${
+                viewMode === 'sales-plan'
+                  ? 'bg-tozon-blue text-white shadow-xs'
+                  : 'text-slate-500 hover:text-slate-800'
+              }`}
+            >
+              <Target className="h-3.5 w-3.5 text-blue-400" />
+              <span>План продаж</span>
+            </button>
           </div>
 
           <button
@@ -199,6 +215,8 @@ export const LeadsPage = () => {
         />
       ) : viewMode === 'performance' ? (
         <ManagerPerformanceView projects={projects} />
+      ) : viewMode === 'sales-plan' ? (
+        <SalesPlanView projects={projects} />
       ) : (
         <>
           {/* Metrics Row */}
