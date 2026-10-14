@@ -6,7 +6,7 @@ export const tour360Api = {
    */
   async getTours(projectId, params = {}) {
     const res = await api.get(`/projects/${projectId}/360-tours`, { params });
-    return res.data?.tours || [];
+    return res.data?.data?.tours || [];
   },
 
   /**
@@ -14,7 +14,7 @@ export const tour360Api = {
    */
   async getTourById(tourId) {
     const res = await api.get(`/360-tours/${tourId}`);
-    return res.data?.tour || null;
+    return res.data?.data?.tour || null;
   },
 
   /**
@@ -22,7 +22,7 @@ export const tour360Api = {
    */
   async getPanoramaById(panoramaId) {
     const res = await api.get(`/360-panoramas/${panoramaId}`);
-    return res.data?.panorama || null;
+    return res.data?.data?.panorama || null;
   },
 
   /**
@@ -30,6 +30,6 @@ export const tour360Api = {
    */
   async getHotspots(panoramaId) {
     const res = await api.get(`/360-panoramas/${panoramaId}/hotspots`);
-    return res.data?.hotspots || [];
+    return res.data?.data?.hotspots || [];
   }
 };
