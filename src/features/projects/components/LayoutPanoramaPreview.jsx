@@ -8,7 +8,7 @@ import { TourCanvasErrorBoundary } from '../../tour360/components/TourCanvasErro
 const MAX_BYTES = 25 * 1024 * 1024;
 const MIN_WIDTH = 2048;
 
-export function LayoutPanoramaPreview({ layout }) {
+export function LayoutPanoramaPreview({ layout, projectId }) {
   const [url, setUrl] = useState(null);
   const [fileToSave, setFileToSave] = useState(null);
   const [isSaving, setIsSaving] = useState(false);
@@ -50,7 +50,7 @@ export function LayoutPanoramaPreview({ layout }) {
   };
 
   const savePanorama = async () => {
-    if (!fileToSave || !layout?.project_id) {
+    if (!fileToSave || !projectId) {
       setError('Не удалось определить проект планировки. Сохранение недоступно.');
       return;
     }
@@ -58,14 +58,14 @@ export function LayoutPanoramaPreview({ layout }) {
     setError('');
     setSaved('');
     try {
-      const projectId = Number(layout.project_id);
+      const targetProjectId = Number(projectId);
       const name = `Планировка ${layout.code || layout.id} — 360°`;
-      const existing = await tour360Api.getTours(projectId);
-      let tour = existing.find(t => t.name === name && t.tour_type === 'SHOWROOM');
+      const existing = await tour360Api.getTours(targetProjectId);
+      let tour = existing.find(t => t.name === name && t.tour_type === 'SHOWROOM' && !t.is_active);
       if (!tour) {
-        tour = await tour360Api.createTour(projectId, { name, tour_type: 'SHOWROOM', is_active: false });
+        tour = await tour360Api.createTour(targetProjectId, { name, tour_type: 'SHOWROOM', is_active: false });
       }
-      const signed = await tour360Api.requestUploadUrl(projectId, tour.id, fileToSave);
+      const signed = await tour360Api.requestUploadUrl(targetProjectId, tour.id, fileToSave);
       if (!signed?.signedUploadUrl || !signed?.storagePath) {
         throw new Error('Сервер не предоставил ссылку для загрузки панорамы.');
       }
@@ -95,7 +95,7 @@ export function LayoutPanoramaPreview({ layout }) {
         Выбрать панораму (2:1, от 2048×1024, до 25 МБ)
         <input type="file" accept="image/jpeg,image/webp" onChange={selectFile} className="mt-2 block w-full rounded-lg border border-slate-300 bg-white p-2 text-sm" />
       </label>
-      {fileToSave && <button type="button" disabled={isSaving || !layout?.project_id} onClick={savePanorama} className="rounded-lg bg-indigo-600 px-4 py-2 text-sm font-semibold text-white disabled:opacity-50">{isSaving ? 'Сохранение...' : 'Сохранить в черновик CRM'}</button>}
+      {fileToSave && <button type="button" disabled={isSaving || !projectId} onClick={savePanorama} className="rounded-lg bg-indigo-600 px-4 py-2 text-sm font-semibold text-white disabled:opacity-50">{isSaving ? 'Сохранение...' : 'Сохранить в черновик CRM'}</button>}
       {saved && <p role="status" className="rounded-lg bg-emerald-50 p-3 text-sm text-emerald-700">{saved}</p>}
       {error && <p role="alert" className="rounded-lg bg-rose-50 p-3 text-sm text-rose-700">{error}</p>}
       {url ? (
