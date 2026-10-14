@@ -15,8 +15,18 @@ export function LayoutPanoramaPreview({ layout, projectId }) {
   const [saved, setSaved] = useState('');
   const [filename, setFilename] = useState('');
   const [roomName, setRoomName] = useState('Гостиная');
+  const [savedRooms, setSavedRooms] = useState([]);
   const [error, setError] = useState('');
   useEffect(() => () => { if (url) URL.revokeObjectURL(url); }, [url]);
+
+  const loadSavedRooms = async () => {
+    if (!projectId || !layout?.id) return;
+    const name = `Планировка ${layout.code || layout.id} — 360°`;
+    const tours = await tour360Api.getTours(Number(projectId));
+    const drafts = tours.filter(t => t.name === name && t.tour_type === 'SHOWROOM' && !t.is_active);
+    const details = await Promise.all(drafts.map(t => tour360Api.getTourById(t.id)));
+    setSavedRooms(details.flatMap(t => t?.panoramas || []));
+  };
 
   const selectFile = async (event) => {
     const file = event.target.files?.[0];
@@ -81,6 +91,7 @@ export function LayoutPanoramaPreview({ layout, projectId }) {
       if (!response.ok) throw new Error(`Не удалось загрузить файл (HTTP ${response.status}).`);
       await tour360Api.createPanorama(tour.id, { name: roomName, storage_path: signed.storagePath });
       setSaved('Панорама сохранена в черновике 360°-тура. Публикация не выполнялась.');
+      await loadSavedRooms();
     } catch (err) {
       setError(err.message || 'Не удалось сохранить панораму.');
     } finally {
