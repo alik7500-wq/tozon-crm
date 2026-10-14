@@ -1,4 +1,5 @@
 import React, { Suspense, useEffect, useState } from 'react';
+import { tour360Api } from '../../tour360/services/tour360Api';
 import { Canvas } from '@react-three/fiber';
 import { OrbitControls } from '@react-three/drei';
 import { PanoramaSphere } from '../../tour360/components/PanoramaSphere';
@@ -7,8 +8,11 @@ import { TourCanvasErrorBoundary } from '../../tour360/components/TourCanvasErro
 const MAX_BYTES = 25 * 1024 * 1024;
 const MIN_WIDTH = 2048;
 
-export function LayoutPanoramaPreview() {
+export function LayoutPanoramaPreview({ layout }) {
   const [url, setUrl] = useState(null);
+  const [fileToSave, setFileToSave] = useState(null);
+  const [isSaving, setIsSaving] = useState(false);
+  const [saved, setSaved] = useState('');
   const [filename, setFilename] = useState('');
   const [error, setError] = useState('');
   useEffect(() => () => { if (url) URL.revokeObjectURL(url); }, [url]);
@@ -18,6 +22,8 @@ export function LayoutPanoramaPreview() {
     event.target.value = '';
     if (!file) return;
     setError('');
+    setSaved('');
+    setFileToSave(null);
     if (!['image/jpeg', 'image/webp'].includes(file.type)) {
       setError('Выберите панораму JPG или WEBP.'); return;
     }
@@ -35,10 +41,46 @@ export function LayoutPanoramaPreview() {
         return;
       }
       setFilename(file.name);
+      setFileToSave(file);
       setUrl(candidate);
     } catch {
       URL.revokeObjectURL(candidate);
       setError('Изображение повреждено или не поддерживается браузером.');
+    }
+  };
+
+  const savePanorama = async () => {
+    if (!fileToSave || !layout?.project_id) {
+      setError('Не удалось определить проект планировки. Сохранение недоступно.');
+      return;
+    }
+    setIsSaving(true);
+    setError('');
+    setSaved('');
+    try {
+      const projectId = Number(layout.project_id);
+      const name = `Планировка ${layout.code || layout.id} — 360°`;
+      const existing = await tour360Api.getTours(projectId);
+      let tour = existing.find(t => t.name === name && t.tour_type === 'SHOWROOM');
+      if (!tour) {
+        tour = await tour360Api.createTour(projectId, { name, tour_type: 'SHOWROOM', is_active: false });
+      }
+      const signed = await tour360Api.requestUploadUrl(projectId, tour.id, fileToSave);
+      if (!signed?.signedUploadUrl || !signed?.storagePath) {
+        throw new Error('Сервер не предоставил ссылку для загрузки панорамы.');
+      }
+      const response = await fetch(signed.signedUploadUrl, {
+        method: 'PUT',
+        headers: { 'Content-Type': fileToSave.type, 'x-upsert': 'false' },
+        body: fileToSave
+      });
+      if (!response.ok) throw new Error(`Не удалось загрузить файл (HTTP ${response.status}).`);
+      await tour360Api.createPanorama(tour.id, { name: filename.replace(/\\.[^.]+$/, ''), storage_path: signed.storagePath });
+      setSaved('Панорама сохранена в черновике 360°-тура. Публикация не выполнялась.');
+    } catch (err) {
+      setError(err.message || 'Не удалось сохранить панораму.');
+    } finally {
+      setIsSaving(false);
     }
   };
 
@@ -52,6 +94,8 @@ export function LayoutPanoramaPreview() {
         Выбрать панораму (2:1, от 2048×1024, до 25 МБ)
         <input type="file" accept="image/jpeg,image/webp" onChange={selectFile} className="mt-2 block w-full rounded-lg border border-slate-300 bg-white p-2 text-sm" />
       </label>
+      {fileToSave && <button type="button" disabled={isSaving || !layout?.project_id} onClick={savePanorama} className="rounded-lg bg-indigo-600 px-4 py-2 text-sm font-semibold text-white disabled:opacity-50">{isSaving ? 'Сохранение...' : 'Сохранить в черновик CRM'}</button>}
+      {saved && <p role="status" className="rounded-lg bg-emerald-50 p-3 text-sm text-emerald-700">{saved}</p>}
       {error && <p role="alert" className="rounded-lg bg-rose-50 p-3 text-sm text-rose-700">{error}</p>}
       {url ? (
         <div className="space-y-2">
