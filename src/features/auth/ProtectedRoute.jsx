@@ -22,7 +22,7 @@ export const ProtectedRoute = ({ requiredPermission }) => {
     return <Navigate to="/login" replace />;
   }
 
-  if (user?.permissions?.includes('finance.restricted') &&
+  if (!user?.permissions?.includes('access.v2') && user?.permissions?.includes('finance.restricted') &&
     !/^\/(?:finance\/(?:calendar|debtors|income|expenses|cashflow)|payments(?:\/plan-fact)?)(?:\/|$)/.test(pathname)) {
     return <Navigate to="/finance/expenses" replace />;
   }

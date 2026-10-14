@@ -7,7 +7,7 @@ export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
 
-  const checkAuth = async () => {
+  const checkAuth = async (background = false) => {
     try {
       const res = await api.get('/auth/me');
       if (res?.data?.user) {
@@ -16,7 +16,7 @@ export const AuthProvider = ({ children }) => {
         setUser(null);
       }
     } catch {
-      setUser(null);
+      if (!background) setUser(null);
     } finally {
       setIsLoading(false);
     }
@@ -24,6 +24,15 @@ export const AuthProvider = ({ children }) => {
 
   useEffect(() => {
     checkAuth();
+    const refresh = () => { if (document.visibilityState === 'visible') checkAuth(true); };
+    window.addEventListener('focus', refresh);
+    document.addEventListener('visibilitychange', refresh);
+    const timer = window.setInterval(refresh, 60000);
+    return () => {
+      window.removeEventListener('focus', refresh);
+      document.removeEventListener('visibilitychange', refresh);
+      window.clearInterval(timer);
+    };
   }, []);
 
   const login = async (email, password) => {
