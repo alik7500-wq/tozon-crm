@@ -1,3 +1,4 @@
+import { api } from '../../api/client';
 import { canWriteSection } from '../../utils/permissions';
 import React, { useState, useEffect, useMemo } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
@@ -30,9 +31,15 @@ const COLORS = ['#ef4444', '#f97316', '#f59e0b', '#eab308', '#84cc16', '#22c55e'
 export const ExpensesPage = () => {
   const { user } = useAuth();
   const canWrite = canWriteSection(user, 'finance.expenses');
+  const { data: cashAccess } = useQuery({
+    queryKey: ['finance-access', user?.id, JSON.stringify(user?.permissions)],
+    queryFn: async () => (await api.get('/finance/access'))?.data?.cashAccess,
+    enabled: Boolean(user),
+  });
+  const canCreate = canWrite && Boolean(cashAccess?.canCreateExpense);
   const isAdmin = user?.role === 'ADMIN';
   const isRestrictedFinance = user?.permissions?.includes('finance.restricted');
-  const isManager = isRestrictedFinance || user?.role === 'SALES_MANAGER' || user?.role === 'MANAGER';
+  const isManager = (isRestrictedFinance && !user?.permissions?.includes('access.v2')) || user?.role === 'SALES_MANAGER' || user?.role === 'MANAGER';
 
   const [year, setYear] = useState(new Date().getFullYear());
   const [currency, setCurrency] = useState('ALL');
@@ -47,6 +54,8 @@ export const ExpensesPage = () => {
   });
 
   const allCashDesks = useMemo(() => buildCashDesksList(cashDesksDict), [cashDesksDict]);
+  const writableCashDesks = useMemo(() => allCashDesks.filter(d => cashAccess?.allWritableDesks || (cashAccess?.expenseDeskIds || []).includes(d.id)), [allCashDesks, cashAccess]);
+  const editableCashDesks = useMemo(() => allCashDesks.filter(d => cashAccess?.allWritableDesks || (cashAccess?.editableExpenseDeskIds || []).includes(d.id)), [allCashDesks, cashAccess]);
 
   const managerDeskId = useMemo(() => {
     if (!isManager) return null;
@@ -115,7 +124,7 @@ export const ExpensesPage = () => {
     recipient: '',
     description: '',
     attachment: '',
-    auto_convert: true,
+    auto_convert: canWriteSection(user, 'finance.cashflow'),
     exchange_rate: '',
     source_currency: 'USD',
     idempotency_key: `EXP-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`
@@ -173,6 +182,15 @@ export const ExpensesPage = () => {
       });
     }
   }, [isEskhataAvailable, liveEskhataRate]);
+
+  useEffect(() => {
+    if (!writableCashDesks.length) return;
+    setFormData(prev => {
+      if (writableCashDesks.some(d => d.id === prev.cash_desk_id)) return prev;
+      const desk = writableCashDesks[0];
+      return { ...prev, cash_desk_id: desk.id, cash_desk: desk.name };
+    });
+  }, [writableCashDesks]);
 
   const isAddDirty = Boolean(formData.amount && parseFloat(formData.amount) > 0 || formData.recipient.trim() || formData.description.trim());
   const { requestClose: requestCloseAdd } = useModalDismiss({
@@ -271,7 +289,7 @@ export const ExpensesPage = () => {
         recipient: '',
         description: '',
         attachment: '',
-        auto_convert: true,
+        auto_convert: canWriteSection(user, 'finance.cashflow'),
         exchange_rate: liveEskhataRate,
         source_currency: 'USD',
         idempotency_key: `EXP-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`
@@ -478,7 +496,7 @@ export const ExpensesPage = () => {
             <RefreshCw className={`h-4 w-4 ${isLoading ? 'animate-spin' : ''}`} />
           </button>
 
-          {canWrite && (<button
+          {canCreate && (<button
             onClick={() => setShowAddModal(true)}
             className="flex items-center gap-2 rounded-xl bg-gradient-to-r from-rose-600 to-red-600 px-4 py-2.5 text-xs font-bold text-white shadow-md shadow-rose-600/20 hover:from-rose-700 hover:to-red-700 transition cursor-pointer"
           >
@@ -738,7 +756,7 @@ export const ExpensesPage = () => {
             </span>
           </div>
 
-          {canWrite && (<button
+          {canCreate && (<button
             onClick={() => setShowAddModal(true)}
             className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl border border-dashed border-rose-300 bg-rose-50/50 hover:bg-rose-50 text-rose-700 text-xs font-bold transition cursor-pointer self-start sm:self-auto"
           >
@@ -826,7 +844,7 @@ export const ExpensesPage = () => {
                       >
                         <Printer className="h-4 w-4" />
                       </button>
-                      {canWrite && !isRestrictedFinance && (
+                      {canWrite && cashAccess?.canEditExpense && (cashAccess.allWritableDesks || (cashAccess.editableExpenseDeskIds || []).includes(item.cashDeskId || item.cash_desk_id)) && (
                         <>
                           <button
                             onClick={() => {
@@ -849,12 +867,12 @@ export const ExpensesPage = () => {
                                 cash_desk_id: resolved?.id || allCashDesks[0]?.id || null
                               });
                             }}
-                            title="Редактировать РКО (Админ)"
+                            title="Редактировать РКО"
                             className="p-1.5 rounded-lg text-slate-400 hover:text-blue-600 hover:bg-blue-50 transition cursor-pointer"
                           >
                             <Edit className="h-4 w-4" />
                           </button>
-                          <button
+                          {isAdmin && (<button
                             onClick={() => {
                               if (window.confirm(`Вы уверены, что хотите удалить РКО "${item.reference || item.id}" на сумму ${item.amount} ${item.currency}?`)) {
                                 deleteMutation.mutate(item.id);
@@ -864,7 +882,7 @@ export const ExpensesPage = () => {
                             className="p-1.5 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-50 transition cursor-pointer"
                           >
                             <Trash2 className="h-4 w-4" />
-                          </button>
+                          </button>)}
                         </>
                       )}
                     </div>
@@ -884,7 +902,7 @@ export const ExpensesPage = () => {
       </div>
 
       {/* Admin Edit Modal */}
-      {editingItem && (
+      {canWrite && editingItem && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs animate-in fade-in">
           <div className="relative w-full max-w-md overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-2xl">
             <div className="flex items-center justify-between border-b border-slate-100 bg-slate-900 px-6 py-4 text-white">
@@ -961,7 +979,7 @@ export const ExpensesPage = () => {
                   }}
                   className="w-full rounded-xl border border-slate-300 bg-slate-50 px-3 py-2 text-xs font-bold text-slate-800 outline-none focus:border-rose-500 focus:bg-white transition cursor-pointer"
                 >
-                  {allCashDesks.map((c) => (
+                  {editableCashDesks.map((c) => (
                     <option key={c.id || c.name} value={c.name}>
                       {c.icon} {c.name}
                     </option>
@@ -1058,7 +1076,7 @@ export const ExpensesPage = () => {
       )}
 
       {/* Modal: New Expense Order (РКО) */}
-      {canWrite && showAddModal && (
+      {canCreate && showAddModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-slate-900/60 backdrop-blur-xs animate-in fade-in">
           <div className="relative w-full max-w-2xl overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-2xl">
             {/* Modal Header */}
@@ -1081,7 +1099,7 @@ export const ExpensesPage = () => {
             </div>
 
             {/* Mode Switcher Tabs */}
-            {!isManager ? (
+            {!isManager && canWriteSection(user, 'finance.cashflow') ? (
               <div className="flex rounded-2xl bg-slate-100 p-1 mx-4 sm:mx-5 mt-3 border border-slate-200">
                 <button
                   type="button"
@@ -1376,7 +1394,7 @@ export const ExpensesPage = () => {
                         }}
                         className="w-full rounded-xl border border-slate-300 bg-slate-50 px-3 py-1.5 text-xs font-bold text-slate-800 outline-none focus:border-rose-500 cursor-pointer"
                       >
-                        {allCashDesks.map(c => (
+                        {writableCashDesks.map(c => (
                           <option key={c.id || c.name} value={c.name}>
                             {c.icon} {c.name}
                           </option>
@@ -1452,7 +1470,7 @@ export const ExpensesPage = () => {
                   </div>
 
                   {/* Auto-conversion block (Compact) */}
-                  {formData.currency !== 'USD' && (
+                  {formData.currency !== 'USD' && canWriteSection(user, 'finance.cashflow') && (
                     <div className="sm:col-span-2 rounded-xl border border-amber-300 bg-amber-50/80 p-2.5 space-y-1.5">
                       <div className="flex items-center justify-between flex-wrap gap-2">
                         <label className="flex items-center gap-1.5 cursor-pointer font-bold text-amber-950 select-none text-xs">
@@ -1768,4 +1786,5 @@ export const ExpensesPage = () => {
     </div>
   );
 };
+
 

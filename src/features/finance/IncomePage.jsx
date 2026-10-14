@@ -37,6 +37,12 @@ const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12
 export const IncomePage = () => {
   const { user } = useAuth();
   const canWrite = canWriteSection(user, 'finance.payments');
+  const { data: cashAccess } = useQuery({
+    queryKey: ['finance-access', user?.id, JSON.stringify(user?.permissions)],
+    queryFn: async () => (await api.get('/finance/access'))?.data?.cashAccess,
+    enabled: Boolean(user),
+  });
+  const canCreate = canWrite && Boolean(cashAccess?.canCreateIncome);
   const isAdmin = user?.role === 'ADMIN';
   const isManager = user?.role === 'SALES_MANAGER';
 
@@ -54,6 +60,8 @@ export const IncomePage = () => {
   });
 
   const allCashDesks = useMemo(() => buildCashDesksList(cashDesksDict), [cashDesksDict]);
+  const writableCashDesks = useMemo(() => allCashDesks.filter(d => cashAccess?.allWritableDesks || (cashAccess?.incomeDeskIds || []).includes(d.id)), [allCashDesks, cashAccess]);
+  const editableCashDesks = useMemo(() => allCashDesks.filter(d => cashAccess?.allWritableDesks || (cashAccess?.editableIncomeDeskIds || []).includes(d.id)), [allCashDesks, cashAccess]);
 
   const managerDeskId = useMemo(() => {
     if (!isManager) return null;
@@ -139,6 +147,15 @@ export const IncomePage = () => {
   useEffect(() => {
     financeApi.getDealsForSelect().then(data => setDealsList(data || [])).catch(() => {});
   }, []);
+
+  useEffect(() => {
+    if (!writableCashDesks.length) return;
+    setFormData(prev => {
+      if (writableCashDesks.some(d => d.id === prev.cash_desk_id)) return prev;
+      const desk = writableCashDesks[0];
+      return { ...prev, cash_desk_id: desk.id, cash_desk: desk.name };
+    });
+  }, [writableCashDesks]);
 
   const isAddDirty = Boolean(formData.amount && parseFloat(formData.amount) > 0 || formData.payer_name.trim() || formData.comment.trim());
   const { requestClose: requestCloseAdd } = useModalDismiss({
@@ -300,7 +317,7 @@ export const IncomePage = () => {
             <RefreshCw className={`h-4 w-4 ${isLoading ? 'animate-spin' : ''}`} />
           </button>
           
-          {canWrite && (<button
+          {canCreate && (<button
             onClick={() => setShowAddModal(true)}
             className="flex items-center gap-2 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 px-4 py-2.5 text-xs font-bold text-white shadow-md shadow-emerald-600/20 hover:from-emerald-700 hover:to-teal-700 transition cursor-pointer"
           >
@@ -647,7 +664,7 @@ export const IncomePage = () => {
             </span>
           </div>
 
-          {canWrite && (<button
+          {canCreate && (<button
             onClick={() => setShowAddModal(true)}
             className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl border border-dashed border-emerald-300 bg-emerald-50/50 hover:bg-emerald-50 text-emerald-700 text-xs font-bold transition cursor-pointer self-start sm:self-auto"
           >
@@ -818,7 +835,7 @@ export const IncomePage = () => {
                       >
                         <Printer className="h-4 w-4" />
                       </button>
-                      {canWrite && !user?.permissions?.includes('finance.restricted') && (
+                      {canWrite && cashAccess?.canEditIncome && (cashAccess.allWritableDesks || (cashAccess.editableIncomeDeskIds || []).includes(item.cashDeskId || item.cash_desk_id)) && (
                         <>
                           <button
                             onClick={() => {
@@ -827,9 +844,9 @@ export const IncomePage = () => {
                                 cleanRef = `ПКО-${item.contract || item.id}`;
                               }
                               const commentDesk = extractCashDeskFromComment(item.comment);
-                              const resolvedDesk = resolveCashDesk(item.cash_desk_id || commentDesk || item.cash_desk, allCashDesks);
+                              const resolvedDesk = resolveCashDesk(item.cash_desk_id || item.cashDeskId || commentDesk || item.cash_desk, allCashDesks);
                               const deskName = resolvedDesk ? resolvedDesk.name : (commentDesk || item.cash_desk || '');
-                              const deskId = resolvedDesk ? resolvedDesk.id : (item.cash_desk_id || null);
+                              const deskId = resolvedDesk ? resolvedDesk.id : (item.cash_desk_id || item.cashDeskId || null);
                               setEditingItem({
                                 id: item.id,
                                 amount: item.amount,
@@ -847,12 +864,12 @@ export const IncomePage = () => {
                                 contract: item.contract || ''
                               });
                             }}
-                            title="Редактировать ПКО (Админ)"
+                            title="Редактировать ПКО"
                             className="p-1.5 rounded-lg text-blue-600 hover:text-blue-700 hover:bg-blue-50 transition cursor-pointer"
                           >
                             <Edit className="h-4 w-4" />
                           </button>
-                          <button
+                          {isAdmin && (<button
                             onClick={() => {
                               if (window.confirm(`Вы уверены, что хотите удалить ПКО "${item.reference || item.id}" на сумму ${item.amount} ${item.currency}?`)) {
                                 deleteMutation.mutate(item.id);
@@ -862,7 +879,7 @@ export const IncomePage = () => {
                             className="p-1.5 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-50 transition cursor-pointer"
                           >
                             <Trash2 className="h-4 w-4" />
-                          </button>
+                          </button>)}
                         </>
                       )}
                     </div>
@@ -882,7 +899,7 @@ export const IncomePage = () => {
       </div>
 
       {/* Admin Edit Modal */}
-      {editingItem && (
+      {canWrite && editingItem && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs animate-in fade-in">
           <div className="relative w-full max-w-md overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-2xl">
             <div className="flex items-center justify-between border-b border-slate-100 bg-slate-900 px-6 py-4 text-white">
@@ -1002,7 +1019,7 @@ export const IncomePage = () => {
                   {(!editingItem.cash_desk_id && !editingItem.cash_desk) && (
                     <option value="">-- Выберите кассу --</option>
                   )}
-                  {allCashDesks.map((c) => (
+                  {editableCashDesks.map((c) => (
                     <option key={c.id || c.name} value={c.id || c.name}>
                       {c.icon} {c.name}
                     </option>
@@ -1106,7 +1123,7 @@ export const IncomePage = () => {
       )}
 
       {/* Modal: New Income Order (ПКО) */}
-      {canWrite && showAddModal && (
+      {canCreate && showAddModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-slate-900/60 backdrop-blur-xs animate-in fade-in">
           <div className="relative w-full max-w-2xl overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-2xl">
             {/* Header */}
@@ -1284,7 +1301,7 @@ export const IncomePage = () => {
                       className="w-full rounded-xl border border-slate-300 bg-slate-50 px-3 py-1.5 text-xs font-bold text-slate-800 outline-none focus:border-emerald-500 cursor-pointer"
                     >
                       <option value="">-- Выберите кассу зачисления --</option>
-                      {allCashDesks.map(c => (
+                      {writableCashDesks.map(c => (
                         <option key={c.id || c.name} value={c.id || c.name}>
                           {c.icon} {c.name}
                         </option>
@@ -1584,4 +1601,5 @@ export const IncomePage = () => {
     </div>
   );
 };
+
 

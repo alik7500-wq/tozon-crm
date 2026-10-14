@@ -1,3 +1,5 @@
+import { useAuth } from '../auth/AuthContext';
+import { canWriteSection } from '../../utils/permissions';
 import React, { useState, useEffect } from 'react';
 import { api } from '../../api/client';
 import { PaymentRecordModal } from '../deals/PaymentRecordModal';
@@ -21,6 +23,8 @@ import {
 } from 'lucide-react';
 
 export const PaymentsPage = () => {
+  const { user } = useAuth();
+  const canRecordPayment = canWriteSection(user, 'finance.payments');
   const [deals, setDeals] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [search, setSearch] = useState('');
@@ -216,13 +220,13 @@ export const PaymentsPage = () => {
                       </td>
                       <td className="p-3.5 text-right pr-5">
                         <div className="flex items-center justify-end gap-2" onClick={(e) => e.stopPropagation()}>
-                          <button
+                          {canRecordPayment && (<button
                             onClick={() => setSelectedDealForPayment(d)}
                             className="inline-flex items-center gap-1 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white px-3 py-1.5 text-xs font-bold transition shadow-xs cursor-pointer"
                           >
                             <Plus className="h-3.5 w-3.5" />
                             <span>Оплата</span>
-                          </button>
+                          </button>)}
 
                           <button
                             onClick={() => setSelectedDealIdForDrawer(d.id)}
@@ -243,7 +247,7 @@ export const PaymentsPage = () => {
       )}
 
       {/* Payment Modal */}
-      {selectedDealForPayment && (
+      {canRecordPayment && selectedDealForPayment && (
         <PaymentRecordModal
           isOpen={Boolean(selectedDealForPayment)}
           onClose={() => setSelectedDealForPayment(null)}
@@ -274,3 +278,4 @@ export const PaymentsPage = () => {
     </div>
   );
 };
+
