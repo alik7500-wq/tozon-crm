@@ -5,7 +5,10 @@ import { useModalDismiss } from '../../hooks/useModalDismiss';
 import {
   PERMISSION_GROUPS,
   ALL_PERMISSIONS,
-  ROLE_DEFAULTS
+  ROLE_DEFAULTS,
+  ACCESS_PROFILE,
+  normalizePermissions,
+  canWriteSection
 } from '../../utils/permissions';
 import {
   Users as UsersIcon,
@@ -43,7 +46,7 @@ export const UsersPage = () => {
     email: '',
     role: 'SALES_MANAGER',
     password: '',
-    permissions: ROLE_DEFAULTS.SALES_MANAGER || [],
+    permissions: normalizePermissions(ROLE_DEFAULTS.SALES_MANAGER || []),
     is_active: 1,
   });
 
@@ -71,7 +74,7 @@ export const UsersPage = () => {
       email: '',
       role: 'SALES_MANAGER',
       password: '',
-      permissions: [...(ROLE_DEFAULTS.SALES_MANAGER || [])],
+      permissions: normalizePermissions(ROLE_DEFAULTS.SALES_MANAGER || []),
       is_active: 1,
     });
     setIsModalOpen(true);
@@ -82,15 +85,13 @@ export const UsersPage = () => {
     let userPerms = Array.isArray(u.permissions) ? u.permissions : [];
     if (u.role === 'ADMIN' && (userPerms.includes('*') || userPerms.length === 0)) {
       userPerms = ALL_PERMISSIONS;
-    } else if (userPerms.length === 0 && ROLE_DEFAULTS[u.role]) {
-      userPerms = ROLE_DEFAULTS[u.role];
     }
     setFormData({
       name: u.name || '',
       email: u.email || '',
       role: u.role || 'SALES_MANAGER',
       password: '', // optional on edit
-      permissions: [...userPerms],
+      permissions: normalizePermissions(userPerms),
       is_active: u.is_active ? 1 : 0,
     });
     setIsModalOpen(true);
@@ -112,55 +113,39 @@ export const UsersPage = () => {
     setFormData((prev) => ({
       ...prev,
       role: newRole,
-      permissions: [...defaultPerms]
+      permissions: normalizePermissions(defaultPerms)
     }));
   };
 
-  const togglePermission = (permKey) => {
-    setFormData((prev) => {
-      const current = prev.permissions || [];
-      const has = current.includes(permKey);
-      const next = has
-        ? current.filter((k) => k !== permKey && k !== '*')
-        : [...current.filter((k) => k !== '*'), permKey];
-      return { ...prev, permissions: next };
+  const canManageUsers = canWriteSection(currentUser, 'users.manage');
+  const togglePermission = (row, mode) => {
+    setFormData(prev => {
+      const next = new Set(prev.permissions || []);
+      next.delete('*');
+      next.add(ACCESS_PROFILE);
+      const key = mode === 'read' ? row.readKey : row.writeKey;
+      if (next.has(key)) {
+        next.delete(key);
+        if (mode === 'read') next.delete(row.writeKey);
+      } else {
+        next.add(key);
+        if (mode === 'write') next.add(row.readKey);
+      }
+      return { ...prev, permissions: [...next] };
     });
   };
-
-  const toggleGroupPermissions = (group) => {
-    const groupKeys = group.permissions.map((p) => p.key);
-    const current = formData.permissions || [];
-    const allSelected = groupKeys.every((k) => current.includes(k));
-
-    if (allSelected) {
-      // Unselect group
-      setFormData((prev) => ({
-        ...prev,
-        permissions: (prev.permissions || []).filter((k) => !groupKeys.includes(k))
-      }));
-    } else {
-      // Select all in group
-      const newPerms = Array.from(new Set([...(formData.permissions || []), ...groupKeys]));
-      setFormData((prev) => ({
-        ...prev,
-        permissions: newPerms
-      }));
-    }
+  const toggleGroupPermissions = group => {
+    const keys = group.permissions.flatMap(p => [p.readKey, p.writeKey]);
+    setFormData(prev => {
+      const current = prev.permissions || [];
+      const all = keys.every(k => current.includes(k));
+      return { ...prev, permissions: all
+        ? current.filter(k => !keys.includes(k))
+        : [...new Set([...current, ACCESS_PROFILE, ...keys])] };
+    });
   };
-
-  const selectAllPermissions = () => {
-    setFormData((prev) => ({
-      ...prev,
-      permissions: [...ALL_PERMISSIONS]
-    }));
-  };
-
-  const clearAllPermissions = () => {
-    setFormData((prev) => ({
-      ...prev,
-      permissions: []
-    }));
-  };
+  const selectAllPermissions = () => setFormData(prev => ({ ...prev, permissions: [ACCESS_PROFILE, ...ALL_PERMISSIONS, ...(prev.permissions || []).filter(k => k === 'finance.restricted')] }));
+  const clearAllPermissions = () => setFormData(prev => ({ ...prev, permissions: [ACCESS_PROFILE, ...(prev.permissions || []).filter(k => k === 'finance.restricted')] }));
 
   const getRoleBadge = (role) => {
     switch (role) {
@@ -263,7 +248,7 @@ export const UsersPage = () => {
           </p>
         </div>
 
-        {currentUser?.role === 'ADMIN' && (
+        {canManageUsers && (
           <button
             onClick={openCreateModal}
             className="flex items-center gap-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white px-4 py-2.5 text-xs font-bold transition shadow-md shadow-blue-500/20 cursor-pointer"
@@ -304,7 +289,7 @@ export const UsersPage = () => {
                 <th className="p-3.5">Активные доступы</th>
                 <th className="p-3.5">Статус</th>
                 <th className="p-3.5">Дата регистрации</th>
-                {currentUser?.role === 'ADMIN' && (
+                {canManageUsers && (
                   <th className="p-3.5 text-right pr-5">Действия</th>
                 )}
               </tr>
@@ -312,14 +297,14 @@ export const UsersPage = () => {
             <tbody className="divide-y divide-slate-100">
               {isLoading ? (
                 <tr>
-                  <td colSpan={currentUser?.role === 'ADMIN' ? 7 : 6} className="p-8 text-center text-slate-400">
+                  <td colSpan={canManageUsers ? 7 : 6} className="p-8 text-center text-slate-400">
                     <Loader2 className="h-6 w-6 animate-spin mx-auto text-blue-600 mb-2" />
                     Загрузка списка пользователей...
                   </td>
                 </tr>
               ) : filteredUsers.length === 0 ? (
                 <tr>
-                  <td colSpan={currentUser?.role === 'ADMIN' ? 7 : 6} className="p-8 text-center text-slate-400">
+                  <td colSpan={canManageUsers ? 7 : 6} className="p-8 text-center text-slate-400">
                     Сотрудники не найдены
                   </td>
                 </tr>
@@ -377,7 +362,7 @@ export const UsersPage = () => {
                         </span>
                       </td>
                       <td className="p-3.5 text-slate-500">{formattedDate}</td>
-                      {currentUser?.role === 'ADMIN' && (
+                      {canManageUsers && (
                         <td className="p-3.5 text-right pr-5">
                           <div className="flex items-center justify-end gap-1.5">
                             <button
@@ -389,7 +374,7 @@ export const UsersPage = () => {
                               <span>Доступы</span>
                             </button>
 
-                            {String(u.id) !== String(currentUser?.id) && (
+                            {currentUser?.role === 'ADMIN' && String(u.id) !== String(currentUser?.id) && (
                               <button
                                 onClick={() => handleDeleteUser(u)}
                                 className="p-1.5 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-50 transition cursor-pointer"
@@ -413,7 +398,7 @@ export const UsersPage = () => {
       {/* Modal: Create or Edit User with Granular Permissions */}
       {isModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-xs overflow-y-auto animate-in fade-in">
-          <div className="relative w-full max-w-3xl my-8 rounded-2xl border border-slate-200 bg-white shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
+          <div className="relative w-full max-w-5xl my-8 rounded-2xl border border-slate-200 bg-white shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
             {/* Modal Header */}
             <div className="flex items-center justify-between border-b border-slate-100 px-6 py-4 bg-slate-50/50 shrink-0">
               <div className="flex items-center gap-3">
@@ -515,13 +500,13 @@ export const UsersPage = () => {
                       <span>2. Разрешения и доступ к функциям</span>
                     </h4>
                     <p className="text-[11px] text-slate-400 mt-0.5">
-                      Отметьте разделы и действия, к которым данный сотрудник будет иметь доступ
+                      Чтение — просмотр данных. Добавление / редактирование — внесение изменений. Для изменения требуется чтение.
                     </p>
                   </div>
 
                   <div className="flex items-center gap-2">
                     <span className="text-[11px] font-bold text-blue-700 bg-blue-50 px-2.5 py-1 rounded-lg border border-blue-100">
-                      Выбрано: {formData.permissions?.length || 0} из {ALL_PERMISSIONS.length}
+                      Выбрано: {ALL_PERMISSIONS.filter(k => formData.permissions?.includes(k)).length} из {ALL_PERMISSIONS.length}
                     </span>
                     <button
                       type="button"
@@ -540,10 +525,11 @@ export const UsersPage = () => {
                   </div>
                 </div>
 
+                {formData.role === 'ADMIN' && <p className="text-xs text-amber-700">Администратор имеет полный доступ. Для ограничения прав выберите другую роль.</p>}
                 {/* Permission Groups Grid */}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   {PERMISSION_GROUPS.map((group) => {
-                    const groupKeys = group.permissions.map((p) => p.key);
+                    const groupKeys = group.permissions.flatMap((p) => [p.readKey, p.writeKey]);
                     const selectedInGroup = groupKeys.filter((k) =>
                       formData.permissions?.includes(k)
                     );
@@ -568,33 +554,27 @@ export const UsersPage = () => {
                           </button>
                         </div>
 
+                        <div className="grid grid-cols-[minmax(0,1fr)_60px_96px] gap-2 text-[10px] font-bold text-slate-500 pb-1">
+                          <span>Раздел</span><span className="text-center">Чтение</span><span className="text-center">Добавление / редактирование</span>
+                        </div>
                         <div className="space-y-2">
-                          {group.permissions.map((p) => {
-                            const isChecked = formData.permissions?.includes(p.key);
-                            return (
-                              <label
-                                key={p.key}
-                                className={`flex items-start gap-2.5 p-2 rounded-lg border transition cursor-pointer select-none ${
-                                  isChecked
-                                    ? 'bg-blue-50/70 border-blue-200 text-blue-950'
-                                    : 'bg-white border-slate-200/60 text-slate-600 hover:bg-slate-100/50'
-                                }`}
-                              >
-                                <input
-                                  type="checkbox"
-                                  checked={isChecked}
-                                  onChange={() => togglePermission(p.key)}
-                                  className="mt-0.5 h-4 w-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500 cursor-pointer"
-                                />
-                                <div className="text-[11px] leading-tight">
-                                  <div className="font-bold">{p.label}</div>
-                                  <div className="text-[10px] text-slate-400 font-normal mt-0.5">
-                                    {p.desc}
-                                  </div>
-                                </div>
-                              </label>
-                            );
-                          })}
+                          {group.permissions.map(p => (
+                            <div key={p.key} className="grid grid-cols-[minmax(0,1fr)_60px_96px] items-center gap-2 p-2 rounded-lg border border-slate-200 bg-white">
+                              <div className="text-[11px] leading-tight min-w-0">
+                                <div className="font-bold text-slate-800">{p.label}</div>
+                                <div className="text-[10px] text-slate-400 mt-0.5">{p.desc}</div>
+                              </div>
+                              {['read', 'write'].map(mode => (
+                                <label key={mode} className="flex items-center justify-center min-h-9 cursor-pointer">
+                                  <input type="checkbox"
+                                    aria-label={`${p.label}: ${mode === 'read' ? 'Чтение' : 'Добавление / редактирование'}`}
+                                    checked={Boolean(formData.permissions?.includes(mode === 'read' ? p.readKey : p.writeKey))}
+                                    onChange={() => togglePermission(p, mode)}
+                                    className="h-4 w-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500 cursor-pointer" />
+                                </label>
+                              ))}
+                            </div>
+                          ))}
                         </div>
                       </div>
                     );
@@ -628,3 +608,4 @@ export const UsersPage = () => {
     </div>
   );
 };
+

@@ -1,3 +1,4 @@
+import { canWriteSection } from '../../utils/permissions';
 import React, { useState, useEffect, useMemo } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { api } from '../../api/client';
@@ -35,6 +36,7 @@ const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12
 
 export const IncomePage = () => {
   const { user } = useAuth();
+  const canWrite = canWriteSection(user, 'finance.payments');
   const isAdmin = user?.role === 'ADMIN';
   const isManager = user?.role === 'SALES_MANAGER';
 
@@ -298,13 +300,13 @@ export const IncomePage = () => {
             <RefreshCw className={`h-4 w-4 ${isLoading ? 'animate-spin' : ''}`} />
           </button>
           
-          <button
+          {canWrite && (<button
             onClick={() => setShowAddModal(true)}
             className="flex items-center gap-2 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 px-4 py-2.5 text-xs font-bold text-white shadow-md shadow-emerald-600/20 hover:from-emerald-700 hover:to-teal-700 transition cursor-pointer"
           >
             <Plus className="h-4 w-4" />
             <span>Оформить приход (ПКО)</span>
-          </button>
+          </button>)}
         </div>
       </div>
 
@@ -645,13 +647,13 @@ export const IncomePage = () => {
             </span>
           </div>
 
-          <button
+          {canWrite && (<button
             onClick={() => setShowAddModal(true)}
             className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl border border-dashed border-emerald-300 bg-emerald-50/50 hover:bg-emerald-50 text-emerald-700 text-xs font-bold transition cursor-pointer self-start sm:self-auto"
           >
             <Plus className="h-4 w-4" />
             <span>Оформить приход в журнал</span>
-          </button>
+          </button>)}
         </div>
 
         <div className="overflow-x-auto w-full">
@@ -816,7 +818,7 @@ export const IncomePage = () => {
                       >
                         <Printer className="h-4 w-4" />
                       </button>
-                      {isAdmin && (
+                      {canWrite && !user?.permissions?.includes('finance.restricted') && (
                         <>
                           <button
                             onClick={() => {
@@ -1104,7 +1106,7 @@ export const IncomePage = () => {
       )}
 
       {/* Modal: New Income Order (ПКО) */}
-      {showAddModal && (
+      {canWrite && showAddModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-slate-900/60 backdrop-blur-xs animate-in fade-in">
           <div className="relative w-full max-w-2xl overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-2xl">
             {/* Header */}
@@ -1582,3 +1584,4 @@ export const IncomePage = () => {
     </div>
   );
 };
+

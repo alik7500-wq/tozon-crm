@@ -11,6 +11,15 @@ export const api = axios.create({
   },
 });
 
+// Dropdowns only need employee names, not account details or permissions.
+api.interceptors.request.use(config => {
+  if (config.method === 'get' && config.url === '/users' &&
+      typeof window !== 'undefined' && window.location.pathname !== '/users') {
+    config.params = { ...config.params, lookup: '1' };
+  }
+  return config;
+});
+
 // Response interceptor for handling common errors
 api.interceptors.response.use(
   (response) => {
@@ -29,3 +38,4 @@ api.interceptors.response.use(
     return Promise.reject(new Error(message));
   }
 );
+

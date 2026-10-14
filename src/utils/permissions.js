@@ -1,4 +1,4 @@
-export const PERMISSION_GROUPS = [
+const LEGACY_PERMISSION_GROUPS = [
   { id: 'construction', title: 'Строительный учёт', permissions: [
     { key: 'construction.stock', label: 'Склад', desc: 'Поступления, выдача и перемещения материалов' },
     { key: 'construction.advance', label: 'Свой подотчёт', desc: 'Собственные авансовые отчёты и остатки' },
@@ -74,7 +74,41 @@ export const PERMISSION_GROUPS = [
   }
 ];
 
-export const ALL_PERMISSIONS = PERMISSION_GROUPS.flatMap(g => g.permissions.map(p => p.key));
+export const ACCESS_PROFILE = 'access.v2';
+const paired = {
+  'inventory.view': 'inventory.manage', 'leads.view': 'leads.manage',
+  'deals.view': 'deals.manage', 'contracts.view': 'contracts.manage'
+};
+const standalone = {
+  'tasks.manage': 'tasks.view', 'automation.manage': 'automation.view',
+  'users.manage': 'users.view', 'settings.manage': 'settings.view'
+};
+export const PERMISSION_GROUPS = LEGACY_PERMISSION_GROUPS.map(group => ({
+  ...group,
+  permissions: group.permissions.filter(p => !Object.values(paired).includes(p.key)).map(p => ({
+    ...p,
+    readKey: standalone[p.key] || p.key,
+    writeKey: paired[p.key] || (standalone[p.key] ? p.key : `${p.key}.write`),
+    legacyKeys: paired[p.key] ? [p.key, paired[p.key]] : [p.key],
+    legacyWrite: paired[p.key] || (p.key.endsWith('.manage') || p.key.startsWith('construction.') || ['finance.payments','finance.expenses'].includes(p.key) ? p.key : null),
+    label: ({'inventory.view':'ЖК, квартиры и шахматка', 'leads.view':'Лиды и база клиентов', 'deals.view':'Сделки и бронирование', 'contracts.view':'Договоры и документы', 'analytics.view':'Дашборд и аналитика', 'finance.view':'Финансовая сводка и календарь', 'finance.payments':'Платежи и квитанции (ПКО)', 'finance.expenses':'Расходы (РКО)'})[p.key] || p.label
+  }))
+}));
+const rows = PERMISSION_GROUPS.flatMap(g => g.permissions);
+export const ALL_PERMISSIONS = rows.flatMap(p => [p.readKey, p.writeKey]);
+export const normalizePermissions = (permissions = []) => {
+  if (permissions.includes(ACCESS_PROFILE)) return [...permissions];
+  const result = permissions.filter(k => !rows.some(p => p.legacyKeys.includes(k)) && k !== '*');
+  for (const p of rows) {
+    if (permissions.includes('*') || p.legacyKeys.some(k => permissions.includes(k))) result.push(p.readKey);
+    if (permissions.includes('*') || (p.legacyWrite && permissions.includes(p.legacyWrite))) result.push(p.writeKey);
+  }
+  if (permissions.some(k => ['sms.send','sms.history','sms.view','leads.manage','deals.manage'].includes(k))) result.push('automation.view');
+  if (permissions.some(k => ['sms.send','leads.manage','deals.manage'].includes(k))) result.push('automation.manage');
+  return [...new Set([ACCESS_PROFILE, ...result])];
+};
+
+
 
 export const ROLE_DEFAULTS = {
   ADMIN: ALL_PERMISSIONS,
@@ -127,4 +161,18 @@ export const hasAnyPermission = (user, permissions = []) => {
   if (userPerms.includes('*')) return true;
   if (!permissions || permissions.length === 0) return true;
   return permissions.some(p => userPerms.includes(p));
+};
+
+
+// Page access checks differ from action checks for legacy *.manage keys.
+export const hasReadPermission = (user, permission) => {
+  if (!user?.permissions?.includes(ACCESS_PROFILE)) return hasPermission(user, permission);
+  const row = rows.find(p => p.legacyKeys.includes(permission) || p.readKey === permission || p.writeKey === permission);
+  return hasPermission(user, row?.readKey || permission);
+};
+export const canWriteSection = (user, permission) => {
+  if (!user) return false;
+  const row = rows.find(p => p.legacyKeys.includes(permission) || p.readKey === permission || p.writeKey === permission);
+  if (user.permissions?.includes(ACCESS_PROFILE)) return hasPermission(user, row?.writeKey || permission);
+  return hasPermission(user, row?.legacyWrite || row?.writeKey || permission);
 };

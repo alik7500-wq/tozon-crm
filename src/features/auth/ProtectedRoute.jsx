@@ -1,7 +1,7 @@
 import React from 'react';
 import { Navigate, Outlet, useLocation } from 'react-router-dom';
 import { useAuth } from './AuthContext';
-import { hasPermission } from '../../utils/permissions';
+import { hasReadPermission } from '../../utils/permissions';
 
 export const ProtectedRoute = ({ requiredPermission }) => {
   const { user, isLoading } = useAuth();
@@ -27,7 +27,7 @@ export const ProtectedRoute = ({ requiredPermission }) => {
     return <Navigate to="/finance/expenses" replace />;
   }
 
-  if (requiredPermission && !hasPermission(user, requiredPermission)) {
+  if (requiredPermission && !hasReadPermission(user, requiredPermission)) {
     return <Navigate to="/" replace />;
   }
 
@@ -37,8 +37,9 @@ export const ProtectedRoute = ({ requiredPermission }) => {
 export const PermissionGuard = ({ requiredPermission, children }) => {
   const { user } = useAuth();
   const { pathname } = useLocation();
-  if (requiredPermission && !hasPermission(user, requiredPermission)) {
+  if (requiredPermission && !hasReadPermission(user, requiredPermission)) {
     return <Navigate to="/" replace />;
   }
   return children;
 };
+

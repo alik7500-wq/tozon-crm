@@ -38,7 +38,7 @@ import {
   Table
 } from 'lucide-react';
 
-import { hasPermission, hasAnyPermission } from '../utils/permissions';
+import { hasReadPermission, hasAnyPermission } from '../utils/permissions';
 import { GlobalSearch } from '../components/GlobalSearch';
 import { TozonLogo } from '../components/TozonLogo';
 
@@ -154,7 +154,7 @@ export const MainLayout = () => {
         { label: 'Реестр должников', path: '/finance/debtors', icon: AlertCircle, permission: 'finance.debtors' },
         { label: 'Доходы (ПКО)', path: '/finance/income', icon: TrendingUp, permission: 'finance.payments' },
         { label: 'Расходы (РКО)', path: '/finance/expenses', icon: TrendingDown, permission: 'finance.expenses' },
-        { label: 'Строительный учёт', path: '/finance/construction', icon: Table, permission: 'construction.stock', permissionsAny: ['construction.stock','construction.advance','construction.settlements'] },
+        { label: 'Строительный учёт', path: '/finance/construction', icon: Table, permission: 'construction.stock', permissionsAny: ['construction.stock','construction.advance','construction.settlements','construction.settings'] },
         { label: 'ДДС (Движение средств)', path: '/finance/cashflow', icon: Wallet, permission: 'finance.cashflow' },
       ],
     },
@@ -168,14 +168,14 @@ export const MainLayout = () => {
     .filter(item => !user?.permissions?.includes('finance.restricted') || item.id === 'finance')
     .map((item) => {
       if (item.type === 'link') {
-        if (item.permission && !hasPermission(user, item.permission)) {
+        if (item.permission && !hasReadPermission(user, item.permission)) {
           return null;
         }
         return item;
       }
       if (item.type === 'group') {
         const allowedChildren = item.children.filter(
-          (child) => child.permissionsAny ? child.permissionsAny.some(p=>hasPermission(user,p)) : !child.permission || hasPermission(user, child.permission)
+          (child) => child.permissionsAny ? child.permissionsAny.some(p=>hasReadPermission(user,p)) : !child.permission || hasReadPermission(user, child.permission)
         );
         if (allowedChildren.length === 0) {
           return null;
@@ -359,3 +359,4 @@ export const MainLayout = () => {
     </div>
   );
 };
+

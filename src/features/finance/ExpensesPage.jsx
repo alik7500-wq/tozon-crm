@@ -1,3 +1,4 @@
+import { canWriteSection } from '../../utils/permissions';
 import React, { useState, useEffect, useMemo } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { financeApi } from '../../api/finance.api';
@@ -28,6 +29,7 @@ const COLORS = ['#ef4444', '#f97316', '#f59e0b', '#eab308', '#84cc16', '#22c55e'
 
 export const ExpensesPage = () => {
   const { user } = useAuth();
+  const canWrite = canWriteSection(user, 'finance.expenses');
   const isAdmin = user?.role === 'ADMIN';
   const isRestrictedFinance = user?.permissions?.includes('finance.restricted');
   const isManager = isRestrictedFinance || user?.role === 'SALES_MANAGER' || user?.role === 'MANAGER';
@@ -476,13 +478,13 @@ export const ExpensesPage = () => {
             <RefreshCw className={`h-4 w-4 ${isLoading ? 'animate-spin' : ''}`} />
           </button>
 
-          <button
+          {canWrite && (<button
             onClick={() => setShowAddModal(true)}
             className="flex items-center gap-2 rounded-xl bg-gradient-to-r from-rose-600 to-red-600 px-4 py-2.5 text-xs font-bold text-white shadow-md shadow-rose-600/20 hover:from-rose-700 hover:to-red-700 transition cursor-pointer"
           >
             <Plus className="h-4 w-4" />
             <span>Оформить расход (РКО)</span>
-          </button>
+          </button>)}
         </div>
       </div>
 
@@ -736,13 +738,13 @@ export const ExpensesPage = () => {
             </span>
           </div>
 
-          <button
+          {canWrite && (<button
             onClick={() => setShowAddModal(true)}
             className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl border border-dashed border-rose-300 bg-rose-50/50 hover:bg-rose-50 text-rose-700 text-xs font-bold transition cursor-pointer self-start sm:self-auto"
           >
             <Plus className="h-4 w-4" />
             <span>Добавить расход в журнал</span>
-          </button>
+          </button>)}
         </div>
 
         <div className="overflow-x-auto w-full">
@@ -824,7 +826,7 @@ export const ExpensesPage = () => {
                       >
                         <Printer className="h-4 w-4" />
                       </button>
-                      {isAdmin && (
+                      {canWrite && !isRestrictedFinance && (
                         <>
                           <button
                             onClick={() => {
@@ -1056,7 +1058,7 @@ export const ExpensesPage = () => {
       )}
 
       {/* Modal: New Expense Order (РКО) */}
-      {showAddModal && (
+      {canWrite && showAddModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-slate-900/60 backdrop-blur-xs animate-in fade-in">
           <div className="relative w-full max-w-2xl overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-2xl">
             {/* Modal Header */}
@@ -1766,3 +1768,4 @@ export const ExpensesPage = () => {
     </div>
   );
 };
+
