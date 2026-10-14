@@ -40,7 +40,7 @@ const ICON_OPTIONS = [
   'Home'
 ];
 
-export const LayoutEditorModal = ({ layoutId, isOpen, onClose, onUpdated }) => {
+export const LayoutEditorModal = ({ layoutId, projectId, isOpen, onClose, onUpdated }) => {
   const { t, getText } = useI18n();
   const [activeTab, setActiveTab] = useState('basic'); // basic | images | rooms | characteristics | features | preview
   const [isLoading, setIsLoading] = useState(true);
@@ -430,7 +430,7 @@ export const LayoutEditorModal = ({ layoutId, isOpen, onClose, onUpdated }) => {
             </div>
           ) : (
             <>
-              {activeTab === 'tour360' && <LayoutPanoramaPreview layout={layout} />}
+              {activeTab === 'tour360' && <LayoutPanoramaPreview layout={layout} projectId={projectId} />}
 
               {/* TAB 1: BASIC INFO */}
               {activeTab === 'basic' && (
