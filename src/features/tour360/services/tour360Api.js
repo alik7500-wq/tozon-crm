@@ -32,4 +32,18 @@ export const tour360Api = {
     const res = await api.get(`/360-panoramas/${panoramaId}/hotspots`);
     return res.data?.data?.hotspots || [];
   }
+  async createTour(projectId, payload) {
+    const res = await api.post(`/projects/${projectId}/360-tours`, payload);
+    return res.data?.tour;
+  },
+  async createPanorama(tourId, payload) {
+    const res = await api.post(`/360-tours/${tourId}/panoramas`, payload);
+    return res.data?.panorama;
+  },
+  async requestUploadUrl(projectId, tourId, file) {
+    const res = await api.post('/360-panoramas/upload-url', {
+      projectId: Number(projectId), tourId: Number(tourId), filename: file.name, fileSizeBytes: file.size
+    });
+    return res.data;
+  },
 };
