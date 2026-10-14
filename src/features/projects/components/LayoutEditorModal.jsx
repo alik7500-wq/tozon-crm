@@ -430,7 +430,7 @@ export const LayoutEditorModal = ({ layoutId, isOpen, onClose, onUpdated }) => {
             </div>
           ) : (
             <>
-              {activeTab === 'tour360' && <LayoutPanoramaPreview />}
+              {activeTab === 'tour360' && <LayoutPanoramaPreview layout={layout} />}
 
               {/* TAB 1: BASIC INFO */}
               {activeTab === 'basic' && (
