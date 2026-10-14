@@ -206,7 +206,7 @@ export const InteractiveApartmentView = ({
             title={t('langToggle')}
           >
             <Globe className="h-3.5 w-3.5 text-blue-600" />
-            <span>{lang.toUpperCase()}</span>
+            <span>{lang === 'tg' ? 'TJ' : lang.toUpperCase()}</span>
           </button>
 
           {permissions?.canEditLayout && onOpenEditor && layout?.id && (
@@ -327,8 +327,15 @@ export const InteractiveApartmentView = ({
                 {t('roomsHeader')}
               </h4>
 
+              {getText(layout?.description_tg, layout?.description_ru || layout?.description) && (
+                <p className="text-sm text-slate-600 leading-relaxed whitespace-pre-line">
+                  {getText(layout?.description_tg, layout?.description_ru || layout?.description)}
+                </p>
+              )}
+
               {rooms.length === 0 ? (
-                <p className="text-xs text-slate-500 italic">{t('noRoomsDefined')}</p>
+
+                !getText(layout?.description_tg, layout?.description_ru || layout?.description) && <p className="text-xs text-slate-500 italic">{t('noRoomsDefined')}</p>
               ) : (
                 <div className="space-y-3 max-h-[380px] overflow-y-auto pr-1">
                   {rooms.map((r) => {
@@ -419,7 +426,6 @@ export const InteractiveApartmentView = ({
       )}
 
 
-      {getText(layout?.description_tg,layout?.description_ru || layout?.description) && <section className="rounded-2xl border border-slate-200 bg-white p-5"><h4 className="font-bold mb-2">{lang === 'tg' ? 'Дар бораи манзил' : 'О квартире'}</h4><p className="text-sm text-slate-600 whitespace-pre-line">{getText(layout?.description_tg,layout?.description_ru || layout?.description)}</p></section>}
       {viewerOpen && images.length>0 && <ApartmentImageViewer images={images} index={Math.min(imageIndex,images.length-1)} onNavigate={setImageIndex} onClose={()=>setViewerOpen(false)} />}
       {/* Bottom Section 1: Extended Characteristics */}
       <div className="rounded-2xl bg-white border border-slate-200 p-5 shadow-xs space-y-4">
