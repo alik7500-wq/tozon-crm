@@ -81,7 +81,12 @@ export function LayoutPanoramaPreview({ layout, projectId }) {
       const name = `Планировка ${layout.code || layout.id} — 360°`;
       const existing = await tour360Api.getTours(targetProjectId);
       let tour = existing.find(t => t.name === name && t.tour_type === 'SHOWROOM' && !t.is_active);
-      if (!tour) {
+      if (tour) {
+        const current = await tour360Api.getTourById(tour.id);
+        if (current?.panoramas?.some(p => p.name === roomName)) {
+          throw new Error(`Панорама «${roomName}» уже сохранена. Повторная загрузка отменена.`);
+        }
+      } else {
         tour = await tour360Api.createTour(targetProjectId, { name, tour_type: 'SHOWROOM', is_active: false });
       }
       const signed = await tour360Api.requestUploadUrl(targetProjectId, tour.id, fileToSave);
