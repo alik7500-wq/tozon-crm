@@ -14,6 +14,7 @@ export function LayoutPanoramaPreview({ layout, projectId }) {
   const [isSaving, setIsSaving] = useState(false);
   const [saved, setSaved] = useState('');
   const [filename, setFilename] = useState('');
+  const [roomName, setRoomName] = useState('Гостиная');
   const [error, setError] = useState('');
   useEffect(() => () => { if (url) URL.revokeObjectURL(url); }, [url]);
 
@@ -24,6 +25,8 @@ export function LayoutPanoramaPreview({ layout, projectId }) {
     setError('');
     setSaved('');
     setFileToSave(null);
+    setUrl(null);
+    setFilename('');
     if (!['image/jpeg', 'image/webp'].includes(file.type)) {
       setError('Выберите панораму JPG или WEBP.'); return;
     }
@@ -76,7 +79,7 @@ export function LayoutPanoramaPreview({ layout, projectId }) {
         body: fileToSave
       });
       if (!response.ok) throw new Error(`Не удалось загрузить файл (HTTP ${response.status}).`);
-      await tour360Api.createPanorama(tour.id, { name: filename.replace(/\.[^.]+$/, ''), storage_path: signed.storagePath });
+      await tour360Api.createPanorama(tour.id, { name: roomName, storage_path: signed.storagePath });
       setSaved('Панорама сохранена в черновике 360°-тура. Публикация не выполнялась.');
     } catch (err) {
       setError(err.message || 'Не удалось сохранить панораму.');
@@ -95,6 +98,7 @@ export function LayoutPanoramaPreview({ layout, projectId }) {
         Выбрать панораму (2:1, от 2048×1024, до 25 МБ)
         <input type="file" accept="image/jpeg,image/webp" onChange={selectFile} className="mt-2 block w-full rounded-lg border border-slate-300 bg-white p-2 text-sm" />
       </label>
+      {fileToSave && <label className="block text-sm font-semibold text-slate-700">Помещение<select value={roomName} onChange={e => setRoomName(e.target.value)} className="mt-2 block w-full rounded-lg border border-slate-300 bg-white p-2 text-sm">{['Гостиная', 'Спальня', 'Кухня', 'Санузел', 'Коридор'].map(name => <option key={name} value={name}>{name}</option>)}</select></label>}
       {fileToSave && <button type="button" disabled={isSaving || !projectId} onClick={savePanorama} className="rounded-lg bg-indigo-600 px-4 py-2 text-sm font-semibold text-white disabled:opacity-50">{isSaving ? 'Сохранение...' : 'Сохранить в черновик CRM'}</button>}
       {saved && <p role="status" className="rounded-lg bg-emerald-50 p-3 text-sm text-emerald-700">{saved}</p>}
       {error && <p role="alert" className="rounded-lg bg-rose-50 p-3 text-sm text-rose-700">{error}</p>}
