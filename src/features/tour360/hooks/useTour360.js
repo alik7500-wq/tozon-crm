@@ -19,7 +19,8 @@ export function useTour360(projectId, initialTourId = null, initialPanoramaId = 
     setIsLoading(true);
     setError(null);
     try {
-      const toursList = await tour360Api.getTours(projectId);
+      // Customer-facing viewer must not surface inactive editorial drafts.
+      const toursList = (await tour360Api.getTours(projectId)).filter(t => t.is_active === true);
       setTours(toursList);
 
       if (toursList.length === 0) {
