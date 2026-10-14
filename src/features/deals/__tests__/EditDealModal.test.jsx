@@ -42,3 +42,8 @@ describe('contract amendment form',()=>{
    expect(screen.getByDisplayValue('44256.92')).toBeTruthy();
  });
 });
+
+it('allows changing paid installment term and sends concurrency stamp only with a term change',async()=>{
+ open();const field=screen.getByLabelText('Срок рассрочки (мес.)');expect(field.disabled).toBe(false);fireEvent.change(field,{target:{value:'30'}});fireEvent.click(screen.getByRole('button',{name:'Сохранить изменения'}));
+ await waitFor(()=>expect(api.patch).toHaveBeenCalled());const payload=api.patch.mock.calls[0][1];expect(payload.installment_months).toBe(30);expect(payload.expected_updated_at).toBe(deal.updated_at);expect(payload).not.toHaveProperty('final_price_minor');expect(payload).not.toHaveProperty('down_payment_minor');
+});

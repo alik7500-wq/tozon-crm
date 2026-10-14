@@ -192,6 +192,10 @@ export const EditDealModal = ({
       return;
     }
 
+    if (!amending && paymentType === 'INSTALLMENT' && (!Number.isInteger(Number(installmentMonths)) || Number(installmentMonths) < 1 || Number(installmentMonths) > 60)) {
+      setError('Укажите срок рассрочки от 1 до 60 месяцев');
+      return;
+    }
     setIsSubmitting(true);
     setError('');
 
@@ -233,7 +237,8 @@ export const EditDealModal = ({
       // Paid metadata edits must not accidentally include locked financial keys.
       if (isPaidDeal) {
         delete payload.payment_type;
-        delete payload.installment_months;
+        if (installmentMonths === String(deal.installment_months || 0)) delete payload.installment_months;
+        else payload.expected_updated_at = deal.updated_at;
       }
       // Only include financial terms in payload if unpaid
       if (!isPaidDeal) {
@@ -335,7 +340,7 @@ export const EditDealModal = ({
             <div className="flex items-center gap-2.5 rounded-2xl bg-amber-500/10 border border-amber-500/30 p-3 text-amber-900 text-xs font-semibold">
               <Lock className="h-4 w-4 shrink-0 text-amber-600" />
               <span>
-                Финансовые условия заблокированы для редактирования, поскольку по сделке уже зарегистрирована оплата <strong>${(totalPaidMinor / 100).toLocaleString('ru-RU', { minimumFractionDigits: 2 })} USD</strong>.
+                Стоимость и первый взнос защищены от изменения, поскольку по сделке уже зарегистрирована оплата <strong>${(totalPaidMinor / 100).toLocaleString('ru-RU', { minimumFractionDigits: 2 })} USD</strong>.
               </span>
             </div>
           )}
@@ -426,12 +431,17 @@ export const EditDealModal = ({
                     type="number"
                     min="1"
                     max="60"
-                    disabled={isPaidDeal || amending}
+                    disabled={amending}
+                    aria-label="Срок рассрочки (мес.)"
                     value={installmentMonths}
                     onChange={(e) => setInstallmentMonths(e.target.value)}
                     className="w-full rounded-xl border border-slate-200 bg-white px-3 py-1.5 text-xs font-semibold text-slate-900 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition disabled:bg-slate-100 disabled:text-slate-500 disabled:cursor-not-allowed"
                   />
                 </div>
+              )}
+
+              {paymentType === 'INSTALLMENT' && !amending && installmentMonths !== String(deal.installment_months || 0) && (
+                <p className="text-xs text-blue-700">При сохранении график будет пересчитан на {installmentMonths} месяцев от даты договора. Фактические оплаты сохранятся.</p>
               )}
 
               {deal.status === 'RESERVED' && (
