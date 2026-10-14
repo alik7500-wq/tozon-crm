@@ -44,7 +44,7 @@ export const PaymentCalendarPage = () => {
     financeApi.getProjectsForSelect().then(p => setProjectsList(p || [])).catch(() => {});
   }, []);
 
-  const { data: response, isLoading, refetch } = useQuery({
+  const { data: response, isLoading, error: loadError, refetch } = useQuery({
     queryKey: ['finance-calendar', year, month, statusFilter, projectId, leadId, overdueOnly, next30Days, search],
     queryFn: () => financeApi.getPaymentCalendar({
       year,
@@ -140,6 +140,14 @@ export const PaymentCalendarPage = () => {
     { value: '11', label: 'Ноябрь' },
     { value: '12', label: 'Декабрь' },
   ];
+
+  if (loadError) return (
+    <div className="p-6 rounded-2xl border border-red-200 bg-red-50 text-red-800" role="alert">
+      <h2 className="font-bold mb-2">Не удалось загрузить финансовые данные</h2>
+      <p>{loadError.message}</p>
+      <button type="button" onClick={() => refetch()} className="mt-4 px-4 py-2 rounded-lg bg-white border border-red-200">Повторить загрузку</button>
+    </div>
+  );
 
   return (
     <div className="space-y-6 max-w-7xl mx-auto pb-16">
