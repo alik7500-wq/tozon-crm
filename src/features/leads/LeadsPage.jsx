@@ -4,6 +4,7 @@ import { api } from '../../api/client';
 import { LeadKanbanView } from './LeadKanbanView';
 import { LeadTableView } from './LeadTableView';
 import { LeadControlView } from './LeadControlView';
+import { ManagerPerformanceView } from './ManagerPerformanceView';
 import { CreateLeadModal } from './CreateLeadModal';
 import { LeadDrawer } from './LeadDrawer';
 import {
@@ -11,22 +12,26 @@ import {
   Search,
   Kanban,
   Table as TableIcon,
-  ShieldAlert
+  ShieldAlert,
+  TrendingUp
 } from 'lucide-react';
 
 export const LeadsPage = () => {
   const [searchParams, setSearchParams] = useSearchParams();
-  const initialMode = searchParams.get('tab') === 'control' ? 'control' : 'kanban';
+  const tabParam = searchParams.get('tab');
+  const initialMode = tabParam === 'control' ? 'control' : (tabParam === 'performance' ? 'performance' : 'kanban');
 
   const [leads, setLeads] = useState([]);
   const [projects, setProjects] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [viewMode, setViewMode] = useState(initialMode); // 'kanban', 'table', or 'control'
+  const [viewMode, setViewMode] = useState(initialMode); // 'kanban', 'table', 'control', or 'performance'
 
   const handleSetViewMode = (mode) => {
     setViewMode(mode);
     if (mode === 'control') {
       setSearchParams({ tab: 'control' });
+    } else if (mode === 'performance') {
+      setSearchParams({ tab: 'performance' });
     } else {
       setSearchParams({});
     }
@@ -159,6 +164,18 @@ export const LeadsPage = () => {
               <ShieldAlert className="h-3.5 w-3.5 text-amber-500" />
               <span>Контроль обработки</span>
             </button>
+
+            <button
+              onClick={() => handleSetViewMode('performance')}
+              className={`flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-bold transition cursor-pointer ${
+                viewMode === 'performance'
+                  ? 'bg-tozon-blue text-white shadow-xs'
+                  : 'text-slate-500 hover:text-slate-800'
+              }`}
+            >
+              <TrendingUp className="h-3.5 w-3.5 text-emerald-500" />
+              <span>Эффективность</span>
+            </button>
           </div>
 
           <button
@@ -180,6 +197,8 @@ export const LeadsPage = () => {
           projects={projects}
           onLeadUpdated={fetchLeads}
         />
+      ) : viewMode === 'performance' ? (
+        <ManagerPerformanceView projects={projects} />
       ) : (
         <>
           {/* Metrics Row */}
