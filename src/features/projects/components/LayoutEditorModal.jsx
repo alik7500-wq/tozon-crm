@@ -62,6 +62,7 @@ export const LayoutEditorModal = ({ layoutId, isOpen, onClose, onUpdated }) => {
     default_price_per_m2: 8500,
     description_ru: '',
     description_tg: '',
+    gallery_images: [],
     furnished_plan_path: '',
     technical_plan_path: '',
     living_area: '',
@@ -137,6 +138,7 @@ export const LayoutEditorModal = ({ layoutId, isOpen, onClose, onUpdated }) => {
         default_price_per_m2: l.default_price_per_m2_minor ? Math.round(l.default_price_per_m2_minor / 100) : 8500,
         description_ru: l.description_ru || l.description || '',
         description_tg: l.description_tg || '',
+        gallery_images: l.gallery_images || [],
         furnished_plan_path: l.furnished_plan_path || l.image_path || '',
         technical_plan_path: l.technical_plan_path || '',
         living_area: l.living_area || '',
@@ -187,6 +189,7 @@ export const LayoutEditorModal = ({ layoutId, isOpen, onClose, onUpdated }) => {
         description: basicForm.description_ru,
         description_ru: basicForm.description_ru,
         description_tg: basicForm.description_tg,
+        gallery_images: (basicForm.gallery_images || []).filter(img => img.url),
         furnished_plan_path: basicForm.furnished_plan_path,
         technical_plan_path: basicForm.technical_plan_path,
         living_area: basicForm.living_area ? parseFloat(basicForm.living_area) : null,
@@ -205,7 +208,8 @@ export const LayoutEditorModal = ({ layoutId, isOpen, onClose, onUpdated }) => {
         is_published: basicForm.is_published
       };
 
-      await api.patch(`/inventory/layouts/${layoutId}/extended`, payload);
+      const updates = activeTab === 'images' ? { gallery_images: payload.gallery_images, furnished_plan_path: payload.furnished_plan_path, technical_plan_path: payload.technical_plan_path } : payload;
+      await api.patch(`/inventory/layouts/${layoutId}/extended`, updates);
       setSuccessMsg(t('savedSuccessfully'));
       fetchLayoutData();
       if (onUpdated) onUpdated();
@@ -544,6 +548,16 @@ export const LayoutEditorModal = ({ layoutId, isOpen, onClose, onUpdated }) => {
                     </div>
                   </div>
 
+                  <section className="space-y-3">
+                    <h4 className="font-bold">Дополнительные фотографии и изображения</h4>
+                    <p className="text-xs text-slate-500">Добавляйте фотографии комнат, виды и варианты планировки. Изменения относятся ко всем квартирам этого типа.</p>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">{(basicForm.gallery_images || []).map((img,i)=><div key={i} className="border rounded-xl p-3 space-y-2">
+                      <div className="h-48"><ImageUpload value={img.url} onChange={url=>setBasicForm(prev=>({...prev,gallery_images:prev.gallery_images.map((x,j)=>j===i?{...x,url}:x)}))} /></div>
+                      <input aria-label={`Подпись изображения ${i+1}`} placeholder="Подпись: гостиная, спальня…" value={img.title || ''} onChange={ev=>setBasicForm(prev=>({...prev,gallery_images:prev.gallery_images.map((x,j)=>j===i?{...x,title:ev.target.value}:x)}))} className="w-full border rounded-lg p-2" />
+                      <div className="flex gap-3"><button type="button" disabled={i===0} onClick={()=>setBasicForm(prev=>{const a=[...prev.gallery_images];[a[i-1],a[i]]=[a[i],a[i-1]];return {...prev,gallery_images:a};})} className="text-blue-700 disabled:opacity-30">Выше ↑</button><button type="button" onClick={()=>setBasicForm(prev=>({...prev,gallery_images:prev.gallery_images.filter((_,j)=>j!==i)}))} className="text-red-700">Удалить изображение</button></div>
+                    </div>)}</div>
+                    <button type="button" onClick={()=>setBasicForm(prev=>({...prev,gallery_images:[...(prev.gallery_images || []),{url:'',title:''}]}))} className="rounded-xl border px-4 py-2 text-blue-700">+ Добавить изображение</button>
+                  </section>
                   <button
                     onClick={handleSaveBasic}
                     disabled={isSaving}

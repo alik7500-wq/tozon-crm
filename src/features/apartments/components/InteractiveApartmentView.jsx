@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef, lazy, Suspense } from 'react';
+import { ApartmentImageViewer } from './ApartmentImageViewer';
 import { api } from '../../../api/client';
 import { useI18n } from '../../../context/i18nContext';
 
@@ -37,6 +38,8 @@ export const InteractiveApartmentView = ({
   userRole = 'SALES_MANAGER'
 }) => {
   const { lang, toggleLanguage, t, getText } = useI18n();
+  const [imageIndex, setImageIndex] = useState(0);
+  const [viewerOpen, setViewerOpen] = useState(false);
   const [data, setData] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState('');
@@ -58,6 +61,7 @@ export const InteractiveApartmentView = ({
       const res = await api.get(`/inventory/units/${unitId}/presentation`);
       const payload = res.data?.data || res.data;
       setData(payload);
+      setImageIndex(0);
 
       if (payload?.rooms && payload.rooms.length > 0) {
         setSelectedRoomId(payload.rooms[0].id);
@@ -104,6 +108,12 @@ export const InteractiveApartmentView = ({
   const activeRoom = rooms.find((r) => r.id === (hoveredRoomId || selectedRoomId)) || rooms[0];
 
   const furnishedPlanImg = layout?.furnished_plan_path || layout?.image_path;
+  const images = [
+    {url:furnishedPlanImg,title:'Планировка квартиры'},
+    {url:layout?.technical_plan_path,title:'Технический план'},
+    ...(layout?.gallery_images || [])
+  ].filter((item,i,all)=>item?.url && all.findIndex(x=>x.url===item.url)===i);
+  const shownImage = images[imageIndex] || images[0];
 
   const getStatusBadge = (status) => {
     switch (status) {
@@ -216,12 +226,15 @@ export const InteractiveApartmentView = ({
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
           {/* Main Interactive Plan Image Canvas */}
           <div className="lg:col-span-7 flex flex-col rounded-2xl bg-white border border-slate-200 p-4 shadow-xs">
-            <div className="relative w-full h-[460px] rounded-xl bg-slate-950 overflow-hidden border border-slate-200 select-none">
-              {furnishedPlanImg ? (
+            <div className="relative w-full h-[460px] rounded-xl bg-white overflow-hidden border border-slate-200 select-none">
+              {shownImage ? (
                 <img
-                  src={furnishedPlanImg}
-                  alt={layout ? layout.name : 'Furnished Plan'}
-                  className="w-full h-full object-contain pointer-events-none p-2"
+                  src={shownImage.url}
+                  alt={shownImage.title || 'Планировка квартиры'}
+                  role="button" tabIndex={0} aria-label="Открыть изображение на весь экран"
+                  onClick={() => setViewerOpen(true)}
+                  onKeyDown={e => { if(e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setViewerOpen(true); } }}
+                  className="w-full h-full object-contain cursor-zoom-in p-2"
                 />
               ) : (
                 <div className="flex h-full w-full flex-col items-center justify-center p-8 text-center text-slate-400">
@@ -231,7 +244,7 @@ export const InteractiveApartmentView = ({
               )}
 
               {/* Render Room Badges */}
-              {rooms.map((r) => {
+              {rooms.filter(r => r.area != null && shownImage?.url === furnishedPlanImg).map((r) => {
                 const isSelected = selectedRoomId === r.id;
                 const isHovered = hoveredRoomId === r.id;
                 const activeState = isSelected || isHovered;
@@ -269,7 +282,7 @@ export const InteractiveApartmentView = ({
                         activeState ? 'bg-amber-600 text-white' : 'bg-slate-900/85 text-white'
                       }`}
                     >
-                      {r.area} м²
+                      {r.area != null ? `${r.area} м²` : 'Площадь уточняется'}
                     </span>
                   </div>
                 );
@@ -277,7 +290,7 @@ export const InteractiveApartmentView = ({
 
               {/* Polygon SVG Overlay for Selected or Hovered Room */}
               {rooms.map((r) => {
-                if (!r.polygon_points || r.polygon_points.length === 0) return null;
+                if (shownImage?.url !== furnishedPlanImg || !r.polygon_points || r.polygon_points.length === 0) return null;
                 const isActive = selectedRoomId === r.id || hoveredRoomId === r.id;
                 if (!isActive) return null;
 
@@ -297,6 +310,8 @@ export const InteractiveApartmentView = ({
               })}
             </div>
 
+            {images.length>0 && <div className="flex gap-2 overflow-x-auto mt-3 pb-2">{images.map((img,i)=><button key={img.url} type="button" onClick={()=>setImageIndex(i)} className={`shrink-0 rounded-xl border-2 p-1 ${i===imageIndex?'border-blue-600':'border-slate-200'}`} aria-label={img.title || `Изображение ${i+1}`}><img src={img.url} alt={img.title || ''} className="w-20 h-16 object-contain bg-white" /></button>)}</div>}
+            {shownImage && <button type="button" onClick={()=>setViewerOpen(true)} className="mt-2 text-sm text-blue-700 flex gap-2 items-center"><Maximize2 className="w-4 h-4" />Открыть на весь экран</button>}
             <div className="mt-3 flex items-center justify-between text-xs text-slate-500 px-1">
               <span className="flex items-center gap-1.5">
                 <Info className="h-3.5 w-3.5 text-blue-600" />
@@ -404,6 +419,8 @@ export const InteractiveApartmentView = ({
       )}
 
 
+      {getText(layout?.description_tg,layout?.description_ru || layout?.description) && <section className="rounded-2xl border border-slate-200 bg-white p-5"><h4 className="font-bold mb-2">О квартире</h4><p className="text-sm text-slate-600 whitespace-pre-line">{getText(layout?.description_tg,layout?.description_ru || layout?.description)}</p></section>}
+      {viewerOpen && images.length>0 && <ApartmentImageViewer images={images} index={Math.min(imageIndex,images.length-1)} onNavigate={setImageIndex} onClose={()=>setViewerOpen(false)} />}
       {/* Bottom Section 1: Extended Characteristics */}
       <div className="rounded-2xl bg-white border border-slate-200 p-5 shadow-xs space-y-4">
         <h4 className="text-sm font-bold text-slate-900 border-b border-slate-100 pb-2">
