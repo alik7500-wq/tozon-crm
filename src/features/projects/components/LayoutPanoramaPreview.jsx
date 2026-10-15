@@ -188,9 +188,9 @@ export function LayoutPanoramaPreview({ layout, projectId }) {
       {(url || selectedSavedRoom?.panorama_url || selectedSavedRoom?.image_url) ? (
         <div className="space-y-2">
           <p className="text-xs text-slate-500">{url ? filename : `Черновик: ${selectedSavedRoom?.name}`} — вращайте мышью или пальцем. Пропорции 2:1 не гарантируют корректную сферическую проекцию.</p>
-          <div className="relative h-[420px] overflow-hidden rounded-xl bg-slate-950">
+          <div className="relative h-[55vh] min-h-[260px] max-h-[420px] overflow-hidden rounded-xl bg-slate-950">
             <TourCanvasErrorBoundary key={url || selectedSavedRoom?.id} panoramaUrl={url || selectedSavedRoom?.panorama_url || selectedSavedRoom?.image_url}>
-              <Canvas camera={{ position: [0, 0, 0.1], fov: 75 }} gl={{ antialias: true }}>
+              <Canvas camera={{ position: [0, 0, 0.1], fov: 75 }} dpr={[1, 1.5]} gl={{ antialias: true }}>
                 <OrbitControls enablePan={false} enableZoom rotateSpeed={-0.4} minDistance={0.05} maxDistance={0.5} />
                 <Suspense fallback={null}><PanoramaSphere panoramaUrl={url || selectedSavedRoom?.panorama_url || selectedSavedRoom?.image_url} /></Suspense>
               </Canvas>
