@@ -10,10 +10,13 @@ export function TourDraftNavigationEditor({ tourId }) {
   const [report, setReport] = useState(null);
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
+  const [approved, setApproved] = useState(false);
+  const [manifest, setManifest] = useState(null);
   const refresh = async () => {
     const value = await tour360Api.getTourById(tourId);
     if (!value || value.is_active) throw new Error('Редактировать можно только черновик.');
     setTour(value);
+    setReport(null); setApproved(false); setManifest(null);
     setFrom(old => value.panoramas?.some(p => String(p.id) === old) ? old : String(value.panoramas?.[0]?.id || ''));
     setTo(old => value.panoramas?.some(p => String(p.id) === old) ? old : String(value.panoramas?.[1]?.id || ''));
   };
@@ -44,6 +47,7 @@ export function TourDraftNavigationEditor({ tourId }) {
     <ul>{links.map(h => <li key={h.id} className="flex justify-between gap-2 border-b p-2"><span>{panoramas.find(p => p.id === h.target_panorama_id)?.name || h.target_panorama_id}</span><button type="button" className="text-red-700 underline" disabled={busy} onClick={() => run(async () => { await tour360Api.deleteHotspot(h.id); await refresh(); setReport(null); })}>Удалить</button></li>)}</ul>
     <button type="button" className="rounded border p-2" disabled={busy} onClick={() => run(async () => setReport(await tour360Api.getPublishPreflight(tourId)))}>Проверить готовность</button>
     {report && <div className="text-sm"><p>{report.ready_for_publish ? 'Технические условия выполнены' : 'Тур ещё не готов'}</p><p>Отсутствуют комнаты: {report.navigation?.missing_rooms?.join(', ') || 'нет'}. Недоступных комнат: {report.navigation?.unreachable_panorama_ids?.length || 0}. Отсутствующих файлов: {report.missing_or_unreadable?.length || 0}.</p><p>Публикация требует отдельного разрешения и безопасного переноса файлов; здесь она не выполняется.</p></div>}
+    {report?.ready_for_publish && <div className="space-y-2 border-t pt-2 text-sm"><label className="flex gap-2"><input type="checkbox" checked={approved} onChange={e => setApproved(e.target.checked)} />Подтверждаю ручную проверку планировки, изображений и переходов. Тур не будет опубликован автоматически.</label><button type="button" disabled={!approved || busy} className="rounded border p-2 disabled:opacity-50" onClick={() => run(async () => setManifest(await tour360Api.getPublishManifest(tourId)))}>Проверить план публикации</button>{manifest && <p role="status">План подготовлен: {manifest.files?.length || 0} файлов. Выполнение: {manifest.can_execute === false ? 'заблокировано до отдельного релиза' : 'неожиданный статус — обратитесь к администратору'}.</p>}</div>}
     {error && <p role="alert" className="text-red-700">{error}</p>}
   </section>;
 }
