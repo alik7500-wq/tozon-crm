@@ -37,6 +37,21 @@ export const tour360Api = {
     const res = await api.get(`/360-panoramas/${panoramaId}/hotspots`);
     return res.data?.hotspots || [];
   },
+  async createHotspot(panoramaId, payload) {
+    const res = await api.post(`/360-panoramas/${panoramaId}/hotspots`, payload);
+    return res.data?.hotspot;
+  },
+  async deleteHotspot(hotspotId) {
+    await api.delete(`/360-hotspots/${hotspotId}`);
+  },
+  async getPublishPreflight(tourId) {
+    const res = await api.get(`/360-tours/${tourId}/publish-preflight`);
+    return res.data?.preflight;
+  },
+  async getPublishManifest(tourId) {
+    const res = await api.get(`/360-tours/${tourId}/publish-manifest`);
+    return res.data?.manifest;
+  },
   async createTour(projectId, payload) {
     const res = await api.post(`/projects/${projectId}/360-tours`, payload);
     return res.data?.tour;
