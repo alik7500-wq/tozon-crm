@@ -125,15 +125,23 @@ export const ROLE_DEFAULTS = {
     'inventory.view',
     'leads.view', 'leads.manage', 'tasks.manage',
     'deals.view', 'deals.manage',
-    'contracts.view',
-    'finance.view'
+    'contracts.view'
+  ],
+  WAREHOUSE_MANAGER: [
+    'access.v2',
+    'construction.stock',
+    'construction.stock.write',
+    'construction.advance',
+    'construction.advance.write',
+    'construction.settlements',
+    'finance.expenses',
+    'finance.expenses.write'
   ],
   MANAGER: [
     'inventory.view',
     'leads.view', 'leads.manage', 'tasks.manage',
     'deals.view', 'deals.manage',
-    'contracts.view',
-    'finance.view'
+    'contracts.view'
   ],
   FINANCE_MANAGER: [
     'analytics.view', 'analytics.reports',

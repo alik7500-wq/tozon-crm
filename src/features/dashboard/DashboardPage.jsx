@@ -40,8 +40,12 @@ export const DashboardPage = () => {
   };
 
   useEffect(() => {
+    if (user?.role === 'WAREHOUSE_MANAGER') {
+      navigate('/finance/construction', { replace: true });
+      return;
+    }
     fetchDashboardStats();
-  }, []);
+  }, [user]);
 
   const units = statsData?.units || { available_units: 0, reserved_units: 0, sold_units: 0, total_units: 0 };
   const leads = statsData?.leads || { new_leads: 0, total_leads: 0 };
