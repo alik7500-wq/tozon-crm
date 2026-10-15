@@ -29,6 +29,16 @@ import {
   ArrowRight
 } from 'lucide-react';
 
+const formatMeasure = value => {
+  if (value === null || value === undefined || value === '') return '—';
+  const number = Number(value);
+  return Number.isFinite(number) ? number.toLocaleString('ru-RU', { maximumFractionDigits: 2 }) : String(value);
+};
+const trimDecimalZeros = value => String(value || '').replace(/\b([0-9]+)([.,])([0-9]+)\b/g, (_, whole, separator, fraction) => {
+  const clean = fraction.replace(/0+$/, '');
+  return clean ? whole + separator + clean : whole;
+});
+
 export const InteractiveApartmentView = ({
   unitId,
   currency = 'USD',
@@ -149,7 +159,7 @@ export const InteractiveApartmentView = ({
           <div>
             <div className="flex items-center gap-2 flex-wrap">
               <h3 className="text-base font-bold text-slate-900">
-                {t('unitNumber')} {unit.unit_number} — {layout ? getText(layout.name_tg, layout.name_ru || layout.name) : ''}
+                {t('unitNumber')} {unit.unit_number} — {layout ? trimDecimalZeros(getText(layout.name_tg, layout.name_ru || layout.name)) : ''}
               </h3>
               <span className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-0.5 text-xs font-bold ${statusBadge.bg}`}>
                 <span className={`h-1.5 w-1.5 rounded-full ${statusBadge.dot}`} />
@@ -157,7 +167,7 @@ export const InteractiveApartmentView = ({
               </span>
             </div>
             <p className="text-xs text-slate-500 mt-0.5">
-              {unit.floors?.sections?.buildings?.name || 'Здание'} • {t('floor')} {unit.floors?.floor_number} • {unit.rooms === 0 ? t('studio') : `${unit.rooms} ${t('roomsAbbr')}`} • {(unit.area_m2_x100 / 100).toFixed(1)} м²
+              {unit.floors?.sections?.buildings?.name || 'Здание'} • {t('floor')} {unit.floors?.floor_number} • {unit.rooms === 0 ? t('studio') : `${unit.rooms} ${t('roomsAbbr')}`} • {formatMeasure(unit.area_m2_x100 / 100)} м²
             </p>
           </div>
         </div>
@@ -282,7 +292,7 @@ export const InteractiveApartmentView = ({
                         activeState ? 'bg-amber-600 text-white' : 'bg-slate-900/85 text-white'
                       }`}
                     >
-                      {r.area != null ? `${r.area} м²` : (lang === 'tg' ? 'Масоҳат аниқ карда мешавад' : 'Площадь уточняется')}
+                      {r.area != null ? `${formatMeasure(r.area)} м²` : (lang === 'tg' ? 'Масоҳат аниқ карда мешавад' : 'Площадь уточняется')}
                     </span>
                   </div>
                 );
@@ -368,7 +378,7 @@ export const InteractiveApartmentView = ({
                             <h5 className="text-sm font-bold text-slate-900">{name}</h5>
                           </div>
                           <span className="rounded-lg bg-white px-2 py-1 text-xs font-extrabold text-slate-800 border border-slate-200 shadow-2xs">
-                            {r.area} м²
+                            {formatMeasure(r.area)} м²
                           </span>
                         </div>
 
@@ -437,21 +447,21 @@ export const InteractiveApartmentView = ({
           <div className="rounded-xl bg-slate-50 p-3 border border-slate-100">
             <span className="text-[11px] font-semibold text-slate-500">{t('livingArea')}</span>
             <p className="text-sm font-extrabold text-slate-900 mt-0.5">
-              {layout?.living_area ? `${layout.living_area} м²` : '—'}
+              {layout?.living_area ? `${formatMeasure(layout.living_area)} м²` : '—'}
             </p>
           </div>
 
           <div className="rounded-xl bg-slate-50 p-3 border border-slate-100">
             <span className="text-[11px] font-semibold text-slate-500">{t('kitchenArea')}</span>
             <p className="text-sm font-extrabold text-slate-900 mt-0.5">
-              {layout?.kitchen_area ? `${layout.kitchen_area} м²` : '—'}
+              {layout?.kitchen_area ? `${formatMeasure(layout.kitchen_area)} м²` : '—'}
             </p>
           </div>
 
           <div className="rounded-xl bg-slate-50 p-3 border border-slate-100">
             <span className="text-[11px] font-semibold text-slate-500">{t('ceilingHeight')}</span>
             <p className="text-sm font-extrabold text-slate-900 mt-0.5">
-              {layout?.ceiling_height ? `${layout.ceiling_height} м` : '—'}
+              {layout?.ceiling_height ? `${formatMeasure(layout.ceiling_height)} м` : '—'}
             </p>
           </div>
 
