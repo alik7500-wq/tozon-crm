@@ -1,3 +1,4 @@
+import { formatFinanceNumber, formatFinanceText } from '../../utils/financeDisplay';
 import { api } from '../../api/client';
 import { canWriteSection } from '../../utils/permissions';
 import React, { useState, useEffect, useMemo } from 'react';
@@ -525,7 +526,7 @@ export const ExpensesPage = () => {
             <span className="p-2 rounded-xl bg-rose-500/10 text-rose-600">💵</span>
           </div>
           <div className="text-2xl font-black text-rose-950 mt-2">
-            ${(totals.USD || 0).toLocaleString('ru-RU', { minimumFractionDigits: 2 })}
+            ${(totals.USD || 0).toLocaleString('ru-RU', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
           </div>
           <p className="text-[11px] text-rose-600/90 mt-1 font-medium">Все оприходованные кассовые выплаты в USD ({year === 'ALL' ? 'все года' : `${year} г.`})</p>
         </div>
@@ -536,7 +537,7 @@ export const ExpensesPage = () => {
             <span className="p-2 rounded-xl bg-amber-500/10 text-amber-600">🇹🇯</span>
           </div>
           <div className="text-2xl font-black text-amber-950 mt-2">
-            {(totals.TJS || 0).toLocaleString('ru-RU', { minimumFractionDigits: 2 })} <span className="text-sm font-semibold">TJS</span>
+            {(totals.TJS || 0).toLocaleString('ru-RU', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} <span className="text-sm font-semibold">TJS</span>
           </div>
           <p className="text-[11px] text-amber-600/90 mt-1 font-medium">Все оприходованные выплаты в сомони ({year === 'ALL' ? 'все года' : `${year} г.`})</p>
         </div>
@@ -547,7 +548,7 @@ export const ExpensesPage = () => {
             <span className="p-2 rounded-xl bg-purple-500/10 text-purple-600">📊</span>
           </div>
           <div className="text-2xl font-black text-purple-950 mt-2">
-            ${(expensesData.operationalExpenses?.USD || 0).toLocaleString('ru-RU', { minimumFractionDigits: 2 })}
+            ${(expensesData.operationalExpenses?.USD || 0).toLocaleString('ru-RU', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
           </div>
           <p className="text-[11px] text-purple-600/90 mt-1 font-medium">Прямые расходы без учета автоконвертаций в TJS</p>
         </div>
@@ -681,7 +682,7 @@ export const ExpensesPage = () => {
             </h3>
             {totalChartAmount > 0 && (
               <span className="text-xs font-black text-rose-700 bg-rose-50 px-2.5 py-1 rounded-xl border border-rose-100 whitespace-nowrap self-start sm:self-auto">
-                Итого: {totalChartAmount.toLocaleString('ru-RU', { minimumFractionDigits: 2 })} {expensesData.chartCurrency || 'USD'}
+                Итого: {totalChartAmount.toLocaleString('ru-RU', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} {expensesData.chartCurrency || 'USD'}
               </span>
             )}
           </div>
@@ -706,7 +707,7 @@ export const ExpensesPage = () => {
                       ))}
                     </Pie>
                     <Tooltip
-                      formatter={(value) => [`${Number(value).toLocaleString('ru-RU', { minimumFractionDigits: 2 })} ${expensesData.chartCurrency || 'USD'}`, 'Расход']}
+                      formatter={(value) => [`${Number(value).toLocaleString('ru-RU', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ${expensesData.chartCurrency || 'USD'}`, 'Расход']}
                       contentStyle={{ borderRadius: '16px', border: '1px solid #e2e8f0', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.05)' }}
                     />
                   </PieChart>
@@ -731,7 +732,7 @@ export const ExpensesPage = () => {
                       </div>
                       <div className="text-right shrink-0">
                         <span className="font-black text-slate-900 block leading-tight">
-                          {cat.amount.toLocaleString('ru-RU', { minimumFractionDigits: 2 })} {expensesData.chartCurrency || 'USD'}
+                          {cat.amount.toLocaleString('ru-RU', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} {expensesData.chartCurrency || 'USD'}
                         </span>
                         <span className="text-[10px] text-slate-400 font-semibold">
                           {pct}% от всего
@@ -822,10 +823,10 @@ export const ExpensesPage = () => {
                     </span>
                   </td>
                   <td className="py-2.5 px-2.5 font-black text-xs sm:text-sm text-rose-600 whitespace-nowrap">
-                    -{item.amount.toLocaleString('ru-RU', { minimumFractionDigits: 2 })} {item.currency}
+                    -{item.amount.toLocaleString('ru-RU', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} {item.currency}
                   </td>
-                  <td className="py-2.5 px-2.5 text-slate-500 text-[11px] max-w-[200px] truncate" title={item.description}>
-                    {item.description ? item.description.replace(/\[Касса:\s*[^\]]+\]\s*/gi, '').replace(/\[IDEMP:[^\]]+\]\s*/gi, '').trim() || '-' : '-'}
+                  <td className="py-2.5 px-2.5 text-slate-500 text-[11px] max-w-[200px] truncate" title={formatFinanceText(item.description)}>
+                    {item.description ? formatFinanceText(item.description).replace(/\[Касса:\s*[^\]]+\]\s*/gi, '').replace(/\[IDEMP:[^\]]+\]\s*/gi, '').trim() || '-' : '-'}
                   </td>
                   <td className="sticky right-0 z-10 bg-white py-2.5 px-2 text-right whitespace-nowrap shadow-[-4px_0_6px_-4px_rgba(0,0,0,0.15)]">
                     <div className="flex items-center justify-end gap-1 [&>button]:shrink-0">
@@ -1653,7 +1654,7 @@ export const ExpensesPage = () => {
               {createdTransferPair.exchange_rate && (
                 <div className="flex justify-between items-center pt-2 border-t border-slate-200 text-slate-500">
                   <span>Курс конвертации:</span>
-                  <span>{createdTransferPair.exchange_rate}</span>
+                  <span>{formatFinanceNumber(createdTransferPair.exchange_rate)}</span>
                 </div>
               )}
             </div>
@@ -1683,14 +1684,14 @@ export const ExpensesPage = () => {
               <div className="flex justify-between items-center pb-2 border-b border-slate-200">
                 <span className="text-slate-500 font-medium">Сумма расхода:</span>
                 <span className="font-black text-rose-600 text-sm">
-                  {createdConversionReport.amount_tjs?.toLocaleString('ru-RU', { minimumFractionDigits: 2 })} TJS
+                  {createdConversionReport.amount_tjs?.toLocaleString('ru-RU', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} TJS
                 </span>
               </div>
 
               <div className="flex justify-between items-center">
                 <span className="text-slate-500 font-medium">Списание с кассы USD:</span>
                 <span className="font-bold text-slate-900">
-                  ${createdConversionReport.amount_usd?.toLocaleString('ru-RU', { minimumFractionDigits: 2 })} USD
+                  ${createdConversionReport.amount_usd?.toLocaleString('ru-RU', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} USD
                 </span>
               </div>
 
@@ -1698,7 +1699,7 @@ export const ExpensesPage = () => {
                 <div className="flex justify-between items-center">
                   <span className="text-slate-500 font-medium">Курс конвертации (Эсхата):</span>
                   <span className="font-semibold text-slate-700">
-                    1 USD = {createdConversionReport.exchange_rate} TJS
+                    1 USD = {formatFinanceNumber(createdConversionReport.exchange_rate)} TJS
                   </span>
                 </div>
               )}
@@ -1751,8 +1752,8 @@ export const ExpensesPage = () => {
                     </div>
                   )}
                   {createdConversionReport.description && (
-                    <div className="text-[11px] text-slate-500 truncate" title={createdConversionReport.description}>
-                      <span className="text-slate-400">Назначение: </span>{createdConversionReport.description}
+                    <div className="text-[11px] text-slate-500 truncate" title={formatFinanceText(createdConversionReport.description)}>
+                      <span className="text-slate-400">Назначение: </span>{formatFinanceText(createdConversionReport.description)}
                     </div>
                   )}
                 </div>

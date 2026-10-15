@@ -1,3 +1,4 @@
+import { formatFinanceText } from '../../utils/financeDisplay';
 import { defaultPrintLanguage } from '../settings/InterfaceSettingsTab';
 import { TemplateDocumentButton } from '../settings/TemplateDocumentButton';
 import { dealDocumentContext } from '../settings/documentTemplates';
@@ -192,7 +193,7 @@ export const ExpenseReceiptPrintModal = ({ expense, onClose, initialLang = defau
   const recipientName = (expense.recipient || '—').trim();
 
   // Ground / Basis - strictly primary data via centralized helper
-  const basisText = getRkoBasisText({ expense, lang });
+  const basisText = formatFinanceText(getRkoBasisText({ expense, lang }));
 
   // Appendix / Attached document (only if explicitly specified)
   const appendixText = expense.attachment ? String(expense.attachment).trim() : '';
