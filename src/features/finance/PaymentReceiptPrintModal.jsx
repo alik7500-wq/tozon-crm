@@ -1,3 +1,4 @@
+import { formatFinanceText } from '../../utils/financeDisplay';
 import { defaultPrintLanguage } from '../settings/InterfaceSettingsTab';
 import { TemplateDocumentButton } from '../settings/TemplateDocumentButton';
 import { dealDocumentContext } from '../settings/documentTemplates';
@@ -274,12 +275,12 @@ export const PaymentReceiptPrintModal = ({ payment, deal, onClose, initialLang =
   })();
 
   // Ground / Basis - strictly primary data via centralized helper
-  const basisText = getPkoBasisText({
+  const basisText = formatFinanceText(getPkoBasisText({
     payment,
     deal: activeDeal,
     lang,
     defaultDateStr: fullDateFormatted
-  });
+  }));
 
   const companyTitle = cleanCompanyName(activeDeal?.developer_name || payment?.developer_name);
 

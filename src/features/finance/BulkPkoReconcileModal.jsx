@@ -286,7 +286,7 @@ export const BulkPkoReconcileModal = ({ items = [], onClose }) => {
                         <Calendar className="h-4 w-4 text-emerald-600" />
                         <span className="font-extrabold text-sm text-slate-900">{grp.date}</span>
                         <span className="text-xs text-slate-500 font-medium ml-2">
-                          ({grp.count} ПКО • всего ${grp.totalUsd.toLocaleString('ru-RU', { minimumFractionDigits: 2 })})
+                          ({grp.count} ПКО • всего ${grp.totalUsd.toLocaleString('ru-RU', { minimumFractionDigits: 2, maximumFractionDigits: 2 })})
                         </span>
                       </div>
 
@@ -327,7 +327,7 @@ export const BulkPkoReconcileModal = ({ items = [], onClose }) => {
                             </div>
 
                             <div className="font-mono font-extrabold text-slate-800">
-                              ${item.usdCredit.toLocaleString('ru-RU', { minimumFractionDigits: 2 })} USD
+                              ${item.usdCredit.toLocaleString('ru-RU', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} USD
                             </div>
 
                             <div className="flex items-center gap-3">
@@ -392,7 +392,7 @@ export const BulkPkoReconcileModal = ({ items = [], onClose }) => {
                           <td className="p-3 font-semibold text-slate-600">{item.dateStr}</td>
                           <td className="p-3 font-bold font-mono text-slate-900">{item.reference || `ПКО-${item.id}`}</td>
                           <td className="p-3 text-slate-700">{item.payer_name || '—'}</td>
-                          <td className="p-3 font-mono font-bold text-slate-800">${item.usdCredit.toLocaleString('ru-RU', { minimumFractionDigits: 2 })}</td>
+                          <td className="p-3 font-mono font-bold text-slate-800">${item.usdCredit.toLocaleString('ru-RU', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
                           <td className="p-3">
                             <input
                               type="number"
@@ -503,9 +503,9 @@ export const BulkPkoReconcileModal = ({ items = [], onClose }) => {
                       <tr key={item.id} className="hover:bg-slate-50">
                         <td className="p-2.5 font-semibold text-slate-600">{item.dateStr}</td>
                         <td className="p-2.5 font-bold font-mono text-slate-900">{item.reference || `ПКО-${item.id}`}</td>
-                        <td className="p-2.5 font-mono text-slate-800">${item.usdCredit.toLocaleString('ru-RU', { minimumFractionDigits: 2 })}</td>
+                        <td className="p-2.5 font-mono text-slate-800">${item.usdCredit.toLocaleString('ru-RU', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
                         <td className="p-2.5 font-mono font-bold text-amber-700">{st.exchange_rate || 'не указан'}</td>
-                        <td className="p-2.5 font-mono font-black text-emerald-600">{Number(st.amount_tjs).toLocaleString('ru-RU', { minimumFractionDigits: 2 })} TJS</td>
+                        <td className="p-2.5 font-mono font-black text-emerald-600">{Number(st.amount_tjs).toLocaleString('ru-RU', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} TJS</td>
                       </tr>
                     );
                   })}

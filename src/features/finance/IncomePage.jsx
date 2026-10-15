@@ -1,3 +1,4 @@
+import { formatFinanceNumber, formatFinanceText } from '../../utils/financeDisplay';
 import { canWriteSection } from '../../utils/permissions';
 import React, { useState, useEffect, useMemo } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
@@ -346,7 +347,7 @@ export const IncomePage = () => {
             <span className="p-2 rounded-xl bg-emerald-500/10 text-emerald-600">💵</span>
           </div>
           <div className="text-2xl font-black text-emerald-950 mt-2">
-            ${(totals.USD || 0).toLocaleString('ru-RU', { minimumFractionDigits: 2 })}
+            ${(totals.USD || 0).toLocaleString('ru-RU', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
           </div>
           <p className="text-[11px] text-emerald-600/90 mt-1 font-medium">Все оприходованные ордера ПКО ({year === 'ALL' ? 'все года' : `${year} г.`})</p>
         </div>
@@ -357,7 +358,7 @@ export const IncomePage = () => {
             <span className="p-2 rounded-xl bg-blue-500/10 text-blue-600">🇹🇯</span>
           </div>
           <div className="text-2xl font-black text-blue-950 mt-2">
-            {(totals.TJS || 0).toLocaleString('ru-RU', { minimumFractionDigits: 2 })} <span className="text-sm font-semibold">TJS</span>
+            {(totals.TJS || 0).toLocaleString('ru-RU', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} <span className="text-sm font-semibold">TJS</span>
           </div>
           <p className="text-[11px] text-blue-600/90 mt-1 font-medium">Поступления в кассу TJS ({year === 'ALL' ? 'все года' : `${year} г.`})</p>
         </div>
@@ -368,7 +369,7 @@ export const IncomePage = () => {
             <span className="p-2 rounded-xl bg-teal-500/10 text-teal-600">📈</span>
           </div>
           <div className="text-2xl font-black text-teal-950 mt-2">
-            ${(incomeData.netCompanyIncome?.USD || 0).toLocaleString('ru-RU', { minimumFractionDigits: 2 })}
+            ${(incomeData.netCompanyIncome?.USD || 0).toLocaleString('ru-RU', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
           </div>
           <p className="text-[11px] text-teal-600/90 mt-1 font-medium">Внешние поступления без внутренних переводов касс</p>
         </div>
@@ -563,7 +564,7 @@ export const IncomePage = () => {
             </h3>
             {totalChartAmount > 0 && (
               <span className="text-xs font-black text-emerald-700 bg-emerald-50 px-2.5 py-1 rounded-xl border border-emerald-100 whitespace-nowrap self-start sm:self-auto">
-                Итого: {totalChartAmount.toLocaleString('ru-RU', { minimumFractionDigits: 2 })} {incomeData.chartCurrency || 'USD'}
+                Итого: {totalChartAmount.toLocaleString('ru-RU', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} {incomeData.chartCurrency || 'USD'}
               </span>
             )}
           </div>
@@ -588,7 +589,7 @@ export const IncomePage = () => {
                       ))}
                     </Pie>
                     <Tooltip
-                      formatter={(value) => [`${Number(value).toLocaleString('ru-RU', { minimumFractionDigits: 2 })} ${incomeData.chartCurrency || 'USD'}`, 'Приход']}
+                      formatter={(value) => [`${Number(value).toLocaleString('ru-RU', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ${incomeData.chartCurrency || 'USD'}`, 'Приход']}
                       contentStyle={{ borderRadius: '16px', border: '1px solid #e2e8f0', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.05)' }}
                     />
                   </PieChart>
@@ -613,7 +614,7 @@ export const IncomePage = () => {
                       </div>
                       <div className="text-right shrink-0">
                         <span className="font-black text-slate-900 block leading-tight">
-                          {cat.amount.toLocaleString('ru-RU', { minimumFractionDigits: 2 })} {incomeData.chartCurrency || 'USD'}
+                          {cat.amount.toLocaleString('ru-RU', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} {incomeData.chartCurrency || 'USD'}
                         </span>
                         <span className="text-[10px] text-slate-400 font-semibold">
                           {pct}% от всего
@@ -651,7 +652,7 @@ export const IncomePage = () => {
               <Tooltip
                 cursor={{ fill: '#f8fafc' }}
                 contentStyle={{ borderRadius: '16px', border: '1px solid #e2e8f0', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.05)' }}
-                formatter={(val) => [`${val.toLocaleString()} ${incomeData.chartCurrency || 'USD'}`, 'Поступления']}
+                formatter={(val) => [`${val.toLocaleString('ru-RU', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ${incomeData.chartCurrency || 'USD'}`, 'Поступления']}
               />
               <Bar dataKey="amount" fill="#10b981" radius={[6, 6, 0, 0]} maxBarSize={36} />
             </BarChart>
@@ -797,8 +798,8 @@ export const IncomePage = () => {
                   <td className="py-2.5 px-2.5">
                     <div className="text-[11px] font-semibold text-slate-700 leading-tight line-clamp-1">{item.createdByName}</div>
                     {item.comment && (
-                      <div className="text-[10px] text-slate-400 truncate max-w-[180px] mt-0.5" title={item.comment}>
-                        {item.comment.replace(/\[Касса:\s*[^\]]+\]\s*/gi, '').trim()}
+                      <div className="text-[10px] text-slate-400 truncate max-w-[180px] mt-0.5" title={formatFinanceText(item.comment)}>
+                        {formatFinanceText(item.comment).replace(/\[Касса:\s*[^\]]+\]\s*/gi, '').trim()}
                       </div>
                     )}
                   </td>
@@ -950,12 +951,12 @@ export const IncomePage = () => {
                   ) : null}
                   <div className="font-bold flex items-center justify-between">
                     <span>💵 Зачтено по договору (USD):</span>
-                    <span className="font-black text-sm">${Number(editingItem.amount).toLocaleString('ru-RU', { minimumFractionDigits: 2 })} USD</span>
+                    <span className="font-black text-sm">${Number(editingItem.amount).toLocaleString('ru-RU', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} USD</span>
                   </div>
                   {editingItem.exchange_rate && (
                     <div className="text-[11px] text-amber-700 flex items-center justify-between">
                       <span>Курс обмена в ПКО:</span>
-                      <span className="font-bold">{editingItem.exchange_rate}</span>
+                      <span className="font-bold">{formatFinanceNumber(editingItem.exchange_rate)}</span>
                     </div>
                   )}
                   <p className="text-[10px] text-amber-700 pt-0.5">

@@ -1,3 +1,4 @@
+import { formatFinanceText } from '../../utils/financeDisplay';
 import React, { useState } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { financeApi } from '../../api/finance.api';
@@ -143,7 +144,7 @@ export const HistoricalPkoReconcileModal = ({ payment, onClose }) => {
               </div>
               <div>
                 <span className="text-[10px] text-slate-400 block">Зачтено по договору (USD):</span>
-                <span className="font-black text-amber-700">${currentUsdCredit.toLocaleString('ru-RU', { minimumFractionDigits: 2 })} USD</span>
+                <span className="font-black text-amber-700">${currentUsdCredit.toLocaleString('ru-RU', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} USD</span>
               </div>
             </div>
 
@@ -194,11 +195,11 @@ export const HistoricalPkoReconcileModal = ({ payment, onClose }) => {
               <div className="p-3 rounded-xl bg-purple-50 border border-purple-200 space-y-1.5 text-[11px] text-purple-900">
                 <div className="flex justify-between items-center">
                   <span>Сумма, зачтённая по договору:</span>
-                  <span className="font-bold">${currentUsdCredit.toLocaleString('ru-RU', { minimumFractionDigits: 2 })} USD</span>
+                  <span className="font-bold">${currentUsdCredit.toLocaleString('ru-RU', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} USD</span>
                 </div>
                 <div className="flex justify-between items-center">
                   <span>Расчёт по введённым TJS и курсу:</span>
-                  <span className="font-bold font-mono">${calculatedUsd.toLocaleString('ru-RU', { minimumFractionDigits: 2 })} USD</span>
+                  <span className="font-bold font-mono">${calculatedUsd.toLocaleString('ru-RU', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} USD</span>
                 </div>
                 {enteredRate > 0 && (
                   <div className="flex justify-between items-center pt-1 border-t border-purple-200/80 font-bold">
@@ -279,11 +280,11 @@ export const HistoricalPkoReconcileModal = ({ payment, onClose }) => {
               <div className="p-3 rounded-xl bg-white/80 border border-amber-200/80 space-y-1 text-xs">
                 <div className="flex justify-between font-bold text-emerald-900">
                   <span>Фактически получено:</span>
-                  <span>{enteredTjs.toLocaleString('ru-RU', { minimumFractionDigits: 2 })} TJS</span>
+                  <span>{enteredTjs.toLocaleString('ru-RU', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} TJS</span>
                 </div>
                 <div className="flex justify-between text-slate-700">
                   <span>Сумма по договору останется:</span>
-                  <span>{currentUsdCredit.toLocaleString('ru-RU', { minimumFractionDigits: 2 })} USD</span>
+                  <span>{currentUsdCredit.toLocaleString('ru-RU', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} USD</span>
                 </div>
                 <div className="flex justify-between text-slate-700">
                   <span>Исторический курс:</span>
@@ -301,7 +302,7 @@ export const HistoricalPkoReconcileModal = ({ payment, onClose }) => {
             </div>
 
             <div className="text-slate-600 text-[11px]">
-              <strong>Комментарий:</strong> {formData.comment}
+              <strong>Комментарий:</strong> {formatFinanceText(formData.comment)}
             </div>
 
             {/* Confirm Buttons */}

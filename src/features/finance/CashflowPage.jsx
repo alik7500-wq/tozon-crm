@@ -1,3 +1,4 @@
+import { formatFinanceText } from '../../utils/financeDisplay';
 import { InvestmentSummaryCard } from './InvestmentSummaryCard';
 import React, { useState, useEffect, useMemo } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
@@ -672,10 +673,10 @@ export const CashflowPage = () => {
           <td className={`py-2 px-2.5 text-right font-black text-xs font-mono  ${
             isIncome ? 'text-emerald-600' : 'text-rose-600'
           }`}>
-            {isIncome ? '+' : '-'}{t.amount.toLocaleString('ru-RU', { minimumFractionDigits: 2 })} {t.currency}
+            {isIncome ? '+' : '-'}{t.amount.toLocaleString('ru-RU', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} {t.currency}
           </td>
-          <td className="py-2 px-2 text-slate-500 " title={t.comment}>
-            {t.comment ? t.comment.replace(/\[Касса:\s*[^\]]+\]\s*/gi, '').replace(/\[IDEMP:[^\]]+\]\s*/gi, '').trim() || '-' : '-'}
+          <td className="py-2 px-2 text-slate-500 " title={formatFinanceText(t.comment)}>
+            {t.comment ? formatFinanceText(t.comment).replace(/\[Касса:\s*[^\]]+\]\s*/gi, '').replace(/\[IDEMP:[^\]]+\]\s*/gi, '').trim() || '-' : '-'}
           </td>
           <td className="py-2 px-2.5 pr-4 text-right ">
             <div className="flex items-center justify-end gap-1">
@@ -1048,7 +1049,7 @@ export const CashflowPage = () => {
               </div>
               <div className="mt-1 flex items-baseline justify-between font-mono">
                 <span className={`text-xs font-black ${(cashflowData.fxSummary?.isProfit ?? true) ? 'text-emerald-600' : 'text-rose-600'}`}>
-                  {(cashflowData.fxSummary?.fxGainLossUsd || 0) >= 0 ? '+' : ''}${(cashflowData.fxSummary?.fxGainLossUsd || 0).toLocaleString('ru-RU', { minimumFractionDigits: 2 })}
+                  {(cashflowData.fxSummary?.fxGainLossUsd || 0) >= 0 ? '+' : ''}${(cashflowData.fxSummary?.fxGainLossUsd || 0).toLocaleString('ru-RU', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                 </span>
                 <span className="text-[9px] text-slate-500">
                   Курс: {cashflowData.fxSummary?.avgIncomeRate || 10.80} / {cashflowData.fxSummary?.avgExpenseRate || 10.90}
@@ -1606,7 +1607,7 @@ export const CashflowPage = () => {
                 (cashflowData.fxSummary?.isProfit ?? true) ? 'text-emerald-700' : 'text-rose-700'
               }`}>
                 {(cashflowData.fxSummary?.fxGainLossUsd || 0) >= 0 ? '+' : ''}
-                ${(cashflowData.fxSummary?.fxGainLossUsd || 0).toLocaleString('ru-RU', { minimumFractionDigits: 2 })}
+                ${(cashflowData.fxSummary?.fxGainLossUsd || 0).toLocaleString('ru-RU', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                 <span className="text-[11px] font-bold text-slate-500 ml-1 block sm:inline">
                   ({(cashflowData.fxSummary?.fxGainLossTjs || 0) >= 0 ? '+' : ''}
                   {(cashflowData.fxSummary?.fxGainLossTjs || 0).toLocaleString()} TJS)
@@ -2215,7 +2216,7 @@ export const CashflowPage = () => {
                     <div className="flex justify-between items-center text-slate-700 text-[11px]">
                       <span>Зачисление:</span>
                       <strong className="text-emerald-700 font-black text-xs">
-                        +{(Number(convertForm.from_amount || 0) * (parseFloat(convertForm.exchange_rate) || 9.27)).toLocaleString()} {convertForm.to_currency}
+                        +{(Number(convertForm.from_amount || 0) * (parseFloat(convertForm.exchange_rate) || 9.27)).toLocaleString('ru-RU', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} {convertForm.to_currency}
                       </strong>
                     </div>
                   </div>
