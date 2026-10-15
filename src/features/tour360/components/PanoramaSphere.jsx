@@ -14,9 +14,10 @@ export function PanoramaSphere({
   // Configure texture mapping
   useEffect(() => {
     if (texture) {
-      texture.mapping = THREE.EquirectangularReflectionMapping;
-      texture.wrapS = THREE.RepeatWrapping;
-      texture.repeat.x = -1; // Invert horizontal so panoramic projection is non-mirrored
+      texture.mapping = THREE.UVMapping;
+      texture.colorSpace = THREE.SRGBColorSpace;
+      texture.wrapS = THREE.ClampToEdgeWrapping;
+      texture.repeat.x = 1; // Sphere's negative X scale already flips the inward view
       texture.needsUpdate = true;
     }
 
