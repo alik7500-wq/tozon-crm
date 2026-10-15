@@ -17,6 +17,7 @@ export function LayoutPanoramaPreview({ layout, projectId }) {
   const [filename, setFilename] = useState('');
   const [roomName, setRoomName] = useState('Гостиная');
   const [savedRooms, setSavedRooms] = useState([]);
+  const [selectedSavedRoom, setSelectedSavedRoom] = useState(null);
   const [aiManifest, setAiManifest] = useState(null);
   const [aiManifestLoading, setAiManifestLoading] = useState(false);
   const completedRooms = REQUIRED_ROOMS.filter(room => savedRooms.some(p => p.name === room));
@@ -29,7 +30,9 @@ export function LayoutPanoramaPreview({ layout, projectId }) {
     const tours = await tour360Api.getTours(Number(projectId));
     const drafts = tours.filter(t => t.name === name && t.tour_type === 'SHOWROOM' && !t.is_active);
     const details = await Promise.all(drafts.map(t => tour360Api.getTourById(t.id)));
-    setSavedRooms(details.flatMap(t => t?.panoramas || []));
+    const rooms = details.flatMap(t => t?.panoramas || []);
+    setSavedRooms(rooms);
+    setSelectedSavedRoom(previous => rooms.find(p => p.id === previous?.id) || null);
   };
 
   useEffect(() => {
@@ -57,6 +60,7 @@ export function LayoutPanoramaPreview({ layout, projectId }) {
     setError('');
     setSaved('');
     setFileToSave(null);
+    setSelectedSavedRoom(null);
     setUrl(null);
     setFilename('');
     if (!['image/jpeg', 'image/webp'].includes(file.type)) {
@@ -171,7 +175,7 @@ export function LayoutPanoramaPreview({ layout, projectId }) {
       </label>
       <div className="rounded-xl border border-slate-200 p-4">
         <div className="flex items-center justify-between"><strong>Черновики помещений — {completedRooms.length} из {REQUIRED_ROOMS.length}</strong><button type="button" onClick={() => loadSavedRooms().catch(e => setError(e.message))} className="text-sm text-indigo-700">Обновить</button></div>
-        <ul className="mt-2 space-y-1 text-sm">{REQUIRED_ROOMS.map(room => <li key={room}>{completedRooms.includes(room) ? '✓' : '○'} {room}</li>)}</ul>
+        <ul className="mt-2 space-y-1 text-sm">{REQUIRED_ROOMS.map(room => <li key={room}>{completedRooms.includes(room) ? '✓' : '○'} {room} {savedRooms.filter(p => p.name === room).map(p => <button key={p.id} type="button" className="ml-2 text-indigo-700 underline" onClick={() => { setSelectedSavedRoom(p); setFileToSave(null); setUrl(null); setError(''); }}>Просмотреть черновик</button>)}</li>)}</ul>
         {savedRooms.length > completedRooms.length && <p className="mt-2 text-xs text-amber-700">Обнаружены повторные или дополнительные панорамы. Проверьте черновик перед публикацией.</p>}
         <p className="mt-2 text-xs text-slate-500">{completedRooms.length === REQUIRED_ROOMS.length ? 'Все пять помещений загружены. Для публикации потребуется отдельная проверка.' : 'Публикация недоступна до подготовки всех пяти помещений и проверки.'}</p>
       </div>
@@ -179,14 +183,14 @@ export function LayoutPanoramaPreview({ layout, projectId }) {
       {fileToSave && <button type="button" disabled={isSaving || !projectId} onClick={savePanorama} className="rounded-lg bg-indigo-600 px-4 py-2 text-sm font-semibold text-white disabled:opacity-50">{isSaving ? 'Сохранение...' : 'Сохранить в черновик CRM'}</button>}
       {saved && <p role="status" className="rounded-lg bg-emerald-50 p-3 text-sm text-emerald-700">{saved}</p>}
       {error && <p role="alert" className="rounded-lg bg-rose-50 p-3 text-sm text-rose-700">{error}</p>}
-      {url ? (
+      {(url || selectedSavedRoom?.panorama_url || selectedSavedRoom?.image_url) ? (
         <div className="space-y-2">
-          <p className="text-xs text-slate-500">{filename} — вращайте мышью или пальцем. Пропорции 2:1 не гарантируют корректную сферическую проекцию.</p>
+          <p className="text-xs text-slate-500">{url ? filename : `Черновик: ${selectedSavedRoom?.name}`} — вращайте мышью или пальцем. Пропорции 2:1 не гарантируют корректную сферическую проекцию.</p>
           <div className="relative h-[420px] overflow-hidden rounded-xl bg-slate-950">
-            <TourCanvasErrorBoundary panoramaUrl={url}>
+            <TourCanvasErrorBoundary key={url || selectedSavedRoom?.id} panoramaUrl={url || selectedSavedRoom?.panorama_url || selectedSavedRoom?.image_url}>
               <Canvas camera={{ position: [0, 0, 0.1], fov: 75 }} gl={{ antialias: true }}>
                 <OrbitControls enablePan={false} enableZoom rotateSpeed={-0.4} minDistance={0.05} maxDistance={0.5} />
-                <Suspense fallback={null}><PanoramaSphere panoramaUrl={url} /></Suspense>
+                <Suspense fallback={null}><PanoramaSphere panoramaUrl={url || selectedSavedRoom?.panorama_url || selectedSavedRoom?.image_url} /></Suspense>
               </Canvas>
             </TourCanvasErrorBoundary>
           </div>
