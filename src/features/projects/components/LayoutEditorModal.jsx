@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { api } from '../../../api/client';
 import { useI18n } from '../../../context/i18nContext';
 import ImageUpload from '../../../components/ImageUpload';
+import { LayoutPanoramaPreview } from './LayoutPanoramaPreview';
 import {
   X,
   Plus,
@@ -39,7 +40,7 @@ const ICON_OPTIONS = [
   'Home'
 ];
 
-export const LayoutEditorModal = ({ layoutId, isOpen, onClose, onUpdated }) => {
+export const LayoutEditorModal = ({ layoutId, projectId, isOpen, onClose, onUpdated }) => {
   const { t, getText } = useI18n();
   const [activeTab, setActiveTab] = useState('basic'); // basic | images | rooms | characteristics | features | preview
   const [isLoading, setIsLoading] = useState(true);
@@ -381,6 +382,7 @@ export const LayoutEditorModal = ({ layoutId, isOpen, onClose, onUpdated }) => {
             { id: 'rooms', label: t('tabRoomsEditor'), icon: Layers, count: rooms.length },
             { id: 'characteristics', label: t('tabCharacteristics'), icon: Sliders },
             { id: 'features', label: t('tabFeatures'), icon: Sparkles, count: features.length },
+            { id: 'tour360', label: '360° Тур', icon: Compass },
           ].map((tab) => {
             const Icon = tab.icon;
             const isActive = activeTab === tab.id;
@@ -428,6 +430,8 @@ export const LayoutEditorModal = ({ layoutId, isOpen, onClose, onUpdated }) => {
             </div>
           ) : (
             <>
+              {activeTab === 'tour360' && <LayoutPanoramaPreview layout={layout} projectId={projectId} />}
+
               {/* TAB 1: BASIC INFO */}
               {activeTab === 'basic' && (
                 <form onSubmit={handleSaveBasic} className="space-y-5 max-w-3xl">
