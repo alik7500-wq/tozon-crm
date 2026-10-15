@@ -1,6 +1,11 @@
 import { api } from '../../../api/client';
 
 export const tour360Api = {
+  /** Preview the five-room AI generation plan (no provider charges or writes). */
+  async getPilotAiManifest(projectId) {
+    const res = await api.get(`/projects/${Number(projectId)}/360-ai/pilot-manifest`);
+    return res.data?.manifest || null;
+  },
   /**
    * Get all 360 tours for a project
    */
