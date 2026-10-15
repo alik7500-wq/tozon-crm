@@ -132,6 +132,23 @@ export function LayoutPanoramaPreview({ layout, projectId }) {
         <h4 className="font-bold text-indigo-950">360° панорама — предварительный просмотр</h4>
         <p className="mt-1 text-sm text-indigo-900">Загрузите готовый сферический JPG/WEBP-файл для локальной проверки. Сначала проверьте изображение локально. По кнопке «Сохранить» файл отправляется в защищённое хранилище CRM как черновик без публикации.</p>
       </div>
+      <div className="rounded-xl border border-slate-200 p-4 space-y-3">
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <strong>ИИ-задания для пяти помещений</strong>
+          <button type="button" disabled={aiManifestLoading || !projectId} onClick={loadAiManifest} className="rounded-lg border border-indigo-300 px-3 py-2 text-sm text-indigo-700 disabled:opacity-50">{aiManifestLoading ? 'Загрузка...' : 'Показать ИИ-задания'}</button>
+        </div>
+        <p className="text-xs text-slate-600">Просмотр задания не запускает генерацию и не расходует средства.</p>
+        {aiManifest && <div className="space-y-3">
+          <p className="text-sm font-medium">Планировка {aiManifest.layoutCode} — {aiManifest.scenes?.length || 0} сцен по 4096×2048</p>
+          {aiManifest.scenes?.map(scene => <details key={scene.room} className="rounded-lg border border-slate-200 p-3">
+            <summary className="cursor-pointer text-sm font-semibold">{scene.room}</summary>
+            <p className="mt-2 whitespace-pre-wrap break-words text-xs text-slate-700">{scene.prompt}</p>
+            <button type="button" onClick={() => navigator.clipboard.writeText(scene.prompt).then(() => setSaved('Задание «' + scene.room + '» скопировано.')).catch(() => setError('Не удалось скопировать задание.'))} className="mt-2 rounded border border-indigo-300 px-2 py-1 text-xs text-indigo-700">Копировать задание</button>
+          </details>)}
+          <div className="flex flex-wrap gap-3"><a href={aiManifest.planImageUrl} target="_blank" rel="noopener noreferrer" className="text-xs text-indigo-700 underline">Меблированный план</a><a href={aiManifest.technicalPlanUrl} target="_blank" rel="noopener noreferrer" className="text-xs text-indigo-700 underline">Технический план</a></div>
+          <p className="text-xs text-amber-700">Генерация пока не подключена. Сферическую проекцию и геометрию необходимо проверять.</p>
+        </div>}
+      </div>
       <label className="block text-sm font-semibold text-slate-700">
         Выбрать панораму (2:1, от 2048×1024, до 25 МБ)
         <input type="file" accept="image/jpeg,image/webp" onChange={selectFile} className="mt-2 block w-full rounded-lg border border-slate-300 bg-white p-2 text-sm" />
