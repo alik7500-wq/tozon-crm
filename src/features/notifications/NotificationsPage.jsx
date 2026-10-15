@@ -15,7 +15,8 @@ import {
   RefreshCw,
   Clock,
   AlertTriangle,
-  BarChart2
+  BarChart2,
+  Target
 } from 'lucide-react';
 
 export const NotificationsPage = () => {
@@ -26,7 +27,8 @@ export const NotificationsPage = () => {
     unread: 0,
     payments: 0,
     leads_and_reservations: 0,
-    sms_failed: 0
+    sms_failed: 0,
+    sales_plans: 0
   });
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState('');
@@ -169,6 +171,8 @@ export const NotificationsPage = () => {
       navigate(n.entity_id ? `/deals?dealId=${n.entity_id}` : '/deals');
     } else if (n.entity_type === 'SMS' || type === 'SMS_FAILED') {
       navigate('/crm/sms-notifications');
+    } else if (n.entity_type === 'SALES_PLAN' || type.startsWith('SALES_PLAN_')) {
+      navigate('/leads?tab=sales-plan');
     }
   };
 
@@ -204,6 +208,14 @@ export const NotificationsPage = () => {
         return <Bell className="h-5 w-5 text-blue-600" />;
       case 'SMS_FAILED':
         return <Smartphone className="h-5 w-5 text-amber-600" />;
+      case 'SALES_PLAN_ACHIEVED':
+        return <Target className="h-5 w-5 text-emerald-600" />;
+      case 'SALES_PLAN_BEHIND_SCHEDULE':
+        return <Clock className="h-5 w-5 text-amber-600" />;
+      case 'SALES_PLAN_AT_RISK':
+        return <AlertCircle className="h-5 w-5 text-rose-600" />;
+      case 'SALES_PLAN_WEEKLY_DIGEST':
+        return <BarChart2 className="h-5 w-5 text-indigo-600" />;
       default:
         return <Bell className="h-5 w-5 text-slate-600" />;
     }
@@ -413,6 +425,29 @@ export const NotificationsPage = () => {
           <div className="flex items-baseline justify-between">
             <span className="text-xl font-black text-amber-900">{stats.sms_failed}</span>
             <span className="text-[11px] font-semibold text-slate-500">сбои</span>
+          </div>
+        </div>
+
+        {/* Banner: Планы продаж */}
+        <div
+          onClick={() => setActiveCategory('sales_plans')}
+          title="Фильтр: Планы продаж"
+          role="button"
+          tabIndex={0}
+          aria-label="Фильтр: Планы продаж"
+          className={`p-3.5 rounded-2xl border transition cursor-pointer flex flex-col justify-between ${
+            activeCategory === 'sales_plans'
+              ? 'bg-blue-50/80 border-blue-300 ring-2 ring-blue-500/20 shadow-xs'
+              : 'bg-white border-slate-200 hover:border-slate-300 hover:bg-slate-50/50 shadow-2xs'
+          }`}
+        >
+          <div className="flex items-center justify-between text-slate-500 mb-2">
+            <span className="text-xs font-bold text-blue-700">Планы продаж</span>
+            <Target className="h-4 w-4 text-blue-600" />
+          </div>
+          <div className="flex items-baseline justify-between">
+            <span className="text-xl font-black text-blue-900">{stats.sales_plans || 0}</span>
+            <span className="text-[11px] font-semibold text-slate-500">контроль</span>
           </div>
         </div>
       </div>
