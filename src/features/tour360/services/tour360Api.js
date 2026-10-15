@@ -1,6 +1,10 @@
 import { api } from '../../../api/client';
 
 export const tour360Api = {
+  async getSkyboxStatus(projectId) { const res = await api.get(`/projects/${projectId}/360-ai/skybox/status`); return res.data?.skybox; },
+  async getSkyboxStyles(projectId) { const res = await api.get(`/projects/${projectId}/360-ai/skybox/styles`); return res.data?.styles; },
+  async getSkyboxJob(projectId, jobId) { const res = await api.get(`/projects/${projectId}/360-ai/skybox/jobs/${jobId}`); return res.data?.job; },
+  async startSkyboxGeneration(projectId, payload) { const res = await api.post(`/projects/${projectId}/360-ai/skybox/generate`, payload); return res.data?.generation; },
   /** Preview the five-room AI generation plan (no provider charges or writes). */
   async getPilotAiManifest(projectId) {
     const res = await api.get(`/projects/${Number(projectId)}/360-ai/pilot-manifest`);
