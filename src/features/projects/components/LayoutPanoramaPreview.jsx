@@ -149,6 +149,22 @@ export function LayoutPanoramaPreview({ layout, projectId }) {
           <p className="text-xs text-amber-700">Генерация пока не подключена. Сферическую проекцию и геометрию необходимо проверять.</p>
         </div>}
       </div>
+      {Number(layout?.id) === 7 && Number(projectId) === 3 && (
+        <section className="space-y-2 rounded-xl border border-emerald-200 bg-emerald-50 p-4">
+          <h4 className="font-semibold text-emerald-950">Тестовая гостиная — Skybox AI 360°</h4>
+          <p className="text-xs text-emerald-900">Внешняя демонстрация по ссылке Skybox AI. Не является опубликованным туром CRM и не подтверждает соответствие планировке.</p>
+          <iframe
+            title="Skybox AI — тестовая гостиная TOZON PLAZA"
+            src="https://skybox.blockadelabs.com/e/96dc4340bf3ca9ff17da17178b5e7d4f"
+            className="h-[420px] w-full rounded-lg border-0 bg-slate-900"
+            loading="lazy"
+            referrerPolicy="no-referrer"
+            allow="fullscreen"
+            allowFullScreen
+          />
+          <a href="https://skybox.blockadelabs.com/e/96dc4340bf3ca9ff17da17178b5e7d4f" target="_blank" rel="noopener noreferrer" className="text-sm text-emerald-800 underline">Открыть 360° в отдельном окне</a>
+        </section>
+      )}
       <label className="block text-sm font-semibold text-slate-700">
         Выбрать панораму (2:1, от 2048×1024, до 25 МБ)
         <input type="file" accept="image/jpeg,image/webp" onChange={selectFile} className="mt-2 block w-full rounded-lg border border-slate-300 bg-white p-2 text-sm" />
