@@ -14,8 +14,8 @@ export function TourDraftNavigationEditor({ tourId }) {
     const value = await tour360Api.getTourById(tourId);
     if (!value || value.is_active) throw new Error('Редактировать можно только черновик.');
     setTour(value);
-    setFrom(old => old || String(value.panoramas?.[0]?.id || ''));
-    setTo(old => old || String(value.panoramas?.[1]?.id || ''));
+    setFrom(old => value.panoramas?.some(p => String(p.id) === old) ? old : String(value.panoramas?.[0]?.id || ''));
+    setTo(old => value.panoramas?.some(p => String(p.id) === old) ? old : String(value.panoramas?.[1]?.id || ''));
   };
   useEffect(() => { refresh().catch(e => setError(e.message)); }, [tourId]);
   const run = async action => {
