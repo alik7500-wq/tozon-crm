@@ -1,5 +1,6 @@
 import React, { Suspense, useEffect, useState } from 'react';
 import { tour360Api } from '../../tour360/services/tour360Api';
+import { TourDraftNavigationEditor } from '../../tour360/components/TourDraftNavigationEditor';
 import { Canvas } from '@react-three/fiber';
 import { OrbitControls } from '@react-three/drei';
 import { PanoramaSphere } from '../../tour360/components/PanoramaSphere';
@@ -179,6 +180,7 @@ export function LayoutPanoramaPreview({ layout, projectId }) {
         {savedRooms.length > completedRooms.length && <p className="mt-2 text-xs text-amber-700">Обнаружены повторные или дополнительные панорамы. Проверьте черновик перед публикацией.</p>}
         <p className="mt-2 text-xs text-slate-500">{completedRooms.length === REQUIRED_ROOMS.length ? 'Все пять помещений загружены. Для публикации потребуется отдельная проверка.' : 'Публикация недоступна до подготовки всех пяти помещений и проверки.'}</p>
       </div>
+      {savedRooms[0]?.tour_id && <TourDraftNavigationEditor key={savedRooms[0].tour_id} tourId={savedRooms[0].tour_id} />}
       {fileToSave && <label className="block text-sm font-semibold text-slate-700">Помещение<select value={roomName} onChange={e => setRoomName(e.target.value)} className="mt-2 block w-full rounded-lg border border-slate-300 bg-white p-2 text-sm">{REQUIRED_ROOMS.map(name => <option key={name} value={name}>{name}</option>)}</select></label>}
       {fileToSave && <button type="button" disabled={isSaving || !projectId} onClick={savePanorama} className="rounded-lg bg-indigo-600 px-4 py-2 text-sm font-semibold text-white disabled:opacity-50">{isSaving ? 'Сохранение...' : 'Сохранить в черновик CRM'}</button>}
       {saved && <p role="status" className="rounded-lg bg-emerald-50 p-3 text-sm text-emerald-700">{saved}</p>}
