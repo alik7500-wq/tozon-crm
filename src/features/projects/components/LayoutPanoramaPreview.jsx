@@ -17,6 +17,8 @@ export function LayoutPanoramaPreview({ layout, projectId }) {
   const [filename, setFilename] = useState('');
   const [roomName, setRoomName] = useState('Гостиная');
   const [savedRooms, setSavedRooms] = useState([]);
+  const [aiManifest, setAiManifest] = useState(null);
+  const [aiManifestLoading, setAiManifestLoading] = useState(false);
   const completedRooms = REQUIRED_ROOMS.filter(room => savedRooms.some(p => p.name === room));
   const [error, setError] = useState('');
   useEffect(() => () => { if (url) URL.revokeObjectURL(url); }, [url]);
@@ -33,6 +35,20 @@ export function LayoutPanoramaPreview({ layout, projectId }) {
   useEffect(() => {
     loadSavedRooms().catch(() => setSavedRooms([]));
   }, [projectId, layout?.id]);
+
+  const loadAiManifest = async () => {
+    setAiManifestLoading(true);
+    setError('');
+    try {
+      const manifest = await tour360Api.getPilotAiManifest(projectId);
+      if (!manifest || Number(layout?.id) !== Number(manifest.layoutTypeId)) {
+        throw new Error('ИИ-задание пока доступно только для пилотной планировки блока А, тип 6.');
+      }
+      setAiManifest(manifest);
+    } catch (err) {
+      setError(err.message || 'Не удалось получить ИИ-задание.');
+    } finally { setAiManifestLoading(false); }
+  };
 
   const selectFile = async (event) => {
     const file = event.target.files?.[0];
