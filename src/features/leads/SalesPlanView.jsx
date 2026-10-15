@@ -24,7 +24,10 @@ import {
   ArrowUpRight,
   ArrowDownRight,
   ShieldAlert,
-  Info
+  Info,
+  Settings,
+  Bell,
+  AlertTriangle
 } from 'lucide-react';
 
 export const SalesPlanView = ({ projects = [] }) => {
@@ -68,6 +71,79 @@ export const SalesPlanView = ({ projects = [] }) => {
   const [isAuditModalOpen, setIsAuditModalOpen] = useState(false);
   const [auditLogs, setAuditLogs] = useState([]);
   const [isLoadingAudit, setIsLoadingAudit] = useState(false);
+
+  // V1.4: Alert Settings Modal (ADMIN)
+  const [isSettingsModalOpen, setIsSettingsModalOpen] = useState(false);
+  const [alertSettings, setAlertSettings] = useState({
+    behind_schedule_threshold_pp: 15.0,
+    at_risk_forecast_threshold_pct: 80.0,
+    min_elapsed_working_days: 3,
+    notify_achieved_enabled: true,
+    weekly_digest_enabled: true
+  });
+  const [isLoadingSettings, setIsLoadingSettings] = useState(false);
+  const [isSavingSettings, setIsSavingSettings] = useState(false);
+  const [settingsError, setSettingsError] = useState(null);
+  const [settingsSuccess, setSettingsSuccess] = useState(null);
+
+  // V1.4: Alert History Modal (ADMIN, DIRECTOR, SALES_MANAGER)
+  const [isAlertHistoryModalOpen, setIsAlertHistoryModalOpen] = useState(false);
+  const [alertsHistory, setAlertsHistory] = useState([]);
+  const [isLoadingAlertsHistory, setIsLoadingAlertsHistory] = useState(false);
+
+  const handleOpenSettingsModal = async () => {
+    setIsSettingsModalOpen(true);
+    setIsLoadingSettings(true);
+    setSettingsError(null);
+    setSettingsSuccess(null);
+    try {
+      const res = await api.get('/sales-plans/alert-settings');
+      if (res.data?.data) {
+        setAlertSettings(res.data.data);
+      }
+    } catch (err) {
+      console.error('Failed to load alert settings:', err);
+      setSettingsError('Не удалось загрузить настройки порогов контроля.');
+    } finally {
+      setIsLoadingSettings(false);
+    }
+  };
+
+  const handleSaveSettings = async (e) => {
+    e.preventDefault();
+    setIsSavingSettings(true);
+    setSettingsError(null);
+    setSettingsSuccess(null);
+    try {
+      const res = await api.put('/sales-plans/alert-settings', alertSettings);
+      if (res.data?.data) {
+        setAlertSettings(res.data.data);
+      }
+      setSettingsSuccess('Настройки порогов контроля успешно сохранены!');
+      setTimeout(() => {
+        setIsSettingsModalOpen(false);
+      }, 1200);
+    } catch (err) {
+      console.error('Failed to save alert settings:', err);
+      setSettingsError(err.response?.data?.message || 'Ошибка сохранения настроек');
+    } finally {
+      setIsSavingSettings(false);
+    }
+  };
+
+  const handleOpenAlertHistoryModal = async () => {
+    setIsAlertHistoryModalOpen(true);
+    setIsLoadingAlertsHistory(true);
+    try {
+      const res = await api.get('/sales-plans/alerts-history');
+      setAlertsHistory(res.data?.data || []);
+    } catch (err) {
+      console.error('Failed to load alerts history:', err);
+      setAlertsHistory([]);
+    } finally {
+      setIsLoadingAlertsHistory(false);
+    }
+  };
 
   // Fetch Main Performance
   const fetchPerformance = async () => {
@@ -332,25 +408,46 @@ export const SalesPlanView = ({ projects = [] }) => {
           </div>
         </div>
 
-        {/* Admin Action Buttons */}
-        {isAdmin && (
-          <div className="flex items-center gap-2">
+        {/* Admin & Management Action Buttons */}
+        <div className="flex items-center gap-2">
+          {(isAdmin || isDirector || isSalesManager) && (
             <button
-              onClick={handleOpenAuditModal}
+              onClick={handleOpenAlertHistoryModal}
               className="flex items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-bold text-slate-700 hover:bg-slate-50 transition cursor-pointer shadow-2xs"
+              title="Журнал автоматических оповещений планов продаж (V1.4)"
             >
-              <History className="h-4 w-4 text-slate-500" />
-              <span>История изменений</span>
+              <Bell className="h-4 w-4 text-slate-500" />
+              <span>Журнал алертов</span>
             </button>
-            <button
-              onClick={handleOpenEditModal}
-              className="flex items-center gap-1.5 rounded-xl bg-tozon-blue hover:bg-tozon-blue-hover px-3.5 py-2 text-xs font-black text-white shadow-md shadow-tozon-blue/20 transition cursor-pointer"
-            >
-              <Edit3 className="h-4 w-4" />
-              <span>Настроить планы</span>
-            </button>
-          </div>
-        )}
+          )}
+
+          {isAdmin && (
+            <>
+              <button
+                onClick={handleOpenSettingsModal}
+                className="flex items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-bold text-slate-700 hover:bg-slate-50 transition cursor-pointer shadow-2xs"
+                title="Настройка порогов контроля (V1.4)"
+              >
+                <Settings className="h-4 w-4 text-slate-500" />
+                <span>Пороги контроля</span>
+              </button>
+              <button
+                onClick={handleOpenAuditModal}
+                className="flex items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-bold text-slate-700 hover:bg-slate-50 transition cursor-pointer shadow-2xs"
+              >
+                <History className="h-4 w-4 text-slate-500" />
+                <span>История изменений</span>
+              </button>
+              <button
+                onClick={handleOpenEditModal}
+                className="flex items-center gap-1.5 rounded-xl bg-tozon-blue hover:bg-tozon-blue-hover px-3.5 py-2 text-xs font-black text-white shadow-md shadow-tozon-blue/20 transition cursor-pointer"
+              >
+                <Edit3 className="h-4 w-4" />
+                <span>Настроить планы</span>
+              </button>
+            </>
+          )}
+        </div>
       </div>
 
       {/* 2. Working Days Pacing Calendar Banner */}
@@ -401,6 +498,55 @@ export const SalesPlanView = ({ projects = [] }) => {
           </div>
         )}
       </div>
+
+      {/* 2.1 V1.4 Warnings & Risk Control Bar */}
+      {(() => {
+        const mgrList = data?.managers || [];
+        const laggingMgrs = mgrList.filter(m => (m.metrics.execution?.pacingPaceDifference || 0) <= -15 && (m.metrics.target?.dealsCount || 0) > 0);
+        const atRiskMgrs = mgrList.filter(m => m.metrics.forecast?.status === 'BEHIND' && (m.metrics.target?.dealsCount || 0) > 0);
+        const achievedMgrs = mgrList.filter(m => (m.metrics.execution?.dealsPercent || 0) >= 100 && (m.metrics.target?.dealsCount || 0) > 0);
+
+        if (laggingMgrs.length === 0 && atRiskMgrs.length === 0 && achievedMgrs.length === 0) {
+          return null;
+        }
+
+        return (
+          <div className="rounded-2xl border border-slate-200 bg-white p-3.5 shadow-2xs flex flex-wrap items-center justify-between gap-3">
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="text-xs font-black text-slate-700 uppercase tracking-wider flex items-center gap-1.5">
+                <AlertTriangle className="h-4 w-4 text-amber-500" />
+                Контроль выполнения (V1.4):
+              </span>
+
+              {achievedMgrs.length > 0 && (
+                <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-bold bg-emerald-50 text-emerald-800 border border-emerald-200">
+                  🎯 Выполнен (100%+): {achievedMgrs.length}
+                </span>
+              )}
+
+              {laggingMgrs.length > 0 && (
+                <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-bold bg-amber-50 text-amber-800 border border-amber-200">
+                  ⚠️ Отставание (≥15%): {laggingMgrs.length}
+                </span>
+              )}
+
+              {atRiskMgrs.length > 0 && (
+                <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-bold bg-rose-50 text-rose-800 border border-rose-200">
+                  🔴 Риск прогноза (&lt;80%): {atRiskMgrs.length}
+                </span>
+              )}
+            </div>
+
+            <button
+              onClick={handleOpenAlertHistoryModal}
+              className="text-xs font-bold text-tozon-blue hover:underline flex items-center gap-1"
+            >
+              <span>Посмотреть журнал оповещений</span>
+              <ChevronRight className="h-3.5 w-3.5" />
+            </button>
+          </div>
+        );
+      })()}
 
       {/* 3. Top 5 Metric KPI Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
@@ -614,7 +760,26 @@ export const SalesPlanView = ({ projects = [] }) => {
                             {m.manager.name.charAt(0)}
                           </div>
                           <div>
-                            <div>{m.manager.name}</div>
+                            <div className="flex items-center gap-2">
+                              <span>{m.manager.name}</span>
+                              {exec >= 100 && (met.target?.dealsCount || 0) > 0 ? (
+                                <span className="px-1.5 py-0.5 rounded text-[9px] font-black bg-emerald-100 text-emerald-800">
+                                  🎯 100%+
+                                </span>
+                              ) : met.execution?.pacingPaceDifference <= -15 ? (
+                                <span className="px-1.5 py-0.5 rounded text-[9px] font-black bg-amber-100 text-amber-800">
+                                  ⚠️ Отставание
+                                </span>
+                              ) : met.forecast?.status === 'BEHIND' ? (
+                                <span className="px-1.5 py-0.5 rounded text-[9px] font-black bg-rose-100 text-rose-800">
+                                  🔴 Риск
+                                </span>
+                              ) : (met.target?.dealsCount || 0) > 0 ? (
+                                <span className="px-1.5 py-0.5 rounded text-[9px] font-black bg-emerald-50 text-emerald-700">
+                                  🟢 В темпе
+                                </span>
+                              ) : null}
+                            </div>
                             <div className="text-[10px] font-medium text-slate-400">{m.manager.role}</div>
                           </div>
                         </div>
@@ -1091,6 +1256,240 @@ export const SalesPlanView = ({ projects = [] }) => {
             <div className="p-4 border-t border-slate-200 bg-slate-50 flex items-center justify-end">
               <button
                 onClick={() => setIsAuditModalOpen(false)}
+                className="px-4 py-2 text-xs font-bold text-slate-700 bg-white border border-slate-200 rounded-xl hover:bg-slate-100 transition cursor-pointer"
+              >
+                Закрыть
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* V1.4: Alert Settings Modal (ADMIN Only) */}
+      {isSettingsModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/60 backdrop-blur-xs p-4 overflow-y-auto">
+          <div className="w-full max-w-lg rounded-2xl bg-white shadow-2xl border border-slate-200 overflow-hidden animate-in fade-in zoom-in-95 duration-150">
+            <div className="p-4 border-b border-slate-200 flex items-center justify-between bg-slate-50/80">
+              <div className="flex items-center gap-2">
+                <Settings className="h-5 w-5 text-tozon-blue" />
+                <h3 className="text-sm font-black text-slate-900">Пороги контроля планов продаж (V1.4)</h3>
+              </div>
+              <button
+                onClick={() => setIsSettingsModalOpen(false)}
+                className="h-8 w-8 rounded-lg flex items-center justify-center text-slate-400 hover:text-slate-600 hover:bg-slate-200/60 transition cursor-pointer"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+
+            <form onSubmit={handleSaveSettings} className="p-5 space-y-4">
+              {settingsError && (
+                <div className="p-3 rounded-xl bg-rose-50 border border-rose-200 text-xs font-bold text-rose-700 flex items-center gap-2">
+                  <AlertCircle className="h-4 w-4 shrink-0" />
+                  <span>{settingsError}</span>
+                </div>
+              )}
+
+              {settingsSuccess && (
+                <div className="p-3 rounded-xl bg-emerald-50 border border-emerald-200 text-xs font-bold text-emerald-700 flex items-center gap-2">
+                  <CheckCircle2 className="h-4 w-4 shrink-0" />
+                  <span>{settingsSuccess}</span>
+                </div>
+              )}
+
+              {isLoadingSettings ? (
+                <div className="py-8 text-center text-xs text-slate-500 font-bold">
+                  Загрузка настроек...
+                </div>
+              ) : (
+                <>
+                  <div className="space-y-1">
+                    <label className="text-xs font-bold text-slate-700">
+                      Порог отставания от темпа (процентных пунктов)
+                    </label>
+                    <input
+                      type="number"
+                      step="0.5"
+                      min="1"
+                      max="90"
+                      value={alertSettings?.behind_schedule_threshold_pp ?? 15.0}
+                      onChange={(e) => setAlertSettings({ ...alertSettings, behind_schedule_threshold_pp: Number(e.target.value) })}
+                      className="w-full px-3 py-2 text-xs border border-slate-200 rounded-xl outline-none focus:border-tozon-blue"
+                      required
+                    />
+                    <p className="text-[10px] text-slate-400">
+                      Предупреждение формируется, когда факт отстает от нормативного темпа на указанное число пунктов (по умолчанию 15%).
+                    </p>
+                  </div>
+
+                  <div className="space-y-1">
+                    <label className="text-xs font-bold text-slate-700">
+                      Порог высокого риска по прогнозу (%)
+                    </label>
+                    <input
+                      type="number"
+                      step="1"
+                      min="10"
+                      max="99"
+                      value={alertSettings?.at_risk_forecast_threshold_pct ?? 80.0}
+                      onChange={(e) => setAlertSettings({ ...alertSettings, at_risk_forecast_threshold_pct: Number(e.target.value) })}
+                      className="w-full px-3 py-2 text-xs border border-slate-200 rounded-xl outline-none focus:border-tozon-blue"
+                      required
+                    />
+                    <p className="text-[10px] text-slate-400">
+                      Алерт критического риска отправляется, если прогнозируемый процент выполнения ниже установленного порога (по умолчанию 80%).
+                    </p>
+                  </div>
+
+                  <div className="space-y-1">
+                    <label className="text-xs font-bold text-slate-700">
+                      Льготный период в начале месяца (рабочих дней)
+                    </label>
+                    <input
+                      type="number"
+                      step="1"
+                      min="0"
+                      max="15"
+                      value={alertSettings?.min_elapsed_working_days ?? 3}
+                      onChange={(e) => setAlertSettings({ ...alertSettings, min_elapsed_working_days: Number(e.target.value) })}
+                      className="w-full px-3 py-2 text-xs border border-slate-200 rounded-xl outline-none focus:border-tozon-blue"
+                      required
+                    />
+                    <p className="text-[10px] text-slate-400">
+                      В первые дни месяца алерты прогноза подавлены во избежание ложных срабатываний (по умолчанию 3 дня).
+                    </p>
+                  </div>
+
+                  <div className="pt-2 border-t border-slate-100 space-y-2">
+                    <label className="flex items-center gap-2 cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={alertSettings?.notify_achieved_enabled ?? true}
+                        onChange={(e) => setAlertSettings({ ...alertSettings, notify_achieved_enabled: e.target.checked })}
+                        className="rounded text-tozon-blue focus:ring-tozon-blue"
+                      />
+                      <span className="text-xs font-bold text-slate-800">
+                        Оповещать о выполнении плана (100%+)
+                      </span>
+                    </label>
+
+                    <label className="flex items-center gap-2 cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={alertSettings?.weekly_digest_enabled ?? true}
+                        onChange={(e) => setAlertSettings({ ...alertSettings, weekly_digest_enabled: e.target.checked })}
+                        className="rounded text-tozon-blue focus:ring-tozon-blue"
+                      />
+                      <span className="text-xs font-bold text-slate-800">
+                        Включить еженедельный дайджест по понедельникам (09:00 Asia/Dushanbe)
+                      </span>
+                    </label>
+                  </div>
+                </>
+              )}
+
+              <div className="pt-4 border-t border-slate-200 flex items-center justify-end gap-2">
+                <button
+                  type="button"
+                  onClick={() => setIsSettingsModalOpen(false)}
+                  className="px-4 py-2 text-xs font-bold text-slate-600 bg-white border border-slate-200 rounded-xl hover:bg-slate-50 transition"
+                >
+                  Отмена
+                </button>
+                <button
+                  type="submit"
+                  disabled={isSavingSettings || isLoadingSettings}
+                  className="px-4 py-2 text-xs font-black text-white bg-tozon-blue rounded-xl hover:bg-tozon-blue-hover transition shadow-md shadow-tozon-blue/20 disabled:opacity-50"
+                >
+                  {isSavingSettings ? 'Сохранение...' : 'Сохранить настройки'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* V1.4: Alerts History Modal */}
+      {isAlertHistoryModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/60 backdrop-blur-xs p-4 overflow-y-auto">
+          <div className="w-full max-w-3xl rounded-2xl bg-white shadow-2xl border border-slate-200 overflow-hidden animate-in fade-in zoom-in-95 duration-150">
+            <div className="p-4 border-b border-slate-200 flex items-center justify-between bg-slate-50/80">
+              <div className="flex items-center gap-2">
+                <Bell className="h-5 w-5 text-tozon-blue" />
+                <h3 className="text-sm font-black text-slate-900">Журнал автоматических алертов планов продаж</h3>
+              </div>
+              <button
+                onClick={() => setIsAlertHistoryModalOpen(false)}
+                className="h-8 w-8 rounded-lg flex items-center justify-center text-slate-400 hover:text-slate-600 hover:bg-slate-200/60 transition cursor-pointer"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+
+            <div className="p-4 max-h-[60vh] overflow-y-auto">
+              {isLoadingAlertsHistory ? (
+                <div className="py-8 text-center text-xs text-slate-500 font-bold">
+                  Загрузка журнала алертов...
+                </div>
+              ) : alertsHistory.length === 0 ? (
+                <div className="py-8 text-center text-xs text-slate-400">
+                  Автоматических предупреждений по планам продаж пока не зафиксировано.
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  {alertsHistory.map((item) => {
+                    const isAchieved = item.event_type === 'SALES_PLAN_ACHIEVED';
+                    const isBehind = item.event_type === 'SALES_PLAN_BEHIND_SCHEDULE';
+                    const isAtRisk = item.event_type === 'SALES_PLAN_AT_RISK';
+                    const isDigest = item.event_type === 'SALES_PLAN_WEEKLY_DIGEST';
+
+                    return (
+                      <div
+                        key={item.id}
+                        className={`p-3.5 rounded-xl border transition ${
+                          isAchieved
+                            ? 'bg-emerald-50/50 border-emerald-200'
+                            : isBehind
+                            ? 'bg-amber-50/50 border-amber-200'
+                            : isAtRisk
+                            ? 'bg-rose-50/50 border-rose-200'
+                            : 'bg-indigo-50/50 border-indigo-200'
+                        }`}
+                      >
+                        <div className="flex items-center justify-between mb-1.5">
+                          <span className={`px-2 py-0.5 rounded text-[10px] font-black uppercase ${
+                            isAchieved
+                              ? 'bg-emerald-100 text-emerald-800'
+                              : isBehind
+                              ? 'bg-amber-100 text-amber-800'
+                              : isAtRisk
+                              ? 'bg-rose-100 text-rose-800'
+                              : 'bg-indigo-100 text-indigo-800'
+                          }`}>
+                            {isAchieved
+                              ? 'Выполнение 100%+'
+                              : isBehind
+                              ? 'Отставание от темпа'
+                              : isAtRisk
+                              ? 'Высокий риск'
+                              : 'Еженедельный дайджест'}
+                          </span>
+                          <span className="text-[10px] text-slate-500 font-mono">
+                            {new Date(item.created_at).toLocaleString('ru-RU')}
+                          </span>
+                        </div>
+                        <div className="text-xs font-bold text-slate-900 mb-1">{item.title}</div>
+                        <p className="text-xs text-slate-700">{item.message}</p>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+
+            <div className="p-4 border-t border-slate-200 bg-slate-50 flex items-center justify-end">
+              <button
+                onClick={() => setIsAlertHistoryModalOpen(false)}
                 className="px-4 py-2 text-xs font-bold text-slate-700 bg-white border border-slate-200 rounded-xl hover:bg-slate-100 transition cursor-pointer"
               >
                 Закрыть
