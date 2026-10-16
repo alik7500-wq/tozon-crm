@@ -16,6 +16,9 @@ export function LayoutPanoramaPreview({ layout, projectId }) {
   const [viewFov, setViewFov] = useState(85);
   const [fileToSave, setFileToSave] = useState(null);
   const [isSaving, setIsSaving] = useState(false);
+  const [batchFiles, setBatchFiles] = useState([]);
+  const [batchProgress, setBatchProgress] = useState('');
+  const [isBatchSaving, setIsBatchSaving] = useState(false);
   const [saved, setSaved] = useState('');
   const [filename, setFilename] = useState('');
   const [roomName, setRoomName] = useState('Гостиная');
@@ -89,6 +92,81 @@ export function LayoutPanoramaPreview({ layout, projectId }) {
       URL.revokeObjectURL(candidate);
       setError('Изображение повреждено или не поддерживается браузером.');
     }
+  };
+
+  const selectBatchFiles = async (event) => {
+    const files = Array.from(event.target.files || []);
+    event.target.value = '';
+    setBatchFiles([]); setBatchProgress(''); setError(''); setSaved('');
+    if (!files.length) return;
+    if (files.length !== REQUIRED_ROOMS.length) {
+      setError('Выберите ровно пять файлов: коридор, гостиная, спальня, кухня, санузел.'); return;
+    }
+    const matched = [];
+    for (const room of REQUIRED_ROOMS) {
+      const tokens = {
+        'Гостиная': /living|гостиная|lounge/i,
+        'Спальня': /bedroom|спальня/i,
+        'Кухня': /kitchen|кухня/i,
+        'Санузел': /bathroom|санузел|bath/i,
+        'Коридор': /corridor|hallway|коридор/i
+      };
+      const candidates = files.filter(file => tokens[room].test(file.name));
+      if (candidates.length !== 1) {
+        setError('Не удалось однозначно распознать «' + room + '». Назовите файлы corridor.jpg, living.jpg, bedroom.jpg, kitchen.jpg, bathroom.jpg.'); return;
+      }
+      const file = candidates[0];
+      if (!['image/jpeg', 'image/webp'].includes(file.type) || file.size > MAX_BYTES || file.size === 0) {
+        setError('Файл «' + file.name + '» должен быть JPG/WEBP размером до 25 МБ.'); return;
+      }
+      const image = new Image();
+      const objectUrl = URL.createObjectURL(file);
+      try {
+        image.src = objectUrl;
+        await image.decode();
+        if (image.naturalWidth < MIN_WIDTH || image.naturalWidth !== image.naturalHeight * 2) {
+          setError('Файл «' + file.name + '» должен иметь пропорции 2:1 и ширину от 2048 пикселей.'); return;
+        }
+      } catch {
+        setError('Не удалось прочитать изображение «' + file.name + '».'); return;
+      } finally { URL.revokeObjectURL(objectUrl); }
+      matched.push({ room, file });
+    }
+    if (new Set(matched.map(item => item.file.name)).size !== REQUIRED_ROOMS.length) {
+      setError('Для каждой комнаты нужен отдельный файл.'); return;
+    }
+    setBatchFiles(matched);
+  };
+
+  const saveBatch = async () => {
+    if (isBatchSaving || batchFiles.length !== REQUIRED_ROOMS.length || !projectId || !layout?.id) return;
+    setIsBatchSaving(true); setError(''); setSaved('');
+    try {
+      const project = Number(projectId);
+      const name = `Планировка ${layout.code || layout.id} — 360°`;
+      const tours = await tour360Api.getTours(project);
+      let tour = tours.find(t => t.name === name && t.tour_type === 'SHOWROOM' && !t.is_active);
+      if (tour) {
+        const current = await tour360Api.getTourById(tour.id);
+        if (current?.panoramas?.length) throw new Error('В черновике уже есть панорамы. Массовая загрузка разрешена только в пустой черновик во избежание дубликатов.');
+      } else {
+        tour = await tour360Api.createTour(project, { name, tour_type: 'SHOWROOM', is_active: false });
+      }
+      for (let index = 0; index < batchFiles.length; index++) {
+        const { room, file } = batchFiles[index];
+        setBatchProgress(`Загрузка ${index + 1} из 5: ${room}`);
+        const signed = await tour360Api.requestUploadUrl(project, tour.id, file);
+        if (!signed?.signedUploadUrl || !signed?.storagePath) throw new Error('Сервер не выдал ссылку загрузки для «' + room + '».');
+        const response = await fetch(signed.signedUploadUrl, { method: 'PUT', headers: { 'Content-Type': file.type, 'x-upsert': 'false' }, body: file });
+        if (!response.ok) throw new Error('Загрузка «' + room + '» завершилась ошибкой HTTP ' + response.status);
+        await tour360Api.createPanorama(tour.id, { name: room, storage_path: signed.storagePath });
+      }
+      setBatchFiles([]); setBatchProgress('');
+      setSaved('Пять панорам сохранены в закрытом черновике CRM. Публикация не выполнялась.');
+      await loadSavedRooms();
+    } catch (err) {
+      setError((err.message || 'Ошибка загрузки') + ' Уже сохранённые комнаты останутся в черновике; проверьте список перед повторной попыткой.');
+    } finally { setIsBatchSaving(false); }
   };
 
   const savePanorama = async () => {
@@ -172,6 +250,13 @@ export function LayoutPanoramaPreview({ layout, projectId }) {
           <a href="https://skybox.blockadelabs.com/e/96dc4340bf3ca9ff17da17178b5e7d4f" target="_blank" rel="noopener noreferrer" className="text-sm text-emerald-800 underline">Открыть 360° в отдельном окне</a>
         </section>
       )}
+      <div className="rounded-xl border border-indigo-200 p-4 space-y-3">
+        <h4 className="font-semibold">Загрузить все пять панорам 8K</h4>
+        <p className="text-sm text-slate-600">Выберите пять JPG/WEBP-файлов (до 25 МБ каждый). Названия должны содержать corridor, living, bedroom, kitchen, bathroom либо соответствующие русские названия. Файлы сохраняются только в закрытый черновик.</p>
+        <input aria-label="Выбрать пять панорам" type="file" multiple accept="image/jpeg,image/webp" disabled={isBatchSaving} onChange={selectBatchFiles} className="block w-full text-sm" />
+        {batchFiles.length === 5 && <div className="space-y-2"><ul className="text-sm">{batchFiles.map(({ room, file }) => <li key={room}>✓ {room}: {file.name}</li>)}</ul><button type="button" disabled={isBatchSaving || !projectId} onClick={saveBatch} className="rounded-lg bg-indigo-600 px-4 py-2 text-sm font-semibold text-white disabled:opacity-50">{isBatchSaving ? 'Загрузка...' : 'Сохранить 5 комнат в черновик'}</button></div>}
+        {batchProgress && <p role="status" className="text-sm text-indigo-700">{batchProgress}</p>}
+      </div>
       <label className="block text-sm font-semibold text-slate-700">
         Выбрать панораму (2:1, от 2048×1024, до 25 МБ)
         <input type="file" accept="image/jpeg,image/webp" onChange={selectFile} className="mt-2 block w-full rounded-lg border border-slate-300 bg-white p-2 text-sm" />
