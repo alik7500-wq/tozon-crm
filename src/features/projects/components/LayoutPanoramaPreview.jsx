@@ -148,13 +148,18 @@ export function LayoutPanoramaPreview({ layout, projectId }) {
       let tour = tours.find(t => t.name === name && t.tour_type === 'SHOWROOM' && !t.is_active);
       if (tour) {
         const current = await tour360Api.getTourById(tour.id);
-        if (current?.panoramas?.length) throw new Error('В черновике уже есть панорамы. Массовая загрузка разрешена только в пустой черновик во избежание дубликатов.');
+        const names = (current?.panoramas || []).map(p => p.name);
+        if (names.some(room => !REQUIRED_ROOMS.includes(room)) || new Set(names).size !== names.length) throw new Error('В черновике обнаружены неизвестные или повторяющиеся помещения. Требуется ручная проверка.');
+        if (names.length === REQUIRED_ROOMS.length) throw new Error('Все пять помещений уже сохранены. Повторная загрузка не нужна.');
       } else {
         tour = await tour360Api.createTour(project, { name, tour_type: 'SHOWROOM', is_active: false });
       }
-      for (let index = 0; index < batchFiles.length; index++) {
-        const { room, file } = batchFiles[index];
-        setBatchProgress(`Загрузка ${index + 1} из 5: ${room}`);
+      const existingTour = await tour360Api.getTourById(tour.id);
+      const existingNames = new Set((existingTour?.panoramas || []).map(p => p.name));
+      const pending = batchFiles.filter(({ room }) => !existingNames.has(room));
+      for (let index = 0; index < pending.length; index++) {
+        const { room, file } = pending[index];
+        setBatchProgress(`Загрузка ${index + 1} из ${pending.length}: ${room}`);
         const signed = await tour360Api.requestUploadUrl(project, tour.id, file);
         if (!signed?.signedUploadUrl || !signed?.storagePath) throw new Error('Сервер не выдал ссылку загрузки для «' + room + '».');
         const response = await fetch(signed.signedUploadUrl, { method: 'PUT', headers: { 'Content-Type': file.type, 'x-upsert': 'false' }, body: file });
@@ -165,7 +170,7 @@ export function LayoutPanoramaPreview({ layout, projectId }) {
       setSaved('Пять панорам сохранены в закрытом черновике CRM. Публикация не выполнялась.');
       await loadSavedRooms();
     } catch (err) {
-      setError((err.message || 'Ошибка загрузки') + ' Уже сохранённые комнаты останутся в черновике; проверьте список перед повторной попыткой.');
+      setError((err.message || 'Ошибка загрузки') + ' Уже сохранённые комнаты останутся в черновике. Повторно выберите те же пять файлов: система пропустит сохранённые помещения.');
     } finally { setIsBatchSaving(false); }
   };
 
@@ -252,7 +257,7 @@ export function LayoutPanoramaPreview({ layout, projectId }) {
       )}
       <div className="rounded-xl border border-indigo-200 p-4 space-y-3">
         <h4 className="font-semibold">Загрузить все пять панорам 8K</h4>
-        <p className="text-sm text-slate-600">Выберите пять JPG/WEBP-файлов (до 25 МБ каждый). Названия должны содержать corridor, living, bedroom, kitchen, bathroom либо соответствующие русские названия. Файлы сохраняются только в закрытый черновик.</p>
+        <p className="text-sm text-slate-600">Выберите пять JPG/WEBP-файлов (до 25 МБ каждый). Названия должны содержать corridor, living, bedroom, kitchen, bathroom либо соответствующие русские названия. Файлы сохраняются только в закрытый черновик. При повторном выборе тех же пяти файлов уже сохранённые комнаты пропускаются.</p>
         <input aria-label="Выбрать пять панорам" type="file" multiple accept="image/jpeg,image/webp" disabled={isBatchSaving} onChange={selectBatchFiles} className="block w-full text-sm" />
         {batchFiles.length === 5 && <div className="space-y-2"><ul className="text-sm">{batchFiles.map(({ room, file }) => <li key={room}>✓ {room}: {file.name}</li>)}</ul><button type="button" disabled={isBatchSaving || !projectId} onClick={saveBatch} className="rounded-lg bg-indigo-600 px-4 py-2 text-sm font-semibold text-white disabled:opacity-50">{isBatchSaving ? 'Загрузка...' : 'Сохранить 5 комнат в черновик'}</button></div>}
         {batchProgress && <p role="status" className="text-sm text-indigo-700">{batchProgress}</p>}
