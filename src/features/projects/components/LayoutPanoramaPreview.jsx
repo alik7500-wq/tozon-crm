@@ -287,6 +287,8 @@ export function LayoutPanoramaPreview({ layout, projectId }) {
       {(url || selectedSavedRoom?.panorama_url || selectedSavedRoom?.image_url) ? (
         <div className="space-y-2">
           <p className="text-xs text-slate-500">{url ? filename : `Черновик: ${selectedSavedRoom?.name}`} — вращайте мышью или пальцем. Пропорции 2:1 не гарантируют корректную сферическую проекцию.</p>
+          {selectedSavedRoom && <p className="text-xs text-slate-600">Черновик хранится закрыто. Ссылка на изображение действует до 5 минут. Если просмотр перестал открываться, нажмите «Обновить ссылки».</p>}
+          {selectedSavedRoom && <button type="button" className="rounded border px-3 py-2 text-sm" onClick={() => loadSavedRooms().catch(e => setError(e.message || 'Не удалось обновить ссылки.'))}>Обновить ссылки</button>}
           {savedRooms.length > 0 && <nav className="flex flex-wrap gap-2" aria-label="Комнаты 360">
             {REQUIRED_ROOMS.map(room => {
               const panorama = savedRooms.find(p => p.name === room);
