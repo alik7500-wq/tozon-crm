@@ -4,6 +4,9 @@ import { useModalDismiss } from '../../hooks/useModalDismiss';
 import { formatContractNumber } from '../../utils/formatters';
 import { SendSmsModal } from '../../components/sms/SendSmsModal';
 import { SmsHistoryTable } from '../../components/sms/SmsHistoryTable';
+import { useAuth } from '../auth/AuthContext';
+import { AssignLeadModal } from './AssignLeadModal';
+import { FirstContactModal } from './FirstContactModal';
 import {
   X,
   User,
@@ -24,18 +27,26 @@ import {
   Sparkles,
   Layers,
   Check,
-  Trash2
+  Trash2,
+  PhoneCall,
+  UserCheck,
+  History
 } from 'lucide-react';
 
 export const LeadDrawer = ({ isOpen, onClose, leadId, onLeadUpdated, onEditLead }) => {
   const [lead, setLead] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState('notes'); // 'notes', 'info', 'deals', 'sms'
+  const { user } = useAuth();
+  const canAssign = user && ['ADMIN', 'DIRECTOR'].includes(user.role);
+
+  const [activeTab, setActiveTab] = useState('notes'); // 'notes', 'history', 'info', 'deals', 'sms'
   const [newNote, setNewNote] = useState('');
   const [isAddingNote, setIsAddingNote] = useState(false);
   const [isUpdatingStatus, setIsUpdatingStatus] = useState(false);
   const [toastMessage, setToastMessage] = useState('');
   const [isSmsModalOpen, setIsSmsModalOpen] = useState(false);
+  const [isAssignModalOpen, setIsAssignModalOpen] = useState(false);
+  const [isContactModalOpen, setIsContactModalOpen] = useState(false);
   const [smsRefreshTrigger, setSmsRefreshTrigger] = useState(0);
   const [smsCount, setSmsCount] = useState(0);
 
@@ -266,6 +277,58 @@ export const LeadDrawer = ({ isOpen, onClose, leadId, onLeadUpdated, onEditLead 
           </div>
         ) : lead ? (
           <div className="flex-1 overflow-y-auto flex flex-col">
+            {/* Responsible & SLA Control Strip */}
+            <div className="p-4 bg-slate-50 border-b border-slate-200 flex flex-wrap items-center justify-between gap-3 text-xs">
+              <div className="flex items-center gap-2">
+                <span className="text-slate-500 font-medium">Ответственный:</span>
+                <span className={`inline-flex items-center gap-1 font-bold px-2.5 py-1 rounded-lg border ${
+                  !lead.responsible_user_id ? 'bg-rose-50 text-rose-700 border-rose-200' : 'bg-purple-50 text-purple-700 border-purple-200'
+                }`}>
+                  <User className="h-3.5 w-3.5" />
+                  <span>{lead.responsible_user_name || (!lead.responsible_user_id ? 'Общий пул' : 'Менеджер')}</span>
+                </span>
+                {canAssign && (
+                  <button
+                    type="button"
+                    onClick={() => setIsAssignModalOpen(true)}
+                    className="flex items-center gap-1 px-2.5 py-1 rounded-lg border border-slate-200 bg-white font-bold text-slate-700 hover:bg-slate-100 transition cursor-pointer"
+                  >
+                    <UserCheck className="h-3.5 w-3.5 text-purple-600" />
+                    <span>{!lead.responsible_user_id ? 'Назначить' : 'Сменить'}</span>
+                  </button>
+                )}
+              </div>
+
+              <div className="flex items-center gap-2">
+                {lead.sla_info?.manager_sla?.contact_made ? (
+                  <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-emerald-50 text-emerald-700 border border-emerald-200 font-bold">
+                    <CheckCircle2 className="h-3.5 w-3.5 text-emerald-600" />
+                    <span>Контакт состоялся</span>
+                  </span>
+                ) : (
+                  <>
+                    <span className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-lg border font-bold ${
+                      lead.sla_info?.manager_sla?.is_overdue || (!lead.responsible_user_id && lead.sla_info?.pool_sla?.is_overdue)
+                        ? 'bg-rose-50 text-rose-700 border-rose-300 animate-pulse'
+                        : 'bg-blue-50 text-blue-700 border-blue-200'
+                    }`}>
+                      <Clock className="h-3.5 w-3.5" />
+                      <span>{lead.sla_info?.badge?.label || '15 мин SLA'}</span>
+                    </span>
+
+                    <button
+                      type="button"
+                      onClick={() => setIsContactModalOpen(true)}
+                      className="flex items-center gap-1 px-2.5 py-1 rounded-lg bg-emerald-600 hover:bg-emerald-700 font-bold text-white shadow-xs transition cursor-pointer"
+                    >
+                      <PhoneCall className="h-3.5 w-3.5" />
+                      <span>Зафиксировать контакт</span>
+                    </button>
+                  </>
+                )}
+              </div>
+            </div>
+
             {/* Quick Status Bar */}
             <div className="p-5 border-b border-slate-200 bg-white space-y-2.5">
               <div className="flex items-center justify-between text-xs font-bold text-slate-800">
@@ -316,6 +379,19 @@ export const LeadDrawer = ({ isOpen, onClose, leadId, onLeadUpdated, onEditLead 
                 <span className={`px-1.5 py-0.2 rounded-full text-[10px] font-extrabold ${activeTab === 'notes' ? 'bg-purple-100 text-purple-800' : 'bg-slate-200 text-slate-600'}`}>
                   {notesCount}
                 </span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setActiveTab('history')}
+                className={`py-3 px-3 text-xs font-bold transition border-b-2 flex items-center gap-1.5 cursor-pointer ${
+                  activeTab === 'history'
+                    ? 'border-purple-600 text-purple-700 bg-white shadow-2xs'
+                    : 'border-transparent text-slate-500 hover:text-slate-900'
+                }`}
+              >
+                <History className="h-3.5 w-3.5 text-purple-600" />
+                <span>История</span>
               </button>
 
               <button
@@ -473,6 +549,82 @@ export const LeadDrawer = ({ isOpen, onClose, leadId, onLeadUpdated, onEditLead 
                 </div>
               )}
 
+              {/* TAB: HISTORY (ASSIGNMENT & STAGES) */}
+              {activeTab === 'history' && (
+                <div className="space-y-4">
+                  <h4 className="text-xs font-bold text-slate-800 uppercase tracking-wider">
+                    История назначения и движения лида
+                  </h4>
+
+                  {/* Assignment History */}
+                  <div className="space-y-3">
+                    <span className="text-[11px] font-bold text-slate-600 block">История распределения и ответственных:</span>
+                    {lead.assignment_history && lead.assignment_history.length > 0 ? (
+                      <div className="space-y-2">
+                        {lead.assignment_history.map((h) => (
+                          <div key={h.id} className="p-3.5 rounded-xl border border-slate-200 bg-slate-50 text-xs space-y-1">
+                            <div className="flex items-center justify-between text-slate-500">
+                              <span className="font-bold text-purple-700">
+                                {h.from_user_name} ➔ {h.to_user_name}
+                              </span>
+                              <span className="text-[10px]">
+                                {new Date(h.created_at).toLocaleString('ru-RU')}
+                              </span>
+                            </div>
+                            <div className="text-slate-600">
+                              Назначил: <strong>{h.assigned_by_name}</strong> ({h.assignment_type})
+                            </div>
+                            {h.reason && (
+                              <div className="text-slate-500 italic text-[11px]">
+                                Причина: «{h.reason}»
+                              </div>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <div className="p-3 rounded-xl border border-dashed border-slate-200 text-xs text-slate-400 text-center">
+                        История переназначений отсутствует (первичное распределение)
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Stage Transition History */}
+                  <div className="space-y-3 pt-2">
+                    <span className="text-[11px] font-bold text-slate-600 block">История смены стадий воронки:</span>
+                    {lead.status_history && lead.status_history.length > 0 ? (
+                      <div className="space-y-2">
+                        {lead.status_history.map((sh) => (
+                          <div key={sh.id} className="p-3 rounded-xl border border-slate-200 bg-white text-xs space-y-1">
+                            <div className="flex items-center justify-between">
+                              <span className="font-bold text-slate-900">
+                                {getStatusName(sh.from_status)} ➔ {getStatusName(sh.to_status)}
+                              </span>
+                              <span className="text-[10px] text-slate-400">
+                                {new Date(sh.created_at).toLocaleString('ru-RU')}
+                              </span>
+                            </div>
+                            <div className="text-[11px] text-slate-500">
+                              Изменил: <strong>{sh.changed_by_user_name}</strong>
+                              {sh.lost_reason && <span className="text-rose-600 ml-1">• Причина: {sh.lost_reason}</span>}
+                            </div>
+                            {sh.comment && (
+                              <div className="text-slate-600 italic text-[11px]">
+                                Комментарий: {sh.comment}
+                              </div>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <div className="p-3 rounded-xl border border-dashed border-slate-200 text-xs text-slate-400 text-center">
+                        Переходов по стадиям воронки пока не зафиксировано
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+
               {/* TAB 2: PASSPORT & PREFERENCES */}
               {activeTab === 'info' && (
                 <div className="space-y-4">
@@ -616,6 +768,34 @@ export const LeadDrawer = ({ isOpen, onClose, leadId, onLeadUpdated, onEditLead 
             onSuccess={() => {
               setSmsRefreshTrigger((prev) => prev + 1);
               showToast('✓ SMS отправлено');
+            }}
+          />
+        )}
+
+        {/* Assign Lead Modal */}
+        {lead && (
+          <AssignLeadModal
+            isOpen={isAssignModalOpen}
+            onClose={() => setIsAssignModalOpen(false)}
+            lead={lead}
+            onAssigned={() => {
+              fetchLeadDetails();
+              showToast('✓ Менеджер успешно назначен');
+              if (onLeadUpdated) onLeadUpdated();
+            }}
+          />
+        )}
+
+        {/* First Contact Modal */}
+        {lead && (
+          <FirstContactModal
+            isOpen={isContactModalOpen}
+            onClose={() => setIsContactModalOpen(false)}
+            lead={lead}
+            onRecorded={() => {
+              fetchLeadDetails();
+              showToast('✓ Первый контакт зафиксирован');
+              if (onLeadUpdated) onLeadUpdated();
             }}
           />
         )}
