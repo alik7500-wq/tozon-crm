@@ -1,4 +1,4 @@
-import React, { Suspense, useEffect, useState } from 'react';
+import React, { Suspense, useEffect, useRef, useState } from 'react';
 import { tour360Api } from '../../tour360/services/tour360Api';
 import { SkyboxGeneratorPanel } from '../../tour360/components/SkyboxGeneratorPanel';
 import { TourDraftNavigationEditor } from '../../tour360/components/TourDraftNavigationEditor';
@@ -12,6 +12,7 @@ const MIN_WIDTH = 2048;
 const REQUIRED_ROOMS = ['Гостиная', 'Спальня', 'Кухня', 'Санузел', 'Коридор'];
 
 export function LayoutPanoramaPreview({ layout, projectId }) {
+  const previewRef = useRef(null);
   const [url, setUrl] = useState(null);
   const [viewFov, setViewFov] = useState(85);
   const [fileToSave, setFileToSave] = useState(null);
@@ -281,8 +282,15 @@ export function LayoutPanoramaPreview({ layout, projectId }) {
       {(url || selectedSavedRoom?.panorama_url || selectedSavedRoom?.image_url) ? (
         <div className="space-y-2">
           <p className="text-xs text-slate-500">{url ? filename : `Черновик: ${selectedSavedRoom?.name}`} — вращайте мышью или пальцем. Пропорции 2:1 не гарантируют корректную сферическую проекцию.</p>
+          {savedRooms.length > 0 && <nav className="flex flex-wrap gap-2" aria-label="Комнаты 360">
+            {REQUIRED_ROOMS.map(room => {
+              const panorama = savedRooms.find(p => p.name === room);
+              return <button key={room} type="button" disabled={!panorama} onClick={() => { setSelectedSavedRoom(panorama); setFileToSave(null); setUrl(null); setError(''); }} className="rounded border px-3 py-2 text-sm disabled:opacity-40">{room}</button>;
+            })}
+          </nav>}
+          <button type="button" className="rounded border px-3 py-2 text-sm" onClick={() => { const element = previewRef.current; if (element?.requestFullscreen) element.requestFullscreen().catch(() => setError('Полноэкранный просмотр недоступен.')); }}>На весь экран</button>
           <div className="flex flex-wrap items-center gap-3 text-sm"><label htmlFor="tour-fov">Угол обзора: {viewFov}°</label><input id="tour-fov" type="range" min="55" max="100" step="5" value={viewFov} onChange={e => setViewFov(Number(e.target.value))} aria-label="Угол обзора панорамы" /><button type="button" className="rounded border px-3 py-1" onClick={() => setViewFov(85)}>Сбросить масштаб</button><span className="text-xs text-slate-500">Меньший угол приближает изображение; 85° — обзор по умолчанию.</span></div>
-          <div className="relative h-[55vh] min-h-[260px] max-h-[420px] overflow-hidden rounded-xl bg-slate-950">
+          <div ref={previewRef} className="relative h-[55vh] min-h-[260px] max-h-[420px] overflow-hidden rounded-xl bg-slate-950 fullscreen:h-screen fullscreen:max-h-none">
             <TourCanvasErrorBoundary key={url || selectedSavedRoom?.id} panoramaUrl={url || selectedSavedRoom?.panorama_url || selectedSavedRoom?.image_url}>
               <Canvas dpr={[1, 1.5]} gl={{ antialias: true }}>
                 <PerspectiveCamera makeDefault position={[0, 0, 0.1]} fov={viewFov} />
