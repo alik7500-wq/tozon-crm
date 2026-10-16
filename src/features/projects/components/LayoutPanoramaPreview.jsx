@@ -172,7 +172,12 @@ export function LayoutPanoramaPreview({ layout, projectId }) {
       await loadSavedRooms();
     } catch (err) {
       setError((err.message || 'Ошибка загрузки') + ' Уже сохранённые комнаты останутся в черновике. Повторно выберите те же пять файлов: система пропустит сохранённые помещения.');
-    } finally { setIsBatchSaving(false); }
+    } finally {
+      setIsBatchSaving(false);
+      setBatchProgress('');
+      try { await loadSavedRooms(); }
+      catch { setError(previous => previous || 'Не удалось обновить список комнат после загрузки. Нажмите «Обновить».'); }
+    }
   };
 
   const savePanorama = async () => {
