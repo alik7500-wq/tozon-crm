@@ -48,9 +48,10 @@ export const LeadKanbanView = ({ leads, onSelectLead, onEditLead, onStatusChange
             {/* Cards Container */}
             <div className="flex-1 overflow-y-auto space-y-2.5 pr-1">
               {colLeads.map((lead) => {
-                const isUnassigned = !lead.responsible_user_id;
+                const isClosed = ['WON', 'LOST'].includes(lead.status);
+                const isUnassigned = !lead.responsible_user_id && !isClosed;
                 const sla = lead.sla_info;
-                const isOverdue = sla?.manager_sla?.is_overdue || (isUnassigned && sla?.pool_sla?.is_overdue);
+                const isOverdue = !isClosed && (sla?.manager_sla?.is_overdue || (isUnassigned && sla?.pool_sla?.is_overdue));
 
                 return (
                   <div
@@ -92,7 +93,7 @@ export const LeadKanbanView = ({ leads, onSelectLead, onEditLead, onStatusChange
                         <span>{lead.phone}</span>
                       </div>
                       <span className="text-[10px] font-medium text-slate-400">
-                        {lead.responsible_user_name || (isUnassigned ? 'Пул' : 'Менеджер')}
+                        {lead.responsible_user_name || (isUnassigned ? 'Пул' : '—')}
                       </span>
                     </div>
 

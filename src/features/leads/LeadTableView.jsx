@@ -45,6 +45,18 @@ export const LeadTableView = ({
     const sla = lead.sla_info;
     if (!sla) return null;
 
+    if (['WON', 'LOST'].includes(lead.status)) {
+      const isWon = lead.status === 'WON';
+      return (
+        <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-md font-semibold text-[10px] border ${
+          isWon ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : 'bg-slate-50 text-slate-600 border-slate-200'
+        }`}>
+          {isWon && <CheckCircle2 className="h-3 w-3 shrink-0 text-emerald-600" />}
+          <span>{isWon ? 'Сделка заключена' : 'Отказ / Архив'}</span>
+        </span>
+      );
+    }
+
     if (sla.is_unassigned) {
       const isOverdue = sla.pool_sla?.is_overdue;
       return (
@@ -103,7 +115,7 @@ export const LeadTableView = ({
           <tbody className="divide-y divide-slate-100">
             {leads.map((lead) => {
               const badge = getStatusBadge(lead.status);
-              const isUnassigned = !lead.responsible_user_id;
+              const isUnassigned = !lead.responsible_user_id && !['WON', 'LOST'].includes(lead.status);
 
               return (
                 <tr
@@ -137,7 +149,7 @@ export const LeadTableView = ({
                       ) : (
                         <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md font-semibold text-[11px] bg-purple-50 text-purple-700 border border-purple-200">
                           <User className="h-3 w-3 text-purple-600" />
-                          <span>{lead.responsible_user_name || 'Менеджер'}</span>
+                          <span>{lead.responsible_user_name || '—'}</span>
                         </span>
                       )}
 
