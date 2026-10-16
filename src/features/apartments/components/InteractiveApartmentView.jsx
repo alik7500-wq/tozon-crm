@@ -247,9 +247,20 @@ export const InteractiveApartmentView = ({
                   className="w-full h-full object-contain cursor-zoom-in p-2"
                 />
               ) : (
-                <div className="flex h-full w-full flex-col items-center justify-center p-8 text-center text-slate-400">
-                  <Maximize2 className="h-10 w-10 mb-2 opacity-50" />
-                  <p className="text-xs font-bold">{t('noRoomsDefined')}</p>
+                <div className="flex h-full w-full flex-col items-center justify-center p-8 text-center bg-slate-50/60">
+                  <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-amber-50 text-amber-600 mb-3 border border-amber-200 shadow-2xs">
+                    <Layers className="h-7 w-7" />
+                  </div>
+                  <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-amber-100 text-amber-800 border border-amber-300 mb-2">
+                    <AlertCircle className="h-3.5 w-3.5 text-amber-700" />
+                    <span>{t('planRequiredBadge')}</span>
+                  </span>
+                  <h4 className="text-sm font-bold text-slate-900 max-w-sm">
+                    {t('planRequiredTitle')}
+                  </h4>
+                  <p className="text-xs text-slate-500 mt-1.5 max-w-md leading-relaxed">
+                    {t('planRequiredDesc')}
+                  </p>
                 </div>
               )}
 
