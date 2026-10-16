@@ -3,7 +3,7 @@ import { tour360Api } from '../../tour360/services/tour360Api';
 import { SkyboxGeneratorPanel } from '../../tour360/components/SkyboxGeneratorPanel';
 import { TourDraftNavigationEditor } from '../../tour360/components/TourDraftNavigationEditor';
 import { Canvas } from '@react-three/fiber';
-import { OrbitControls } from '@react-three/drei';
+import { OrbitControls, PerspectiveCamera } from '@react-three/drei';
 import { PanoramaSphere } from '../../tour360/components/PanoramaSphere';
 import { TourCanvasErrorBoundary } from '../../tour360/components/TourCanvasErrorBoundary';
 
@@ -13,6 +13,7 @@ const REQUIRED_ROOMS = ['Гостиная', 'Спальня', 'Кухня', 'С�
 
 export function LayoutPanoramaPreview({ layout, projectId }) {
   const [url, setUrl] = useState(null);
+  const [viewFov, setViewFov] = useState(85);
   const [fileToSave, setFileToSave] = useState(null);
   const [isSaving, setIsSaving] = useState(false);
   const [saved, setSaved] = useState('');
@@ -152,7 +153,7 @@ export function LayoutPanoramaPreview({ layout, projectId }) {
             <button type="button" onClick={() => navigator.clipboard.writeText(scene.prompt).then(() => setSaved('Задание «' + scene.room + '» скопировано.')).catch(() => setError('Не удалось скопировать задание.'))} className="mt-2 rounded border border-indigo-300 px-2 py-1 text-xs text-indigo-700">Копировать задание</button>
           </details>)}
           <div className="flex flex-wrap gap-3"><a href={aiManifest.planImageUrl} target="_blank" rel="noopener noreferrer" className="text-xs text-indigo-700 underline">Меблированный план</a><a href={aiManifest.technicalPlanUrl} target="_blank" rel="noopener noreferrer" className="text-xs text-indigo-700 underline">Технический план</a></div>
-          <p className="text-xs text-amber-700">Генерация пока не подключена. Сферическую проекцию и геометрию необходимо проверять.</p>
+          <p className="text-xs text-amber-700">Панель Skybox доступна ниже при настроенном серверном API. Сферическую проекцию и геометрию необходимо проверять.</p>
         </div>}
       </div>
       {Number(layout?.id) === 7 && Number(projectId) === 3 && (
@@ -190,9 +191,11 @@ export function LayoutPanoramaPreview({ layout, projectId }) {
       {(url || selectedSavedRoom?.panorama_url || selectedSavedRoom?.image_url) ? (
         <div className="space-y-2">
           <p className="text-xs text-slate-500">{url ? filename : `Черновик: ${selectedSavedRoom?.name}`} — вращайте мышью или пальцем. Пропорции 2:1 не гарантируют корректную сферическую проекцию.</p>
+          <div className="flex flex-wrap items-center gap-3 text-sm"><label htmlFor="tour-fov">Угол обзора: {viewFov}°</label><input id="tour-fov" type="range" min="55" max="100" step="5" value={viewFov} onChange={e => setViewFov(Number(e.target.value))} aria-label="Угол обзора панорамы" /><button type="button" className="rounded border px-3 py-1" onClick={() => setViewFov(85)}>Сбросить масштаб</button><span className="text-xs text-slate-500">Меньший угол приближает изображение; 85° — обзор по умолчанию.</span></div>
           <div className="relative h-[55vh] min-h-[260px] max-h-[420px] overflow-hidden rounded-xl bg-slate-950">
             <TourCanvasErrorBoundary key={url || selectedSavedRoom?.id} panoramaUrl={url || selectedSavedRoom?.panorama_url || selectedSavedRoom?.image_url}>
-              <Canvas camera={{ position: [0, 0, 0.1], fov: 75 }} dpr={[1, 1.5]} gl={{ antialias: true }}>
+              <Canvas dpr={[1, 1.5]} gl={{ antialias: true }}>
+                <PerspectiveCamera makeDefault position={[0, 0, 0.1]} fov={viewFov} />
                 <OrbitControls enablePan={false} enableZoom rotateSpeed={-0.4} minDistance={0.05} maxDistance={0.5} />
                 <Suspense fallback={null}><PanoramaSphere panoramaUrl={url || selectedSavedRoom?.panorama_url || selectedSavedRoom?.image_url} /></Suspense>
               </Canvas>
