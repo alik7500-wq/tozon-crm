@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { X, Upload, Image as ImageIcon, AlertCircle, AlertTriangle, Loader2 } from 'lucide-react';
 import { visualAdminApi } from '../../services/visualAdminApi';
 
@@ -16,6 +16,16 @@ export function UploadPanoramaModal({
   const [uploadProgress, setUploadProgress] = useState(0);
   const [isUploading, setIsUploading] = useState(false);
   const [error, setError] = useState('');
+
+  useEffect(() => {
+    if (!isOpen) return;
+    setName('');
+    setFile(null);
+    setAspectRatioWarning('');
+    setImagePreview(null);
+    setUploadProgress(0);
+    setError('');
+  }, [isOpen, tourId]);
 
   if (!isOpen) return null;
 
