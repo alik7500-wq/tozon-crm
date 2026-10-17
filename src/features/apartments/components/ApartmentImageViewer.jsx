@@ -2,7 +2,8 @@ import React, {useEffect,useRef} from 'react';
 import {useModalDismiss} from '../../../hooks/useModalDismiss';
 import {useI18n} from '../../../context/i18nContext';
 import {createPortal} from 'react-dom';
-export function ApartmentImageViewer({images,index,onNavigate,onClose}) {
+export function ApartmentImageViewer({images = [],index = 0,onNavigate,onClose}) {
+ if (!images || images.length === 0) return null;
  const {lang}=useI18n();
  const ref=useRef(null);
  useModalDismiss({isOpen:true,onClose});

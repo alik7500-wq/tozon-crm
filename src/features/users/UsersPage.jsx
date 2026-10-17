@@ -28,7 +28,8 @@ import {
   ShieldAlert,
   Check,
   SlidersHorizontal,
-  Info
+  Info,
+  Package
 } from 'lucide-react';
 
 export const UsersPage = () => {
@@ -73,6 +74,7 @@ export const UsersPage = () => {
       name: '',
       email: '',
       role: 'SALES_MANAGER',
+      is_sales_rep: true,
       password: '',
       permissions: normalizePermissions(ROLE_DEFAULTS.SALES_MANAGER || []),
       is_active: 1,
@@ -86,10 +88,12 @@ export const UsersPage = () => {
     if (u.role === 'ADMIN' && (userPerms.includes('*') || userPerms.length === 0)) {
       userPerms = ALL_PERMISSIONS;
     }
+    const isSalesRep = u.is_sales_rep !== undefined ? Boolean(u.is_sales_rep) : (u.role === 'SALES_MANAGER');
     setFormData({
       name: u.name || '',
       email: u.email || '',
       role: u.role || 'SALES_MANAGER',
+      is_sales_rep: isSalesRep,
       password: '', // optional on edit
       permissions: normalizePermissions(userPerms),
       is_active: u.is_active ? 1 : 0,
@@ -113,6 +117,7 @@ export const UsersPage = () => {
     setFormData((prev) => ({
       ...prev,
       role: newRole,
+      is_sales_rep: newRole === 'SALES_MANAGER',
       permissions: normalizePermissions(defaultPerms)
     }));
   };
@@ -156,6 +161,8 @@ export const UsersPage = () => {
       case 'SALES_MANAGER':
       case 'MANAGER':
         return { label: 'Менеджер продаж', bg: 'bg-blue-50 text-blue-700 border-blue-200', icon: UserCheck };
+      case 'WAREHOUSE_MANAGER':
+        return { label: 'Заведующий складом', bg: 'bg-amber-50 text-amber-700 border-amber-200', icon: Package };
       case 'FINANCE_MANAGER':
         return { label: 'Финансист', bg: 'bg-emerald-50 text-emerald-700 border-emerald-200', icon: Wallet };
       default:
@@ -337,10 +344,17 @@ export const UsersPage = () => {
                       </td>
                       <td className="p-3.5 font-medium text-slate-600">{u.email}</td>
                       <td className="p-3.5">
-                        <span className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full font-bold border text-[10px] ${badge.bg}`}>
-                          <Icon className="h-3 w-3" />
-                          <span>{badge.label}</span>
-                        </span>
+                        <div className="flex items-center gap-1.5 flex-wrap">
+                          <span className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full font-bold border text-[10px] ${badge.bg}`}>
+                            <Icon className="h-3 w-3" />
+                            <span>{badge.label}</span>
+                          </span>
+                          {Boolean(u.is_sales_rep) && (
+                            <span className="inline-flex items-center px-2 py-0.5 rounded-full font-bold border text-[10px] bg-sky-50 text-sky-700 border-sky-200">
+                              Отдел продаж
+                            </span>
+                          )}
+                        </div>
                       </td>
                       <td className="p-3.5">
                         {isFullAdmin ? (
@@ -470,10 +484,24 @@ export const UsersPage = () => {
                       className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-xs text-slate-900 outline-none focus:border-blue-500 focus:bg-white transition"
                     >
                       <option value="SALES_MANAGER">Менеджер по продажам (CRM, шахматка, лиды, сделки)</option>
+                      <option value="WAREHOUSE_MANAGER">Заведующий складом (Склад стройматериалов, учет, списание, остатки)</option>
                       <option value="FINANCE_MANAGER">Финансовый менеджер (Касса, платежи, ДДС, должники)</option>
                       <option value="DIRECTOR">Директор (Аналитика, продажи, финансы, отчеты)</option>
                       <option value="ADMIN">Администратор (Полный неограниченный доступ)</option>
                     </select>
+                  </div>
+
+                  <div className="flex items-center gap-2 pt-1">
+                    <input
+                      type="checkbox"
+                      id="is_sales_rep_check"
+                      checked={Boolean(formData.is_sales_rep)}
+                      onChange={(e) => setFormData(prev => ({ ...prev, is_sales_rep: e.target.checked }))}
+                      className="h-4 w-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500 cursor-pointer"
+                    />
+                    <label htmlFor="is_sales_rep_check" className="text-xs font-semibold text-slate-700 cursor-pointer select-none">
+                      Сотрудник отдела продаж (участвует в воронке лидов, планах продаж и расчете KPI)
+                    </label>
                   </div>
 
                   <div>
