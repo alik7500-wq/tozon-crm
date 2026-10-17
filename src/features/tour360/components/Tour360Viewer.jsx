@@ -13,6 +13,7 @@ import {
 } from 'lucide-react';
 import { useTour360 } from '../hooks/useTour360';
 import { PanoramaSphere } from './PanoramaSphere';
+import { TourCanvasErrorBoundary } from './TourCanvasErrorBoundary';
 import { TourNavigation } from './TourNavigation';
 import { TourLoader } from './TourLoader';
 import { TourErrorFallback } from './TourErrorFallback';
@@ -198,6 +199,7 @@ export function Tour360Viewer({
 
       {/* 360 Three.js Canvas */}
       {currentPanorama?.panorama_url && (
+        <TourCanvasErrorBoundary panoramaUrl={currentPanorama.panorama_url}>
         <Canvas
           camera={{ position: [0, 0, 0.1], fov: initialFov }}
           dpr={[1, 2]}
@@ -225,6 +227,7 @@ export function Tour360Viewer({
             />
           </Suspense>
         </Canvas>
+        </TourCanvasErrorBoundary>
       )}
 
       {/* Bottom Panoramas Navigation Bar */}

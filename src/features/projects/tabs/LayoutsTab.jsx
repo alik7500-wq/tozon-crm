@@ -311,6 +311,7 @@ export const LayoutsTab = ({ projectId, currency = 'USD', onLayoutCreated }) => 
       {editingLayoutId && (
         <React.Suspense fallback={null}>
           <LayoutEditorModal
+            projectId={projectId}
             layoutId={editingLayoutId}
             isOpen={Boolean(editingLayoutId)}
             onClose={() => setEditingLayoutId(null)}

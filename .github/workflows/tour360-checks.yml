@@ -1,0 +1,32 @@
+name: 360 Tour PR checks
+
+on:
+  pull_request:
+    paths:
+      - 'src/features/tour360/**'
+      - 'src/features/projects/components/LayoutPanoramaPreview.jsx'
+      - 'src/features/projects/components/LayoutEditorModal.jsx'
+      - 'src/features/projects/tabs/LayoutsTab.jsx'
+      - 'package.json'
+      - 'package-lock.json'
+      - '.github/workflows/tour360-checks.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  frontend:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci
+      - name: 360 tour API contract tests
+        run: npx vitest run src/features/tour360/services/tour360Api.test.js
+      - name: Frontend production build
+        run: npm run build
