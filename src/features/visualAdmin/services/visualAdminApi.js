@@ -103,11 +103,12 @@ export const visualAdminApi = {
   // -------------------------------------------------------------
   // 360 PANORAMAS
   // -------------------------------------------------------------
-  async getPanoramaUploadUrl(projectId, filename, fileSizeBytes) {
+  async getPanoramaUploadUrl(projectId, tourId, filename, fileSizeBytes) {
     const res = await api.post('/360-panoramas/upload-url', {
-      projectId,
+      projectId: Number(projectId),
+      tourId: Number(tourId),
       filename,
-      fileSizeBytes
+      fileSizeBytes: Number(fileSizeBytes)
     });
     return res.data;
   },
