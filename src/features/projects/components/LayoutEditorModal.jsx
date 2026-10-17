@@ -113,6 +113,8 @@ export const LayoutEditorModal = ({ layoutId, projectId, isOpen, onClose, onUpda
   // Polygon Drawing Mode
   const [isDrawingPolygon, setIsDrawingPolygon] = useState(false);
   const imageCanvasRef = useRef(null);
+  const markerDragRef = useRef(null);
+  const skipCanvasClickRef = useRef(false);
 
   // Feature Editing State
   const [featureForm, setFeatureForm] = useState({
@@ -226,7 +228,8 @@ export const LayoutEditorModal = ({ layoutId, projectId, isOpen, onClose, onUpda
 
   // Click handler on furnished plan image canvas
   const handleCanvasClick = (e) => {
-    if (!imageCanvasRef.current) return;
+    if (skipCanvasClickRef.current) { skipCanvasClickRef.current = false; return; }
+    if (!imageCanvasRef.current || !basicForm.furnished_plan_path) return;
     const rect = imageCanvasRef.current.getBoundingClientRect();
     const clickX = e.clientX - rect.left;
     const clickY = e.clientY - rect.top;
@@ -246,6 +249,28 @@ export const LayoutEditorModal = ({ layoutId, projectId, isOpen, onClose, onUpda
         position_y_percent: yPct
       }));
     }
+  };
+
+  const moveMarker = e => {
+    const rect = imageCanvasRef.current?.getBoundingClientRect();
+    if (!rect?.width || !rect?.height) return;
+    const x = Math.round(Math.max(0, Math.min(100, (e.clientX - rect.left) / rect.width * 100)) * 100) / 100;
+    const y = Math.round(Math.max(0, Math.min(100, (e.clientY - rect.top) / rect.height * 100)) * 100) / 100;
+    setRoomForm(prev => ({...prev, position_x_percent: x, position_y_percent: y}));
+  };
+  const startMarkerDrag = (e, room) => {
+    if (isDrawingPolygon || e.button !== 0) return;
+    e.preventDefault();
+    e.stopPropagation();
+    if (room) handleEditRoomSelect(room);
+    markerDragRef.current = e.pointerId;
+    imageCanvasRef.current?.setPointerCapture(e.pointerId);
+  };
+  const finishMarkerDrag = e => {
+    if (markerDragRef.current !== e.pointerId) return;
+    markerDragRef.current = null;
+    skipCanvasClickRef.current = true;
+    if (imageCanvasRef.current?.hasPointerCapture(e.pointerId)) imageCanvasRef.current.releasePointerCapture(e.pointerId);
   };
 
   // Save Room (Create or Update)
@@ -610,19 +635,25 @@ export const LayoutEditorModal = ({ layoutId, projectId, isOpen, onClose, onUpda
                       </div>
                     </div>
 
-                    <p className="text-xs text-slate-500">{t('clickOnPlanToPlaceMarker')}</p>
+                    <p className="text-xs text-slate-500">Выберите комнату в списке или её метку. Перетащите метку в нужное помещение или нажмите на план, затем нажмите «Обновить комнату». Положение сохраняется отдельно для каждой комнаты.</p>
 
                     {/* Furnished Plan Interactive Canvas */}
                     <div
                       ref={imageCanvasRef}
                       onClick={handleCanvasClick}
-                      className="relative w-full h-[420px] rounded-2xl bg-slate-900 overflow-hidden border border-slate-300 select-none cursor-crosshair"
+                      onPointerDown={() => { skipCanvasClickRef.current = false; }}
+                      onPointerMove={e => { if (markerDragRef.current === e.pointerId) moveMarker(e); }}
+                      onPointerUp={finishMarkerDrag}
+                      onPointerCancel={finishMarkerDrag}
+                      onLostPointerCapture={e => { if (markerDragRef.current === e.pointerId) markerDragRef.current = null; }}
+                      className="relative w-fit max-w-full mx-auto rounded-2xl bg-white overflow-hidden border border-slate-300 select-none touch-none cursor-crosshair"
                     >
                       {basicForm.furnished_plan_path ? (
                         <img
                           src={basicForm.furnished_plan_path}
                           alt="Furnished Plan"
-                          className="w-full h-full object-contain pointer-events-none"
+                          draggable={false}
+                          className="block w-auto h-auto max-w-full max-h-[600px] pointer-events-none"
                         />
                       ) : (
                         <div className="flex h-full w-full items-center justify-center text-slate-400">
@@ -631,13 +662,14 @@ export const LayoutEditorModal = ({ layoutId, projectId, isOpen, onClose, onUpda
                       )}
 
                       {/* Render existing room markers */}
-                      {rooms.map((r) => (
+                      {rooms.filter(r => r.id !== editingRoom?.id).map((r) => (
                         <div
                           key={r.id}
                           onClick={(e) => {
                             e.stopPropagation();
-                            handleEditRoomSelect(r);
+                            skipCanvasClickRef.current = false;
                           }}
+                          onPointerDown={e => startMarkerDrag(e, r)}
                           style={{
                             left: `${r.position_x_percent}%`,
                             top: `${r.position_y_percent}%`,
@@ -656,13 +688,16 @@ export const LayoutEditorModal = ({ layoutId, projectId, isOpen, onClose, onUpda
                       ))}
 
                       {/* Current active editing marker preview */}
-                      {roomForm.position_x_percent !== undefined && (
+                      {basicForm.furnished_plan_path && roomForm.position_x_percent !== undefined && (
                         <div
+                          data-testid="editing-room-marker"
+                          onPointerDown={e => startMarkerDrag(e)}
+                          onClick={e => { e.stopPropagation(); skipCanvasClickRef.current = false; }}
                           style={{
                             left: `${roomForm.position_x_percent}%`,
                             top: `${roomForm.position_y_percent}%`,
                           }}
-                          className="absolute -translate-x-1/2 -translate-y-1/2 flex flex-col items-center justify-center z-20 pointer-events-none animate-pulse"
+                          className="absolute -translate-x-1/2 -translate-y-1/2 flex flex-col items-center justify-center z-20 cursor-grab active:cursor-grabbing touch-none"
                         >
                           <div className="flex h-8 w-8 items-center justify-center rounded-full bg-amber-500 text-white font-extrabold text-sm shadow-xl border-2 border-white ring-4 ring-amber-400/50">
                             {roomForm.room_number}

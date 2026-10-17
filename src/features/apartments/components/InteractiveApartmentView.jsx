@@ -236,7 +236,7 @@ export const InteractiveApartmentView = ({
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
           {/* Main Interactive Plan Image Canvas */}
           <div className="lg:col-span-7 flex flex-col rounded-2xl bg-white border border-slate-200 p-4 shadow-xs">
-            <div className="relative w-full h-[460px] rounded-xl bg-white overflow-hidden border border-slate-200 select-none">
+            <div className="relative w-fit max-w-full mx-auto rounded-xl bg-white overflow-hidden border border-slate-200 select-none">
               {shownImage ? (
                 <img
                   src={shownImage.url}
@@ -244,7 +244,7 @@ export const InteractiveApartmentView = ({
                   role="button" tabIndex={0} aria-label={lang === 'tg' ? 'Кушодани тасвир дар тамоми экран' : 'Открыть изображение на весь экран'}
                   onClick={() => setViewerOpen(true)}
                   onKeyDown={e => { if(e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setViewerOpen(true); } }}
-                  className="w-full h-full object-contain cursor-zoom-in p-2"
+                  className="block w-auto h-auto max-w-full max-h-[600px] cursor-zoom-in"
                 />
               ) : (
                 <div className="flex h-full w-full flex-col items-center justify-center p-8 text-center bg-slate-50/60">
