@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { X, Navigation, Info, Home, Sparkles, Check, AlertCircle } from 'lucide-react';
 
 export function HotspotFormModal({
@@ -18,6 +18,18 @@ export function HotspotFormModal({
   const [selectedUnitId, setSelectedUnitId] = useState('');
   const [infoDesc, setInfoDesc] = useState('');
   const [searchUnit, setSearchUnit] = useState('');
+
+  useEffect(() => {
+    if (!isOpen) return;
+    setHotspotType('NAVIGATION');
+    setLabel('');
+    setYaw(Number(initialYaw));
+    setPitch(Number(initialPitch));
+    setTargetPanoramaId(otherPanoramas[0]?.id ?? '');
+    setSelectedUnitId('');
+    setInfoDesc('');
+    setSearchUnit('');
+  }, [isOpen, initialYaw, initialPitch]);
 
   if (!isOpen) return null;
 

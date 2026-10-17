@@ -35,6 +35,7 @@ export function HotspotEditor({
   const [currentPitch, setCurrentPitch] = useState(0);
   const [isEditMode, setIsEditMode] = useState(true);
   const [saveSuccess, setSaveSuccess] = useState(false);
+  const [previewPanoramaId, setPreviewPanoramaId] = useState(null);
 
   const controlsRef = useRef(null);
 
@@ -43,6 +44,7 @@ export function HotspotEditor({
     if (controlsRef.current) {
       // Calculate spherical yaw and pitch from camera target/position
       const cam = controlsRef.current.object;
+      cam.updateMatrixWorld();
       const dir = new THREE.Vector3();
       cam.getWorldDirection(dir);
 
@@ -83,6 +85,14 @@ export function HotspotEditor({
   };
 
   const otherPanoramas = allPanoramas.filter(p => p.id !== panorama.id);
+  const previewPanorama = previewPanoramaId ? allPanoramas.find(p => String(p.id) === String(previewPanoramaId)) : null;
+  const shownPanorama = !isEditMode && previewPanorama ? previewPanorama : panorama;
+  const shownHotspots = shownPanorama.id === panorama.id ? hotspots : (shownPanorama.hotspots || []);
+  const handlePreviewHotspotClick = (hotspot) => {
+    if (!isEditMode && hotspot.hotspot_type === 'NAVIGATION' && hotspot.target_panorama_id) {
+      setPreviewPanoramaId(hotspot.target_panorama_id);
+    }
+  };
 
   return (
     <div className="space-y-4">
@@ -115,7 +125,7 @@ export function HotspotEditor({
           {/* Mode Switcher */}
           <div className="flex items-center bg-slate-100 p-1 rounded-xl">
             <button
-              onClick={() => setIsEditMode(true)}
+              onClick={() => { setIsEditMode(true); setPreviewPanoramaId(null); }}
               className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition cursor-pointer ${
                 isEditMode
                   ? 'bg-white text-purple-700 shadow-xs'
@@ -126,7 +136,7 @@ export function HotspotEditor({
               <span>Редактор</span>
             </button>
             <button
-              onClick={() => setIsEditMode(false)}
+              onClick={() => { setIsEditMode(false); setPreviewPanoramaId(null); }}
               className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition cursor-pointer ${
                 !isEditMode
                   ? 'bg-white text-purple-700 shadow-xs'
@@ -154,7 +164,7 @@ export function HotspotEditor({
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-4">
         {/* Left: 360 Sphere Viewport */}
         <div className="lg:col-span-8 relative h-[620px] rounded-2xl bg-slate-950 border border-slate-800 shadow-2xl overflow-hidden">
-          {panorama.panorama_url && (
+          {shownPanorama.panorama_url && (
             <Canvas
               camera={{ position: [0, 0, 0.1], fov: panorama.initial_fov || 75 }}
               dpr={[1, 2]}
@@ -171,9 +181,9 @@ export function HotspotEditor({
               />
               <React.Suspense fallback={<TourLoader message="Загрузка панорамы..." />}>
                 <PanoramaSphere
-                  panoramaUrl={panorama.panorama_url}
-                  hotspots={hotspots}
-                  onHotspotClick={() => {}}
+                  panoramaUrl={shownPanorama.panorama_url}
+                  hotspots={shownHotspots}
+                  onHotspotClick={handlePreviewHotspotClick}
                 />
               </React.Suspense>
             </Canvas>
@@ -181,7 +191,7 @@ export function HotspotEditor({
 
           {/* Hint Overlay */}
           <div className="absolute top-4 left-4 z-20 pointer-events-none bg-slate-900/90 backdrop-blur-md border border-slate-700/80 px-3 py-1.5 rounded-xl text-white text-xs font-bold shadow-lg">
-            <span>Вращайте панораму (ЛКМ) для выбора точки размещения хотспота</span>
+            <span>{isEditMode ? 'Вращайте панораму (ЛКМ) для выбора точки размещения хотспота' : `Превью: ${shownPanorama.name || shownPanorama.title} — нажмите точку перехода`}</span>
           </div>
         </div>
 
