@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   ArrowLeft,
   Plus,
@@ -24,6 +24,25 @@ export function PanoramaManager({
   const [selectedPanorama, setSelectedPanorama] = useState(null);
   const [isUploadOpen, setIsUploadOpen] = useState(false);
   const [activeTour, setActiveTour] = useState(tour);
+  const [isLoadingTour, setIsLoadingTour] = useState(true);
+  const [loadError, setLoadError] = useState('');
+
+  useEffect(() => {
+    let cancelled = false;
+    setActiveTour(tour);
+    setSelectedPanorama(null);
+    setIsLoadingTour(true);
+    setLoadError('');
+    visualAdminApi.getTourTree(tour.id)
+      .then(refreshed => {
+        if (cancelled) return;
+        if (!refreshed) throw new Error('Тур не найден');
+        setActiveTour(refreshed);
+      })
+      .catch(err => { if (!cancelled) setLoadError(err.message || 'Не удалось загрузить панорамы'); })
+      .finally(() => { if (!cancelled) setIsLoadingTour(false); });
+    return () => { cancelled = true; };
+  }, [tour.id]);
 
   const reloadTour = async () => {
     try {
@@ -32,6 +51,7 @@ export function PanoramaManager({
       if (onTourUpdated) onTourUpdated();
     } catch (err) {
       console.error('Failed to reload tour:', err);
+      setLoadError(err.message || 'Не удалось обновить панорамы');
     }
   };
 
@@ -100,8 +120,10 @@ export function PanoramaManager({
         </button>
       </div>
 
+      {isLoadingTour && <div className="p-8 text-center text-sm text-slate-500">Загрузка панорам тура…</div>}
+      {loadError && <div role="alert" className="p-4 rounded-xl border border-rose-200 bg-rose-50 text-rose-700 text-sm">{loadError}<button type="button" onClick={reloadTour} className="ml-3 underline">Повторить</button></div>}
       {/* Panoramas Grid */}
-      {panoramas.length === 0 ? (
+      {!isLoadingTour && !loadError && panoramas.length === 0 ? (
         <div className="p-12 text-center rounded-2xl bg-white border border-slate-200 border-dashed space-y-3">
           <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-2xl bg-purple-50 text-purple-600">
             <ImageIcon className="h-6 w-6" />
@@ -117,7 +139,7 @@ export function PanoramaManager({
             Загрузить панораму
           </button>
         </div>
-      ) : (
+      ) : !isLoadingTour && !loadError ? (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
           {panoramas.map((pan) => (
             <div
@@ -178,7 +200,7 @@ export function PanoramaManager({
             </div>
           ))}
         </div>
-      )}
+      ) : null}
 
       {/* Upload Modal */}
       <UploadPanoramaModal
