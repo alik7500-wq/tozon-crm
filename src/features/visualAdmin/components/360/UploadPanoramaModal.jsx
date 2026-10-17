@@ -65,7 +65,7 @@ export function UploadPanoramaModal({
 
     try {
       // 1. Get presigned upload URL from backend
-      const uploadData = await visualAdminApi.getPanoramaUploadUrl(projectId, file.name, file.size);
+      const uploadData = await visualAdminApi.getPanoramaUploadUrl(projectId, tourId, file.name, file.size);
 
       // 2. Upload file directly with progress
       await visualAdminApi.uploadFileToSignedUrl(uploadData.signedUploadUrl, file, (progress) => {
