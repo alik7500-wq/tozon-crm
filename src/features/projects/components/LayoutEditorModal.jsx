@@ -26,6 +26,9 @@ import {
   Move
 } from 'lucide-react';
 
+// Remove only insignificant decimal zeros; preserve every meaningful digit.
+const trimDecimalZeros = value => String(value ?? '').replace(/\d+[.,]\d+/g, decimal => decimal.replace(/0+$/, '').replace(/[.,]$/, ''));
+
 const ICON_OPTIONS = [
   'Sparkles',
   'ShieldCheck',
@@ -131,20 +134,20 @@ export const LayoutEditorModal = ({ layoutId, projectId, isOpen, onClose, onUpda
       setFeatures(data.features || []);
 
       setBasicForm({
-        name: l.name || '',
-        name_tg: l.name_tg || '',
+        name: trimDecimalZeros(l.name),
+        name_tg: trimDecimalZeros(l.name_tg),
         code: l.code || '',
         rooms: l.rooms || 1,
-        area_m2: l.area_m2_x100 ? (l.area_m2_x100 / 100).toFixed(1) : '45',
+        area_m2: l.area_m2_x100 ? trimDecimalZeros(l.area_m2_x100 / 100) : '45',
         default_price_per_m2: l.default_price_per_m2_minor ? Math.round(l.default_price_per_m2_minor / 100) : 8500,
         description_ru: l.description_ru || l.description || '',
         description_tg: l.description_tg || '',
         gallery_images: l.gallery_images || [],
         furnished_plan_path: l.furnished_plan_path || l.image_path || '',
         technical_plan_path: l.technical_plan_path || '',
-        living_area: l.living_area || '',
-        kitchen_area: l.kitchen_area || '',
-        ceiling_height: l.ceiling_height || '2.8',
+        living_area: trimDecimalZeros(l.living_area),
+        kitchen_area: trimDecimalZeros(l.kitchen_area),
+        ceiling_height: trimDecimalZeros(l.ceiling_height ?? '2.8'),
         bathrooms_count: l.bathrooms_count ?? 1,
         windows_count: l.windows_count ?? 2,
         doors_count: l.doors_count ?? 3,
@@ -296,7 +299,7 @@ export const LayoutEditorModal = ({ layoutId, projectId, isOpen, onClose, onUpda
       room_type: r.room_type || 'ROOM',
       name_ru: r.name_ru || '',
       name_tg: r.name_tg || '',
-      area: r.area || '',
+      area: trimDecimalZeros(r.area),
       description_ru: r.description_ru || '',
       description_tg: r.description_tg || '',
       floor_finish_ru: r.floor_finish_ru || '',
@@ -364,7 +367,7 @@ export const LayoutEditorModal = ({ layoutId, projectId, isOpen, onClose, onUpda
             <div>
               <h3 className="text-base font-bold text-slate-900">{t('editorTitle')}</h3>
               <p className="text-xs text-slate-500">
-                {layout?.name} ({layout?.code}) — {layout?.rooms === 0 ? 'Студия' : `${layout?.rooms}-комнатная`}
+                {trimDecimalZeros(layout?.name)} ({layout?.code}) — {layout?.rooms === 0 ? 'Студия' : `${layout?.rooms}-комнатная`}
               </p>
             </div>
           </div>
@@ -647,7 +650,7 @@ export const LayoutEditorModal = ({ layoutId, projectId, isOpen, onClose, onUpda
                             {r.room_number}
                           </div>
                           <span className="mt-0.5 rounded-md bg-slate-900/85 px-1.5 py-0.2 text-[10px] font-bold text-white shadow-xs backdrop-blur-xs">
-                            {r.area} м²
+                            {trimDecimalZeros(r.area)} м²
                           </span>
                         </div>
                       ))}
