@@ -441,7 +441,7 @@ export const InteractiveApartmentView = ({
       {viewMode === '360' && tour360 && (
         <div className="rounded-2xl bg-slate-900 p-2 border border-slate-800 h-[500px]">
           <Suspense fallback={<div className="flex h-full items-center justify-center text-white text-xs">Загрузка 360° виртуального тура...</div>}>
-            <Tour360Viewer tourData={tour360} unitId={unitId} />
+            <Tour360Viewer key={tour360.id} projectId={tour360.project_id} initialTourId={tour360.id} currency={currency} />
           </Suspense>
         </div>
       )}

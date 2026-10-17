@@ -14,10 +14,13 @@ export function HotspotFormModal({
   const [label, setLabel] = useState('');
   const [yaw, setYaw] = useState(initialYaw);
   const [pitch, setPitch] = useState(initialPitch);
-  const [targetPanoramaId, setTargetPanoramaId] = useState(otherPanoramas[0]?.id || '');
+  const [targetPanoramaId, setTargetPanoramaId] = useState('');
   const [selectedUnitId, setSelectedUnitId] = useState('');
   const [infoDesc, setInfoDesc] = useState('');
   const [searchUnit, setSearchUnit] = useState('');
+
+  const [saving, setSaving] = useState(false);
+  const [saveError, setSaveError] = useState('');
 
   useEffect(() => {
     if (!isOpen) return;
@@ -25,7 +28,8 @@ export function HotspotFormModal({
     setLabel('');
     setYaw(Number(initialYaw));
     setPitch(Number(initialPitch));
-    setTargetPanoramaId(otherPanoramas[0]?.id ?? '');
+    setTargetPanoramaId('');
+    setSaveError('');
     setSelectedUnitId('');
     setInfoDesc('');
     setSearchUnit('');
@@ -33,8 +37,14 @@ export function HotspotFormModal({
 
   if (!isOpen) return null;
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
+    if (saving) return;
+    setSaveError('');
+    if (hotspotType === 'NAVIGATION' && !otherPanoramas.some(p => String(p.id) === String(targetPanoramaId))) {
+      setSaveError('Выберите комнату назначения из списка.');
+      return;
+    }
     if (!label.trim()) {
       alert('Укажите название / подпись хотспота');
       return;
@@ -51,8 +61,15 @@ export function HotspotFormModal({
       metadata: hotspotType === 'INFO' ? { description: infoDesc.trim() } : {}
     };
 
-    onSave(payload);
-    onClose();
+    setSaving(true);
+    try {
+      await onSave(payload);
+      onClose();
+    } catch (error) {
+      setSaveError(error.message || 'Не удалось сохранить хотспот.');
+    } finally {
+      setSaving(false);
+    }
   };
 
   return (
@@ -143,6 +160,7 @@ export function HotspotFormModal({
               type="text"
               required
               placeholder="например: В спальню или Остекление"
+              aria-label="Подпись хотспота"
               value={label}
               onChange={(e) => setLabel(e.target.value)}
               className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-xs font-medium text-slate-800 outline-none focus:border-purple-500 focus:bg-white"
@@ -157,11 +175,12 @@ export function HotspotFormModal({
               </label>
               <select
                 required
+                aria-label="Комната назначения"
                 value={targetPanoramaId}
                 onChange={(e) => setTargetPanoramaId(e.target.value)}
                 className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-xs font-semibold text-slate-800 outline-none focus:border-purple-500 cursor-pointer"
               >
-                <option value="">Выберите комнату...</option>
+                <option value="" disabled>Выберите комнату...</option>
                 {otherPanoramas.map((p) => (
                   <option key={p.id} value={p.id}>
                     {p.name || p.title || `Панорама #${p.id}`}
@@ -207,6 +226,7 @@ export function HotspotFormModal({
             </div>
           )}
 
+          {saveError && <p role="alert" className="text-xs text-red-700">{saveError}</p>}
           {/* Actions */}
           <div className="flex items-center justify-end gap-3 pt-3 border-t border-slate-100">
             <button
@@ -219,9 +239,10 @@ export function HotspotFormModal({
 
             <button
               type="submit"
+              disabled={saving || (hotspotType === 'NAVIGATION' && !otherPanoramas.some(p => String(p.id) === String(targetPanoramaId)))}
               className="px-5 py-2 rounded-xl bg-purple-600 hover:bg-purple-500 text-white text-xs font-extrabold shadow-lg shadow-purple-600/30 transition cursor-pointer"
             >
-              Добавить хотспот
+              {saving ? 'Сохранение…' : 'Добавить хотспот'}
             </button>
           </div>
         </form>
