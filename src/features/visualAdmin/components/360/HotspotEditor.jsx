@@ -68,7 +68,7 @@ export function HotspotEditor({
       setTimeout(() => setSaveSuccess(false), 3000);
       onPanoramaUpdated();
     } catch (err) {
-      alert(err.message || 'Ошибка сохранения хотспота');
+      throw err;
     }
   };
 

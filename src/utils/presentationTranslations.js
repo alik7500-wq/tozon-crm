@@ -7,7 +7,7 @@ export const presentationDict = {
     presentationTitle: 'Презентация квартиры',
     tabPlan: 'Интерактивный план',
     tab3d: '3D-модель',
-    tabTour360: '360° Виртуальный тур',
+    tabTour360: 'Виртуальный тур 360°',
     langToggle: 'Язык / Забон',
     
     // Status badges
