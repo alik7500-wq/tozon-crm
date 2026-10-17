@@ -541,20 +541,6 @@ export const ApartmentDetailModal = ({
               )}
             </div>
 
-            {/* Layout blueprint image if available */}
-            {unit.layout_types?.image_path && (
-              <div className="rounded-2xl border border-slate-200 bg-slate-50/50 p-3 flex flex-col items-center">
-                <span className="text-[11px] font-bold text-slate-500 mb-2">
-                  Чертеж планировки ({unit.layout_types.name || unit.layout_types.code})
-                </span>
-                <img
-                  src={unit.layout_types.image_path}
-                  alt="Планировка"
-                  className="max-h-48 object-contain rounded-xl"
-                />
-              </div>
-            )}
-
             {/* SECTION 1: IF UNIT IS RESERVED (🟠 БРОНЬ) */}
             {isReserved && activeDeal && (
               <div className="rounded-2xl border border-amber-300 bg-gradient-to-b from-amber-50/80 to-amber-50/30 p-5 space-y-4 shadow-sm">
