@@ -9,7 +9,7 @@ export function PanoramaHotspot({
 }) {
   const {
     id,
-    title,
+    title = hotspot.label,
     hotspot_type,
     yaw = 0,
     pitch = 0,
