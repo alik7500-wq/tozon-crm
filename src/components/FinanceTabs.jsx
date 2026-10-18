@@ -15,6 +15,7 @@ export const FinanceTabs = ({ compact = false, className = '' }) => {
     { label: 'Реестр расходов (РКО)', path: '/finance/expenses', permission: 'finance.expenses', icon: TrendingDown },
     { label: 'Строительный учёт', path: '/finance/construction', permissionsAny: ['construction.stock','construction.advance','construction.settlements','construction.settings'], icon: Table },
     { label: 'ДДС (Движение средств)', path: '/finance/cashflow', permission: 'finance.cashflow', icon: Wallet },
+    { label: 'Себестоимость блоков', path: '/finance/costs', permission: 'finance.costs', icon: Table },
   ];
 
   return (

@@ -1,6 +1,7 @@
 import { ContractCongratulationsModal } from './components/sms/ContractCongratulationsModal';
 import React from 'react';
 import { ConstructionPage } from './features/construction/ConstructionPage';
+import { BlockCostsPage } from './features/costs/BlockCostsPage';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { AuthProvider } from './features/auth/AuthContext';
@@ -80,6 +81,7 @@ function App() {
                   <Route path="/payments/income-orders" element={<IncomePage />} />
                   <Route path="/payments/expense-orders" element={<ExpensesPage />} />
                   <Route path="/finance/construction" element={<ConstructionPage />} />
+                  <Route path="/finance/costs" element={<PermissionGuard requiredPermission="finance.costs"><BlockCostsPage /></PermissionGuard>} />
                   <Route path="/finance/calendar" element={<PaymentCalendarPage />} />
                   <Route path="/finance/debtors" element={<DebtorsPage />} />
                   <Route path="/finance/income" element={<IncomePage />} />
