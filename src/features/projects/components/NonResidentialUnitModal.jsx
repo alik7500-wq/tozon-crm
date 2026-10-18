@@ -30,6 +30,7 @@ export const NonResidentialUnitModal = ({ unit, floorNumber, buildingName, curre
       await api.patch(`/inventory/units/${unit.id}/price`, { price_per_m2_minor: minor, scope: 'UNIT' });
       setSavedPrice(minor);
       onUpdated?.();
+      requestClose?.();
     } catch (err) {
       setError(err.message || 'Не удалось сохранить цену');
     } finally {

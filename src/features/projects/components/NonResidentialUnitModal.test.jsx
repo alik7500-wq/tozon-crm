@@ -37,4 +37,28 @@ describe('nonresidential chessboard cards', () => {
     fireEvent.click(screen.getByText('Сохранить цену'));
     await waitFor(() => expect(screen.getByRole('alert').textContent).toBe('Ошибка сохранения'));
   });
+  it('closes only after a successful save and refreshes the chessboard', async () => {
+    let resolve;
+    patch.mockReturnValue(new Promise(done => { resolve = done; }));
+    const onClose = vi.fn(), onUpdated = vi.fn();
+    render(<NonResidentialUnitModal unit={parking} currency="USD" onClose={onClose} onUpdated={onUpdated} />);
+    fireEvent.change(screen.getByLabelText('Цена за м², USD'), { target: { value: '400' } });
+    fireEvent.click(screen.getByText('Сохранить цену'));
+    expect(onClose).not.toHaveBeenCalled();
+    expect(screen.getByText('Сохранение…').disabled).toBe(true);
+    resolve({data:{}});
+    await waitFor(() => expect(onClose).toHaveBeenCalledOnce());
+    expect(onUpdated).toHaveBeenCalledOnce();
+  });
+  it('keeps the window open when the server rejects the price', async () => {
+    patch.mockRejectedValue(new Error('Ошибка сохранения'));
+    const onClose = vi.fn(), onUpdated = vi.fn();
+    render(<NonResidentialUnitModal unit={parking} currency="USD" onClose={onClose} onUpdated={onUpdated} />);
+    fireEvent.change(screen.getByLabelText('Цена за м², USD'), { target: { value: '400' } });
+    fireEvent.click(screen.getByText('Сохранить цену'));
+    await screen.findByRole('alert');
+    expect(onClose).not.toHaveBeenCalled();
+    expect(onUpdated).not.toHaveBeenCalled();
+  });
+
 });
