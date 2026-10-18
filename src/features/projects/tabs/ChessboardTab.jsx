@@ -233,12 +233,12 @@ export const ChessboardTab = ({ projectId, currency = 'USD', onOpenGenerator }) 
                     {section.name}
                   </div>
 
-                  <div className="min-w-max space-y-2">
+                  <div className="min-w-0 space-y-2">
                     {section.floors
                       ?.slice()
                       .sort((a, b) => Number(a.floor_number) - Number(b.floor_number))
                       .map((floor) => (
-                      <div key={floor.id} className="flex items-center gap-3">
+                      <div key={floor.id} className="flex min-w-0 items-center gap-3">
                         {/* Floor Number Header Box */}
                         <div className="flex h-16 w-16 shrink-0 flex-col items-center justify-center rounded-xl bg-slate-100 border border-slate-200 text-slate-700 font-bold">
                           <span className="text-base leading-none">{floor.floor_number}</span>
@@ -247,7 +247,7 @@ export const ChessboardTab = ({ projectId, currency = 'USD', onOpenGenerator }) 
                         </div>
 
                         {/* Units Grid on Floor */}
-                        <div className="flex items-center gap-2.5 flex-wrap">
+                        <div className={`flex min-w-0 flex-1 items-center flex-wrap ${floor.floor_number === -1 ? 'gap-1' : 'gap-2.5'}`}>
                           {floor.units
                             ?.slice()
                             .sort((a, b) => {
@@ -258,6 +258,22 @@ export const ChessboardTab = ({ projectId, currency = 'USD', onOpenGenerator }) 
                             .map((unit) => {
                             const badge = getStatusBadge(unit.status);
                             const areaM2 = formatMeasure(unit.area_m2_x100 / 100);
+
+                            if (unit.unit_kind === 'PARKING') {
+                              return (
+                                <button
+                                  key={unit.id}
+                                  onClick={() => handleUnitClick(unit, floor, building)}
+                                  title={`Машино-место №${unit.unit_number} · ${areaM2} м² · ${badge.label}`}
+                                  aria-label={`Машино-место №${unit.unit_number}, ${areaM2} м², ${badge.label}`}
+                                  className={`flex h-14 w-14 shrink-0 flex-col items-center justify-center gap-1 rounded-lg border p-1 text-center transition shadow-2xs cursor-pointer ${badge.bg}`}
+                                >
+                                  <span className="text-[10px] font-extrabold leading-tight text-slate-900">{unit.unit_number}</span>
+                                  <span className="whitespace-nowrap text-[9px] font-semibold leading-tight">{areaM2} м²</span>
+                                  <span aria-hidden="true" className={`h-1.5 w-1.5 rounded-full ${badge.dot}`} />
+                                </button>
+                              );
+                            }
 
                             return (
                               <button
