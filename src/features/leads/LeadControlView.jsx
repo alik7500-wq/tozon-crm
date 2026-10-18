@@ -75,9 +75,12 @@ export const LeadControlView = ({ onSelectLead, projects = [], onLeadUpdated }) 
 
       const res = await api.get('/leads/sla-control', { params });
       const data = res.data || res;
+      if (data?.state === 'DATA_UNAVAILABLE') {
+        setError(data.message || 'Данные контроля обработки лидов временно недоступны');
+      }
       setSlaData(data);
     } catch (err) {
-      setError(err.message || 'Ошибка загрузки данных SLA-контроля');
+      setError(err.response?.data?.message || err.message || 'Ошибка загрузки данных SLA-контроля');
     } finally {
       setIsLoading(false);
     }
@@ -153,19 +156,41 @@ export const LeadControlView = ({ onSelectLead, projects = [], onLeadUpdated }) 
     }
   };
 
-  const summary = slaData?.summary || {
-    totalActive: 0,
-    unassignedCount: 0,
-    contactWarningCount: 0,
-    contactOverdueCount: 0,
-    stagnantCount: 0,
-    overdueTasksCount: 0,
-    onTrackCount: 0,
-    attentionRequiredCount: 0
-  };
+  const isDataAvailable = Boolean(slaData && !error && slaData.state !== 'DATA_UNAVAILABLE');
+  const isDataUnavailable = Boolean(error || (slaData && slaData.state === 'DATA_UNAVAILABLE'));
 
-  const leadsList = slaData?.leads || [];
-  const pagination = slaData?.pagination || { total: 0, page: 1, limit: 50, totalPages: 1 };
+  const summary = isDataAvailable ? (slaData?.summary || {}) : null;
+  const leadsList = isDataAvailable ? (slaData?.leads || []) : [];
+  const pagination = isDataAvailable ? (slaData?.pagination || { total: 0, page: 1, limit: 50, totalPages: 1 }) : { total: 0, page: 1, limit: 50, totalPages: 1 };
+
+  // Helper to render KPI values: strictly avoids false zeros when data is unavailable or errored
+  const renderKpiValue = (metricKey, textColorClass) => {
+    if (isDataUnavailable) {
+      return (
+        <span
+          data-testid="kpi-unavailable"
+          data-status="DATA_UNAVAILABLE"
+          title="Данные недоступны"
+          className="text-2xl font-black text-slate-300 select-none tracking-wider"
+        >
+          —
+        </span>
+      );
+    }
+    if (isLoading && !slaData) {
+      return (
+        <span className="text-2xl font-black text-slate-300 animate-pulse">
+          ···
+        </span>
+      );
+    }
+    const val = summary ? summary[metricKey] : 0;
+    return (
+      <span className={`text-2xl font-black ${textColorClass}`}>
+        {typeof val === 'number' ? val : 0}
+      </span>
+    );
+  };
 
   return (
     <div className="space-y-6">
@@ -181,115 +206,169 @@ export const LeadControlView = ({ onSelectLead, projects = [], onLeadUpdated }) 
       <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
         {/* 1. Unassigned */}
         <div
-          onClick={() => setSlaStatusFilter(slaStatusFilter === 'UNASSIGNED' ? 'ALL' : 'UNASSIGNED')}
-          className={`p-3.5 rounded-2xl border transition cursor-pointer flex flex-col justify-between ${
-            slaStatusFilter === 'UNASSIGNED'
-              ? 'bg-rose-50 border-rose-300 ring-2 ring-rose-500/20 shadow-xs'
-              : 'bg-white border-slate-200 hover:border-rose-200 hover:bg-rose-50/30 shadow-2xs'
+          onClick={() => {
+            if (isDataUnavailable) return;
+            setSlaStatusFilter(slaStatusFilter === 'UNASSIGNED' ? 'ALL' : 'UNASSIGNED');
+          }}
+          className={`p-3.5 rounded-2xl border transition flex flex-col justify-between ${
+            isDataUnavailable
+              ? 'bg-slate-50 border-slate-200 cursor-not-allowed opacity-90'
+              : slaStatusFilter === 'UNASSIGNED'
+              ? 'bg-rose-50 border-rose-300 ring-2 ring-rose-500/20 shadow-xs cursor-pointer'
+              : 'bg-white border-slate-200 hover:border-rose-200 hover:bg-rose-50/30 shadow-2xs cursor-pointer'
           }`}
         >
           <div className="flex items-center justify-between text-slate-500 mb-1.5">
-            <span className="text-[11px] font-bold text-rose-700 uppercase tracking-wider">Без ответственного</span>
-            <UserX className="h-4 w-4 text-rose-600" />
+            <span className={`text-[11px] font-bold uppercase tracking-wider ${isDataUnavailable ? 'text-slate-500' : 'text-rose-700'}`}>
+              Без ответственного
+            </span>
+            <UserX className={`h-4 w-4 ${isDataUnavailable ? 'text-slate-400' : 'text-rose-600'}`} />
           </div>
           <div className="flex items-baseline justify-between">
-            <span className="text-2xl font-black text-rose-900">{summary.unassignedCount}</span>
-            <span className="text-[10px] font-semibold text-rose-600">&gt;15 мин</span>
+            {renderKpiValue('unassignedCount', 'text-rose-900')}
+            <span className={`text-[10px] font-semibold ${isDataUnavailable ? 'text-slate-400' : 'text-rose-600'}`}>
+              {isDataUnavailable ? 'н/д' : '>15 мин'}
+            </span>
           </div>
         </div>
 
         {/* 2. Contact Overdue (>2h) */}
         <div
-          onClick={() => setSlaStatusFilter(slaStatusFilter === 'OVERDUE_CONTACT' ? 'ALL' : 'OVERDUE_CONTACT')}
-          className={`p-3.5 rounded-2xl border transition cursor-pointer flex flex-col justify-between ${
-            slaStatusFilter === 'OVERDUE_CONTACT'
-              ? 'bg-rose-50 border-rose-300 ring-2 ring-rose-500/20 shadow-xs'
-              : 'bg-white border-slate-200 hover:border-rose-200 hover:bg-rose-50/30 shadow-2xs'
+          onClick={() => {
+            if (isDataUnavailable) return;
+            setSlaStatusFilter(slaStatusFilter === 'OVERDUE_CONTACT' ? 'ALL' : 'OVERDUE_CONTACT');
+          }}
+          className={`p-3.5 rounded-2xl border transition flex flex-col justify-between ${
+            isDataUnavailable
+              ? 'bg-slate-50 border-slate-200 cursor-not-allowed opacity-90'
+              : slaStatusFilter === 'OVERDUE_CONTACT'
+              ? 'bg-rose-50 border-rose-300 ring-2 ring-rose-500/20 shadow-xs cursor-pointer'
+              : 'bg-white border-slate-200 hover:border-rose-200 hover:bg-rose-50/30 shadow-2xs cursor-pointer'
           }`}
         >
           <div className="flex items-center justify-between text-slate-500 mb-1.5">
-            <span className="text-[11px] font-bold text-rose-700 uppercase tracking-wider">Без контакта (&gt;2ч)</span>
-            <AlertCircle className="h-4 w-4 text-rose-600" />
+            <span className={`text-[11px] font-bold uppercase tracking-wider ${isDataUnavailable ? 'text-slate-500' : 'text-rose-700'}`}>
+              Без контакта (&gt;2ч)
+            </span>
+            <AlertCircle className={`h-4 w-4 ${isDataUnavailable ? 'text-slate-400' : 'text-rose-600'}`} />
           </div>
           <div className="flex items-baseline justify-between">
-            <span className="text-2xl font-black text-rose-900">{summary.contactOverdueCount}</span>
-            <span className="text-[10px] font-semibold text-rose-600">SLA нарушен</span>
+            {renderKpiValue('contactOverdueCount', 'text-rose-900')}
+            <span className={`text-[10px] font-semibold ${isDataUnavailable ? 'text-slate-400' : 'text-rose-600'}`}>
+              {isDataUnavailable ? 'н/д' : 'SLA нарушен'}
+            </span>
           </div>
         </div>
 
         {/* 3. Contact Warning (>1h) */}
         <div
-          onClick={() => setSlaStatusFilter(slaStatusFilter === 'WARNING_CONTACT' ? 'ALL' : 'WARNING_CONTACT')}
-          className={`p-3.5 rounded-2xl border transition cursor-pointer flex flex-col justify-between ${
-            slaStatusFilter === 'WARNING_CONTACT'
-              ? 'bg-amber-50 border-amber-300 ring-2 ring-amber-500/20 shadow-xs'
-              : 'bg-white border-slate-200 hover:border-amber-200 hover:bg-amber-50/30 shadow-2xs'
+          onClick={() => {
+            if (isDataUnavailable) return;
+            setSlaStatusFilter(slaStatusFilter === 'WARNING_CONTACT' ? 'ALL' : 'WARNING_CONTACT');
+          }}
+          className={`p-3.5 rounded-2xl border transition flex flex-col justify-between ${
+            isDataUnavailable
+              ? 'bg-slate-50 border-slate-200 cursor-not-allowed opacity-90'
+              : slaStatusFilter === 'WARNING_CONTACT'
+              ? 'bg-amber-50 border-amber-300 ring-2 ring-amber-500/20 shadow-xs cursor-pointer'
+              : 'bg-white border-slate-200 hover:border-amber-200 hover:bg-amber-50/30 shadow-2xs cursor-pointer'
           }`}
         >
           <div className="flex items-center justify-between text-slate-500 mb-1.5">
-            <span className="text-[11px] font-bold text-amber-700 uppercase tracking-wider">Ожидают (&gt;1ч)</span>
-            <Clock className="h-4 w-4 text-amber-600" />
+            <span className={`text-[11px] font-bold uppercase tracking-wider ${isDataUnavailable ? 'text-slate-500' : 'text-amber-700'}`}>
+              Ожидают (&gt;1ч)
+            </span>
+            <Clock className={`h-4 w-4 ${isDataUnavailable ? 'text-slate-400' : 'text-amber-600'}`} />
           </div>
           <div className="flex items-baseline justify-between">
-            <span className="text-2xl font-black text-amber-900">{summary.contactWarningCount}</span>
-            <span className="text-[10px] font-semibold text-amber-600">Внимание</span>
+            {renderKpiValue('contactWarningCount', 'text-amber-900')}
+            <span className={`text-[10px] font-semibold ${isDataUnavailable ? 'text-slate-400' : 'text-amber-600'}`}>
+              {isDataUnavailable ? 'н/д' : 'Внимание'}
+            </span>
           </div>
         </div>
 
         {/* 4. Overdue Tasks */}
         <div
-          onClick={() => setSlaStatusFilter(slaStatusFilter === 'OVERDUE_TASK' ? 'ALL' : 'OVERDUE_TASK')}
-          className={`p-3.5 rounded-2xl border transition cursor-pointer flex flex-col justify-between ${
-            slaStatusFilter === 'OVERDUE_TASK'
-              ? 'bg-rose-50 border-rose-300 ring-2 ring-rose-500/20 shadow-xs'
-              : 'bg-white border-slate-200 hover:border-rose-200 hover:bg-rose-50/30 shadow-2xs'
+          onClick={() => {
+            if (isDataUnavailable) return;
+            setSlaStatusFilter(slaStatusFilter === 'OVERDUE_TASK' ? 'ALL' : 'OVERDUE_TASK');
+          }}
+          className={`p-3.5 rounded-2xl border transition flex flex-col justify-between ${
+            isDataUnavailable
+              ? 'bg-slate-50 border-slate-200 cursor-not-allowed opacity-90'
+              : slaStatusFilter === 'OVERDUE_TASK'
+              ? 'bg-rose-50 border-rose-300 ring-2 ring-rose-500/20 shadow-xs cursor-pointer'
+              : 'bg-white border-slate-200 hover:border-rose-200 hover:bg-rose-50/30 shadow-2xs cursor-pointer'
           }`}
         >
           <div className="flex items-center justify-between text-slate-500 mb-1.5">
-            <span className="text-[11px] font-bold text-rose-700 uppercase tracking-wider">Просрочены задачи</span>
-            <CalendarClock className="h-4 w-4 text-rose-600" />
+            <span className={`text-[11px] font-bold uppercase tracking-wider ${isDataUnavailable ? 'text-slate-500' : 'text-rose-700'}`}>
+              Просрочены задачи
+            </span>
+            <CalendarClock className={`h-4 w-4 ${isDataUnavailable ? 'text-slate-400' : 'text-rose-600'}`} />
           </div>
           <div className="flex items-baseline justify-between">
-            <span className="text-2xl font-black text-rose-900">{summary.overdueTasksCount}</span>
-            <span className="text-[10px] font-semibold text-rose-600">Срочно</span>
+            {renderKpiValue('overdueTasksCount', 'text-rose-900')}
+            <span className={`text-[10px] font-semibold ${isDataUnavailable ? 'text-slate-400' : 'text-rose-600'}`}>
+              {isDataUnavailable ? 'н/д' : 'Срочно'}
+            </span>
           </div>
         </div>
 
         {/* 5. Stagnant (>48h) */}
         <div
-          onClick={() => setSlaStatusFilter(slaStatusFilter === 'STAGNANT' ? 'ALL' : 'STAGNANT')}
-          className={`p-3.5 rounded-2xl border transition cursor-pointer flex flex-col justify-between ${
-            slaStatusFilter === 'STAGNANT'
-              ? 'bg-amber-50 border-amber-300 ring-2 ring-amber-500/20 shadow-xs'
-              : 'bg-white border-slate-200 hover:border-amber-200 hover:bg-amber-50/30 shadow-2xs'
+          onClick={() => {
+            if (isDataUnavailable) return;
+            setSlaStatusFilter(slaStatusFilter === 'STAGNANT' ? 'ALL' : 'STAGNANT');
+          }}
+          className={`p-3.5 rounded-2xl border transition flex flex-col justify-between ${
+            isDataUnavailable
+              ? 'bg-slate-50 border-slate-200 cursor-not-allowed opacity-90'
+              : slaStatusFilter === 'STAGNANT'
+              ? 'bg-amber-50 border-amber-300 ring-2 ring-amber-500/20 shadow-xs cursor-pointer'
+              : 'bg-white border-slate-200 hover:border-amber-200 hover:bg-amber-50/30 shadow-2xs cursor-pointer'
           }`}
         >
           <div className="flex items-center justify-between text-slate-500 mb-1.5">
-            <span className="text-[11px] font-bold text-amber-700 uppercase tracking-wider">Без движения (&gt;48ч)</span>
-            <AlertTriangle className="h-4 w-4 text-amber-600" />
+            <span className={`text-[11px] font-bold uppercase tracking-wider ${isDataUnavailable ? 'text-slate-500' : 'text-amber-700'}`}>
+              Без движения (&gt;48ч)
+            </span>
+            <AlertTriangle className={`h-4 w-4 ${isDataUnavailable ? 'text-slate-400' : 'text-amber-600'}`} />
           </div>
           <div className="flex items-baseline justify-between">
-            <span className="text-2xl font-black text-amber-900">{summary.stagnantCount}</span>
-            <span className="text-[10px] font-semibold text-amber-600">Нет задач</span>
+            {renderKpiValue('stagnantCount', 'text-amber-900')}
+            <span className={`text-[10px] font-semibold ${isDataUnavailable ? 'text-slate-400' : 'text-amber-600'}`}>
+              {isDataUnavailable ? 'н/д' : 'Нет задач'}
+            </span>
           </div>
         </div>
 
         {/* 6. On Track */}
         <div
-          onClick={() => setSlaStatusFilter(slaStatusFilter === 'ON_TRACK' ? 'ALL' : 'ON_TRACK')}
-          className={`p-3.5 rounded-2xl border transition cursor-pointer flex flex-col justify-between ${
-            slaStatusFilter === 'ON_TRACK'
-              ? 'bg-emerald-50 border-emerald-300 ring-2 ring-emerald-500/20 shadow-xs'
-              : 'bg-white border-slate-200 hover:border-emerald-200 hover:bg-emerald-50/30 shadow-2xs'
+          onClick={() => {
+            if (isDataUnavailable) return;
+            setSlaStatusFilter(slaStatusFilter === 'ON_TRACK' ? 'ALL' : 'ON_TRACK');
+          }}
+          className={`p-3.5 rounded-2xl border transition flex flex-col justify-between ${
+            isDataUnavailable
+              ? 'bg-slate-50 border-slate-200 cursor-not-allowed opacity-90'
+              : slaStatusFilter === 'ON_TRACK'
+              ? 'bg-emerald-50 border-emerald-300 ring-2 ring-emerald-500/20 shadow-xs cursor-pointer'
+              : 'bg-white border-slate-200 hover:border-emerald-200 hover:bg-emerald-50/30 shadow-2xs cursor-pointer'
           }`}
         >
           <div className="flex items-center justify-between text-slate-500 mb-1.5">
-            <span className="text-[11px] font-bold text-emerald-700 uppercase tracking-wider">В графике</span>
-            <CheckCircle2 className="h-4 w-4 text-emerald-600" />
+            <span className={`text-[11px] font-bold uppercase tracking-wider ${isDataUnavailable ? 'text-slate-500' : 'text-emerald-700'}`}>
+              В графике
+            </span>
+            <CheckCircle2 className={`h-4 w-4 ${isDataUnavailable ? 'text-slate-400' : 'text-emerald-600'}`} />
           </div>
           <div className="flex items-baseline justify-between">
-            <span className="text-2xl font-black text-emerald-900">{summary.onTrackCount}</span>
-            <span className="text-[10px] font-semibold text-emerald-600">Норма</span>
+            {renderKpiValue('onTrackCount', 'text-emerald-900')}
+            <span className={`text-[10px] font-semibold ${isDataUnavailable ? 'text-slate-400' : 'text-emerald-600'}`}>
+              {isDataUnavailable ? 'н/д' : 'Норма'}
+            </span>
           </div>
         </div>
       </div>
@@ -373,15 +452,28 @@ export const LeadControlView = ({ onSelectLead, projects = [], onLeadUpdated }) 
             <div className="h-8 w-8 animate-spin rounded-full border-4 border-blue-600 border-t-transparent mb-3" />
             <p className="text-xs font-semibold text-slate-500">Загрузка данных контроля обработки...</p>
           </div>
-        ) : error ? (
-          <div className="p-8 text-center text-rose-700">
-            <AlertCircle className="h-6 w-6 mx-auto mb-2 text-rose-500" />
-            <p className="text-xs font-bold">{error}</p>
+        ) : isDataUnavailable ? (
+          <div className="p-8 text-center text-rose-700 bg-rose-50/50">
+            <div className="inline-flex p-3 rounded-2xl bg-rose-100 text-rose-600 mb-2.5">
+              <AlertCircle className="h-6 w-6" />
+            </div>
+            <div className="flex items-center justify-center gap-2 mb-1.5">
+              <h4 className="text-sm font-extrabold text-rose-900">
+                Показатели контроля обработки недоступны
+              </h4>
+              <span className="px-2 py-0.5 rounded-md bg-rose-200 text-rose-800 text-[10px] font-black tracking-wider">
+                DATA_UNAVAILABLE
+              </span>
+            </div>
+            <p className="text-xs text-rose-700 max-w-md mx-auto">
+              {error || slaData?.message || 'Произошла ошибка при загрузке данных контроля обработки лидов.'}
+            </p>
             <button
               onClick={fetchSlaData}
-              className="mt-3 inline-flex items-center px-3 py-1.5 rounded-lg bg-rose-100 hover:bg-rose-200 text-rose-800 text-xs font-bold transition cursor-pointer"
+              className="mt-4 inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold transition shadow-xs cursor-pointer"
             >
-              Повторить попытку
+              <RefreshCw className="h-3.5 w-3.5" />
+              <span>Повторить запрос</span>
             </button>
           </div>
         ) : leadsList.length === 0 ? (
