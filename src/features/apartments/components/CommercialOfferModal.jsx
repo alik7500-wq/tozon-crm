@@ -102,6 +102,22 @@ export const CommercialOfferModal = ({
   }, [initialUnit?.id]);
 
   const activeUnit = unit || initialUnit;
+  const [offerBuildings, setOfferBuildings] = useState([]);
+  const building = activeUnit?.floors?.sections?.buildings;
+  const projectId = activeUnit?.project_id || building?.project_id || building?.projects?.id;
+  useEffect(() => {
+    let alive = true;
+    setOfferBuildings([]);
+    if (projectId) api.get(`/inventory/projects/${projectId}/chessboard`)
+      .then(res => { if (alive) setOfferBuildings(res.data?.chessboard || []); })
+      .catch(() => {});
+    return () => { alive = false; };
+  }, [projectId]);
+  const buildingId = building?.id || activeUnit?.building_id;
+  const matchingBuilding = offerBuildings.find(b => buildingId ? String(b.id) === String(buildingId) : b.name === activeUnit?.building_name);
+  const totalFloors = Math.max(0, ...(matchingBuilding && !matchingBuilding.archived_at ? matchingBuilding.sections || [] : [])
+    .filter(section => !section.archived_at).flatMap(section => (section.floors || []).filter(f => !f.archived_at).map(f => Number(f.floor_number) || 0)));
+
   const layout = presentation?.layout || layoutData || activeUnit?.layout_types;
 
   // Resolve room explication from presentation or layout architectural data
@@ -481,7 +497,7 @@ export const CommercialOfferModal = ({
                     {projectName}
                   </h2>
                   <p className="text-[11px] font-bold text-slate-500 mt-1 uppercase tracking-wider">
-                    {isTJ ? 'Маҷмааи истиқоматии 16-ошёна' : '16-этажный жилой комплекс'} • {projectAddress}
+                    {totalFloors > 0 ? (isTJ ? `Маҷмааи истиқоматии ${totalFloors}-ошёна` : `${totalFloors}-этажный жилой комплекс`) : (isTJ ? 'Маҷмааи истиқоматӣ' : 'Жилой комплекс')} • {projectAddress}
                   </p>
                   <p className="text-[10px] font-semibold text-slate-400 mt-0.5">
                     {companyName} • {isTJ ? 'РМА (ИНН):' : 'ИНН:'} 630019325
@@ -531,7 +547,7 @@ export const CommercialOfferModal = ({
                 <div className="bg-white p-2 rounded-lg border border-slate-200 shadow-2xs">
                   <span className="text-[9px] font-bold text-slate-400 block uppercase">{isTJ ? 'Ошёна' : 'Этаж'}</span>
                   <span className="text-sm font-black text-slate-900">
-                    {activeUnit?.floors?.floor_number || activeUnit?.floor_number} {isTJ ? 'аз 16' : 'из 16'}
+                    {activeUnit?.floors?.floor_number ?? activeUnit?.floor_number}{totalFloors > 0 ? ` ${isTJ ? 'аз' : 'из'} ${totalFloors}` : ''}
                   </span>
                 </div>
 

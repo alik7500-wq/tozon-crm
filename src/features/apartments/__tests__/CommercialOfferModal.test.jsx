@@ -30,6 +30,7 @@ vi.mock('../../../hooks/useModalDismiss', () => ({
 // Mock data for Apartment №1 (54.58 m², 1-room, Floor 2, $700/m²)
 const mockUnit1 = {
   id: 89,
+  project_id: 3,
   unit_number: '1',
   status: 'AVAILABLE',
   rooms: 1,
@@ -62,6 +63,7 @@ const mockPresentation1 = {
 // Mock data for Apartment №80 (84.80 m², 3-room penthouse, Floor 10, $650/m²)
 const mockUnit80 = {
   id: 153,
+  project_id: 3,
   unit_number: '80',
   status: 'AVAILABLE',
   rooms: 3,
@@ -99,6 +101,7 @@ beforeEach(() => {
   window.print = vi.fn();
 
   api.get.mockImplementation((path) => {
+    if (path.includes('/inventory/projects/3/chessboard')) return Promise.resolve({data:{chessboard:[{id:3,name:'Блок Б',sections:[{floors:[{floor_number:-1},{floor_number:1},{floor_number:2},{floor_number:10}]}]}]}});
     if (path.includes('/document-settings/configuration')) {
       return Promise.resolve({ data: { settings: mockCompanySettings } });
     }
@@ -273,3 +276,15 @@ describe('CommercialOfferModal Component', () => {
     );
   });
 });
+
+ it('uses the actual top floor from the building rather than a fixed 16', async () => {
+   render(<CommercialOfferModal unit={mockUnit1} onClose={() => {}} initialLang="RU" />);
+   expect(await screen.findByText('2 из 10')).toBeTruthy();
+   expect(screen.getByText(/10-этажный жилой комплекс/)).toBeTruthy();
+   expect(screen.queryByText(/из 16/)).toBeNull();
+ });
+ it('uses actual floor count in Tajik too', async () => {
+   render(<CommercialOfferModal unit={mockUnit1} onClose={() => {}} initialLang="TG" />);
+   expect(await screen.findByText('2 аз 10')).toBeTruthy();
+   expect(screen.getByText(/10-ошёна/)).toBeTruthy();
+ });
