@@ -1,6 +1,9 @@
 import { formatFinanceNumber, formatFinanceText } from '../../utils/financeDisplay';
 import { api } from '../../api/client';
 import { canWriteSection } from '../../utils/permissions';
+import { CostAllocationFields } from '../costs/CostAllocationFields';
+import { emptyAllocation, allocationPayload } from '../costs/allocation';
+import { saveExpenseWithAllocation } from '../costs/saveExpenseWithAllocation';
 import React, { useState, useEffect, useMemo } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { financeApi } from '../../api/finance.api';
@@ -78,6 +81,13 @@ export const ExpensesPage = () => {
   }, [isManager, managerDeskId]);
 
   const [showAddModal, setShowAddModal] = useState(false);
+  const [costAllocation, setCostAllocation] = useState(emptyAllocation);
+  const canAllocateCosts = canWriteSection(user, 'finance.costs');
+  const { data: costOptions, error: costOptionsError } = useQuery({
+    queryKey: ['block-cost-options', user?.id],
+    queryFn: async () => (await api.get('/costs/state')).data,
+    enabled: showAddModal && canAllocateCosts,
+  });
   const [editingItem, setEditingItem] = useState(null);
   const [printableExpense, setPrintableExpense] = useState(null);
 
@@ -220,8 +230,16 @@ export const ExpensesPage = () => {
   });
 
   const addMutation = useMutation({
-    mutationFn: financeApi.addExpense,
+    mutationFn: ({ cost_allocation, ...payload }) => saveExpenseWithAllocation({
+      payload, allocation: cost_allocation, addExpense: financeApi.addExpense,
+      saveAllocation: (id, body) => api.put(`/costs/allocations/${id}`, body),
+    }),
     onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ['block-costs'] });
+      queryClient.invalidateQueries({ queryKey: ['block-cost-options'] });
+      const costWarning = (data?.data || data)?.cost_allocation_warning;
+      if (costWarning) alert(costWarning);
+      setCostAllocation(emptyAllocation());
       queryClient.invalidateQueries(['finance-expenses']);
       queryClient.invalidateQueries(['finance-cashflow']);
       queryClient.invalidateQueries(['finance-income']);
@@ -464,8 +482,15 @@ export const ExpensesPage = () => {
     const finalDesc = updateCommentWithCashDesk(cleanDesc, finalDeskName);
     const keyToUse = `EXP-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
 
+    let allocation;
+    if (canAllocateCosts && costAllocation.mode !== 'UNASSIGNED') {
+      try { allocation = allocationPayload(costAllocation); }
+      catch (error) { alert(error.message); return; }
+    }
+
     addMutation.mutate({
       ...formData,
+      cost_allocation: allocation,
       amount: cleanFormDataAmount,
       idempotency_key: keyToUse,
       cash_desk: finalDeskName,
@@ -1336,6 +1361,10 @@ export const ExpensesPage = () => {
             ) : (
               /* Modal Form */
               <form onSubmit={handleSubmit} noValidate className="p-4 sm:p-5 space-y-3 text-xs">
+                {canAllocateCosts && <>
+                  {costOptionsError && <p role="alert" className="text-amber-800">Не удалось загрузить блоки. РКО можно сохранить нераспределённым и отнести на блок позднее.</p>}
+                  <CostAllocationFields value={costAllocation} onChange={setCostAllocation} disabled={addMutation.isPending} blocks={(costOptions?.blocks || []).map(b => ({ ...b, project_name: costOptions.projects.find(p => p.id === b.project_id)?.name || '' }))} />
+                </>}
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   {/* Recipient */}
                   <div>
