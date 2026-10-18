@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { api } from '../../api/client';
+import { apartmentStats } from './apartmentStats';
 import { useAuth } from '../auth/AuthContext';
 import { ChessboardTab } from './tabs/ChessboardTab';
 import { LayoutsTab } from './tabs/LayoutsTab';
@@ -53,8 +54,8 @@ export const ProjectDetailPage = () => {
 
       // 2. Fetch stats safely
       try {
-        const statsRes = await api.get(`/inventory/projects/${id}/stats`);
-        setStats(statsRes.data?.stats || statsRes.stats || null);
+        const statsRes = await api.get(`/inventory/projects/${id}/chessboard`);
+        setStats(apartmentStats(statsRes.data?.chessboard || []));
       } catch (err) {
         console.warn('Failed to load project stats:', err);
       }
