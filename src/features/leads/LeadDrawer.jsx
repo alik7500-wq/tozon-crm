@@ -7,6 +7,9 @@ import { SmsHistoryTable } from '../../components/sms/SmsHistoryTable';
 import { useAuth } from '../auth/AuthContext';
 import { AssignLeadModal } from './AssignLeadModal';
 import { FirstContactModal } from './FirstContactModal';
+import { ApartmentDetailModal } from '../apartments/ApartmentDetailModal';
+import { CommercialOfferModal } from '../apartments/components/CommercialOfferModal';
+import { ReserveApartmentModal } from '../apartments/ReserveApartmentModal';
 import {
   X,
   User,
@@ -30,7 +33,10 @@ import {
   Trash2,
   PhoneCall,
   UserCheck,
-  History
+  History,
+  Heart,
+  Home,
+  ArrowRight
 } from 'lucide-react';
 
 export const LeadDrawer = ({ isOpen, onClose, leadId, onLeadUpdated, onEditLead }) => {
@@ -39,7 +45,7 @@ export const LeadDrawer = ({ isOpen, onClose, leadId, onLeadUpdated, onEditLead 
   const { user } = useAuth();
   const canAssign = user && ['ADMIN', 'DIRECTOR'].includes(user.role);
 
-  const [activeTab, setActiveTab] = useState('notes'); // 'notes', 'history', 'info', 'deals', 'sms'
+  const [activeTab, setActiveTab] = useState('notes'); // 'notes', 'interests', 'history', 'info', 'deals', 'sms'
   const [newNote, setNewNote] = useState('');
   const [isAddingNote, setIsAddingNote] = useState(false);
   const [isUpdatingStatus, setIsUpdatingStatus] = useState(false);
@@ -49,6 +55,12 @@ export const LeadDrawer = ({ isOpen, onClose, leadId, onLeadUpdated, onEditLead 
   const [isContactModalOpen, setIsContactModalOpen] = useState(false);
   const [smsRefreshTrigger, setSmsRefreshTrigger] = useState(0);
   const [smsCount, setSmsCount] = useState(0);
+
+  // Unit interests states & modals
+  const [selectedDetailUnitId, setSelectedDetailUnitId] = useState(null);
+  const [offerModalUnit, setOfferModalUnit] = useState(null);
+  const [reserveModalUnit, setReserveModalUnit] = useState(null);
+  const [isDeletingInterestUnitId, setIsDeletingInterestUnitId] = useState(null);
 
   const { requestClose } = useModalDismiss({
     isOpen: Boolean(isOpen && leadId),
@@ -378,6 +390,22 @@ export const LeadDrawer = ({ isOpen, onClose, leadId, onLeadUpdated, onEditLead 
                 <span>Заметки менеджера</span>
                 <span className={`px-1.5 py-0.2 rounded-full text-[10px] font-extrabold ${activeTab === 'notes' ? 'bg-purple-100 text-purple-800' : 'bg-slate-200 text-slate-600'}`}>
                   {notesCount}
+                </span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setActiveTab('interests')}
+                className={`py-3 px-3 text-xs font-bold transition border-b-2 flex items-center gap-1.5 cursor-pointer ${
+                  activeTab === 'interests'
+                    ? 'border-purple-600 text-purple-700 bg-white shadow-2xs'
+                    : 'border-transparent text-slate-500 hover:text-slate-900'
+                }`}
+              >
+                <Heart className="h-3.5 w-3.5 text-purple-600 fill-purple-100" />
+                <span>Интересы</span>
+                <span className={`px-1.5 py-0.2 rounded-full text-[10px] font-extrabold ${activeTab === 'interests' ? 'bg-purple-100 text-purple-800' : 'bg-slate-200 text-slate-600'}`}>
+                  {lead?.interested_units_count ?? (lead?.interested_units || []).length}
                 </span>
               </button>
 
@@ -754,6 +782,178 @@ export const LeadDrawer = ({ isOpen, onClose, leadId, onLeadUpdated, onEditLead 
                   />
                 </div>
               )}
+
+              {/* TAB 5: BUYER INTERESTS (КВАРТИРЫ) */}
+              {activeTab === 'interests' && (
+                <div className="space-y-4">
+                  <div className="flex items-center justify-between bg-purple-50/70 border border-purple-200 p-4 rounded-2xl">
+                    <div className="flex items-center gap-3">
+                      <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-purple-600 text-white shadow-xs">
+                        <Heart className="h-5 w-5 fill-white" />
+                      </div>
+                      <div>
+                        <h4 className="text-xs font-extrabold text-purple-900">
+                          Подобранные квартиры ({lead?.interested_units?.length || 0})
+                        </h4>
+                        <p className="text-[11px] text-purple-700">
+                          Квартиры, заинтересовавшие клиента при подборе, с приоритетами и контактами
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+
+                  {(!lead?.interested_units || lead.interested_units.length === 0) ? (
+                    <div className="text-center py-10 bg-slate-50 border border-dashed border-slate-200 rounded-2xl space-y-2">
+                      <Heart className="h-9 w-9 text-purple-300 mx-auto" />
+                      <p className="text-xs font-bold text-slate-700">У клиента пока нет зафиксированных квартир</p>
+                      <p className="text-[11px] text-slate-500 max-w-sm mx-auto">
+                        Вы можете подобрать подходящие планировки в каталоге квартир и нажать «Интерес лида».
+                      </p>
+                    </div>
+                  ) : (
+                    <div className="space-y-3">
+                      {lead.interested_units.map((item) => {
+                        const u = item.unit;
+                        if (!u) return null;
+
+                        const priorityBadge =
+                          item.priority === 'HIGH'
+                            ? { label: 'Высокий интерес', bg: 'bg-rose-50 text-rose-700 border-rose-200' }
+                            : item.priority === 'LOW'
+                            ? { label: 'Низкий интерес', bg: 'bg-blue-50 text-blue-700 border-blue-200' }
+                            : { label: 'Средний интерес', bg: 'bg-amber-50 text-amber-700 border-amber-200' };
+
+                        const statusBadge =
+                          u.status === 'AVAILABLE'
+                            ? { label: 'Свободна', bg: 'bg-emerald-50 text-emerald-700 border-emerald-200' }
+                            : u.status === 'RESERVED'
+                            ? { label: 'В брони', bg: 'bg-amber-50 text-amber-700 border-amber-200' }
+                            : { label: u.status, bg: 'bg-slate-100 text-slate-600 border-slate-200' };
+
+                        const isDeleting = isDeletingInterestUnitId === u.id;
+
+                        const handleDeleteInterest = async () => {
+                          if (!window.confirm(`Удалить квартиру №${u.unit_number} из интересов клиента?`)) return;
+                          try {
+                            setIsDeletingInterestUnitId(u.id);
+                            await api.delete(`/leads/${leadId}/interested-units/${u.id}`);
+                            await fetchLeadDetails();
+                            showToast(`✓ Квартира №${u.unit_number} удалена из интересов`);
+                            if (onLeadUpdated) onLeadUpdated();
+                          } catch (err) {
+                            console.error('Error deleting interest:', err);
+                            alert(err.message || 'Ошибка удаления интереса');
+                          } finally {
+                            setIsDeletingInterestUnitId(null);
+                          }
+                        };
+
+                        return (
+                          <div
+                            key={item.id || u.id}
+                            className="rounded-2xl border border-slate-200 bg-white hover:border-purple-300 transition shadow-2xs overflow-hidden p-4 space-y-3"
+                          >
+                            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 pb-3 border-b border-slate-100">
+                              <div className="flex items-center gap-3">
+                                <div className="h-16 w-16 rounded-xl bg-slate-50 border border-slate-200 flex items-center justify-center overflow-hidden shrink-0">
+                                  {u.plan_image_url ? (
+                                    <img
+                                      src={u.plan_image_url}
+                                      alt={`Кв. ${u.unit_number}`}
+                                      className="h-full w-full object-contain p-1"
+                                    />
+                                  ) : (
+                                    <Home className="h-6 w-6 text-slate-300" />
+                                  )}
+                                </div>
+                                <div>
+                                  <div className="flex items-center gap-2">
+                                    <h5 className="text-sm font-black text-slate-900">
+                                      Кв. №{u.unit_number}
+                                    </h5>
+                                    <span className={`px-2 py-0.5 rounded-full font-bold border text-[10px] ${statusBadge.bg}`}>
+                                      {statusBadge.label}
+                                    </span>
+                                  </div>
+                                  <p className="text-xs text-slate-500 mt-0.5">
+                                    {u.building_name || 'Блок Б'}, {u.floor_number} этаж • {u.rooms}-комн. • {u.areaM2} м²
+                                  </p>
+                                </div>
+                              </div>
+
+                              <div className="text-right sm:self-center">
+                                <span className={`inline-flex items-center px-2.5 py-1 rounded-lg font-bold border text-xs ${priorityBadge.bg}`}>
+                                  {priorityBadge.label}
+                                </span>
+                                <div className="text-sm font-black text-blue-900 mt-1">
+                                  {u.totalPrice > 0 ? `${u.totalPrice.toLocaleString()} USD` : '—'}
+                                </div>
+                              </div>
+                            </div>
+
+                            {/* Comment & Next Contact */}
+                            <div className="flex flex-wrap items-center justify-between gap-2 text-xs text-slate-600 bg-slate-50 p-2.5 rounded-xl">
+                              <div className="flex items-center gap-1.5 flex-1 min-w-[200px]">
+                                <MessageSquare className="h-3.5 w-3.5 text-purple-600 shrink-0" />
+                                <span className="italic">{item.comment ? `«${item.comment}»` : 'Комментарий не указан'}</span>
+                              </div>
+                              {item.next_contact_date && (
+                                <div className="flex items-center gap-1 font-bold text-slate-700 shrink-0">
+                                  <Clock className="h-3.5 w-3.5 text-amber-600" />
+                                  <span>Контакт: {item.next_contact_date}</span>
+                                </div>
+                              )}
+                            </div>
+
+                            {/* Actions Bar */}
+                            <div className="flex items-center justify-between gap-2 pt-1">
+                              <button
+                                type="button"
+                                onClick={handleDeleteInterest}
+                                disabled={isDeleting}
+                                className="flex items-center gap-1 text-slate-400 hover:text-rose-600 text-xs font-semibold px-2 py-1.5 rounded-lg hover:bg-rose-50 transition cursor-pointer"
+                              >
+                                <Trash2 className="h-3.5 w-3.5" />
+                                <span>{isDeleting ? 'Удаление...' : 'Удалить'}</span>
+                              </button>
+
+                              <div className="flex items-center gap-2">
+                                <button
+                                  type="button"
+                                  onClick={() => setSelectedDetailUnitId(u.id)}
+                                  className="flex items-center gap-1 text-slate-700 hover:bg-slate-100 text-xs font-bold px-3 py-1.5 rounded-xl border border-slate-200 transition cursor-pointer"
+                                >
+                                  <span>Карточка</span>
+                                </button>
+
+                                <button
+                                  type="button"
+                                  onClick={() => setOfferModalUnit(u)}
+                                  className="flex items-center gap-1 bg-blue-50 text-blue-700 hover:bg-blue-100 text-xs font-bold px-3 py-1.5 rounded-xl border border-blue-200 transition shadow-2xs cursor-pointer"
+                                >
+                                  <FileText className="h-3.5 w-3.5" />
+                                  <span>КП (PDF)</span>
+                                </button>
+
+                                {u.status === 'AVAILABLE' && (
+                                  <button
+                                    type="button"
+                                    onClick={() => setReserveModalUnit(u)}
+                                    className="flex items-center gap-1 bg-emerald-600 text-white hover:bg-emerald-700 text-xs font-bold px-3.5 py-1.5 rounded-xl shadow-xs transition cursor-pointer"
+                                  >
+                                    <CheckCircle2 className="h-3.5 w-3.5" />
+                                    <span>В сделку / Бронь</span>
+                                  </button>
+                                )}
+                              </div>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
           </div>
         ) : null}
@@ -795,6 +995,40 @@ export const LeadDrawer = ({ isOpen, onClose, leadId, onLeadUpdated, onEditLead 
             onRecorded={() => {
               fetchLeadDetails();
               showToast('✓ Первый контакт зафиксирован');
+              if (onLeadUpdated) onLeadUpdated();
+            }}
+          />
+        )}
+
+        {/* Apartment Detail Modal */}
+        {selectedDetailUnitId && (
+          <ApartmentDetailModal
+            unitId={selectedDetailUnitId}
+            isOpen={Boolean(selectedDetailUnitId)}
+            onClose={() => setSelectedDetailUnitId(null)}
+            onUnitUpdated={fetchLeadDetails}
+          />
+        )}
+
+        {/* Commercial Offer Modal */}
+        {offerModalUnit && (
+          <CommercialOfferModal
+            unit={offerModalUnit}
+            onClose={() => setOfferModalUnit(null)}
+          />
+        )}
+
+        {/* Reserve Apartment Modal */}
+        {reserveModalUnit && (
+          <ReserveApartmentModal
+            isOpen={Boolean(reserveModalUnit)}
+            onClose={() => setReserveModalUnit(null)}
+            unit={reserveModalUnit}
+            preselectedLead={lead}
+            onReserved={() => {
+              fetchLeadDetails();
+              setReserveModalUnit(null);
+              showToast(`✓ Квартира №${reserveModalUnit.unit_number} успешно забронирована`);
               if (onLeadUpdated) onLeadUpdated();
             }}
           />

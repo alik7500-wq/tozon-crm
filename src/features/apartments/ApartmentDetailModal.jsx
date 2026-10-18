@@ -12,6 +12,7 @@ import { formatContractNumber } from '../../utils/formatters';
 import { EditDealModal } from '../deals/EditDealModal';
 import { hasPermission } from '../../utils/permissions';
 import { InteractiveApartmentView } from './components/InteractiveApartmentView';
+import { CommercialOfferModal } from './components/CommercialOfferModal';
 
 const LayoutEditorModal = React.lazy(() => import('../projects/components/LayoutEditorModal').then(m => ({ default: m.LayoutEditorModal })));
 
@@ -84,6 +85,7 @@ export const ApartmentDetailModal = ({
   const [isPrintModalOpen, setIsPrintModalOpen] = useState(false);
   const [isEditDealModalOpen, setIsEditDealModalOpen] = useState(false);
   const [editingLayoutId, setEditingLayoutId] = useState(null);
+  const [isOfferModalOpen, setIsOfferModalOpen] = useState(false);
 
   const isAdmin = user?.role === 'ADMIN' || hasPermission(user, 'deals.manage');
 
@@ -421,12 +423,26 @@ export const ApartmentDetailModal = ({
             </div>
           </div>
 
-          <button
-            onClick={requestClose}
-            className="p-1.5 text-slate-400 hover:bg-slate-100 hover:text-slate-700 rounded-xl transition cursor-pointer shrink-0"
-          >
-            <X className="h-5 w-5" />
-          </button>
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={() => setIsOfferModalOpen(true)}
+              className="flex items-center gap-1.5 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 px-3 py-1.5 text-xs font-bold text-white shadow-xs transition cursor-pointer"
+              title="Сформировать коммерческое предложение (PDF)"
+            >
+              <FileText className="h-3.5 w-3.5" />
+              <span className="hidden sm:inline">Сформировать предложение</span>
+              <span className="sm:hidden">КП PDF</span>
+            </button>
+
+            <button
+              onClick={requestClose}
+              className="p-1.5 text-slate-400 hover:bg-slate-100 hover:text-slate-700 rounded-xl transition cursor-pointer shrink-0"
+              aria-label="Закрыть карточку"
+            >
+              <X className="h-5 w-5" />
+            </button>
+          </div>
         </div>
 
         {isLoading ? (
@@ -446,6 +462,7 @@ export const ApartmentDetailModal = ({
               currency={projectCurrency}
               onReserve={() => setIsReserveModalOpen(true)}
               onCreateDeal={() => setIsDealWizardOpen(true)}
+              onGenerateOffer={() => setIsOfferModalOpen(true)}
               onOpenEditor={(layoutId) => setEditingLayoutId(layoutId)}
               userRole={user?.role}
             />
@@ -1588,6 +1605,15 @@ export const ApartmentDetailModal = ({
             onUpdated={() => fetchUnit()}
           />
         </React.Suspense>
+      )}
+
+      {/* Commercial Offer PDF Modal */}
+      {isOfferModalOpen && unit && (
+        <CommercialOfferModal
+          unit={unit}
+          layoutData={unit.layout_types}
+          onClose={() => setIsOfferModalOpen(false)}
+        />
       )}
     </>
   );

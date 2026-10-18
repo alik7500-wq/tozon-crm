@@ -27,7 +27,8 @@ import {
   Calendar,
   Check,
   Tag,
-  ArrowRight
+  ArrowRight,
+  FileText
 } from 'lucide-react';
 
 export const InteractiveApartmentView = ({
@@ -35,6 +36,7 @@ export const InteractiveApartmentView = ({
   currency = 'USD',
   onReserve,
   onCreateDeal,
+  onGenerateOffer,
   onOpenEditor,
   userRole = 'SALES_MANAGER'
 }) => {
@@ -109,11 +111,12 @@ export const InteractiveApartmentView = ({
   const activeRoom = rooms.find((r) => r.id === (hoveredRoomId || selectedRoomId)) || rooms[0];
 
   const furnishedPlanImg = layout?.furnished_plan_path || layout?.image_path;
+  const technicalPlanImg = layout?.technical_plan_path;
   const images = [
-    {url:furnishedPlanImg,title:lang === 'tg' ? 'Нақшаи манзил' : 'Планировка квартиры'},
-    {url:layout?.technical_plan_path,title:lang === 'tg' ? 'Нақшаи техникӣ' : 'Технический план'},
+    ...(furnishedPlanImg ? [{ url: furnishedPlanImg, title: lang === 'tg' ? '3D Нақшаи мебелдор' : '3D Меблированный план', type: '3D' }] : []),
+    ...(technicalPlanImg ? [{ url: technicalPlanImg, title: lang === 'tg' ? '2D Нақшаи техникӣ' : '2D Технический чертёж', type: '2D' }] : []),
     ...(layout?.gallery_images || [])
-  ].filter((item,i,all)=>item?.url && all.findIndex(x=>x.url===item.url)===i);
+  ].filter((item, i, all) => item?.url && all.findIndex(x => x.url === item.url) === i);
   const shownImage = images[imageIndex] || images[0];
 
   const getStatusBadge = (status) => {
@@ -227,6 +230,41 @@ export const InteractiveApartmentView = ({
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
           {/* Main Interactive Plan Image Canvas */}
           <div className="lg:col-span-7 flex flex-col rounded-2xl bg-white border border-slate-200 p-4 shadow-xs">
+            {/* Top Toolbar above plan canvas: 2D/3D switch & Fullscreen */}
+            <div className="flex flex-wrap items-center justify-between gap-2 mb-3 pb-2 border-b border-slate-100">
+              {images.length > 0 ? (
+                <div className="flex items-center gap-1.5 p-1 bg-slate-100 rounded-xl border border-slate-200">
+                  {images.map((img, i) => (
+                    <button
+                      key={img.url || i}
+                      type="button"
+                      onClick={() => setImageIndex(i)}
+                      className={`px-3 py-1.5 rounded-lg text-xs font-bold transition flex items-center gap-1.5 cursor-pointer ${
+                        i === imageIndex
+                          ? 'bg-white text-blue-900 shadow-xs border border-slate-200/80 ring-1 ring-blue-500/20'
+                          : 'text-slate-600 hover:text-slate-900'
+                      }`}
+                    >
+                      <span>{img.type === '3D' ? '🎨' : img.type === '2D' ? '📐' : '🖼️'}</span>
+                      <span>{img.title}</span>
+                    </button>
+                  ))}
+                </div>
+              ) : <div />}
+
+              {shownImage && (
+                <button
+                  type="button"
+                  onClick={() => setViewerOpen(true)}
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-xs font-bold text-slate-700 shadow-2xs transition cursor-pointer"
+                  title={lang === 'tg' ? 'Дар тамоми экран кушоед' : 'Открыть на весь экран'}
+                >
+                  <Maximize2 className="h-3.5 w-3.5 text-blue-600" />
+                  <span>{lang === 'tg' ? 'Дар тамоми экран' : 'На весь экран'}</span>
+                </button>
+              )}
+            </div>
+
             <div className="relative w-fit max-w-full mx-auto rounded-xl bg-white overflow-hidden border border-slate-200 select-none">
               {shownImage ? (
                 <img
@@ -534,6 +572,18 @@ export const InteractiveApartmentView = ({
         </div>
 
         <div className="flex items-center gap-3 flex-wrap">
+          {onGenerateOffer && (
+            <button
+              type="button"
+              onClick={onGenerateOffer}
+              className="rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 px-5 py-2.5 text-xs font-extrabold text-white shadow-md hover:shadow-lg transition cursor-pointer flex items-center gap-2"
+              title={lang === 'tg' ? 'Таҳияи пешниҳоди тиҷоратӣ' : 'Сформировать коммерческое предложение'}
+            >
+              <FileText className="h-4 w-4" />
+              <span>{lang === 'tg' ? 'Пешниҳоди тиҷоратӣ' : 'Сформировать предложение'}</span>
+            </button>
+          )}
+
           {unit.status === 'AVAILABLE' && (
             <>
               {onReserve && (

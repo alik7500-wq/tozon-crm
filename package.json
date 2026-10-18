@@ -8,6 +8,7 @@
     "build": "vite build",
     "lint": "oxlint",
     "preview": "vite preview",
+    "test:commercial-offer": "vitest run src/features/apartments/__tests__/CommercialOfferModal.test.jsx --environment jsdom",
     "test:contract-amendment": "vitest run src/features/deals/__tests__/EditDealModal.test.jsx --environment jsdom"
   },
   "dependencies": {

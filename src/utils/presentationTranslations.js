@@ -19,11 +19,21 @@ export const presentationDict = {
     // Action buttons
     btnReserve: 'Забронировать',
     btnCreateDeal: 'Оформить сделку',
+    btnGenerateOffer: 'Сформировать предложение',
     btnEditLayout: 'Редактировать планировку',
     btnBackToPlan: 'Вернуться к плану',
     btnSave: 'Сохранить',
     btnCancel: 'Отмена',
     btnClose: 'Закрыть',
+
+    // 2D and 3D Plans
+    plan3dLabel: '3D Меблированный план',
+    plan2dLabel: '2D Технический чертёж',
+    zoomIn: 'Увеличить (+)',
+    zoomOut: 'Уменьшить (-)',
+    resetZoom: 'Сбросить масштаб (100%)',
+    fullscreenOpen: 'Открыть на весь экран',
+    fullscreenClose: 'Закрыть (Esc)',
 
     // Unit main stats
     unitNumber: 'Квартира №',
@@ -127,11 +137,21 @@ export const presentationDict = {
     // Action buttons
     btnReserve: 'Брон кардан',
     btnCreateDeal: 'Расмияти шартнома',
+    btnGenerateOffer: 'Пешниҳоди тиҷоратӣ',
     btnEditLayout: 'Таҳрири нақша',
     btnBackToPlan: 'Бозгашт ба нақша',
     btnSave: 'Интихоб / Сохтан',
     btnCancel: 'Бекор кардан',
     btnClose: 'Пӯшидан',
+
+    // 2D and 3D Plans
+    plan3dLabel: '3D Нақшаи мебелдор',
+    plan2dLabel: '2D Нақшаи техникӣ',
+    zoomIn: 'Калон кардан (+)',
+    zoomOut: 'Хурд кардан (-)',
+    resetZoom: 'Барқарор кардани миқёс (100%)',
+    fullscreenOpen: 'Дар тамоми экран кушоед',
+    fullscreenClose: 'Пӯшидан (Esc)',
 
     // Unit main stats
     unitNumber: 'Хонаи №',

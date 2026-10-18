@@ -1,3 +1,4 @@
+// @vitest-environment jsdom
 import React from 'react';
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { render, screen, fireEvent, waitFor, cleanup } from '@testing-library/react';
@@ -8,12 +9,19 @@ import { api } from '../../../api/client';
 vi.mock('../../../api/client', () => ({
   api: {
     get: vi.fn(),
+    post: vi.fn(),
+    delete: vi.fn()
   },
 }));
 
 vi.mock('../ApartmentDetailModal', () => ({
   ApartmentDetailModal: ({ unitId, isOpen, onClose }) =>
     isOpen ? <div data-testid="apartment-detail-modal">Modal for unit {unitId}</div> : null,
+}));
+
+vi.mock('../ReserveApartmentModal', () => ({
+  ReserveApartmentModal: ({ unit, isOpen, onClose }) =>
+    isOpen ? <div data-testid="reserve-modal">Reserve modal for unit {unit?.unit_number}</div> : null,
 }));
 
 const mockProjects = [
@@ -41,7 +49,7 @@ const mockChessboard = [
                 price_per_m2_minor: 65000,
                 manual_total_price_minor: null,
                 status: 'AVAILABLE',
-                layout_types: { id: 2, name: 'Блок А — тип 1 — 58.98 м²' },
+                layout_types: { id: 2, name: 'Блок А — тип 1 — 58.98 м²', image_path: '/plan1.png' },
               },
               {
                 id: 102,
@@ -51,7 +59,7 @@ const mockChessboard = [
                 price_per_m2_minor: 68000,
                 manual_total_price_minor: null,
                 status: 'SOLD',
-                layout_types: { id: 3, name: 'Блок А — тип 2 — 79.26 м²' },
+                layout_types: { id: 3, name: 'Блок А — тип 2 — 79.26 м²', image_path: '/plan2.png' },
               },
             ],
           },
@@ -79,7 +87,7 @@ const mockChessboard = [
                 price_per_m2_minor: 65000,
                 manual_total_price_minor: null,
                 status: 'AVAILABLE',
-                layout_types: { id: 9, name: 'Блок Б — тип 1 — 69.9100000000000000 м²' },
+                layout_types: { id: 9, name: 'Блок Б — тип 1 — 69.91 м²', image_path: '/layouts/block_b/catalog/block_b_typical_type_01_69_91m2_3d.png' },
               },
               {
                 id: 202,
@@ -89,7 +97,7 @@ const mockChessboard = [
                 price_per_m2_minor: 65000,
                 manual_total_price_minor: null,
                 status: 'RESERVED',
-                layout_types: { id: 9, name: 'Блок Б — тип 1 — 69.9100000000000000 м²' },
+                layout_types: { id: 9, name: 'Блок Б — тип 1 — 69.91 м²', image_path: '/layouts/block_b/catalog/block_b_typical_type_01_69_91m2_3d.png' },
               },
             ],
           },
@@ -105,7 +113,7 @@ const mockChessboard = [
                 price_per_m2_minor: 70000,
                 manual_total_price_minor: null,
                 status: 'AVAILABLE',
-                layout_types: { id: 18, name: 'Блок Б — 10 этаж — тип 1' },
+                layout_types: { id: 18, name: 'Блок Б — 10 этаж — тип 1', image_path: '/layouts/block_b/catalog/block_b_penthouse_type_01_84_80m2_unit_80_3d.png' },
               },
             ],
           },
@@ -115,7 +123,7 @@ const mockChessboard = [
   },
 ];
 
-describe('ApartmentsPage', () => {
+describe('ApartmentsPage — Smart Selection, Comparison & Lead Interests', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     api.get.mockImplementation((url) => {
@@ -125,6 +133,15 @@ describe('ApartmentsPage', () => {
       if (url.includes('/chessboard')) {
         return Promise.resolve({ data: { chessboard: mockChessboard } });
       }
+      if (url === '/leads') {
+        return Promise.resolve({
+          data: {
+            leads: [
+              { id: 10, full_name: 'Акмал Каримов', phone: '+992927778899', status: 'IN_PROGRESS' }
+            ]
+          }
+        });
+      }
       return Promise.resolve({ data: {} });
     });
   });
@@ -133,7 +150,7 @@ describe('ApartmentsPage', () => {
     cleanup();
   });
 
-  it('renders all units and displays prices per m2 and total price', async () => {
+  it('renders smart selection header and shows only AVAILABLE units by default', async () => {
     render(
       <MemoryRouter>
         <ApartmentsPage />
@@ -141,15 +158,36 @@ describe('ApartmentsPage', () => {
     );
 
     await waitFor(() => {
-      expect(screen.getByText('Реестр квартир')).toBeDefined();
+      expect(screen.getByText('Умный подбор и каталог квартир')).toBeDefined();
       expect(screen.getByText(/Кв\. №9/)).toBeDefined();
     });
 
-    // Verify price columns are rendered
-    expect(screen.getAllByText(/650\s*USD/).length).toBeGreaterThan(0);
-    expect(screen.getAllByText(/45[,\s\u00a0]?442\s*USD/).length).toBeGreaterThan(0);
-    // Total found = 5
-    expect(screen.getByText('5')).toBeDefined();
+    // Units 1, 9, 80 are AVAILABLE, while 2 (SOLD) and 18 (RESERVED) are filtered out by default
+    expect(screen.getByText(/Кв\. №1\b/)).toBeDefined();
+    expect(screen.getByText(/Кв\. №9\b/)).toBeDefined();
+    expect(screen.getByText(/Кв\. №80\b/)).toBeDefined();
+    expect(screen.queryByText(/Кв\. №2\b/)).toBeNull();
+    expect(screen.queryByText(/Кв\. №18\b/)).toBeNull();
+  });
+
+  it('shows all units when status filter is set to "Все статусы"', async () => {
+    render(
+      <MemoryRouter>
+        <ApartmentsPage />
+      </MemoryRouter>
+    );
+
+    await waitFor(() => {
+      expect(screen.getByText(/Кв\. №9/)).toBeDefined();
+    });
+
+    const statusSelect = screen.getByDisplayValue('Свободные (AVAILABLE)');
+    fireEvent.change(statusSelect, { target: { value: '' } });
+
+    await waitFor(() => {
+      expect(screen.getByText(/Кв\. №2\b/)).toBeDefined(); // SOLD
+      expect(screen.getByText(/Кв\. №18\b/)).toBeDefined(); // RESERVED
+    });
   });
 
   it('filters units by building (e.g. Block B only)', async () => {
@@ -167,10 +205,9 @@ describe('ApartmentsPage', () => {
     const buildingSelect = screen.getByDisplayValue('Все корпуса (Блоки)');
     fireEvent.change(buildingSelect, { target: { value: 'Блок Б' } });
 
-    // Block B has units 9, 18, 80; unit 1 is in Block A and should disappear
+    // Block B has units 9, 80 (and 18 if all); unit 1 is in Block A and should disappear
     expect(screen.queryByText(/Кв\. №1\b/)).toBeNull();
     expect(screen.getByText(/Кв\. №9\b/)).toBeDefined();
-    expect(screen.getByText(/Кв\. №18\b/)).toBeDefined();
     expect(screen.getByText(/Кв\. №80\b/)).toBeDefined();
   });
 
@@ -195,7 +232,7 @@ describe('ApartmentsPage', () => {
     });
   });
 
-  it('filters units by status (e.g. AVAILABLE only)', async () => {
+  it('allows selecting up to 4 apartments for comparison and opens comparison modal', async () => {
     render(
       <MemoryRouter>
         <ApartmentsPage />
@@ -203,21 +240,33 @@ describe('ApartmentsPage', () => {
     );
 
     await waitFor(() => {
-      expect(screen.getByText(/Кв\. №18\b/)).toBeDefined(); // RESERVED
+      expect(screen.getByText(/Кв\. №9\b/)).toBeDefined();
     });
 
-    const statusSelect = screen.getByDisplayValue('Все статусы');
-    fireEvent.change(statusSelect, { target: { value: 'AVAILABLE' } });
+    // Checkboxes for units
+    const compareCheckboxes = screen.getAllByRole('checkbox');
+    expect(compareCheckboxes.length).toBeGreaterThanOrEqual(2);
 
-    // Unit 18 is RESERVED, Unit 2 is SOLD; both must not be visible
+    // Select first two units
+    fireEvent.click(compareCheckboxes[0]);
+    fireEvent.click(compareCheckboxes[1]);
+
+    // Bottom dock should appear
     await waitFor(() => {
-      expect(screen.queryByText(/Кв\. №18\b/)).toBeNull();
-      expect(screen.queryByText(/Кв\. №2\b/)).toBeNull();
-      expect(screen.getByText(/Кв\. №9\b/)).toBeDefined();
+      expect(screen.getByText(/Сравнение квартир \(2 из 4\)/)).toBeDefined();
+      expect(screen.getByText(/Сравнить \(2\) →/)).toBeDefined();
+    });
+
+    // Open comparison modal
+    const compareBtn = screen.getByText(/Сравнить \(2\) →/).closest('button');
+    fireEvent.click(compareBtn);
+
+    await waitFor(() => {
+      expect(screen.getByText('Различия подсвечены')).toBeDefined();
     });
   });
 
-  it('toggles advanced filters and filters by max budget', async () => {
+  it('opens SaveLeadInterestModal when "Интерес лида" is clicked', async () => {
     render(
       <MemoryRouter>
         <ApartmentsPage />
@@ -225,25 +274,23 @@ describe('ApartmentsPage', () => {
     );
 
     await waitFor(() => {
-      expect(screen.getByText(/Кв\. №80\b/)).toBeDefined();
+      expect(screen.getByText(/Кв\. №9\b/)).toBeDefined();
     });
 
-    // Open advanced filters
-    const paramsButton = screen.getByText('Параметры подбора');
-    fireEvent.click(paramsButton);
+    const interestBtns = screen.getAllByRole('button', { name: /Интерес лида/i });
+    expect(interestBtns.length).toBeGreaterThan(0);
 
-    const budgetInput = screen.getByPlaceholderText('до 50 000 USD');
-    // Set budget to 40 000 USD (Unit 1 is 58.98 * 650 = 38337 <= 40000, Unit 9 is 45442 > 40000)
-    fireEvent.change(budgetInput, { target: { value: '40000' } });
+    fireEvent.click(interestBtns[0]);
 
     await waitFor(() => {
-      expect(screen.getByText(/Кв\. №1\b/)).toBeDefined();
-      expect(screen.queryByText(/Кв\. №9\b/)).toBeNull();
-      expect(screen.queryByText(/Кв\. №80\b/)).toBeNull();
+      expect(screen.getByText('Зафиксировать интерес клиента')).toBeDefined();
+      expect(screen.getByText('Приоритет интереса')).toBeDefined();
+      expect(screen.getByText('Высокий (Топ)')).toBeDefined();
+      expect(screen.getByText('Дата следующего контакта')).toBeDefined();
     });
   });
 
-  it('resets all active filters when reset button is clicked', async () => {
+  it('toggles between Cards view and Table view', async () => {
     render(
       <MemoryRouter>
         <ApartmentsPage />
@@ -254,21 +301,21 @@ describe('ApartmentsPage', () => {
       expect(screen.getByText(/Кв\. №9\b/)).toBeDefined();
     });
 
-    const statusSelect = screen.getByDisplayValue('Все статусы');
-    fireEvent.change(statusSelect, { target: { value: 'SOLD' } });
+    const tableModeBtn = screen.getByTitle('Табличный реестр');
+    fireEvent.click(tableModeBtn);
 
+    // Table headers should now be visible
     await waitFor(() => {
-      expect(screen.getByText(/Кв\. №2\b/)).toBeDefined();
-      expect(screen.queryByText(/Кв\. №9\b/)).toBeNull();
+      expect(screen.getByText('Корпус / Секция')).toBeDefined();
+      expect(screen.getByText('Комнат')).toBeDefined();
+      expect(screen.getByText('Общая стоимость')).toBeDefined();
     });
 
-    const resetButton = screen.getByTitle('Сбросить все фильтры');
-    fireEvent.click(resetButton);
+    const cardsModeBtn = screen.getByTitle('Режим карточек с планировками');
+    fireEvent.click(cardsModeBtn);
 
-    // All units visible again
     await waitFor(() => {
-      expect(screen.getByText(/Кв\. №9\b/)).toBeDefined();
-      expect(screen.getByText(/Кв\. №2\b/)).toBeDefined();
+      expect(screen.queryByText('Корпус / Секция')).toBeNull();
     });
   });
 });

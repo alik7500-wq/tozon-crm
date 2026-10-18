@@ -1,128 +1,303 @@
-import React, {useEffect, useRef, useState} from 'react';
-import {useModalDismiss} from '../../../hooks/useModalDismiss';
-import {useI18n} from '../../../context/i18nContext';
-import {createPortal} from 'react-dom';
+import React, { useEffect, useRef, useState, useCallback } from 'react';
+import { createPortal } from 'react-dom';
+import { useModalDismiss } from '../../../hooks/useModalDismiss';
+import { useI18n } from '../../../context/i18nContext';
+import {
+  ZoomIn,
+  ZoomOut,
+  RotateCcw,
+  ChevronLeft,
+  ChevronRight,
+  X,
+  Layers,
+  Sparkles,
+  Maximize2
+} from 'lucide-react';
 
-const INITIAL_VIEW = {scale: 1, x: 0, y: 0};
-const limit = (value, min, max) => Math.max(min, Math.min(max, value));
+export function ApartmentImageViewer({ images = [], index = 0, onNavigate, onClose }) {
+  if (!images || images.length === 0) return null;
 
-export function ApartmentImageViewer({images = [], index = 0, onNavigate, onClose}) {
-  const {lang} = useI18n();
+  const { lang, t } = useI18n();
   const ref = useRef(null);
-  const viewportRef = useRef(null);
-  const imageRef = useRef(null);
-  const dragRef = useRef(null);
-  const [view, setView] = useState(INITIAL_VIEW);
-  const [dragging, setDragging] = useState(false);
-  const currentImage = images[index];
-  const tg = lang === 'tg';
-  const hasImages = images.length > 0;
-  const constrain = (x, y, scale) => {
-    const rect = viewportRef.current?.getBoundingClientRect();
-    if (!rect) return {scale, x: 0, y: 0};
-    const image = imageRef.current;
-    const fit = image?.naturalWidth && image?.naturalHeight ? Math.min(rect.width / image.naturalWidth, rect.height / image.naturalHeight) : null;
-    const width = fit == null ? rect.width : image.naturalWidth * fit;
-    const height = fit == null ? rect.height : image.naturalHeight * fit;
-    const maxX = Math.max(0, (width * scale - rect.width) / 2);
-    const maxY = Math.max(0, (height * scale - rect.height) / 2);
-    return {scale, x: limit(x, -maxX, maxX), y: limit(y, -maxY, maxY)};
-  };
-  useModalDismiss({isOpen: hasImages, onClose});
+  const isTJ = lang === 'tg';
+
+  // Zoom and pan state
+  const [scale, setScale] = useState(1);
+  const [position, setPosition] = useState({ x: 0, y: 0 });
+  const [isDragging, setIsDragging] = useState(false);
+  const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
+
+  useModalDismiss({ isOpen: true, onClose });
 
   useEffect(() => {
     const dialog = ref.current;
-    if (!dialog) return;
-    dialog.showModal();
-    return () => dialog.close();
-  }, [hasImages]);
-
-  useEffect(() => {
-    setView(INITIAL_VIEW);
-    dragRef.current = null;
-    setDragging(false);
-  }, [index, currentImage?.url]);
-
-  useEffect(() => {
-    const viewport = viewportRef.current;
-    if (!viewport) return;
-    const wheel = event => {
-      event.preventDefault();
-      event.stopPropagation();
-      if (!event.deltaY) return;
-      const delta = event.deltaY * (event.deltaMode === 1 ? 16 : event.deltaMode === 2 ? viewport.clientHeight : 1);
-      const rect = viewport.getBoundingClientRect();
-      const pointerX = event.clientX - rect.left - rect.width / 2;
-      const pointerY = event.clientY - rect.top - rect.height / 2;
-      setView(previous => {
-        const scale = limit(previous.scale * Math.exp(-delta * 0.002), 1, 6);
-        if (scale === 1) return INITIAL_VIEW;
-        const ratio = scale / previous.scale;
-        return constrain(pointerX - (pointerX - previous.x) * ratio, pointerY - (pointerY - previous.y) * ratio, scale);
-      });
+    if (dialog && !dialog.open) {
+      dialog.showModal();
+    }
+    return () => {
+      if (dialog && dialog.open) {
+        dialog.close();
+      }
     };
-    viewport.addEventListener('wheel', wheel, {passive: false});
-    return () => viewport.removeEventListener('wheel', wheel);
-  }, [hasImages]);
+  }, []);
 
-  if (!hasImages) return null;
-  const reset = () => { setView(INITIAL_VIEW); dragRef.current = null; setDragging(false); };
-  const move = n => { reset(); onNavigate((n + images.length) % images.length); };
-  const zoom = factor => setView(previous => {
-    const scale = limit(previous.scale * factor, 1, 6);
-    return scale === 1 ? INITIAL_VIEW : constrain(previous.x * scale / previous.scale, previous.y * scale / previous.scale, scale);
-  });
-  const finishDrag = () => { dragRef.current = null; setDragging(false); };
+  // Reset zoom when navigating to another image
+  useEffect(() => {
+    setScale(1);
+    setPosition({ x: 0, y: 0 });
+  }, [index]);
+
+  const move = useCallback((n) => {
+    onNavigate((n + images.length) % images.length);
+  }, [images.length, onNavigate]);
+
+  const handleZoomIn = () => {
+    setScale((prev) => Math.min(prev + 0.25, 4));
+  };
+
+  const handleZoomOut = () => {
+    setScale((prev) => {
+      const next = Math.max(prev - 0.25, 1);
+      if (next === 1) setPosition({ x: 0, y: 0 });
+      return next;
+    });
+  };
+
+  const handleResetZoom = () => {
+    setScale(1);
+    setPosition({ x: 0, y: 0 });
+  };
+
+  const handleDoubleClick = () => {
+    if (scale > 1) {
+      handleResetZoom();
+    } else {
+      setScale(2);
+    }
+  };
+
+  const handleMouseDown = (e) => {
+    if (scale <= 1) return;
+    setIsDragging(true);
+    setDragStart({ x: e.clientX - position.x, y: e.clientY - position.y });
+  };
+
+  const handleMouseMove = (e) => {
+    if (!isDragging || scale <= 1) return;
+    setPosition({
+      x: e.clientX - dragStart.x,
+      y: e.clientY - dragStart.y
+    });
+  };
+
+  const handleMouseUp = () => {
+    setIsDragging(false);
+  };
+
+  const handleWheel = (e) => {
+    if (e.ctrlKey || e.metaKey) {
+      e.preventDefault();
+      if (e.deltaY < 0) {
+        handleZoomIn();
+      } else {
+        handleZoomOut();
+      }
+    }
+  };
+
+  const handleKeyDown = (e) => {
+    e.stopPropagation();
+    if (e.key === 'ArrowRight') move(index + 1);
+    if (e.key === 'ArrowLeft') move(index - 1);
+    if (e.key === '+' || e.key === '=') handleZoomIn();
+    if (e.key === '-') handleZoomOut();
+    if (e.key === '0') handleResetZoom();
+  };
+
+  const currentImage = images[index] || images[0];
 
   return createPortal(
-    <dialog ref={ref} aria-label={tg ? 'Тасвирҳои манзил' : 'Изображения квартиры'}
-      onCancel={e => {e.preventDefault(); onClose();}}
-      onKeyDown={e => {
-        e.stopPropagation();
-        if (e.key === 'ArrowRight') move(index + 1);
-        if (e.key === 'ArrowLeft') move(index - 1);
-        if (e.key === '+' || e.key === '=') {e.preventDefault(); zoom(1.2);}
-        if (e.key === '-') {e.preventDefault(); zoom(1 / 1.2);}
-        if (e.key === '0') reset();
+    <dialog
+      ref={ref}
+      aria-label={isTJ ? 'Тасвирҳои манзил' : 'Изображения квартиры'}
+      onCancel={(e) => {
+        e.preventDefault();
+        onClose();
       }}
-      className="m-0 w-screen h-dvh max-w-none max-h-none border-0 bg-white p-4 backdrop:bg-slate-700/50 overflow-hidden">
-      <div className="flex h-full flex-col gap-3">
-        <div className="flex flex-wrap gap-3 items-center justify-between shrink-0">
-          <span>{currentImage?.title} · {index + 1} / {images.length}</span>
-          <div className="flex gap-2 items-center">
-            <button type="button" aria-label={tg ? 'Хурд кардан' : 'Уменьшить'} onClick={() => zoom(1 / 1.2)} className="rounded-xl border px-3 py-2">−</button>
-            <span className="min-w-14 text-center tabular-nums" aria-live="polite">{Math.round(view.scale * 100)}%</span>
-            <button type="button" aria-label={tg ? 'Калон кардан' : 'Увеличить'} onClick={() => zoom(1.2)} className="rounded-xl border px-3 py-2">+</button>
-            <button type="button" onClick={reset} className="rounded-xl border px-3 py-2">{tg ? 'Барқарор кардан' : 'Сбросить'}</button>
-            <button autoFocus type="button" onClick={onClose} className="rounded-xl border px-4 py-2" aria-label={tg ? 'Пӯшидани тасвир' : 'Закрыть изображение'}>{tg ? 'Пӯшидан ×' : 'Закрыть ×'}</button>
+      onKeyDown={handleKeyDown}
+      className="m-0 w-screen h-dvh max-w-none max-h-none border-0 bg-slate-950/95 backdrop-blur-md p-0 text-white select-none overflow-hidden"
+    >
+      <div className="flex h-full w-full flex-col">
+        {/* Top Control Bar */}
+        <div className="flex items-center justify-between px-4 py-3 bg-slate-900/80 border-b border-slate-800/80 z-20 shrink-0">
+          {/* Left: Title & Index */}
+          <div className="flex items-center gap-3">
+            <span className="text-sm font-bold text-white tracking-wide">
+              {currentImage?.title || (isTJ ? 'Нақшаи манзил' : 'Планировка квартиры')}
+            </span>
+            <span className="rounded-full bg-slate-800 px-2.5 py-0.5 text-xs font-semibold text-slate-300 border border-slate-700">
+              {index + 1} / {images.length}
+            </span>
+          </div>
+
+          {/* Center: Image Toggle Pills */}
+          {images.length > 1 && (
+            <div className="hidden sm:flex items-center gap-1.5 p-1 bg-slate-800/90 rounded-xl border border-slate-700">
+              {images.map((img, i) => (
+                <button
+                  key={img.url || i}
+                  type="button"
+                  onClick={() => onNavigate(i)}
+                  className={`px-3 py-1 rounded-lg text-xs font-bold transition flex items-center gap-1.5 cursor-pointer ${
+                    i === index
+                      ? 'bg-blue-600 text-white shadow-xs'
+                      : 'text-slate-300 hover:text-white hover:bg-slate-700'
+                  }`}
+                >
+                  <span>{img.type === '3D' ? '🎨' : img.type === '2D' ? '📐' : '🖼️'}</span>
+                  <span>{img.type ? `${img.type} ${isTJ ? 'Нақша' : 'План'}` : (img.title || `#${i + 1}`)}</span>
+                </button>
+              ))}
+            </div>
+          )}
+
+          {/* Right: Zoom & Close Controls */}
+          <div className="flex items-center gap-2">
+            <div className="flex items-center bg-slate-800/90 rounded-xl border border-slate-700 p-0.5 text-xs">
+              <button
+                type="button"
+                onClick={handleZoomOut}
+                disabled={scale <= 1}
+                title={t('zoomOut') || 'Уменьшить (-)'}
+                className="p-1.5 rounded-lg text-slate-300 hover:text-white hover:bg-slate-700 disabled:opacity-30 disabled:pointer-events-none transition cursor-pointer"
+              >
+                <ZoomOut className="h-4 w-4" />
+              </button>
+              <button
+                type="button"
+                onClick={handleResetZoom}
+                title={t('resetZoom') || 'Сбросить (100%)'}
+                className="px-2 py-1 font-mono font-bold text-slate-200 hover:text-white transition cursor-pointer"
+              >
+                {Math.round(scale * 100)}%
+              </button>
+              <button
+                type="button"
+                onClick={handleZoomIn}
+                disabled={scale >= 4}
+                title={t('zoomIn') || 'Увеличить (+)'}
+                className="p-1.5 rounded-lg text-slate-300 hover:text-white hover:bg-slate-700 disabled:opacity-30 disabled:pointer-events-none transition cursor-pointer"
+              >
+                <ZoomIn className="h-4 w-4" />
+              </button>
+              {scale !== 1 && (
+                <button
+                  type="button"
+                  onClick={handleResetZoom}
+                  title="Сбросить"
+                  className="p-1.5 border-l border-slate-700 text-amber-400 hover:text-amber-300 hover:bg-slate-700 transition cursor-pointer"
+                >
+                  <RotateCcw className="h-3.5 w-3.5" />
+                </button>
+              )}
+            </div>
+
+            <button
+              autoFocus
+              type="button"
+              onClick={onClose}
+              className="flex items-center gap-1.5 rounded-xl bg-slate-800 hover:bg-rose-600 px-3 py-1.5 text-xs font-bold text-white transition border border-slate-700 hover:border-rose-500 cursor-pointer shadow-xs"
+              aria-label={isTJ ? 'Пӯшидани тасвир' : 'Закрыть изображение'}
+            >
+              <X className="h-4 w-4" />
+              <span className="hidden sm:inline">{isTJ ? 'Пӯшидан' : 'Закрыть'}</span>
+            </button>
           </div>
         </div>
-        <div ref={viewportRef} data-testid="apartment-image-viewport"
-          className="min-h-0 flex-1 w-full overflow-hidden touch-none select-none"
-          style={{cursor: view.scale > 1 ? dragging ? 'grabbing' : 'grab' : 'zoom-in'}}
-          onPointerDown={e => {
-            if (view.scale <= 1 || e.button !== 0) return;
-            e.preventDefault();
-            dragRef.current = {pointerId: e.pointerId, clientX: e.clientX, clientY: e.clientY, x: view.x, y: view.y};
-            e.currentTarget.setPointerCapture?.(e.pointerId);
-            setDragging(true);
-          }}
-          onPointerMove={e => {
-            const drag = dragRef.current;
-            if (!drag || drag.pointerId !== e.pointerId) return;
-            setView(previous => constrain(drag.x + e.clientX - drag.clientX, drag.y + e.clientY - drag.clientY, previous.scale));
-          }}
-          onPointerUp={finishDrag} onPointerCancel={finishDrag} onLostPointerCapture={finishDrag}>
-          <img ref={imageRef} src={currentImage?.url} alt={currentImage?.title || (tg ? 'Манзил' : 'Квартира')} draggable={false}
-            className="h-full w-full object-contain select-none"
-            style={{transform: `translate(${view.x}px, ${view.y}px) scale(${view.scale})`, transformOrigin: 'center', willChange: 'transform'}} />
+
+        {/* Main Canvas Area */}
+        <div
+          className={`relative flex-1 w-full overflow-hidden flex items-center justify-center p-4 ${
+            scale > 1 ? (isDragging ? 'cursor-grabbing' : 'cursor-grab') : 'cursor-zoom-in'
+          }`}
+          onMouseDown={handleMouseDown}
+          onMouseMove={handleMouseMove}
+          onMouseUp={handleMouseUp}
+          onMouseLeave={handleMouseUp}
+          onWheel={handleWheel}
+          onDoubleClick={handleDoubleClick}
+        >
+          <img
+            src={currentImage?.url}
+            alt={currentImage?.title || 'Квартира'}
+            style={{
+              transform: `translate(${position.x}px, ${position.y}px) scale(${scale})`,
+              transition: isDragging ? 'none' : 'transform 0.15s ease-out',
+            }}
+            className="max-h-full max-w-full object-contain pointer-events-none transition-transform"
+            draggable={false}
+          />
+
+          {/* Left Arrow Button */}
+          {images.length > 1 && (
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                move(index - 1);
+              }}
+              className="absolute left-4 top-1/2 -translate-y-1/2 flex h-12 w-12 items-center justify-center rounded-2xl bg-slate-900/80 hover:bg-blue-600 border border-slate-700 text-white shadow-xl transition cursor-pointer z-10"
+              title={isTJ ? 'Пешина (←)' : 'Предыдущее (←)'}
+            >
+              <ChevronLeft className="h-6 w-6" />
+            </button>
+          )}
+
+          {/* Right Arrow Button */}
+          {images.length > 1 && (
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                move(index + 1);
+              }}
+              className="absolute right-4 top-1/2 -translate-y-1/2 flex h-12 w-12 items-center justify-center rounded-2xl bg-slate-900/80 hover:bg-blue-600 border border-slate-700 text-white shadow-xl transition cursor-pointer z-10"
+              title={isTJ ? 'Баъдӣ (→)' : 'Следующее (→)'}
+            >
+              <ChevronRight className="h-6 w-6" />
+            </button>
+          )}
         </div>
-        <p className="shrink-0 text-center text-xs text-slate-500">{tg ? 'Чархи муш — тағйири андоза. Тасвири калоншударо бо муш кӯчонед.' : 'Колёсико мыши — масштаб. Увеличенную картинку можно перемещать мышью.'}</p>
-        {images.length > 1 && <div className="flex justify-center gap-4 shrink-0">
-          <button type="button" onClick={() => move(index - 1)} className="border rounded-xl px-4 py-2">{tg ? '← Пешина' : '← Предыдущее'}</button>
-          <button type="button" onClick={() => move(index + 1)} className="border rounded-xl px-4 py-2">{tg ? 'Баъдӣ →' : 'Следующее →'}</button>
-        </div>}
+
+        {/* Bottom Thumbnail Strip */}
+        {images.length > 1 && (
+          <div className="flex items-center justify-center gap-2 p-3 bg-slate-900/80 border-t border-slate-800/80 overflow-x-auto shrink-0 z-20">
+            {images.map((img, i) => (
+              <button
+                key={img.url || i}
+                type="button"
+                onClick={() => onNavigate(i)}
+                className={`relative shrink-0 rounded-xl overflow-hidden border-2 p-0.5 transition cursor-pointer ${
+                  i === index
+                    ? 'border-blue-500 ring-2 ring-blue-400/40 scale-105'
+                    : 'border-slate-700 opacity-60 hover:opacity-100 hover:border-slate-500'
+                }`}
+                aria-label={img.title || `Изображение ${i + 1}`}
+              >
+                <img
+                  src={img.url}
+                  alt={img.title || ''}
+                  className="h-14 w-20 object-contain bg-white rounded-lg"
+                />
+                <span className="absolute bottom-1 right-1 px-1 rounded bg-slate-950/80 text-[9px] font-bold text-white">
+                  {img.type || `#${i + 1}`}
+                </span>
+              </button>
+            ))}
+          </div>
+        )}
       </div>
-    </dialog>, document.body
+    </dialog>,
+    document.body
   );
 }

@@ -25,14 +25,22 @@ export const ReserveApartmentModal = ({
   isOpen,
   onClose,
   unit,
+  preselectedLead = null,
   currency = 'USD',
   onReserved
 }) => {
   const [activeClientTab, setActiveClientTab] = useState('existing'); // 'existing' or 'new'
   const [leads, setLeads] = useState([]);
   const [searchLead, setSearchLead] = useState('');
-  const [selectedLead, setSelectedLead] = useState(null);
+  const [selectedLead, setSelectedLead] = useState(preselectedLead || null);
   const [isLoadingLeads, setIsLoadingLeads] = useState(false);
+
+  useEffect(() => {
+    if (isOpen && preselectedLead) {
+      setSelectedLead(preselectedLead);
+      setActiveClientTab('existing');
+    }
+  }, [isOpen, preselectedLead]);
 
   // New Client Form
   const [newClientName, setNewClientName] = useState('');
