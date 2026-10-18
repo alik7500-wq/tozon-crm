@@ -115,6 +115,10 @@ export const CommercialOfferModal = ({
   }, [projectId]);
   const buildingId = building?.id || activeUnit?.building_id;
   const matchingBuilding = offerBuildings.find(b => buildingId ? String(b.id) === String(buildingId) : b.name === activeUnit?.building_name);
+  const buildingName = building?.name || activeUnit?.building_name || matchingBuilding?.name
+    || initialUnit?.floors?.sections?.buildings?.name || initialUnit?.building_name || '—';
+  const offerBuildingCode = /[АA]$/u.test(buildingName) ? 'A'
+    : /[БB]$/u.test(buildingName) ? 'B' : String(buildingId || 'NA');
   const totalFloors = Math.max(0, ...(matchingBuilding && !matchingBuilding.archived_at ? matchingBuilding.sections || [] : [])
     .filter(section => !section.archived_at).flatMap(section => (section.floors || []).filter(f => !f.archived_at).map(f => Number(f.floor_number) || 0)));
 
@@ -129,7 +133,7 @@ export const CommercialOfferModal = ({
     if (layout?.living_area && layout?.kitchen_area) {
       const living = parseFloat(layout.living_area) || 0;
       const kitchen = parseFloat(layout.kitchen_area) || 0;
-      if (layout?.id === 17 || activeUnit?.unit_number === '1') {
+      if (layout?.id === 17) {
         return [
           { id: 1, room_number: 1, name_ru: 'Гостиная', name_tg: 'Меҳмонхона', area: 22.0 },
           { id: 2, room_number: 2, name_ru: 'Кухня', name_tg: 'Ошхона', area: 15.96 },
@@ -236,6 +240,7 @@ export const CommercialOfferModal = ({
   }, [rooms]);
 
   const externalAreaDiff = Math.max(0, Number((areaM2 - roomSumArea).toFixed(2)));
+  const isBlockA = /Блок\s+[АA]$/u.test(buildingName);
 
   // Formatted date of generation
   const todayFormatted = useMemo(() => {
@@ -249,11 +254,11 @@ export const CommercialOfferModal = ({
   // Approved reservation validity from CRM settings (default: 3 days)
   const reservationValidityDays = companySettings?.reservation_days ?? 3;
 
-  const offerNumber = `КП-25601-B-${activeUnit?.unit_number || '1'}`;
+  const offerNumber = `КП-25601-${offerBuildingCode}-${activeUnit?.unit_number || '—'}`;
 
   // 2D and 3D images
-  const plan3dUrl = layout?.furnished_plan_path || layout?.image_path || '/layouts/block_b/catalog/block_b_typical_type_09_54_58m2_3d.png';
-  const plan2dUrl = layout?.technical_plan_path || '/layouts/block_b/catalog/block_b_typical_type_09_54_58m2_2d.png';
+  const plan3dUrl = layout?.furnished_plan_path || layout?.image_path || null;
+  const plan2dUrl = layout?.technical_plan_path || null;
   const currentPlanImage = selectedPlanType === '2D' ? plan2dUrl : plan3dUrl;
 
   // Project and company contacts from DB settings
@@ -269,8 +274,8 @@ export const CommercialOfferModal = ({
 
   const handleShare = async () => {
     const shareText = isTJ
-      ? `Пешниҳоди тиҷоратӣ: ЖК «TOZON PLAZA», Блок Б, Хонаи №${activeUnit?.unit_number} (${activeUnit?.rooms}-ҳуҷрагӣ, ${areaM2.toFixed(2)} м²). Нарх: $${totalPrice.toLocaleString('en-US')} USD ($${pricePerM2.toLocaleString('en-US')}/м²). Тел: ${companyPhone}`
-      : `Коммерческое предложение: ЖК «TOZON PLAZA», Блок Б, Квартира №${activeUnit?.unit_number} (${activeUnit?.rooms}-комн., ${areaM2.toFixed(2)} м²). Стоимость: $${totalPrice.toLocaleString('en-US')} USD ($${pricePerM2.toLocaleString('en-US')}/м²). Тел: ${companyPhone}`;
+      ? `Пешниҳоди тиҷоратӣ: ЖК «TOZON PLAZA», ${buildingName}, Хонаи №${activeUnit?.unit_number} (${activeUnit?.rooms}-ҳуҷрагӣ, ${areaM2.toFixed(2)} м²). Нарх: $${totalPrice.toLocaleString('en-US')} USD ($${pricePerM2.toLocaleString('en-US')}/м²). Тел: ${companyPhone}`
+      : `Коммерческое предложение: ЖК «TOZON PLAZA», ${buildingName}, Квартира №${activeUnit?.unit_number} (${activeUnit?.rooms}-комн., ${areaM2.toFixed(2)} м²). Стоимость: $${totalPrice.toLocaleString('en-US')} USD ($${pricePerM2.toLocaleString('en-US')}/м²). Тел: ${companyPhone}`;
 
     if (navigator.share) {
       try {
@@ -541,7 +546,7 @@ export const CommercialOfferModal = ({
 
                 <div className="bg-white p-2 rounded-lg border border-slate-200 shadow-2xs">
                   <span className="text-[9px] font-bold text-slate-400 block uppercase">{isTJ ? 'Блок / Корпус' : 'Блок'}</span>
-                  <span className="text-sm font-black text-slate-900">Блок Б</span>
+                  <span className="text-sm font-black text-slate-900">{buildingName}</span>
                 </div>
 
                 <div className="bg-white p-2 rounded-lg border border-slate-200 shadow-2xs">
@@ -582,16 +587,18 @@ export const CommercialOfferModal = ({
                   </span>
                 </span>
                 <span className="text-[10px] font-semibold text-slate-500 font-mono">
-                  {layout?.code || 'TOZON-PLAZA-BLOCK-B'}
+                  {layout?.code || '—'}
                 </span>
               </div>
 
               <div className="w-full h-[220px] sm:h-[240px] flex items-center justify-center overflow-hidden bg-white">
-                <img
+                {currentPlanImage ? <img
                   src={currentPlanImage}
                   alt="Планировка квартиры"
                   className="max-h-full max-w-full object-contain"
-                />
+                /> : <p className="text-sm text-slate-500 text-center p-4" role="status">
+                  {isTJ ? 'Нақшаи ин манзил ҳоло омода нест' : 'Планировка этой квартиры пока не подготовлена'}
+                </p>}
               </div>
             </div>
 
@@ -604,8 +611,8 @@ export const CommercialOfferModal = ({
                 {rooms.length > 0 && externalAreaDiff > 0 && (
                   <span className="text-[9px] font-bold text-slate-500">
                     {isTJ
-                      ? `Майдони ҳуҷраҳо: ${roomSumArea.toFixed(2)} м² + Айвон/қисми берунӣ: ${externalAreaDiff.toFixed(2)} м² = Ҳамагӣ: ${areaM2.toFixed(2)} м²`
-                      : `Площадь комнат: ${roomSumArea.toFixed(2)} м² + Балкон/лоджия: ${externalAreaDiff.toFixed(2)} м² = Всего: ${areaM2.toFixed(2)} м²`}
+                      ? `Майдони ҳуҷраҳо: ${roomSumArea.toFixed(2)} м² + ${isBlockA ? 'Майдони боқимонда' : 'Айвон/қисми берунӣ'}: ${externalAreaDiff.toFixed(2)} м² = Ҳамагӣ: ${areaM2.toFixed(2)} м²`
+                      : `Площадь комнат: ${roomSumArea.toFixed(2)} м² + ${isBlockA ? 'Прочие площади' : 'Балкон/лоджия'}: ${externalAreaDiff.toFixed(2)} м² = Всего: ${areaM2.toFixed(2)} м²`}
                   </span>
                 )}
               </div>
@@ -636,7 +643,7 @@ export const CommercialOfferModal = ({
                           ★
                         </span>
                         <span className="font-bold text-amber-900 text-[10px] truncate">
-                          {isTJ ? 'Айвон / Балкон' : 'Балкон / летняя зона'}
+                          {isBlockA ? (isTJ ? 'Майдони боқимонда' : 'Прочие площади') : (isTJ ? 'Айвон / Балкон' : 'Балкон / летняя зона')}
                         </span>
                       </div>
                       <span className="font-extrabold text-amber-900 text-[10px] ml-1 shrink-0">
