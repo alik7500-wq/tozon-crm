@@ -135,7 +135,7 @@ export const ApartmentsPage = () => {
               areaM2,
               pricePerM2,
               totalPrice,
-              plan_image_url: u.layout_types?.image_path || null,
+              plan_image_url: u.layout_types?.furnished_plan_path || u.layout_types?.image_path || u.layout_types?.technical_plan_path || null,
               layout_clean_name: u.layout_types?.name ? trimDecimalZeros(u.layout_types.name) : null,
             };
           })

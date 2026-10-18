@@ -288,3 +288,49 @@ describe('CommercialOfferModal Component', () => {
    expect(await screen.findByText('2 аз 10')).toBeTruthy();
    expect(screen.getByText(/10-ошёна/)).toBeTruthy();
  });
+
+const blockAUnit = {
+  ...mockUnit1,
+  id: 167,
+  building_id: 4,
+  building_name: 'Блок А',
+  area_m2_x100: 5674,
+  layout_types: {
+    id: 8, code: 'PDF20251016-A-7', living_area: 23.9, kitchen_area: 21.5,
+    technical_plan_path: null, furnished_plan_path: null, image_path: null,
+  },
+};
+
+describe('Block A catalog preparation', () => {
+  it.each(['2D', '3D'])('does not substitute a Block B plan when Block A lacks %s', async (initialPlanType) => {
+    render(<CommercialOfferModal unit={blockAUnit} onClose={vi.fn()} initialPlanType={initialPlanType} />);
+    expect((await screen.findAllByText('КП-25601-A-1')).length).toBeGreaterThan(0);
+    expect(screen.getByText('Блок А')).toBeTruthy();
+    expect(screen.queryByText('Блок Б')).toBeNull();
+    expect(screen.queryByAltText('Планировка квартиры')).toBeNull();
+    expect(screen.getByText('Планировка этой квартиры пока не подготовлена')).toBeTruthy();
+    expect(screen.queryByText('22.00 м²')).toBeNull();
+    expect(screen.getByText('23.90 м²')).toBeTruthy();
+    expect(screen.getByText('Прочие площади')).toBeTruthy();
+    expect(screen.queryByText('Балкон / летняя зона')).toBeNull();
+  });
+
+  it('shares the actual Block A instead of the hardcoded Block B', async () => {
+    navigator.share = vi.fn().mockResolvedValue(true);
+    render(<CommercialOfferModal unit={blockAUnit} onClose={vi.fn()} />);
+    await screen.findAllByText('КП-25601-A-1');
+    fireEvent.click(screen.getByRole('button', { name: /Поделиться/ }));
+    expect(navigator.share).toHaveBeenCalledWith(expect.objectContaining({text:expect.stringContaining('Блок А')}));
+    expect(navigator.share.mock.calls[0][0].text).not.toContain('Блок Б');
+  });
+
+  it('uses the unit area 81.18 without adopting stale layout area 81.20', async () => {
+    const unit = {...blockAUnit,id:166,unit_number:'2',rooms:2,area_m2_x100:8118,
+      layout_types:{...blockAUnit.layout_types,id:7,code:'PDF20251016-A-6',area_m2_x100:8120}};
+    render(<CommercialOfferModal unit={unit} onClose={vi.fn()} />);
+    await screen.findAllByText('КП-25601-A-2');
+    expect(screen.getAllByText(/81\.18/).length).toBeGreaterThan(0);
+    expect(screen.queryByText(/81\.20/)).toBeNull();
+    expect(screen.getAllByText('$56,826 USD').length).toBeGreaterThan(0);
+  });
+});

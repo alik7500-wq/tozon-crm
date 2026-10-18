@@ -1,0 +1,402 @@
+{
+  "captured_at": "2026-10-18T19:16:12.061999+00:00",
+  "block_a": {
+    "SOLD": 11,
+    "AVAILABLE": 47,
+    "RESERVED": 4
+  },
+  "block_a_count": 62,
+  "layout_types": 13,
+  "target_images": 26,
+  "missing_image_slots": 24,
+  "existing_unverified_images": 2,
+  "layouts": [
+    {
+      "id": 2,
+      "code": "PDF20251016-A-1",
+      "area_crm": 58.98,
+      "unit_areas": [
+        58.98
+      ],
+      "rooms": 1,
+      "count": 8,
+      "units": [
+        "7",
+        "14",
+        "21",
+        "28",
+        "35",
+        "42",
+        "49",
+        "56"
+      ],
+      "floors": [
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8,
+        9
+      ],
+      "technical_plan": null,
+      "furnished_plan": null,
+      "room_records": 4,
+      "room_area_sum": 56.48,
+      "approved_area_m2": 58.98
+    },
+    {
+      "id": 3,
+      "code": "PDF20251016-A-2",
+      "area_crm": 79.26,
+      "unit_areas": [
+        79.26
+      ],
+      "rooms": 2,
+      "count": 8,
+      "units": [
+        "6",
+        "13",
+        "20",
+        "27",
+        "34",
+        "41",
+        "48",
+        "55"
+      ],
+      "floors": [
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8,
+        9
+      ],
+      "technical_plan": null,
+      "furnished_plan": null,
+      "room_records": 6,
+      "room_area_sum": 77.26
+    },
+    {
+      "id": 4,
+      "code": "PDF20251016-A-3",
+      "area_crm": 95.65,
+      "unit_areas": [
+        95.65
+      ],
+      "rooms": 3,
+      "count": 8,
+      "units": [
+        "5",
+        "12",
+        "19",
+        "26",
+        "33",
+        "40",
+        "47",
+        "54"
+      ],
+      "floors": [
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8,
+        9
+      ],
+      "technical_plan": null,
+      "furnished_plan": null,
+      "room_records": 7,
+      "room_area_sum": 93.65
+    },
+    {
+      "id": 5,
+      "code": "PDF20251016-A-4",
+      "area_crm": 56.18,
+      "unit_areas": [
+        56.18
+      ],
+      "rooms": 1,
+      "count": 8,
+      "units": [
+        "4",
+        "11",
+        "18",
+        "25",
+        "32",
+        "39",
+        "46",
+        "53"
+      ],
+      "floors": [
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8,
+        9
+      ],
+      "technical_plan": null,
+      "furnished_plan": null,
+      "room_records": 4,
+      "room_area_sum": 56.18
+    },
+    {
+      "id": 6,
+      "code": "PDF20251016-A-5",
+      "area_crm": 55.71,
+      "unit_areas": [
+        55.71
+      ],
+      "rooms": 1,
+      "count": 8,
+      "units": [
+        "3",
+        "10",
+        "17",
+        "24",
+        "31",
+        "38",
+        "45",
+        "52"
+      ],
+      "floors": [
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8,
+        9
+      ],
+      "technical_plan": null,
+      "furnished_plan": null,
+      "room_records": 4,
+      "room_area_sum": 55.71
+    },
+    {
+      "id": 7,
+      "code": "PDF20251016-A-6",
+      "area_crm": 81.2,
+      "unit_areas": [
+        81.18
+      ],
+      "rooms": 2,
+      "count": 8,
+      "units": [
+        "2",
+        "9",
+        "16",
+        "23",
+        "30",
+        "37",
+        "44",
+        "51"
+      ],
+      "floors": [
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8,
+        9
+      ],
+      "technical_plan": "https://res.cloudinary.com/r3pnvm9s/image/upload/v1791924592/tozon-crm/mbdavwdrp920og9rwpzc.png",
+      "furnished_plan": "https://res.cloudinary.com/r3pnvm9s/image/upload/v1791924599/tozon-crm/meoyexraft1mehzl7m0p.png",
+      "room_records": 6,
+      "room_area_sum": 76.17,
+      "area_crm_at_audit": 81.2,
+      "approved_area_m2": 81.18
+    },
+    {
+      "id": 8,
+      "code": "PDF20251016-A-7",
+      "area_crm": 56.74,
+      "unit_areas": [
+        56.74
+      ],
+      "rooms": 1,
+      "count": 8,
+      "units": [
+        "1",
+        "8",
+        "15",
+        "22",
+        "29",
+        "36",
+        "43",
+        "50"
+      ],
+      "floors": [
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8,
+        9
+      ],
+      "technical_plan": null,
+      "furnished_plan": null,
+      "room_records": 4,
+      "room_area_sum": 56.74
+    },
+    {
+      "id": 26,
+      "code": "CEILING315-10-A-6",
+      "area_crm": 78.55,
+      "unit_areas": [
+        78.55
+      ],
+      "rooms": 1,
+      "count": 1,
+      "units": [
+        "57"
+      ],
+      "floors": [
+        10
+      ],
+      "technical_plan": null,
+      "furnished_plan": null,
+      "room_records": 0,
+      "room_area_sum": 0
+    },
+    {
+      "id": 27,
+      "code": "CEILING315-10-A-5",
+      "area_crm": 111.8,
+      "unit_areas": [
+        111.8
+      ],
+      "rooms": 2,
+      "count": 1,
+      "units": [
+        "58"
+      ],
+      "floors": [
+        10
+      ],
+      "technical_plan": null,
+      "furnished_plan": null,
+      "room_records": 0,
+      "room_area_sum": 0
+    },
+    {
+      "id": 28,
+      "code": "CEILING315-10-A-4",
+      "area_crm": 54.95,
+      "unit_areas": [
+        54.95
+      ],
+      "rooms": 1,
+      "count": 1,
+      "units": [
+        "59"
+      ],
+      "floors": [
+        10
+      ],
+      "technical_plan": null,
+      "furnished_plan": null,
+      "room_records": 0,
+      "room_area_sum": 0
+    },
+    {
+      "id": 29,
+      "code": "CEILING315-10-A-3",
+      "area_crm": 95.2,
+      "unit_areas": [
+        95.2
+      ],
+      "rooms": 2,
+      "count": 1,
+      "units": [
+        "60"
+      ],
+      "floors": [
+        10
+      ],
+      "technical_plan": null,
+      "furnished_plan": null,
+      "room_records": 0,
+      "room_area_sum": 0,
+      "approved_rooms": 2
+    },
+    {
+      "id": 30,
+      "code": "CEILING315-10-A-2",
+      "area_crm": 77.5,
+      "unit_areas": [
+        77.5
+      ],
+      "rooms": 1,
+      "count": 1,
+      "units": [
+        "61"
+      ],
+      "floors": [
+        10
+      ],
+      "technical_plan": null,
+      "furnished_plan": null,
+      "room_records": 0,
+      "room_area_sum": 0
+    },
+    {
+      "id": 31,
+      "code": "CEILING315-10-A-1",
+      "area_crm": 56.45,
+      "unit_areas": [
+        56.45
+      ],
+      "rooms": 1,
+      "count": 1,
+      "units": [
+        "62"
+      ],
+      "floors": [
+        10
+      ],
+      "technical_plan": null,
+      "furnished_plan": null,
+      "room_records": 0,
+      "room_area_sum": 0
+    }
+  ],
+  "owner_approvals": {
+    "received_at": "2026-10-19T00:31:13+05:00",
+    "drawing": "Owner confirmed current Block A drawing",
+    "areas_m2": {
+      "PDF20251016-A-1": 58.98,
+      "PDF20251016-A-6": 81.18
+    },
+    "production_publication_approved": true,
+    "publication_authorized_at": "2026-10-19T00:34:47+05:00",
+    "unit_60_rooms": 2,
+    "unit_60_confirmation": "Two living rooms plus separate kitchen",
+    "unit_60_confirmed_at": "2026-10-19T01:05:36+05:00",
+    "public_repository": "alik7500-wq/tozon-crm",
+    "public_repository_authorized_at": "2026-10-19T01:11:36+05:00"
+  },
+  "publication_state": "RELEASE_READY",
+  "next_work": [
+    "Prepare 13 technical plans and 13 furnished illustrations from approved drawings",
+    "Verify image geometry and room characteristics against the approved drawing",
+    "Validate both blocks on desktop and mobile",
+    "Present exact publication changes to owner"
+  ],
+  "prepared_images": 26,
+  "outstanding_questions": [],
+  "deployment_blockers": []
+}

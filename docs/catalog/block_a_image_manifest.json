@@ -1,0 +1,678 @@
+[
+  {
+    "layout_id": 2,
+    "code": "PDF20251016-A-1",
+    "area_m2": 58.98,
+    "source_pdf": "Пахтакор 9эт.-Model.pdf-16.10.1 (1)(2).pdf",
+    "source_sha256": "f0b9fd92cbc8a274771bb1573f4e2da0cf97c857afd9f4fd2ad8a91a874164bc",
+    "image_2d": "layouts/block_a/catalog/block_a_typical_type_01_58_98m2_2d.png",
+    "image_3d": "layouts/block_a/catalog/block_a_typical_type_01_58_98m2_3d.png",
+    "review_status": "APPROVED_SOURCE_VISUAL_REVIEW_COMPLETE",
+    "clip_points": [
+      [
+        672.0,
+        319.0
+      ],
+      [
+        1014.0,
+        319.0
+      ],
+      [
+        1014.0,
+        661.0
+      ],
+      [
+        556.0,
+        661.0
+      ],
+      [
+        556.0,
+        408.0
+      ],
+      [
+        672.0,
+        408.0
+      ]
+    ],
+    "source_generated_file": "exec-82aa0900-e71f-40ec-95bc-e2e488923541.png",
+    "dimensions_2d": [
+      1290,
+      1680
+    ],
+    "dimensions_3d": [
+      1099,
+      1431
+    ],
+    "sha256_2d": "11d770d6033f2480e8acc6cfa0b2f7b1b7cdc6ff85b411bd168a2d646969e176",
+    "sha256_3d": "4f621148369ac5d4b331086d63447c096d90c3673c2707768db736ee30588312",
+    "generation_method": "Built-in image_gen, architectural excerpt reference; targeted correction of visible mismatches",
+    "notes": [
+      "3D is an illustrative furniture proposal, not a construction drawing.",
+      "Technical image is a clipped source PDF excerpt; source drawing is authoritative."
+    ]
+  },
+  {
+    "layout_id": 3,
+    "code": "PDF20251016-A-2",
+    "area_m2": 79.26,
+    "source_pdf": "Пахтакор 9эт.-Model.pdf-16.10.1 (1)(2).pdf",
+    "source_sha256": "f0b9fd92cbc8a274771bb1573f4e2da0cf97c857afd9f4fd2ad8a91a874164bc",
+    "image_2d": "layouts/block_a/catalog/block_a_typical_type_02_79_26m2_2d.png",
+    "image_3d": "layouts/block_a/catalog/block_a_typical_type_02_79_26m2_3d.png",
+    "review_status": "APPROVED_SOURCE_VISUAL_REVIEW_COMPLETE",
+    "clip_points": [
+      [
+        391.0,
+        38.0
+      ],
+      [
+        1014.0,
+        38.0
+      ],
+      [
+        1014.0,
+        333.0
+      ],
+      [
+        686.0,
+        333.0
+      ],
+      [
+        686.0,
+        421.0
+      ],
+      [
+        452.0,
+        421.0
+      ],
+      [
+        452.0,
+        341.0
+      ],
+      [
+        391.0,
+        341.0
+      ]
+    ],
+    "source_generated_file": "exec-96216cd0-e183-4a32-866a-72f40bfd132c.png",
+    "dimensions_2d": [
+      1290,
+      1680
+    ],
+    "dimensions_3d": [
+      1014,
+      1550
+    ],
+    "sha256_2d": "4dba2a319701c7fb5bed44eccbb1933d8e79398d13010392f6fb30ac1e8d95d0",
+    "sha256_3d": "e3f5514e211259adf71004ba35bf9e21e79df4a444a6c91ab88a4e7cd9218e3f",
+    "generation_method": "Built-in image_gen, architectural excerpt reference; targeted correction of visible mismatches",
+    "notes": [
+      "3D is an illustrative furniture proposal, not a construction drawing.",
+      "Technical image is a clipped source PDF excerpt; source drawing is authoritative."
+    ]
+  },
+  {
+    "layout_id": 4,
+    "code": "PDF20251016-A-3",
+    "area_m2": 95.65,
+    "source_pdf": "Пахтакор 9эт.-Model.pdf-16.10.1 (1)(2).pdf",
+    "source_sha256": "f0b9fd92cbc8a274771bb1573f4e2da0cf97c857afd9f4fd2ad8a91a874164bc",
+    "image_2d": "layouts/block_a/catalog/block_a_typical_type_03_95_65m2_2d.png",
+    "image_3d": "layouts/block_a/catalog/block_a_typical_type_03_95_65m2_3d.png",
+    "review_status": "APPROVED_SOURCE_VISUAL_REVIEW_COMPLETE",
+    "clip_points": [
+      [
+        48.0,
+        38.0
+      ],
+      [
+        403.0,
+        38.0
+      ],
+      [
+        403.0,
+        329.0
+      ],
+      [
+        464.0,
+        329.0
+      ],
+      [
+        464.0,
+        661.0
+      ],
+      [
+        48.0,
+        661.0
+      ]
+    ],
+    "source_generated_file": "exec-c0aef38f-b79c-4911-9162-80a35cf359e0.png",
+    "dimensions_2d": [
+      1290,
+      1680
+    ],
+    "dimensions_3d": [
+      1014,
+      1550
+    ],
+    "sha256_2d": "968770fee9307078e996a8ce3b06837f3fc820d7faf1fcd3cf22d4073d58d2dd",
+    "sha256_3d": "d1c0e3267f204e625d90cc2b60ae07dda9e85e99614dbcbfc4b397972121751c",
+    "generation_method": "Built-in image_gen, architectural excerpt reference; targeted correction of visible mismatches",
+    "notes": [
+      "3D is an illustrative furniture proposal, not a construction drawing.",
+      "Technical image is a clipped source PDF excerpt; source drawing is authoritative."
+    ]
+  },
+  {
+    "layout_id": 5,
+    "code": "PDF20251016-A-4",
+    "area_m2": 56.18,
+    "source_pdf": "Пахтакор 9эт.-Model.pdf-16.10.1 (1)(2).pdf",
+    "source_sha256": "f0b9fd92cbc8a274771bb1573f4e2da0cf97c857afd9f4fd2ad8a91a874164bc",
+    "image_2d": "layouts/block_a/catalog/block_a_typical_type_04_56_18m2_2d.png",
+    "image_3d": "layouts/block_a/catalog/block_a_typical_type_04_56_18m2_3d.png",
+    "review_status": "APPROVED_SOURCE_VISUAL_REVIEW_COMPLETE",
+    "clip_points": [
+      [
+        48.0,
+        644.0
+      ],
+      [
+        464.0,
+        644.0
+      ],
+      [
+        464.0,
+        986.0
+      ],
+      [
+        48.0,
+        986.0
+      ]
+    ],
+    "source_generated_file": "exec-4467bc2d-7c9a-4a0c-8eb2-3c13c6684a5f.png",
+    "dimensions_2d": [
+      1290,
+      1680
+    ],
+    "dimensions_3d": [
+      1015,
+      1550
+    ],
+    "sha256_2d": "fd3ce3feebe2763129949ab5b582b5f2418de5c7e04cd6e3ebe5639243f0012e",
+    "sha256_3d": "bf305d94bd6a50a7bcd711380283ff44db36d8592db5afa6488b34d813d2a33a",
+    "generation_method": "Built-in image_gen, architectural excerpt reference; targeted correction of visible mismatches",
+    "notes": [
+      "3D is an illustrative furniture proposal, not a construction drawing.",
+      "Technical image is a clipped source PDF excerpt; source drawing is authoritative."
+    ]
+  },
+  {
+    "layout_id": 6,
+    "code": "PDF20251016-A-5",
+    "area_m2": 55.71,
+    "source_pdf": "Пахтакор 9эт.-Model.pdf-16.10.1 (1)(2).pdf",
+    "source_sha256": "f0b9fd92cbc8a274771bb1573f4e2da0cf97c857afd9f4fd2ad8a91a874164bc",
+    "image_2d": "layouts/block_a/catalog/block_a_typical_type_05_55_71m2_2d.png",
+    "image_3d": "layouts/block_a/catalog/block_a_typical_type_05_55_71m2_3d.png",
+    "review_status": "APPROVED_SOURCE_VISUAL_REVIEW_COMPLETE",
+    "clip_points": [
+      [
+        48.0,
+        974.0
+      ],
+      [
+        464.0,
+        974.0
+      ],
+      [
+        464.0,
+        1311.0
+      ],
+      [
+        48.0,
+        1311.0
+      ]
+    ],
+    "source_generated_file": "exec-492cf1c3-3ba3-425e-84c8-fc05c72815c5.png",
+    "dimensions_2d": [
+      1290,
+      1680
+    ],
+    "dimensions_3d": [
+      1014,
+      1550
+    ],
+    "sha256_2d": "c086245488764733ef7751f9569bdc8878bf49b98110a804ee643535f97f40bb",
+    "sha256_3d": "3078e7ac30d7bf7a2f4bd82e518ca6fdde906fc6611a2203e2519e7ee1234259",
+    "generation_method": "Built-in image_gen, architectural excerpt reference; targeted correction of visible mismatches",
+    "notes": [
+      "3D is an illustrative furniture proposal, not a construction drawing.",
+      "Technical image is a clipped source PDF excerpt; source drawing is authoritative."
+    ]
+  },
+  {
+    "layout_id": 7,
+    "code": "PDF20251016-A-6",
+    "area_m2": 81.18,
+    "source_pdf": "Пахтакор 9эт.-Model.pdf-16.10.1 (1)(2).pdf",
+    "source_sha256": "f0b9fd92cbc8a274771bb1573f4e2da0cf97c857afd9f4fd2ad8a91a874164bc",
+    "image_2d": "layouts/block_a/catalog/block_a_typical_type_06_81_18m2_2d.png",
+    "image_3d": "layouts/block_a/catalog/block_a_typical_type_06_81_18m2_3d.png",
+    "review_status": "APPROVED_SOURCE_VISUAL_REVIEW_COMPLETE",
+    "clip_points": [
+      [
+        48.0,
+        1294.0
+      ],
+      [
+        452.0,
+        1294.0
+      ],
+      [
+        452.0,
+        1214.0
+      ],
+      [
+        686.0,
+        1214.0
+      ],
+      [
+        686.0,
+        1299.0
+      ],
+      [
+        921.0,
+        1299.0
+      ],
+      [
+        921.0,
+        1521.0
+      ],
+      [
+        48.0,
+        1521.0
+      ]
+    ],
+    "source_generated_file": "exec-a6d89950-978f-497f-a71d-db80e5c49545.png",
+    "dimensions_2d": [
+      1290,
+      1680
+    ],
+    "dimensions_3d": [
+      1014,
+      1551
+    ],
+    "sha256_2d": "a99f53b140d604d7724513f122694d92e23e9b14de17e90c62fd0a6613ee53e3",
+    "sha256_3d": "566a6840b3c6f6789725f03af78c389c36059c402f5d1cdcf161253239c3f2aa",
+    "generation_method": "Built-in image_gen, architectural excerpt reference; targeted correction of visible mismatches",
+    "notes": [
+      "3D is an illustrative furniture proposal, not a construction drawing.",
+      "Technical image is a clipped source PDF excerpt; source drawing is authoritative."
+    ]
+  },
+  {
+    "layout_id": 8,
+    "code": "PDF20251016-A-7",
+    "area_m2": 56.74,
+    "source_pdf": "Пахтакор 9эт.-Model.pdf-16.10.1 (1)(2).pdf",
+    "source_sha256": "f0b9fd92cbc8a274771bb1573f4e2da0cf97c857afd9f4fd2ad8a91a874164bc",
+    "image_2d": "layouts/block_a/catalog/block_a_typical_type_07_56_74m2_2d.png",
+    "image_3d": "layouts/block_a/catalog/block_a_typical_type_07_56_74m2_3d.png",
+    "review_status": "APPROVED_SOURCE_VISUAL_REVIEW_COMPLETE",
+    "clip_points": [
+      [
+        559.0,
+        974.0
+      ],
+      [
+        1014.0,
+        974.0
+      ],
+      [
+        1014.0,
+        1316.0
+      ],
+      [
+        674.0,
+        1316.0
+      ],
+      [
+        674.0,
+        1226.0
+      ],
+      [
+        559.0,
+        1226.0
+      ]
+    ],
+    "source_generated_file": "exec-e4b8eec5-6922-4588-828f-6d40c6ceb19b.png",
+    "dimensions_2d": [
+      1290,
+      1680
+    ],
+    "dimensions_3d": [
+      1014,
+      1551
+    ],
+    "sha256_2d": "e9a38397f5a49e235a83f5c469b025b8172b47b4807dcba6fdedb41d3db2b1cc",
+    "sha256_3d": "7528747d7e691f36a900f0ca066da9be54184422ccabad72dff255a06e1daf25",
+    "generation_method": "Built-in image_gen, architectural excerpt reference; targeted correction of visible mismatches",
+    "notes": [
+      "3D is an illustrative furniture proposal, not a construction drawing.",
+      "Technical image is a clipped source PDF excerpt; source drawing is authoritative."
+    ]
+  },
+  {
+    "layout_id": 31,
+    "code": "CEILING315-10-A-1",
+    "area_m2": 56.45,
+    "source_pdf": "Пахтакор 9эт..2вар-Model.pdf-04(1).pdf",
+    "source_sha256": "e341329eb109842017685bd83943cf20523e2fb5c9d472c8bc547985844f903c",
+    "image_2d": "layouts/block_a/catalog/block_a_penthouse_type_01_56_45m2_2d.png",
+    "image_3d": "layouts/block_a/catalog/block_a_penthouse_type_01_56_45m2_3d.png",
+    "review_status": "APPROVED_SOURCE_VISUAL_REVIEW_COMPLETE",
+    "clip_points": [
+      [
+        488.0,
+        204.0
+      ],
+      [
+        735.0,
+        204.0
+      ],
+      [
+        735.0,
+        451.0
+      ],
+      [
+        408.0,
+        451.0
+      ],
+      [
+        408.0,
+        272.0
+      ],
+      [
+        488.0,
+        272.0
+      ]
+    ],
+    "source_generated_file": "exec-52bb4b18-f061-45ae-8a6d-eef8b1cb0d23.png",
+    "dimensions_2d": [
+      1290,
+      1680
+    ],
+    "dimensions_3d": [
+      1014,
+      1551
+    ],
+    "sha256_2d": "dacbf56129e2df14cac885430a44b97d3259b160a7f1e6167238c20dc0f19769",
+    "sha256_3d": "4ef68ef06bd29b7e9f7ff50907db8ee5f0f01e248777eff58de5be9a90eb916c",
+    "generation_method": "Built-in image_gen, architectural excerpt reference; targeted correction of visible mismatches",
+    "notes": [
+      "3D is an illustrative furniture proposal, not a construction drawing.",
+      "Technical image is a clipped source PDF excerpt; source drawing is authoritative."
+    ]
+  },
+  {
+    "layout_id": 30,
+    "code": "CEILING315-10-A-2",
+    "area_m2": 77.5,
+    "source_pdf": "Пахтакор 9эт..2вар-Model.pdf-04(1).pdf",
+    "source_sha256": "e341329eb109842017685bd83943cf20523e2fb5c9d472c8bc547985844f903c",
+    "image_2d": "layouts/block_a/catalog/block_a_penthouse_type_02_77_50m2_2d.png",
+    "image_3d": "layouts/block_a/catalog/block_a_penthouse_type_02_77_50m2_3d.png",
+    "review_status": "APPROVED_SOURCE_VISUAL_REVIEW_COMPLETE",
+    "clip_points": [
+      [
+        292.0,
+        2.0
+      ],
+      [
+        734.0,
+        2.0
+      ],
+      [
+        734.0,
+        216.0
+      ],
+      [
+        500.0,
+        216.0
+      ],
+      [
+        500.0,
+        284.0
+      ],
+      [
+        334.0,
+        284.0
+      ],
+      [
+        334.0,
+        216.0
+      ],
+      [
+        292.0,
+        216.0
+      ]
+    ],
+    "source_generated_file": "exec-b09057a3-d5f1-46e0-b999-9878d46c95d0.png",
+    "dimensions_2d": [
+      1290,
+      1680
+    ],
+    "dimensions_3d": [
+      1014,
+      1551
+    ],
+    "sha256_2d": "b740e3bfc12accb520e916e3caf938678a8814533b514070f54716b7d444d45d",
+    "sha256_3d": "3bb958e10984043311cc02ac3274ea0154cbe10a9ad74402889fdf050f12ad00",
+    "generation_method": "Built-in image_gen, architectural excerpt reference; targeted correction of visible mismatches",
+    "notes": [
+      "3D is an illustrative furniture proposal, not a construction drawing.",
+      "Technical image is a clipped source PDF excerpt; source drawing is authoritative."
+    ]
+  },
+  {
+    "layout_id": 29,
+    "code": "CEILING315-10-A-3",
+    "area_m2": 95.2,
+    "source_pdf": "Пахтакор 9эт..2вар-Model.pdf-04(1).pdf",
+    "source_sha256": "e341329eb109842017685bd83943cf20523e2fb5c9d472c8bc547985844f903c",
+    "image_2d": "layouts/block_a/catalog/block_a_penthouse_type_03_95_20m2_2d.png",
+    "image_3d": "layouts/block_a/catalog/block_a_penthouse_type_03_95_20m2_3d.png",
+    "review_status": "APPROVED_SOURCE_VISUAL_REVIEW_COMPLETE",
+    "clip_points": [
+      [
+        42.0,
+        2.0
+      ],
+      [
+        306.0,
+        2.0
+      ],
+      [
+        306.0,
+        204.0
+      ],
+      [
+        346.0,
+        204.0
+      ],
+      [
+        346.0,
+        451.0
+      ],
+      [
+        42.0,
+        451.0
+      ]
+    ],
+    "source_generated_file": "exec-eacdbd22-8eed-4a4d-96e6-96009069e390.png",
+    "dimensions_2d": [
+      1290,
+      1680
+    ],
+    "dimensions_3d": [
+      1015,
+      1550
+    ],
+    "sha256_2d": "0aacb0d3fe9587d5348db31ae8e19a0b45e4e40881c0065bdbf835cca0f5fb5b",
+    "sha256_3d": "aad071b567aef2771c7a2f95c705acaef1492ca1b77f7a94d27457359300589a",
+    "generation_method": "Built-in image_gen, architectural excerpt reference; targeted correction of visible mismatches",
+    "notes": [
+      "3D is an illustrative furniture proposal, not a construction drawing.",
+      "Technical image is a clipped source PDF excerpt; source drawing is authoritative."
+    ]
+  },
+  {
+    "layout_id": 28,
+    "code": "CEILING315-10-A-4",
+    "area_m2": 54.95,
+    "source_pdf": "Пахтакор 9эт..2вар-Model.pdf-04(1).pdf",
+    "source_sha256": "e341329eb109842017685bd83943cf20523e2fb5c9d472c8bc547985844f903c",
+    "image_2d": "layouts/block_a/catalog/block_a_penthouse_type_04_54_95m2_2d.png",
+    "image_3d": "layouts/block_a/catalog/block_a_penthouse_type_04_54_95m2_3d.png",
+    "review_status": "APPROVED_SOURCE_VISUAL_REVIEW_COMPLETE",
+    "clip_points": [
+      [
+        42.0,
+        432.0
+      ],
+      [
+        346.0,
+        432.0
+      ],
+      [
+        346.0,
+        686.0
+      ],
+      [
+        42.0,
+        686.0
+      ]
+    ],
+    "source_generated_file": "exec-7e41133b-a643-4853-b498-47a71a968a06.png",
+    "dimensions_2d": [
+      1290,
+      1680
+    ],
+    "dimensions_3d": [
+      1014,
+      1550
+    ],
+    "sha256_2d": "ece716ba2954c950ab737fac34e52c9a1c45ec3976e8275a52a2004ee2abcdcd",
+    "sha256_3d": "250f7614c94947a402f4bcc3d62d335aea20f4c8dad732c0f05bea0fce15418f",
+    "generation_method": "Built-in image_gen, architectural excerpt reference; targeted correction of visible mismatches",
+    "notes": [
+      "3D is an illustrative furniture proposal, not a construction drawing.",
+      "Technical image is a clipped source PDF excerpt; source drawing is authoritative."
+    ]
+  },
+  {
+    "layout_id": 27,
+    "code": "CEILING315-10-A-5",
+    "area_m2": 111.8,
+    "source_pdf": "Пахтакор 9эт..2вар-Model.pdf-04(1).pdf",
+    "source_sha256": "e341329eb109842017685bd83943cf20523e2fb5c9d472c8bc547985844f903c",
+    "image_2d": "layouts/block_a/catalog/block_a_penthouse_type_05_111_80m2_2d.png",
+    "image_3d": "layouts/block_a/catalog/block_a_penthouse_type_05_111_80m2_3d.png",
+    "review_status": "APPROVED_SOURCE_VISUAL_REVIEW_COMPLETE",
+    "clip_points": [
+      [
+        42.0,
+        669.0
+      ],
+      [
+        346.0,
+        669.0
+      ],
+      [
+        346.0,
+        844.0
+      ],
+      [
+        496.0,
+        844.0
+      ],
+      [
+        496.0,
+        1059.0
+      ],
+      [
+        42.0,
+        1059.0
+      ]
+    ],
+    "source_generated_file": "exec-99aae200-4f61-4460-8f29-3928df03488f.png",
+    "dimensions_2d": [
+      1290,
+      1680
+    ],
+    "dimensions_3d": [
+      1014,
+      1550
+    ],
+    "sha256_2d": "e4d409e261050338961d3662e75982e174bb1d1ddd320e0101507be3537a2772",
+    "sha256_3d": "adb8e0880efb23f25880a47d96780d75f38676e586a3630c268d76698d41c8d3",
+    "generation_method": "Built-in image_gen, architectural excerpt reference; targeted correction of visible mismatches",
+    "notes": [
+      "3D is an illustrative furniture proposal, not a construction drawing.",
+      "Technical image is a clipped source PDF excerpt; source drawing is authoritative."
+    ]
+  },
+  {
+    "layout_id": 26,
+    "code": "CEILING315-10-A-6",
+    "area_m2": 78.55,
+    "source_pdf": "Пахтакор 9эт..2вар-Model.pdf-04(1).pdf",
+    "source_sha256": "e341329eb109842017685bd83943cf20523e2fb5c9d472c8bc547985844f903c",
+    "image_2d": "layouts/block_a/catalog/block_a_penthouse_type_06_78_55m2_2d.png",
+    "image_3d": "layouts/block_a/catalog/block_a_penthouse_type_06_78_55m2_3d.png",
+    "review_status": "APPROVED_SOURCE_VISUAL_REVIEW_COMPLETE",
+    "clip_points": [
+      [
+        408.0,
+        669.0
+      ],
+      [
+        734.0,
+        669.0
+      ],
+      [
+        734.0,
+        1059.0
+      ],
+      [
+        484.0,
+        1059.0
+      ],
+      [
+        484.0,
+        856.0
+      ],
+      [
+        408.0,
+        856.0
+      ]
+    ],
+    "source_generated_file": "exec-ca3a56bc-857e-41ad-b896-28f19cff5201.png",
+    "dimensions_2d": [
+      1290,
+      1680
+    ],
+    "dimensions_3d": [
+      1014,
+      1550
+    ],
+    "sha256_2d": "636d3fa90df95388a7d2d8fc5c8725f8f8992b80570de57054f88ba43d3f0abf",
+    "sha256_3d": "ea74c7a936bebb01d9579eaa72c262d4a7db805a402327549b55a24184b62640",
+    "generation_method": "Built-in image_gen, architectural excerpt reference; targeted correction of visible mismatches",
+    "notes": [
+      "3D is an illustrative furniture proposal, not a construction drawing.",
+      "Technical image is a clipped source PDF excerpt; source drawing is authoritative."
+    ]
+  }
+]
