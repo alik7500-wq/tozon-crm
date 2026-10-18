@@ -1,4 +1,4 @@
-export const COST_STATES = { UNASSIGNED: 'Не распределён', DIRECT: 'Расход одного блока', SHARED: 'Общий расход по площади', EXCLUDED: 'Не включать в затраты', AUTO_EXCLUDED: 'Исключён автоматически', MISSING_FX: 'Нет курса / USD' };
+export const COST_STATES = { UNASSIGNED: 'Не распределён', DIRECT: 'Расход одного блока', SHARED: 'Общий расход по площади', EXCLUDED: 'Не включать в затраты', AUTO_EXCLUDED: 'Исключён автоматически', MISSING_FX: 'Нет курса / USD', MATERIAL_PAYMENT: 'Оплата бетона / арматуры' };
 export const emptyAllocation = () => ({ mode: 'UNASSIGNED', building_ids: [], reason: '' });
 export function allocationPayload(value, expectedVersion = 0) {
   if (value.mode === 'DIRECT' && value.building_ids.length !== 1) throw new Error('Выберите один блок');

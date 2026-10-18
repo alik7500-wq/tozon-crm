@@ -27,6 +27,6 @@ export function CostAllocationFields({ value, onChange, blocks, disabled = false
     <label className="block text-sm">Основание / пояснение
       <textarea className="mt-1 w-full rounded-lg border p-2" value={value.reason} maxLength={2000} onChange={e => update({ reason: e.target.value })} placeholder="Например: арматура для блока Б по накладной…" />
     </label>
-    <p className="text-xs text-slate-500">Выдачу аванса, возврат займа и прочие выплаты, ещё не являющиеся расходом, оставляйте нераспределёнными либо исключайте с пояснением.</p>
+    <p className="text-xs text-slate-500">Оплату арматуры и бетона до использования исключайте с пояснением. После использования привяжите этот РКО в разделе «Арматура и бетон». Выдача под отчёт и возврат займа не являются затратами.</p>
   </fieldset>;
 }
