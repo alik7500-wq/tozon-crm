@@ -1,3 +1,4 @@
+import {formatMeasure} from '../../../../utils/numberDisplay';
 import React, { useEffect, useState } from 'react';
 import { X, Navigation, Info, Home, Sparkles, Check, AlertCircle } from 'lucide-react';
 
@@ -204,7 +205,7 @@ export function HotspotFormModal({
                 <option value="">Выберите квартиру...</option>
                 {projectUnits.map((u) => (
                   <option key={u.id} value={u.id}>
-                    Квартира №{u.unit_number || u.number} ({u.rooms}-комн., {u.area_m2_x100 ? u.area_m2_x100 / 100 : u.area_m2} м²)
+                    Квартира №{u.unit_number || u.number} ({u.rooms}-комн., {formatMeasure(u.area_m2_x100 ? u.area_m2_x100 / 100 : u.area_m2)} м²)
                   </option>
                 ))}
               </select>

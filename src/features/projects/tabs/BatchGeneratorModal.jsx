@@ -1,3 +1,4 @@
+import {formatMeasure, trimDecimalZeros} from '../../../utils/numberDisplay';
 import React, { useState } from 'react';
 import { api } from '../../../api/client';
 import { useModalDismiss } from '../../../hooks/useModalDismiss';
@@ -288,7 +289,7 @@ export const BatchGeneratorModal = ({ isOpen, onClose, projectId, currency = 'US
                         <option value="">Шаблон типовой планировки</option>
                         {layouts.map((l) => (
                           <option key={l.id} value={l.id}>
-                            {l.name} ({l.rooms}к, {(l.area_m2_x100 / 100).toFixed(1)} м²)
+                            {trimDecimalZeros(l.name)} ({l.rooms}к, {formatMeasure(l.area_m2_x100 / 100)} м²)
                           </option>
                         ))}
                       </select>

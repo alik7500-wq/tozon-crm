@@ -1,3 +1,4 @@
+import {formatMeasure} from '../../utils/numberDisplay';
 import React, { useState, useEffect } from 'react';
 import { api } from '../../api/client';
 import { AnalyticsTabs } from '../../components/AnalyticsTabs';
@@ -212,7 +213,7 @@ export const AnalyticsOnePage = () => {
                           <span className="font-bold text-slate-900">{row.label}</span>
                         </td>
                         <td className="p-3 text-right font-bold text-slate-800">{row.count}</td>
-                        <td className="p-3 text-right text-slate-600">{row.area.toLocaleString('ru-RU')}</td>
+                        <td className="p-3 text-right text-slate-600">{formatMeasure(row.area)}</td>
                         <td className="p-3 text-right font-black text-slate-900">
                           {row.sum > 0 ? `$${row.sum.toLocaleString('ru-RU')}` : '0'}
                         </td>

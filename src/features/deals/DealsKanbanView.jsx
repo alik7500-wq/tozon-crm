@@ -1,3 +1,4 @@
+import {formatMeasure} from '../../utils/numberDisplay';
 import React from 'react';
 import {
   FileCheck,
@@ -106,7 +107,7 @@ export const DealsKanbanView = ({
                   const totalPaid = paidMinor / 100;
                   const remaining = Math.max(0, finalPrice - totalPaid);
                   const paidPercent = finalPrice > 0 ? Math.min(100, Math.round((totalPaid / finalPrice) * 100)) : 0;
-                  const areaM2 = (deal.area_m2_x100 / 100).toFixed(1);
+                  const areaM2 = formatMeasure(deal.area_m2_x100 / 100);
 
                   return (
                     <div

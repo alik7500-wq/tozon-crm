@@ -1,3 +1,4 @@
+import {formatMeasure} from '../../utils/numberDisplay';
 import React, { useState, useEffect } from 'react';
 import { api } from '../../api/client';
 import { useAuth } from '../auth/AuthContext';
@@ -462,7 +463,7 @@ export const ApartmentDetailModal = ({
               <div className="rounded-xl bg-slate-50 p-2.5 border border-slate-200/80">
                 <span className="text-[10px] font-bold uppercase text-slate-400 block">Общая площадь</span>
                 <div className="text-sm sm:text-base font-black text-slate-900 mt-0.5">
-                  {(unit.area_m2_x100 / 100).toFixed(2)} м²
+                  {formatMeasure(unit.area_m2_x100 / 100)} м²
                 </div>
               </div>
 
@@ -1289,7 +1290,7 @@ export const ApartmentDetailModal = ({
                       <div className="rounded-xl bg-white p-2.5 border border-blue-200 shadow-2xs">
                         <span className="text-[10px] font-bold uppercase text-slate-400 block">Общая площадь</span>
                         <div className="text-sm font-black text-blue-900 mt-0.5">
-                          {totalSelectedArea.toFixed(1)} м²
+                          {formatMeasure(totalSelectedArea)} м²
                         </div>
                       </div>
                       <div className="rounded-xl bg-white p-2.5 border border-blue-200 shadow-2xs">
@@ -1435,7 +1436,7 @@ export const ApartmentDetailModal = ({
                                               </div>
 
                                               <div className={`text-[10px] mt-1 ${isUnitSelected ? 'text-blue-100' : 'text-slate-500'}`}>
-                                                {u.rooms === 0 ? 'Студия' : `${u.rooms}к`} • {(u.area_m2_x100 / 100).toFixed(1)} м²
+                                                {u.rooms === 0 ? 'Студия' : `${u.rooms}к`} • {formatMeasure(u.area_m2_x100 / 100)} м²
                                               </div>
 
                                               <div className={`text-[9px] font-bold mt-1 ${isUnitSelected ? 'text-blue-200' : 'text-slate-400'}`}>

@@ -1,3 +1,4 @@
+import {formatMeasure} from '../../utils/numberDisplay';
 import React, { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { api } from '../../api/client';
@@ -204,7 +205,7 @@ export const ClientDetailModal = ({ isOpen, onClose, client, onClientUpdated, on
         id: `event-deal-${deal.id}`,
         type: 'DEAL',
         title: deal.status === 'SIGNED' ? `Подписание Договора №${formatContractNumber(deal.contract_number) || deal.id}` : `Оформление брони на квартиру №${deal.unit_number || ''}`,
-        description: `Объект: ${deal.project_name || 'ЖК'}, кв. №${deal.unit_number || '—'} (${deal.unit_rooms || '—'} комн., ${deal.unit_area || (deal.area_m2_x100 ? deal.area_m2_x100 / 100 : '—')} м²). Сумма договора: ${formatMoney(deal.final_price_minor)} ${deal.currency || 'USD'}. Форма оплаты: ${deal.payment_type === 'INSTALLMENT' ? 'Рассрочка' : deal.payment_type === 'BARTER' ? 'Бартер' : '100% оплата'}.`,
+        description: `Объект: ${deal.project_name || 'ЖК'}, кв. №${deal.unit_number || '—'} (${deal.unit_rooms || '—'} комн., ${formatMeasure(deal.unit_area || (deal.area_m2_x100 ? deal.area_m2_x100 / 100 : null))} м²). Сумма договора: ${formatMoney(deal.final_price_minor)} ${deal.currency || 'USD'}. Форма оплаты: ${deal.payment_type === 'INSTALLMENT' ? 'Рассрочка' : deal.payment_type === 'BARTER' ? 'Бартер' : '100% оплата'}.`,
         date: deal.deal_date || deal.created_at,
         icon: FileCheck,
         color: 'blue',
@@ -544,7 +545,7 @@ export const ClientDetailModal = ({ isOpen, onClose, client, onClientUpdated, on
                               {d.project_name || 'ЖК'} — кв. №{d.unit_number}
                             </span>
                             <span className="text-[11px] font-semibold text-slate-500">
-                              ({d.unit_rooms || '—'} комн., {d.unit_area || (d.area_m2_x100 ? d.area_m2_x100 / 100 : '—')} м²)
+                              ({d.unit_rooms || '—'} комн., {formatMeasure(d.unit_area || (d.area_m2_x100 ? d.area_m2_x100 / 100 : null))} м²)
                             </span>
                           </div>
 

@@ -1,3 +1,4 @@
+import {formatMeasure} from '../../../../utils/numberDisplay';
 import React, { useState, useEffect } from 'react';
 import { X, Check, Home, Building2, Layers, Search, AlertCircle } from 'lucide-react';
 
@@ -164,7 +165,7 @@ export function ManualMappingDrawer({
                         <div>
                           <span>Квартира №{u.unit_number || u.number}</span>
                           <span className={`text-[10px] ml-1.5 ${isSelected ? 'text-blue-100' : 'text-slate-400'}`}>
-                            {u.rooms ? `${u.rooms}-комн.` : 'Студия'} • {u.area_m2_x100 ? u.area_m2_x100 / 100 : u.area_m2} м²
+                            {u.rooms ? `${u.rooms}-комн.` : 'Студия'} • {formatMeasure(u.area_m2_x100 ? u.area_m2_x100 / 100 : u.area_m2)} м²
                           </span>
                         </div>
                         {isSelected && <Check className="h-3.5 w-3.5 shrink-0" />}

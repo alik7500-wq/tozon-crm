@@ -1,3 +1,4 @@
+import {formatMeasure, trimDecimalZeros} from '../../../utils/numberDisplay';
 import React, { useState, useEffect, useRef } from 'react';
 import { api } from '../../../api/client';
 import { useI18n } from '../../../context/i18nContext';
@@ -25,9 +26,6 @@ import {
   RefreshCw,
   Move
 } from 'lucide-react';
-
-// Remove only insignificant decimal zeros; preserve every meaningful digit.
-const trimDecimalZeros = value => String(value ?? '').replace(/\d+[.,]\d+/g, decimal => decimal.replace(/0+$/, '').replace(/[.,]$/, ''));
 
 const ICON_OPTIONS = [
   'Sparkles',
@@ -186,8 +184,8 @@ export const LayoutEditorModal = ({ layoutId, projectId, isOpen, onClose, onUpda
 
     try {
       const payload = {
-        name: basicForm.name,
-        name_tg: basicForm.name_tg,
+        name: trimDecimalZeros(basicForm.name),
+        name_tg: trimDecimalZeros(basicForm.name_tg),
         code: basicForm.code,
         rooms: parseInt(basicForm.rooms, 10),
         area_m2_x100: Math.round(parseFloat(basicForm.area_m2) * 100),
@@ -511,7 +509,7 @@ export const LayoutEditorModal = ({ layoutId, projectId, isOpen, onClose, onUpda
                       <label className="block text-xs font-bold text-slate-700 mb-1">{t('totalArea')} (м²)</label>
                       <input
                         type="number"
-                        step="0.1"
+                        step="0.01"
                         required
                         value={basicForm.area_m2}
                         onChange={(e) => setBasicForm({ ...basicForm, area_m2: e.target.value })}
@@ -723,7 +721,7 @@ export const LayoutEditorModal = ({ layoutId, projectId, isOpen, onClose, onUpda
                     </div>
 
                     <div className="flex items-center justify-between text-xs text-slate-500 bg-slate-50 p-2.5 rounded-xl border border-slate-200">
-                      <span>{t('markerPosition')} <strong>X: {roomForm.position_x_percent}% | Y: {roomForm.position_y_percent}%</strong></span>
+                      <span>{t('markerPosition')} <strong>X: {formatMeasure(roomForm.position_x_percent)}% | Y: {formatMeasure(roomForm.position_y_percent)}%</strong></span>
                       <span>{t('polygonPointsCount')} <strong>{roomForm.polygon_points?.length || 0}</strong></span>
                     </div>
                   </div>
@@ -870,7 +868,7 @@ export const LayoutEditorModal = ({ layoutId, projectId, isOpen, onClose, onUpda
                             </span>
                             <div>
                               <p className="text-xs font-bold text-slate-900">{getText(r.name_tg, r.name_ru)}</p>
-                              <p className="text-[10px] text-slate-500">{r.area} м²</p>
+                              <p className="text-[10px] text-slate-500">{formatMeasure(r.area)} м²</p>
                             </div>
                           </div>
 
@@ -900,7 +898,7 @@ export const LayoutEditorModal = ({ layoutId, projectId, isOpen, onClose, onUpda
                       <label className="block text-xs font-bold text-slate-700 mb-1">{t('livingArea')} (м²)</label>
                       <input
                         type="number"
-                        step="0.1"
+                        step="0.01"
                         value={basicForm.living_area}
                         onChange={(e) => setBasicForm({ ...basicForm, living_area: e.target.value })}
                         className="w-full rounded-xl border border-slate-300 bg-slate-50 px-3.5 py-2 text-sm outline-none focus:border-blue-500 focus:bg-white"
@@ -910,7 +908,7 @@ export const LayoutEditorModal = ({ layoutId, projectId, isOpen, onClose, onUpda
                       <label className="block text-xs font-bold text-slate-700 mb-1">{t('kitchenArea')} (м²)</label>
                       <input
                         type="number"
-                        step="0.1"
+                        step="0.01"
                         value={basicForm.kitchen_area}
                         onChange={(e) => setBasicForm({ ...basicForm, kitchen_area: e.target.value })}
                         className="w-full rounded-xl border border-slate-300 bg-slate-50 px-3.5 py-2 text-sm outline-none focus:border-blue-500 focus:bg-white"

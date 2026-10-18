@@ -1,3 +1,4 @@
+import {formatMeasure} from '../../utils/numberDisplay';
 import React, { useState, useEffect } from 'react';
 import { api } from '../../api/client';
 import { useModalDismiss } from '../../hooks/useModalDismiss';
@@ -339,11 +340,11 @@ export const EditDealModal = ({
                   const area = unit ? unit.area_m2_x100 / 100 : deal.area_m2_x100 / 100;
                   setFinalPrice(String(Math.round((area * Number(pricePerM2) - Number(discount)) * 100) / 100));
                 }}>
-                  <option value={String(deal.unit_id)}>Текущая: №{deal.unit_number} — {deal.area_m2_x100 / 100} м²</option>
-                  {units.filter(u => String(u.id) !== String(deal.unit_id)).map(u => <option key={u.id} value={String(u.id)}>{u.section_name}, этаж {u.floor_number}, №{u.unit_number} — {u.area_m2_x100 / 100} м²</option>)}
+                  <option value={String(deal.unit_id)}>Текущая: №{deal.unit_number} — {formatMeasure(deal.area_m2_x100 / 100)} м²</option>
+                  {units.filter(u => String(u.id) !== String(deal.unit_id)).map(u => <option key={u.id} value={String(u.id)}>{u.section_name}, этаж {u.floor_number}, №{u.unit_number} — {formatMeasure(u.area_m2_x100 / 100)} м²</option>)}
                 </select>
               </label>
-              <p>Стоимость: ${(deal.final_price_minor / 100).toLocaleString('ru-RU', { minimumFractionDigits: 2 })} → ${Number(finalPrice).toLocaleString('ru-RU', { minimumFractionDigits: 2 })}. Площадь: {deal.area_m2_x100 / 100} → {areaM2} м².</p>
+              <p>Стоимость: ${(deal.final_price_minor / 100).toLocaleString('ru-RU', { minimumFractionDigits: 2 })} → ${Number(finalPrice).toLocaleString('ru-RU', { minimumFractionDigits: 2 })}. Площадь: {formatMeasure(deal.area_m2_x100 / 100)} → {formatMeasure(areaM2)} м².</p>
               <label className="block font-bold">Причина изменения
                 <textarea aria-label="Причина изменения" required maxLength={2000} value={amendmentReason} onChange={e => setAmendmentReason(e.target.value)} className="block w-full border rounded-lg p-2 bg-white" />
               </label>
