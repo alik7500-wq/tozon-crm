@@ -56,8 +56,8 @@ export const DashboardPage = () => {
   const cards = [
     {
       title: 'Свободные квартиры',
-      value: units.available_units.toLocaleString(),
-      description: `Из ${units.total_units.toLocaleString()} квартир в базе`,
+      value: (units.apartments ? units.apartments.available : units.available_units).toLocaleString(),
+      description: `Из ${(units.apartments ? units.apartments.total : units.total_units).toLocaleString()} квартир в базе${units.parking?.total ? ` (+${units.parking.total} паркомест, ${units.commercial?.total || 0} комм.)` : ''}`,
       icon: Building2,
       color: 'from-emerald-500 to-teal-600',
       bgColor: 'bg-emerald-50 text-emerald-700',
@@ -66,7 +66,7 @@ export const DashboardPage = () => {
     },
     {
       title: 'Активные брони',
-      value: units.reserved_units.toLocaleString(),
+      value: (units.apartments ? units.apartments.reserved : units.reserved_units).toLocaleString(),
       description: 'Зарезервировано клиентами',
       icon: Clock,
       color: 'from-amber-500 to-orange-600',
@@ -76,7 +76,7 @@ export const DashboardPage = () => {
     },
     {
       title: 'Проданные квартиры',
-      value: units.sold_units.toLocaleString(),
+      value: (units.apartments ? units.apartments.sold : units.sold_units).toLocaleString(),
       description: deals.total_volume_minor > 0 
         ? `${(deals.total_volume_minor / 100).toLocaleString()} в договорах` 
         : 'Подписанные сделки',
@@ -87,13 +87,13 @@ export const DashboardPage = () => {
       link: '/deals',
     },
     {
-      title: 'Новые лиды',
-      value: leads.new_leads.toLocaleString(),
-      description: `Всего в воронке: ${leads.total_leads.toLocaleString()}`,
+      title: 'Лиды в воронке',
+      value: (leads.total_leads || 0).toLocaleString(),
+      description: `${leads.active_leads || (leads.new_leads + leads.in_progress_leads + leads.negotiation_leads) || 0} активных (${leads.new_leads || 0} новых), ${leads.won_leads || 0} в сделках${leads.lost_leads ? `, ${leads.lost_leads} отказ` : ''}`,
       icon: Users,
       color: 'from-purple-500 to-pink-600',
       bgColor: 'bg-purple-50 text-purple-700',
-      badge: 'Заявки',
+      badge: 'Клиенты',
       link: '/leads',
     },
   ];

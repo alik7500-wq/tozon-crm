@@ -36,6 +36,7 @@ import { SmsTemplatesPage } from './features/crm/SmsTemplatesPage';
 import { AnalyticsOnePage } from './features/analytics/AnalyticsOnePage';
 import { AnalyticsTwoPage } from './features/analytics/AnalyticsTwoPage';
 import { AnalyticsThreePage } from './features/analytics/AnalyticsThreePage';
+import { SalesAnalyticsPage } from './features/analytics/SalesAnalyticsPage';
 import { ErrorBoundary } from './components/ErrorBoundary';
 
 const queryClient = new QueryClient({
@@ -91,6 +92,7 @@ function App() {
                   <Route path="/analytics/1" element={<AnalyticsOnePage />} />
                   <Route path="/analytics/2" element={<AnalyticsTwoPage />} />
                   <Route path="/analytics/3" element={<AnalyticsThreePage />} />
+                  <Route path="/analytics/sales" element={<SalesAnalyticsPage />} />
                   <Route
                     path="/automation"
                     element={

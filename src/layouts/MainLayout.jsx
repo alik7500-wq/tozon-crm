@@ -137,6 +137,7 @@ export const MainLayout = () => {
       icon: BarChart3,
       children: [
         { label: 'Сводные отчеты', path: '/reports', icon: BarChart3, permission: 'analytics.reports' },
+        { label: 'Продажи и Спрос 3.5', path: '/analytics/sales', icon: TrendingUp, permission: 'analytics.view' },
         { label: 'Аналитика 1.0', path: '/analytics/1', icon: PieChart, permission: 'analytics.view' },
         { label: 'Аналитика 2.0', path: '/analytics/2', icon: TrendingUp, permission: 'analytics.view' },
         { label: 'Аналитика 3.0', path: '/analytics/3', icon: Target, permission: 'analytics.view' },

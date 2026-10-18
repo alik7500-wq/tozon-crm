@@ -30,6 +30,12 @@ import {
 
 export const DealsPage = () => {
   const [searchParams] = useSearchParams();
+  const initialStatus = searchParams.get('status') || 'ALL';
+  const initialProject = searchParams.get('projectId') || 'ALL';
+  const initialBuilding = searchParams.get('buildingId') || 'ALL';
+  const initialManager = searchParams.get('managerId') || 'ALL';
+  const initialPeriod = searchParams.get('period') || 'ALL';
+
   const [deals, setDeals] = useState([]);
   const [stats, setStats] = useState(null);
   const [projects, setProjects] = useState([]);
@@ -38,8 +44,11 @@ export const DealsPage = () => {
 
   // Filters
   const [search, setSearch] = useState('');
-  const [statusFilter, setStatusFilter] = useState('ALL');
-  const [projectFilter, setProjectFilter] = useState('ALL');
+  const [statusFilter, setStatusFilter] = useState(initialStatus);
+  const [projectFilter, setProjectFilter] = useState(initialProject);
+  const [buildingFilter, setBuildingFilter] = useState(initialBuilding);
+  const [managerFilter, setManagerFilter] = useState(initialManager);
+  const [periodFilter, setPeriodFilter] = useState(initialPeriod);
   const [paymentTypeFilter, setPaymentTypeFilter] = useState('ALL');
 
   // Modals & Drawers state
@@ -48,9 +57,17 @@ export const DealsPage = () => {
 
   useEffect(() => {
     const dId = searchParams.get('dealId');
-    if (dId) {
-      setSelectedDealId(Number(dId));
-    }
+    if (dId) setSelectedDealId(Number(dId));
+    const st = searchParams.get('status');
+    if (st) setStatusFilter(st);
+    const pId = searchParams.get('projectId');
+    if (pId) setProjectFilter(pId);
+    const bId = searchParams.get('buildingId');
+    if (bId) setBuildingFilter(bId);
+    const mId = searchParams.get('managerId');
+    if (mId) setManagerFilter(mId);
+    const pr = searchParams.get('period');
+    if (pr) setPeriodFilter(pr);
   }, [searchParams]);
   const [dealToPrint, setDealToPrint] = useState(null);
   const [dealForPayment, setDealForPayment] = useState(null);
@@ -63,6 +80,9 @@ export const DealsPage = () => {
       if (search) params.search = search;
       if (statusFilter !== 'ALL') params.status = statusFilter;
       if (projectFilter !== 'ALL') params.projectId = projectFilter;
+      if (buildingFilter !== 'ALL') params.buildingId = buildingFilter;
+      if (managerFilter !== 'ALL') params.managerId = managerFilter;
+      if (periodFilter !== 'ALL') params.period = periodFilter;
       if (paymentTypeFilter !== 'ALL') params.paymentType = paymentTypeFilter;
 
       const res = await api.get('/deals', { params });
@@ -102,7 +122,7 @@ export const DealsPage = () => {
       fetchDeals();
     }, 200);
     return () => clearTimeout(timer);
-  }, [search, statusFilter, projectFilter, paymentTypeFilter]);
+  }, [search, statusFilter, projectFilter, buildingFilter, managerFilter, periodFilter, paymentTypeFilter]);
 
   const handleSelectDeal = (deal) => {
     setSelectedDealId(deal.id);
@@ -284,6 +304,52 @@ export const DealsPage = () => {
           </div>
         </div>
       </div>
+
+      {/* Active Navigation / Analytics Filter Indicator */}
+      {(statusFilter !== 'ALL' || managerFilter !== 'ALL' || buildingFilter !== 'ALL' || periodFilter !== 'ALL' || projectFilter !== 'ALL') && (
+        <div className="flex flex-wrap items-center justify-between gap-2 text-xs bg-blue-50/80 border border-blue-200 text-blue-900 px-4 py-2.5 rounded-2xl shadow-2xs">
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="font-bold text-blue-800">Применены фильтры из аналитики:</span>
+            {statusFilter !== 'ALL' && (
+              <span className="bg-white px-2.5 py-0.5 rounded-lg border border-blue-200 font-bold text-[11px] text-blue-700">
+                Статус: {statusFilter === 'SIGNED' ? 'Подписан' : statusFilter === 'RESERVED' ? 'Бронь' : statusFilter}
+              </span>
+            )}
+            {periodFilter !== 'ALL' && (
+              <span className="bg-white px-2.5 py-0.5 rounded-lg border border-blue-200 font-bold text-[11px] text-blue-700">
+                Месяц: {periodFilter}
+              </span>
+            )}
+            {managerFilter !== 'ALL' && (
+              <span className="bg-white px-2.5 py-0.5 rounded-lg border border-blue-200 font-bold text-[11px] text-blue-700">
+                Менеджер ID: {managerFilter}
+              </span>
+            )}
+            {buildingFilter !== 'ALL' && (
+              <span className="bg-white px-2.5 py-0.5 rounded-lg border border-blue-200 font-bold text-[11px] text-blue-700">
+                Блок ID: {buildingFilter}
+              </span>
+            )}
+            {projectFilter !== 'ALL' && (
+              <span className="bg-white px-2.5 py-0.5 rounded-lg border border-blue-200 font-bold text-[11px] text-blue-700">
+                Проект ID: {projectFilter}
+              </span>
+            )}
+          </div>
+          <button
+            onClick={() => {
+              setStatusFilter('ALL');
+              setManagerFilter('ALL');
+              setBuildingFilter('ALL');
+              setPeriodFilter('ALL');
+              setProjectFilter('ALL');
+            }}
+            className="text-xs text-blue-700 hover:text-blue-950 underline font-bold cursor-pointer"
+          >
+            Сбросить фильтры
+          </button>
+        </div>
+      )}
 
       {/* Filters and Controls Toolbar */}
       <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-slate-200 bg-white p-3.5 shadow-xs">

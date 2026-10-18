@@ -5,6 +5,7 @@ import { BarChart3, PieChart, TrendingUp, Target } from 'lucide-react';
 export const AnalyticsTabs = () => {
   const tabs = [
     { label: 'Сводные отчеты', path: '/reports', icon: BarChart3 },
+    { label: 'Продажи и Спрос 3.5', path: '/analytics/sales', icon: TrendingUp },
     { label: 'Аналитика 1.0 (ЖК и Шахматка)', path: '/analytics/1', icon: PieChart },
     { label: 'Аналитика 2.0 (Продажи и Финансы)', path: '/analytics/2', icon: TrendingUp },
     { label: 'Аналитика 3.0 (Маркетинг и Лиды)', path: '/analytics/3', icon: Target },

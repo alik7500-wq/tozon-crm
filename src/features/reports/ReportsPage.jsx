@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { api } from '../../api/client';
 import { AnalyticsTabs } from '../../components/AnalyticsTabs';
 import {
@@ -15,10 +16,12 @@ import {
   UserCheck,
   CheckSquare,
   Loader2,
-  RefreshCw
+  RefreshCw,
+  ArrowRight
 } from 'lucide-react';
 
 export const ReportsPage = () => {
+  const navigate = useNavigate();
   const [data, setData] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
 
@@ -89,7 +92,12 @@ export const ReportsPage = () => {
               <div className="text-2xl font-black text-slate-900 mt-1">
                 ${financials.totalRevenue.toLocaleString('ru-RU')}
               </div>
-              <p className="text-xs text-slate-400 mt-1">Подписано договоров: {financials.signedDealsCount}</p>
+              <p
+                onClick={() => navigate('/deals?status=SIGNED')}
+                className="text-xs text-blue-600 hover:underline mt-1 font-semibold cursor-pointer"
+              >
+                Подписано договоров: {financials.signedDealsCount} →
+              </p>
             </div>
 
             <div className="rounded-3xl border border-emerald-200 bg-emerald-50/50 p-5 shadow-2xs">
@@ -113,6 +121,25 @@ export const ReportsPage = () => {
               <div className="text-2xl font-black text-purple-800 mt-1">{financials.conversionRate}%</div>
               <p className="text-xs text-purple-600 mt-1">Лид → Завершенная сделка</p>
             </div>
+          </div>
+
+          {/* Phase 3.5 Banner Link */}
+          <div className="rounded-2xl bg-gradient-to-r from-blue-600 to-indigo-700 p-4 text-white flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 shadow-sm">
+            <div>
+              <div className="text-sm font-extrabold flex items-center gap-2">
+                <TrendingUp className="h-4 w-4" />
+                <span>Сквозная аналитика продаж и спроса на квартиры (Phase 3.5)</span>
+              </div>
+              <p className="text-xs text-blue-100 mt-0.5">
+                Помесячный план-факт, 5-ступенчатая воронка, углубленные KPI менеджеров и реальный спрос из каталога
+              </p>
+            </div>
+            <button
+              onClick={() => navigate('/analytics/sales')}
+              className="px-4 py-2 bg-white text-blue-800 rounded-xl text-xs font-bold hover:bg-blue-50 transition shrink-0 cursor-pointer shadow-2xs"
+            >
+              Открыть аналитику 3.5 →
+            </button>
           </div>
 
           {/* Breakdown Overview */}
@@ -238,13 +265,34 @@ export const ReportsPage = () => {
                           {m.role === 'ADMIN' ? 'Администратор' : 'Менеджер'}
                         </span>
                       </td>
-                      <td className="p-3 text-center font-bold text-slate-800">{m.totalLeads}</td>
-                      <td className="p-3 text-center font-bold text-emerald-600">{m.dealsCount}</td>
+                      <td className="p-3 text-center">
+                        <button
+                          onClick={() => navigate('/leads')}
+                          className="font-bold text-slate-800 hover:text-blue-600 hover:underline cursor-pointer"
+                        >
+                          {m.totalLeads}
+                        </button>
+                      </td>
+                      <td className="p-3 text-center">
+                        <button
+                          onClick={() => navigate('/deals?status=SIGNED')}
+                          className="font-bold text-emerald-600 hover:underline cursor-pointer"
+                        >
+                          {m.dealsCount}
+                        </button>
+                      </td>
                       <td className="p-3 text-right font-black text-slate-900">
                         {m.salesVolume > 0 ? `$${m.salesVolume.toLocaleString('ru-RU')}` : '$0'}
                       </td>
                       <td className="p-3 text-center font-bold text-indigo-700">{m.conversionRate}%</td>
-                      <td className="p-3 text-center pr-4 font-bold text-amber-600">{m.openTasksCount}</td>
+                      <td className="p-3 text-center pr-4">
+                        <button
+                          onClick={() => navigate('/tasks?status=OPEN')}
+                          className="font-bold text-amber-600 hover:underline cursor-pointer"
+                        >
+                          {m.openTasksCount}
+                        </button>
+                      </td>
                     </tr>
                   ))}
                   {managersKPI.length === 0 && (

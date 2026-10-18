@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { api } from '../../api/client';
 import { useModalDismiss } from '../../hooks/useModalDismiss';
 import { matchSearchQuery } from '../../utils/searchUtils';
@@ -23,11 +24,26 @@ import {
 } from 'lucide-react';
 
 export const TasksPage = () => {
+  const [searchParams] = useSearchParams();
+  const initialDateFilter = searchParams.get('dateFilter') || 'ALL';
+  const initialStatusFilter = searchParams.get('status') || 'ALL';
+  const initialAssignedUserId = searchParams.get('assignedUserId') || 'ALL';
+
   const [tasks, setTasks] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [dateFilter, setDateFilter] = useState('ALL'); // ALL, TODAY, OVERDUE, COMPLETED
-  const [statusFilter, setStatusFilter] = useState('ALL'); // ALL, OPEN, COMPLETED
+  const [dateFilter, setDateFilter] = useState(initialDateFilter); // ALL, TODAY, OVERDUE, COMPLETED
+  const [statusFilter, setStatusFilter] = useState(initialStatusFilter); // ALL, OPEN, COMPLETED
+  const [assignedUserIdFilter, setAssignedUserIdFilter] = useState(initialAssignedUserId);
   const [search, setSearch] = useState('');
+
+  useEffect(() => {
+    const dFilter = searchParams.get('dateFilter');
+    if (dFilter) setDateFilter(dFilter);
+    const sFilter = searchParams.get('status');
+    if (sFilter) setStatusFilter(sFilter);
+    const uFilter = searchParams.get('assignedUserId');
+    if (uFilter) setAssignedUserIdFilter(uFilter);
+  }, [searchParams]);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -58,6 +74,7 @@ export const TasksPage = () => {
           search,
           status: statusFilter,
           dateFilter: dateFilter !== 'ALL' ? dateFilter : undefined,
+          assignedUserId: assignedUserIdFilter !== 'ALL' ? assignedUserIdFilter : undefined,
         },
       });
       const data = res.data?.tasks || res.tasks || [];
@@ -71,7 +88,7 @@ export const TasksPage = () => {
 
   useEffect(() => {
     fetchTasks();
-  }, [dateFilter, statusFilter]);
+  }, [dateFilter, statusFilter, assignedUserIdFilter]);
 
   const toggleTaskStatus = async (task) => {
     const nextStatus = task.status === 'COMPLETED' ? 'OPEN' : 'COMPLETED';
