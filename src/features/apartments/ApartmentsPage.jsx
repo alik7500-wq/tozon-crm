@@ -1,3 +1,4 @@
+import {formatMeasure, trimDecimalZeros} from '../../utils/numberDisplay';
 import React, { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { api } from '../../api/client';
@@ -25,12 +26,6 @@ import {
   Coins,
   DollarSign
 } from 'lucide-react';
-
-const trimDecimalZeros = (value) =>
-  String(value || '').replace(/\b([0-9]+)([.,])([0-9]+)\b/g, (_, whole, separator, fraction) => {
-    const clean = fraction.replace(/0+$/, '');
-    return clean ? whole + separator + clean : whole;
-  });
 
 export const ApartmentsPage = () => {
   const navigate = useNavigate();
@@ -270,7 +265,7 @@ export const ApartmentsPage = () => {
     return {
       total,
       availableCount: available.length,
-      availableArea: availableArea.toFixed(1),
+      availableArea: formatMeasure(availableArea),
       availableTotalVolume,
       reservedCount: reserved.length,
       soldCount: sold.length,
@@ -626,7 +621,7 @@ export const ApartmentsPage = () => {
                         {u.rooms === 0 ? 'Студия' : `${u.rooms}-комн.`}
                       </td>
                       <td className="p-3.5 font-bold text-slate-900">
-                        {u.areaM2.toFixed(2)} м²
+                        {formatMeasure(u.areaM2)} м²
                       </td>
                       <td className="p-3.5 font-extrabold text-blue-700">
                         {u.pricePerM2 > 0 ? `${u.pricePerM2.toLocaleString()} ${currency}` : '—'}

@@ -1,3 +1,4 @@
+import {formatMeasure} from '../../../utils/numberDisplay';
 import React from 'react';
 import { X, Home, Layers, CheckCircle2, User, Phone, MapPin, Maximize2 } from 'lucide-react';
 
@@ -65,7 +66,7 @@ export function SceneSelectionDrawer({
               </div>
               <div className="bg-slate-50 p-2.5 rounded-xl border border-slate-100">
                 <span className="text-[10px] font-semibold text-slate-400 block uppercase">Площадь</span>
-                <span className="text-sm font-bold text-slate-800">{unit.area_m2} м²</span>
+                <span className="text-sm font-bold text-slate-800">{formatMeasure(unit.area_m2)} м²</span>
               </div>
             </div>
 

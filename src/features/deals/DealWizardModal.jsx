@@ -1,3 +1,4 @@
+import {formatMeasure} from '../../utils/numberDisplay';
 import React, { useState, useEffect } from 'react';
 import { api } from '../../api/client';
 import { useModalDismiss } from '../../hooks/useModalDismiss';
@@ -559,7 +560,7 @@ export const DealWizardModal = ({
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
                     {filteredUnits.map((u) => {
                       const isSelected = selectedUnit?.id === u.id;
-                      const uArea = (u.area_m2_x100 / 100).toFixed(1);
+                      const uArea = formatMeasure(u.area_m2_x100 / 100);
 
                       return (
                         <div

@@ -1,3 +1,4 @@
+import {formatMeasure} from '../../../utils/numberDisplay';
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { api } from '../../../api/client';
@@ -248,7 +249,7 @@ export const ChessboardTab = ({ projectId, currency = 'USD', onOpenGenerator }) 
                             })
                             .map((unit) => {
                             const badge = getStatusBadge(unit.status);
-                            const areaM2 = (unit.area_m2_x100 / 100).toFixed(1);
+                            const areaM2 = formatMeasure(unit.area_m2_x100 / 100);
 
                             return (
                               <button

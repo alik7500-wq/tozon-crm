@@ -1,3 +1,4 @@
+import {formatMeasure, trimDecimalZeros} from '../../../utils/numberDisplay';
 import React, { useState, useEffect } from 'react';
 import { api } from '../../../api/client';
 import { useAuth } from '../../auth/AuthContext';
@@ -58,7 +59,7 @@ export const LayoutsTab = ({ projectId, currency = 'USD', onLayoutCreated }) => 
 
     try {
       await api.post(`/inventory/projects/${projectId}/layouts`, {
-        name: formData.name,
+        name: trimDecimalZeros(formData.name),
         code: formData.code,
         rooms: parseInt(formData.rooms, 10),
         area_m2_x100: Math.round(parseFloat(formData.area_m2) * 100),
@@ -139,7 +140,7 @@ export const LayoutsTab = ({ projectId, currency = 'USD', onLayoutCreated }) => 
             <div key={l.id} className="rounded-2xl bg-white border border-slate-200 p-5 shadow-xs hover:shadow-md transition">
               {l.image_path ? (
                 <div className="mb-4 h-40 w-full overflow-hidden rounded-xl bg-slate-100 border border-slate-200">
-                  <img src={l.image_path} alt={l.name} className="h-full w-full object-contain p-2" />
+                  <img src={l.image_path} alt={trimDecimalZeros(l.name)} className="h-full w-full object-contain p-2" />
                 </div>
               ) : (
                 <div className="mb-4 flex h-36 w-full items-center justify-center rounded-xl bg-slate-50 border border-dashed border-slate-200 text-slate-400">
@@ -156,10 +157,10 @@ export const LayoutsTab = ({ projectId, currency = 'USD', onLayoutCreated }) => 
                 </span>
               </div>
 
-              <h4 className="mt-2 text-base font-bold text-slate-900">{l.name}</h4>
+              <h4 className="mt-2 text-base font-bold text-slate-900">{trimDecimalZeros(l.name)}</h4>
 
               <div className="mt-3 flex items-center justify-between text-xs text-slate-600 border-t border-slate-100 pt-3">
-                <span>Площадь: <strong>{(l.area_m2_x100 / 100).toFixed(1)} м²</strong></span>
+                <span>Площадь: <strong>{formatMeasure(l.area_m2_x100 / 100)} м²</strong></span>
                 <span>Базовая: <strong>{(l.default_price_per_m2_minor / 100).toLocaleString()} {currency}/м²</strong></span>
               </div>
 
@@ -254,7 +255,7 @@ export const LayoutsTab = ({ projectId, currency = 'USD', onLayoutCreated }) => 
                   <label className="block text-xs font-semibold text-slate-700 mb-1">Площадь (м²)</label>
                   <input
                     type="number"
-                    step="0.1"
+                    step="0.01"
                     required
                     name="area_m2"
                     value={formData.area_m2}

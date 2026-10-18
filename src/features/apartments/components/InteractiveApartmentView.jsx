@@ -1,3 +1,4 @@
+import {formatMeasure, trimDecimalZeros} from '../../../utils/numberDisplay';
 import React, { useState, useEffect, useRef, lazy, Suspense } from 'react';
 import { ApartmentImageViewer } from './ApartmentImageViewer';
 import { api } from '../../../api/client';
@@ -28,16 +29,6 @@ import {
   Tag,
   ArrowRight
 } from 'lucide-react';
-
-const formatMeasure = value => {
-  if (value === null || value === undefined || value === '') return '—';
-  const number = Number(value);
-  return Number.isFinite(number) ? number.toLocaleString('ru-RU', { maximumFractionDigits: 2 }) : String(value);
-};
-const trimDecimalZeros = value => String(value || '').replace(/\b([0-9]+)([.,])([0-9]+)\b/g, (_, whole, separator, fraction) => {
-  const clean = fraction.replace(/0+$/, '');
-  return clean ? whole + separator + clean : whole;
-});
 
 export const InteractiveApartmentView = ({
   unitId,
@@ -350,7 +341,7 @@ export const InteractiveApartmentView = ({
 
               {getText(layout?.description_tg, layout?.description_ru || layout?.description) && (
                 <p className="text-sm text-slate-600 leading-relaxed whitespace-pre-line">
-                  {getText(layout?.description_tg, layout?.description_ru || layout?.description)}
+                  {trimDecimalZeros(getText(layout?.description_tg, layout?.description_ru || layout?.description))}
                 </p>
               )}
 
@@ -362,7 +353,7 @@ export const InteractiveApartmentView = ({
                   {rooms.map((r) => {
                     const isSelected = selectedRoomId === r.id;
                     const name = getText(r.name_tg, r.name_ru);
-                    const desc = getText(r.description_tg, r.description_ru);
+                    const desc = trimDecimalZeros(getText(r.description_tg, r.description_ru));
 
                     return (
                       <div

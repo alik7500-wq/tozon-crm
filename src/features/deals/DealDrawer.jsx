@@ -1,3 +1,4 @@
+import {formatMeasure} from '../../utils/numberDisplay';
 import React, { useState, useEffect } from 'react';
 import { api } from '../../api/client';
 import { formatContractNumber } from '../../utils/formatters';
@@ -855,7 +856,7 @@ export const DealDrawer = ({
                     <div>
                       <span className="text-slate-500 text-[11px] block">Комнат / Площадь:</span>
                       <strong className="text-slate-900">
-                        {deal.unit_rooms} комн. • {(deal.area_m2_x100 / 100).toFixed(2)} м²
+                        {deal.unit_rooms} комн. • {formatMeasure(deal.area_m2_x100 / 100)} м²
                       </strong>
                     </div>
                     <div>

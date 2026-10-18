@@ -1,3 +1,4 @@
+import {formatMeasure} from '../../../utils/numberDisplay';
 import React from 'react';
 import { Home, Layers, CheckCircle2, Clock, Lock, Sparkles } from 'lucide-react';
 
@@ -76,7 +77,7 @@ export function SceneTooltip({
             <div className="flex items-center justify-between text-slate-300">
               <span className="text-slate-400">Комнат / Площадь:</span>
               <span className="font-semibold text-slate-200">
-                {unit.rooms ? `${unit.rooms}-комн.` : 'Студия'} • {unit.area_m2} м²
+                {unit.rooms ? `${unit.rooms}-комн.` : 'Студия'} • {formatMeasure(unit.area_m2)} м²
               </span>
             </div>
 

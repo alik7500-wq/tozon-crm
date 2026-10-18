@@ -1,3 +1,4 @@
+import {formatMeasure} from '../../utils/numberDisplay';
 import { defaultPrintLanguage } from '../settings/InterfaceSettingsTab';
 import { TemplateDocumentButton } from '../settings/TemplateDocumentButton';
 import { dealDocumentContext } from '../settings/documentTemplates';
@@ -95,9 +96,9 @@ export const PaymentSchedulePrintView = ({ deal, onClose, initialLang = defaultP
   const currencyShort = currency === 'USD' ? 'USD' : 'TJS';
 
   const areaM2 = deal.area_m2_x100
-    ? (deal.area_m2_x100 / 100).toLocaleString('ru-RU', { minimumFractionDigits: 1, maximumFractionDigits: 2 })
+    ? formatMeasure(deal.area_m2_x100 / 100)
     : deal.unit_area
-    ? Number(deal.unit_area).toLocaleString('ru-RU', { minimumFractionDigits: 1, maximumFractionDigits: 2 })
+    ? formatMeasure(deal.unit_area)
     : '0';
 
   const pricePerM2 = formatMoney(

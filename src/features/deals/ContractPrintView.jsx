@@ -1,3 +1,4 @@
+import {formatMeasure} from '../../utils/numberDisplay';
 import { defaultPrintLanguage } from '../settings/InterfaceSettingsTab';
 import { TemplateDocumentButton } from '../settings/TemplateDocumentButton';
 import { dealDocumentContext } from '../settings/documentTemplates';
@@ -214,9 +215,9 @@ export const ContractPrintView = ({ deal: initialDeal, onClose, initialLang = de
   const advanceDate = dealDate;
 
   const areaM2 = deal.area_m2_x100
-    ? (deal.area_m2_x100 / 100).toLocaleString('ru-RU', { minimumFractionDigits: 1, maximumFractionDigits: 2 })
+    ? formatMeasure(deal.area_m2_x100 / 100)
     : deal.unit_area
-    ? Number(deal.unit_area).toLocaleString('ru-RU', { minimumFractionDigits: 1, maximumFractionDigits: 2 })
+    ? formatMeasure(deal.unit_area)
     : '0';
 
   const resolveDealPricePerM2 = (dealObj) => {

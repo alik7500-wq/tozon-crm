@@ -1,3 +1,4 @@
+import {formatMeasure} from '../../utils/numberDisplay';
 import React, { useState, useEffect } from 'react';
 import { api } from '../../api/client';
 import { useModalDismiss } from '../../hooks/useModalDismiss';
@@ -204,7 +205,7 @@ export const ReserveApartmentModal = ({
                 </span>
               </div>
               <p className="text-[11px] text-slate-500 mt-0.5">
-                {projectName} • {buildingName} • {unit.rooms === 0 ? 'Студия' : `${unit.rooms} комн.`} • {areaM2.toFixed(1)} м² • Базовая цена: {defaultPricePerM2} {currency}/м²
+                {projectName} • {buildingName} • {unit.rooms === 0 ? 'Студия' : `${unit.rooms} комн.`} • {formatMeasure(areaM2)} м² • Базовая цена: {defaultPricePerM2} {currency}/м²
               </p>
             </div>
           </div>
@@ -485,7 +486,7 @@ export const ReserveApartmentModal = ({
                 <div className="flex items-center justify-between text-[11px]">
                   <span className="text-slate-600 font-semibold">Объект и квартира:</span>
                   <span className="font-black text-slate-900">
-                    {projectName}, Кв. №{unit.unit_number} ({areaM2.toFixed(1)} м²)
+                    {projectName}, Кв. №{unit.unit_number} ({formatMeasure(areaM2)} м²)
                   </span>
                 </div>
                 <div className="flex items-center justify-between text-[11px]">

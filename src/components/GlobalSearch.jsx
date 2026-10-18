@@ -1,3 +1,4 @@
+import {formatMeasure} from '../utils/numberDisplay';
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { api } from '../api/client';
@@ -365,7 +366,7 @@ export const GlobalSearch = () => {
                             </div>
                             <p className="text-[11px] text-slate-500 mt-0.5 flex items-center gap-2">
                               <span>{unit.rooms === 0 ? 'Студия' : `${unit.rooms}-комн.`}</span>
-                              <span>• {unit.area_m2} м²</span>
+                              <span>• {formatMeasure(unit.area_m2)} м²</span>
                               {unit.floor_number && <span>• {unit.floor_number} этаж</span>}
                               {unit.project_name && <span>• {unit.project_name}</span>}
                             </p>

@@ -1,3 +1,4 @@
+import {formatMeasure} from '../../../../utils/numberDisplay';
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import {
   ArrowLeft,
@@ -316,7 +317,7 @@ export function MeshMappingManager({
                     Квартира №{prop.unit.unit_number || prop.unit.number}
                   </span>
                   <span className="text-slate-400 text-[11px]">
-                    ({prop.unit.rooms}-комн., {prop.unit.area_m2_x100 ? prop.unit.area_m2_x100 / 100 : prop.unit.area_m2} м²)
+                    ({prop.unit.rooms}-комн., {formatMeasure(prop.unit.area_m2_x100 ? prop.unit.area_m2_x100 / 100 : prop.unit.area_m2)} м²)
                   </span>
                 </div>
 
