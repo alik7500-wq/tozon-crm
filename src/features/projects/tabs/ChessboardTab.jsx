@@ -236,7 +236,7 @@ export const ChessboardTab = ({ projectId, currency = 'USD', onOpenGenerator }) 
                   <div className="min-w-0 space-y-2">
                     {section.floors
                       ?.slice()
-                      .sort((a, b) => Number(a.floor_number) - Number(b.floor_number))
+                      .sort((a, b) => Number(b.floor_number) - Number(a.floor_number))
                       .map((floor) => (
                       <div key={floor.id} className="flex min-w-0 items-center gap-3">
                         {/* Floor Number Header Box */}
