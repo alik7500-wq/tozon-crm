@@ -26,8 +26,10 @@ import {
   DollarSign,
   PieChart,
   Eye,
-  Check
+  Check,
+  ShieldAlert
 } from 'lucide-react';
+import { SalesControlPanel } from './SalesControlPanel';
 
 export const SalesAnalyticsPage = () => {
   const { user } = useAuth();
@@ -320,11 +322,24 @@ export const SalesAnalyticsPage = () => {
           >
             Спрос на квартиры
           </button>
+          <button
+            onClick={() => setActiveTab('control')}
+            className={`px-3 py-1.5 rounded-lg text-xs font-bold transition cursor-pointer flex items-center gap-1.5 ${
+              activeTab === 'control'
+                ? 'bg-blue-600 text-white shadow-2xs'
+                : 'text-slate-600 hover:text-slate-900'
+            }`}
+          >
+            <ShieldAlert className="h-3 w-3" />
+            <span>Контроль продаж</span>
+          </button>
         </div>
       </div>
 
       {/* Main Content Area */}
-      {isLoading ? (
+      {activeTab === 'control' ? (
+        <SalesControlPanel />
+      ) : isLoading ? (
         <div className="flex flex-col items-center justify-center p-20 bg-white rounded-3xl border border-slate-200">
           <Loader2 className="h-8 w-8 animate-spin text-blue-600 mb-3" />
           <p className="text-sm font-semibold text-slate-600">Сборка аналитических показателей...</p>

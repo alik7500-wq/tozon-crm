@@ -61,6 +61,21 @@ export const LeadDrawer = ({ isOpen, onClose, leadId, onLeadUpdated, onEditLead 
   const [offerModalUnit, setOfferModalUnit] = useState(null);
   const [reserveModalUnit, setReserveModalUnit] = useState(null);
   const [isDeletingInterestUnitId, setIsDeletingInterestUnitId] = useState(null);
+  const [unitAlternatives, setUnitAlternatives] = useState({});
+  const [loadingAlternativesUnitId, setLoadingAlternativesUnitId] = useState(null);
+
+  const fetchAlternatives = async (unitId) => {
+    try {
+      setLoadingAlternativesUnitId(unitId);
+      const res = await api.get(`/inventory/units/${unitId}/alternatives`);
+      const list = res.data?.alternatives || res.alternatives || [];
+      setUnitAlternatives(prev => ({ ...prev, [unitId]: list }));
+    } catch (err) {
+      console.warn('Failed to load alternatives:', err);
+    } finally {
+      setLoadingAlternativesUnitId(null);
+    }
+  };
 
   const { requestClose } = useModalDismiss({
     isOpen: Boolean(isOpen && leadId),
@@ -904,6 +919,61 @@ export const LeadDrawer = ({ isOpen, onClose, leadId, onLeadUpdated, onEditLead 
                                 </div>
                               )}
                             </div>
+
+                            {/* Alternative Units Advisory for Sold/Reserved Unit */}
+                            {u.status !== 'AVAILABLE' && (
+                              <div className="bg-amber-50/70 border border-amber-200/80 rounded-xl p-3 space-y-2">
+                                <div className="flex items-center justify-between">
+                                  <div className="flex items-center gap-1.5 text-xs font-bold text-amber-900">
+                                    <Sparkles className="h-4 w-4 text-amber-600 shrink-0" />
+                                    <span>
+                                      {u.status === 'SOLD' ? 'Квартира продана' : 'Квартира в брони'} — Рекомендуемые альтернативы
+                                    </span>
+                                  </div>
+                                  {!unitAlternatives[u.id] && (
+                                    <button
+                                      type="button"
+                                      onClick={() => fetchAlternatives(u.id)}
+                                      disabled={loadingAlternativesUnitId === u.id}
+                                      className="px-2.5 py-1 rounded-lg bg-amber-600 hover:bg-amber-700 text-white font-bold text-[10px] transition cursor-pointer"
+                                    >
+                                      {loadingAlternativesUnitId === u.id ? 'Поиск...' : 'Подобрать похожие'}
+                                    </button>
+                                  )}
+                                </div>
+
+                                {unitAlternatives[u.id] && (
+                                  unitAlternatives[u.id].length === 0 ? (
+                                    <p className="text-[11px] text-amber-700 italic">Свободных квартир с близкими параметрами (комнатность, площадь ±20%) не найдено.</p>
+                                  ) : (
+                                    <div className="space-y-1.5 pt-1">
+                                      {unitAlternatives[u.id].map(alt => (
+                                        <div key={alt.id} className="flex items-center justify-between bg-white p-2 rounded-lg border border-amber-100 text-xs">
+                                          <div>
+                                            <span className="font-bold text-slate-900">Кв. №{alt.unit_number}</span>
+                                            <span className="text-slate-500 text-[11px] ml-1.5">
+                                              {alt.rooms} комн. • {alt.areaM2} м² • ${alt.totalPrice.toLocaleString()} ({alt.building_name}, {alt.floor_number} эт.)
+                                            </span>
+                                          </div>
+                                          <div className="flex items-center gap-1.5">
+                                            <span className="px-1.5 py-0.5 rounded bg-emerald-50 text-emerald-700 font-bold text-[9px]">
+                                              {alt.matchScore}%
+                                            </span>
+                                            <button
+                                              type="button"
+                                              onClick={() => setSelectedDetailUnitId(alt.id)}
+                                              className="px-2 py-0.5 rounded bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-[10px] transition cursor-pointer"
+                                            >
+                                              Карточка
+                                            </button>
+                                          </div>
+                                        </div>
+                                      ))}
+                                    </div>
+                                  )
+                                )}
+                              </div>
+                            )}
 
                             {/* Actions Bar */}
                             <div className="flex items-center justify-between gap-2 pt-1">
