@@ -230,7 +230,7 @@ export const ChessboardTab = ({ projectId, currency = 'USD', onOpenGenerator }) 
               {building.sections.map((section) => (
                 <div key={section.id} className="rounded-2xl bg-white border border-slate-200 p-5 shadow-xs overflow-x-auto">
                   <div className="mb-4 text-xs font-bold text-slate-500 uppercase tracking-wider">
-                    {section.name}
+                    {String(section.name || '').replace(/^секция(?=\s|$)/i, 'Подъезд')}
                   </div>
 
                   <div className="min-w-0 space-y-2">
