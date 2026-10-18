@@ -952,8 +952,8 @@ export const ExpensesPage = () => {
       {/* Admin Edit Modal */}
       {canWrite && editingItem && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs animate-in fade-in">
-          <div className="relative w-full max-w-md overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-2xl">
-            <div className="flex items-center justify-between border-b border-slate-100 bg-slate-900 px-6 py-4 text-white">
+          <div className="relative flex max-h-[calc(100dvh-2rem)] w-full max-w-md flex-col overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-2xl">
+            <div className="flex shrink-0 items-center justify-between border-b border-slate-100 bg-slate-900 px-6 py-4 text-white">
               <div className="flex items-center gap-2.5">
                 <Edit className="h-5 w-5 text-amber-400" />
                 <div>
@@ -980,7 +980,7 @@ export const ExpensesPage = () => {
                 cash_desk_id: resolved?.id || editingItem.cash_desk_id || null,
                 description: finalDesc
               });
-            }} className="p-6 space-y-3.5 text-xs max-h-[80vh] overflow-auto">
+            }} className="min-h-0 flex-1 overflow-y-auto overscroll-contain p-6 space-y-3.5 text-xs">
               <ExpenseSettlementFields value={editingItem} onChange={patch=>setEditingItem(f=>({...f,...patch}))} parties={settlementOptions?.parties||[]} loading={settlementLoading} error={settlementError} disabled={updateMutation.isPending}/>
               <div className="grid grid-cols-3 gap-3">
                 <div className="col-span-2">
@@ -1127,9 +1127,9 @@ export const ExpensesPage = () => {
       {/* Modal: New Expense Order (РКО) */}
       {canCreate && showAddModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-slate-900/60 backdrop-blur-xs animate-in fade-in">
-          <div className="relative w-full max-w-2xl overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-2xl">
+          <div className="relative flex max-h-[calc(100dvh-2rem)] w-full max-w-2xl flex-col overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-2xl">
             {/* Modal Header */}
-            <div className="flex items-center justify-between border-b border-slate-100 bg-gradient-to-r from-slate-900 via-slate-800 to-slate-900 px-5 py-3 text-white">
+            <div className="flex shrink-0 items-center justify-between border-b border-slate-100 bg-gradient-to-r from-slate-900 via-slate-800 to-slate-900 px-5 py-3 text-white">
               <div className="flex items-center gap-2.5">
                 <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-rose-500/20 text-rose-400 border border-rose-500/30">
                   <TrendingDown className="h-4 w-4" />
@@ -1149,7 +1149,7 @@ export const ExpensesPage = () => {
 
             {/* Mode Switcher Tabs */}
             {!isManager && canWriteSection(user, 'finance.cashflow') ? (
-              <div className="flex rounded-2xl bg-slate-100 p-1 mx-4 sm:mx-5 mt-3 border border-slate-200">
+              <div className="flex shrink-0 rounded-2xl bg-slate-100 p-1 mx-4 sm:mx-5 mt-3 border border-slate-200">
                 <button
                   type="button"
                   onClick={() => setIsTransfer(false)}
@@ -1178,7 +1178,7 @@ export const ExpensesPage = () => {
 
             {isTransfer ? (
               /* Internal Transfer Form */
-              <form onSubmit={handleTransferSubmit} className="p-4 sm:p-5 space-y-3 text-xs">
+              <form onSubmit={handleTransferSubmit} className="min-h-0 flex-1 overflow-y-auto overscroll-contain p-4 sm:p-5 space-y-3 text-xs">
                 {/* Source and Destination Desks */}
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 p-3 bg-blue-50/50 rounded-2xl border border-blue-200/70">
                   <div>
@@ -1375,7 +1375,7 @@ export const ExpensesPage = () => {
               </form>
             ) : (
               /* Modal Form */
-              <form onSubmit={handleSubmit} noValidate className="p-4 sm:p-5 space-y-3 text-xs">
+              <form onSubmit={handleSubmit} noValidate className="min-h-0 flex-1 overflow-y-auto overscroll-contain p-4 sm:p-5 space-y-3 text-xs">
                 <ExpenseSettlementFields value={formData} onChange={patch=>setFormData(f=>({...f,...patch}))} parties={settlementOptions?.parties||[]} loading={settlementLoading} error={settlementError} disabled={addMutation.isPending}/>
                 {canAllocateCosts && <>
                   {costOptionsError && <p role="alert" className="text-amber-800">Не удалось загрузить блоки. РКО можно сохранить нераспределённым и отнести на блок позднее.</p>}
