@@ -1,3 +1,4 @@
+import { getUnitTitle, getUnitKindLabel } from '../../utils/unitKind';
 import {formatMeasure} from '../../utils/numberDisplay';
 import React from 'react';
 import {
@@ -143,7 +144,7 @@ export const DealsKanbanView = ({
                           {deal.project_name}
                         </div>
                         <div className="text-slate-500">
-                          Кв. <strong className="text-blue-700">№{deal.unit_number}</strong> • {deal.unit_rooms} комн., {areaM2} м² ({deal.floor_number} эт.)
+                          {getUnitTitle(deal)} <strong className="text-blue-700">№{deal.unit_number}</strong> • {getUnitKindLabel(deal)}, {areaM2} м² ({deal.floor_number} эт.)
                         </div>
                       </div>
 

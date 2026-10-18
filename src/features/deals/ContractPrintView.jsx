@@ -1,3 +1,4 @@
+import { getUnitTitle, isNonResidentialUnit, getUnitKind } from '../../utils/unitKind';
 import {formatMeasure} from '../../utils/numberDisplay';
 import { defaultPrintLanguage } from '../settings/InterfaceSettingsTab';
 import { TemplateDocumentButton } from '../settings/TemplateDocumentButton';
@@ -49,6 +50,12 @@ export const ContractPrintView = ({ deal: initialDeal, onClose, initialLang = de
   if (!initialDeal) return null;
 
   const deal = asyncDeal || initialDeal;
+  const nonResidential = isNonResidentialUnit(deal);
+  const parking = getUnitKind(deal) === 'PARKING';
+  const ruObject = nonResidential ? (parking ? 'машино-место' : 'коммерческое помещение') : 'квартиру';
+  const ruGenitive = nonResidential ? (parking ? 'машино-места' : 'коммерческого помещения') : 'квартиры';
+  const tjObject = nonResidential ? (parking ? 'ҷойи таваққуф' : 'бинои ғайриистиқоматӣ') : 'хона';
+
 
   const handlePrint = () => {
     window.print();
@@ -376,11 +383,13 @@ export const ContractPrintView = ({ deal: initialDeal, onClose, initialLang = de
             </div>
 
             {/* Print Button */}
+            {!nonResidential && <>
             <TemplateDocumentButton kind={activeTab === 'SCHEDULE' ? 'SCHEDULE' : 'CONTRACT'} language={lang} projectId={deal.project_id} context={dealDocumentContext(deal)}/>
             <TemplateDocumentButton kind="ACT" label="Акт Word" language={lang} projectId={deal.project_id} context={dealDocumentContext(deal)}/>
             <TemplateDocumentButton kind="OFFER" label="Предложение Word" language={lang} projectId={deal.project_id} context={dealDocumentContext(deal)}/>
             <TemplateDocumentButton kind="APARTMENT" label="Квартира Word" language={lang} projectId={deal.project_id} context={dealDocumentContext(deal)}/>
             {deal.status === 'RESERVED' && <TemplateDocumentButton kind="RESERVATION" label="Бронь Word" language={lang} projectId={deal.project_id} context={dealDocumentContext(deal)}/>}
+            </>}
             <button
               onClick={handlePrint}
               className="flex items-center gap-2 rounded-xl bg-blue-600 hover:bg-blue-700 px-4 py-2 text-xs font-bold text-white shadow-md transition cursor-pointer"
@@ -400,11 +409,11 @@ export const ContractPrintView = ({ deal: initialDeal, onClose, initialLang = de
               <h1 className="text-base sm:text-lg font-black tracking-tight uppercase text-slate-950 leading-snug">
                 {isTJ ? (
                   <>
-                    ШАРТНОМАИ ИШТИРОКИ ҲИССАГУЗОРӢ ДАР СОХТМОНИ БИНОИ ИСТИҚОМАТӢ № <u className="font-mono">{displayContractNumber(deal.contract_number)}</u>
+                    {nonResidential ? `ШАРТНОМА ОИД БА ${tjObject.toUpperCase()}` : 'ШАРТНОМАИ ИШТИРОКИ ҲИССАГУЗОРӢ ДАР СОХТМОНИ БИНОИ ИСТИҚОМАТӢ'} № <u className="font-mono">{displayContractNumber(deal.contract_number)}</u>
                   </>
                 ) : (
                   <>
-                    ДОГОВОР ДОЛЕВОГО УЧАСТИЯ В СТРОИТЕЛЬСТВЕ ЖИЛОГО ДОМА № <u className="font-mono">{displayContractNumber(deal.contract_number)}</u>
+                    {nonResidential ? `ДОГОВОР НА ${ruObject.toUpperCase()}` : 'ДОГОВОР ДОЛЕВОГО УЧАСТИЯ В СТРОИТЕЛЬСТВЕ ЖИЛОГО ДОМА'} № <u className="font-mono">{displayContractNumber(deal.contract_number)}</u>
                   </>
                 )}
               </h1>
@@ -422,11 +431,11 @@ export const ContractPrintView = ({ deal: initialDeal, onClose, initialLang = de
             <div className="text-justify text-xs sm:text-[13px] leading-relaxed">
               {isTJ ? (
                 <p>
-                  <strong>ҶДММ «Тозон»,</strong> дар симои Роҳбари иншооти «TOZON PLAZA» дар шаҳри Хуҷанд <strong>Абдуллоев Акмалхон Раҳматуллоевич,</strong> ки дар асоси Ваколатномаи № 2 амал менамояд минбаъд, «Ширкати сохтмонӣ» номида мешавад аз як тараф ва аз дигар тараф шаҳрванди Ҷумҳурии Тоҷикистон, <strong><u>{deal.lead_name || deal.buyer_name || 'Муҳаммадизода Мирзокарим Мирзоғафур'}</u></strong> дар оянда «<strong>Ҳиссагузор</strong>» дорандаи шиносномаи <strong><u>{deal.passport_series ? `${deal.passport_series} ` : ''}{deal.passport_number || 'А 03195738'}</u></strong>, ки аз тарафи <strong><u>{deal.passport_issued_by || 'ШВКД дар ноҳияи Кӯҳистони Мастчоҳ'}</u></strong>, санаи <strong><u>{formatDate(deal.passport_issue_date) || '14.02.2020'}</u></strong> сол дода шудааст, сокини <strong><u>{deal.registration_address || 'вилояти Суғд, Кӯҳистони Мастчоҳ, ҷамоати Иван Тоҷик, деҳаи Ревомутк'}</u></strong>, РМА (ИНН) <strong><u>{deal.inn || '___________'}</u></strong>, дар якҷоягӣ «<strong>Тарафҳо</strong>» номида мешаванд, дар натиҷаи машварати гузаронида шуда, бо назардошти талаботи боби 60 Кодекси мадании Ҷумҳурии Тоҷикистон бо мақсади фаъолияти якҷоя, шартномаи зеринро бастанд:
+                  <strong>ҶДММ «Тозон»,</strong> дар симои Роҳбари иншооти «TOZON PLAZA» дар шаҳри Хуҷанд <strong>Абдуллоев Акмалхон Раҳматуллоевич,</strong> ки дар асоси Ваколатномаи № 2 амал менамояд минбаъд, «Ширкати сохтмонӣ» номида мешавад аз як тараф ва аз дигар тараф шаҳрванди Ҷумҳурии Тоҷикистон, <strong><u>{deal.lead_name || deal.buyer_name || '____________________'}</u></strong> дар оянда «<strong>Ҳиссагузор</strong>» дорандаи шиносномаи <strong><u>{deal.passport_series ? `${deal.passport_series} ` : ''}{deal.passport_number || '________'}</u></strong>, ки аз тарафи <strong><u>{deal.passport_issued_by || '____________________'}</u></strong>, санаи <strong><u>{formatDate(deal.passport_issue_date) || '14.02.2020'}</u></strong> сол дода шудааст, сокини <strong><u>{deal.registration_address || '____________________'}</u></strong>, РМА (ИНН) <strong><u>{deal.inn || '___________'}</u></strong>, дар якҷоягӣ «<strong>Тарафҳо</strong>» номида мешаванд, дар натиҷаи машварати гузаронида шуда, бо назардошти талаботи боби 60 Кодекси мадании Ҷумҳурии Тоҷикистон бо мақсади фаъолияти якҷоя, шартномаи зеринро бастанд:
                 </p>
               ) : (
                 <p>
-                  <strong>{cleanCompanyName(deal.developer_name)}</strong>, в лице директора <strong>{deal.developer_director || 'Иброгимова Илхомджона Мукимовича'}</strong>, действующего на основании Устава, именуемое в дальнейшем «<strong>Строительная компания</strong>», с одной стороны, и гражданин Республики Таджикистан <strong><u>{deal.lead_name || deal.buyer_name || '____________________'}</u></strong>, в дальнейшем именуемый(ая) «<strong>Дольщик</strong>», паспорт: <strong><u>{deal.passport_series ? `серия ${deal.passport_series} ` : ''}№ {deal.passport_number || '________'}</u></strong>, выдан <strong><u>{deal.passport_issued_by || '____________________'}</u></strong>, дата выдачи <strong><u>{formatDate(deal.passport_issue_date) || '_________'}</u></strong> г., проживающий(ая) по адресу: <strong><u>{deal.registration_address || '____________________'}</u></strong>, ИНН: <strong><u>{deal.inn || '__________'}</u></strong>, совместно именуемые «<strong>Стороны</strong>», заключили настоящий Договор о нижеследующем:
+                  <strong>{cleanCompanyName(deal.developer_name)}</strong>, в лице Руководителя объекта «TOZON PLAZA» в городе Худжанде <strong>Абдуллоева Акмалхона Рахматуллоевича</strong>, действующего на основании Доверенности № 2, именуемое в дальнейшем «<strong>Строительная компания</strong>», с одной стороны, и гражданин Республики Таджикистан <strong><u>{deal.lead_name || deal.buyer_name || '____________________'}</u></strong>, в дальнейшем именуемый(ая) «<strong>Дольщик</strong>», паспорт: <strong><u>{deal.passport_series ? `серия ${deal.passport_series} ` : ''}№ {deal.passport_number || '________'}</u></strong>, выдан <strong><u>{deal.passport_issued_by || '____________________'}</u></strong>, дата выдачи <strong><u>{formatDate(deal.passport_issue_date) || '_________'}</u></strong> г., проживающий(ая) по адресу: <strong><u>{deal.registration_address || '____________________'}</u></strong>, ИНН: <strong><u>{deal.inn || '__________'}</u></strong>, совместно именуемые «<strong>Стороны</strong>», заключили настоящий Договор о нижеследующем:
                 </p>
               )}
             </div>
@@ -466,7 +475,7 @@ export const ContractPrintView = ({ deal: initialDeal, onClose, initialLang = de
               </ul>
               <p className="pl-4">
                 {isTJ
-                  ? '1.1.3. Хонаи бисёрошёна ҳамчун иштирокчии сохтмони ҳиссавӣ баъди қабули санади комиссияи давлатӣ ба «Ҳиссагузор» супорида мешавад.'
+                  ? (nonResidential ? `1.1.3. ${getUnitTitle(deal, 'TJ')} баъди қабули санади комиссияи давлатӣ ба «Ҳиссагузор» супорида мешавад.` : '1.1.3. Хонаи бисёрошёна ҳамчун иштирокчии сохтмони ҳиссавӣ баъди қабули санади комиссияи давлатӣ ба «Ҳиссагузор» супорида мешавад.')
                   : '1.1.3. Объект передается «Дольщику» после подписания акта государственной приемочной комиссии.'}
               </p>
             </div>
@@ -477,7 +486,15 @@ export const ContractPrintView = ({ deal: initialDeal, onClose, initialLang = de
                 {isTJ ? '2. МАТЛАБИ ШАРТНОМА' : '2. ПРЕДМЕТ ДОГОВОРА'}
               </h4>
               <p>
-                {isTJ ? (
+                {nonResidential ? (
+                  <>
+                    {isTJ ? '2.1. Мавзӯи шартнома — иштироки ҳиссавӣ дар сохтмон ва супоридани' : '2.1. Предмет договора — долевое участие в строительстве и передача объекта:'} <strong>{getUnitTitle(deal, lang)} №{deal.unit_number || '—'}</strong>.
+                    {' '}{deal.project_address || deal.project_name || '—'}, {deal.building_name || deal.section_name || '—'};
+                    {' '}{isTJ ? 'қабат' : 'этаж'} <strong>{deal.floor_number ?? '—'}</strong>;
+                    {' '}{isTJ ? 'масоҳат' : 'площадь'} <strong>{areaM2} м²</strong>.
+                    {parking && (isTJ ? ' Масоҳати гузаргоҳҳои умумӣ ба масоҳати ҷойи фурӯш дохил намешавад.' : ' Площадь общих проездов не включена в площадь продаваемого места.')}
+                  </>
+                ) : isTJ ? (
                   <>
                     2.1. «Тарафҳо» оиди тайёр намудан ва дар оянда ба имзо расонидани шартномаи сохтмони шарикии хонаи бисёрошёна, ки дар суроғаи <strong><u>{deal.project_address || deal.project_name || 'шаҳри Хуҷанд, кӯчаи Бахтиёр Ёқубов'}</u></strong> ҷойгир мебошад, аҳду паймон кардаанд. Дар асоси шартнома «Ширкати сохтмонӣ» сармаблағгузор баромад менамояд ва «Ҳиссагузор» ҳамчун маблағгузор баромад менамояд ва дар оянда «Ҳиссагузор» соҳибмулки хонаи <strong><u>{deal.unit_rooms || '—'}</u></strong> ҳуҷрагӣ, <strong><u>{deal.building_name ? `Блоки ${deal.building_name}` : deal.section_name ? `Сексияи ${deal.section_name}` : 'Блоки А'}</u></strong>, қабати <strong><u>{deal.floor_number || '—'}</u></strong>, рақами хонаи <strong><u>{deal.unit_number || '—'}</u></strong> бо масоҳати тахминии <strong><u>{areaM2}</u></strong> м.кв. ҷойгир мебошад эътироф мешавад.
                   </>
@@ -495,32 +512,37 @@ export const ContractPrintView = ({ deal: initialDeal, onClose, initialLang = de
                 {isTJ ? '3. НАРХИ ШАРТНОМА' : '3. ЦЕНА ДОГОВОРА'}
               </h4>
               <p>
-                {isTJ ? (
+                {nonResidential ? (
+                  <>
+                    {isTJ ? `3.1. Нархи 1 м² ${tjObject}:` : `3.1. Цена 1 м² ${ruGenitive}:`} <strong>{rawPricePerM2.toLocaleString('ru-RU', { maximumFractionDigits: 2 })} {currency}</strong>.
+                    {' '}{isTJ ? 'Маблағи умумии шартнома:' : 'Общая стоимость по договору:'} <strong>{finalPrice} {currency}</strong>.
+                  </>
+                ) : isTJ ? (
                   exchangeRate && exchangeRate > 0 ? (
                     <>
-                      3.1. Бо маслиҳати «Тарафҳо» нархи 1 м.кв. хонаи истиқоматиро ба <strong><u>{tjsPrice.toLocaleString('ru-RU')} ({tjsPriceWords}) сомонӣ</u></strong>, ки ин <strong><u>{usdPrice.toLocaleString('ru-RU')} ({usdPriceWords}) доллари ИМА</u></strong> аз рӯи қурби имрӯзаи бонк {exchangeRate.toLocaleString('ru-RU', { minimumFractionDigits: 2, maximumFractionDigits: 4 })} сомонӣ нисбати 1 доллари ИМА, ба ҳолати рӯзи имзогузории шартномаи мазкур ташкил медиҳад нархгузорӣ намудаанд.
+                      3.1. Бо маслиҳати «Тарафҳо» нархи 1 м.кв. {nonResidential ? `${tjObject}ро` : 'хонаи истиқоматиро'} ба <strong><u>{tjsPrice.toLocaleString('ru-RU')} ({tjsPriceWords}) сомонӣ</u></strong>, ки ин <strong><u>{usdPrice.toLocaleString('ru-RU')} ({usdPriceWords}) доллари ИМА</u></strong> аз рӯи қурби имрӯзаи бонк {exchangeRate.toLocaleString('ru-RU', { minimumFractionDigits: 2, maximumFractionDigits: 4 })} сомонӣ нисбати 1 доллари ИМА, ба ҳолати рӯзи имзогузории шартномаи мазкур ташкил медиҳад нархгузорӣ намудаанд.
                     </>
                   ) : (
                     <>
-                      3.1. Бо маслиҳати «Тарафҳо» нархи 1 м.кв. хонаи истиқоматиро ба <strong><u>{usdPrice.toLocaleString('ru-RU')} ({usdPriceWords}) доллари ИМА</u></strong> ба ҳолати рӯзи имзогузории шартномаи мазкур ташкил медиҳад нархгузорӣ намудаанд. Маблағи умумии шартнома <strong><u>{finalPrice} {currencyShort}</u></strong>-ро ташкил медиҳад.
+                      3.1. Бо маслиҳати «Тарафҳо» нархи 1 м.кв. {nonResidential ? `${tjObject}ро` : 'хонаи истиқоматиро'} ба <strong><u>{usdPrice.toLocaleString('ru-RU')} ({usdPriceWords}) доллари ИМА</u></strong> ба ҳолати рӯзи имзогузории шартномаи мазкур ташкил медиҳад нархгузорӣ намудаанд. Маблағи умумии шартнома <strong><u>{finalPrice} {currencyShort}</u></strong>-ро ташкил медиҳад.
                     </>
                   )
                 ) : (
                   exchangeRate && exchangeRate > 0 ? (
                     <>
-                      3.1. По соглашению Сторон цена 1 кв.м квартиры определена в размере <strong><u>{tjsPrice.toLocaleString('ru-RU')} ({tjsPriceWords}) сомони</u></strong>, что составляет <strong><u>{usdPrice.toLocaleString('ru-RU')} ({usdPriceWords}) долларов США</u></strong> по курсу банка ({exchangeRate.toLocaleString('ru-RU', { minimumFractionDigits: 2, maximumFractionDigits: 4 })} сомони за 1 USD) на день заключения настоящего Договора. Общая стоимость составляет <strong><u>{finalPrice} {currencyShort}</u></strong>.
+                      3.1. По соглашению Сторон цена 1 кв.м {ruGenitive} определена в размере <strong><u>{tjsPrice.toLocaleString('ru-RU')} ({tjsPriceWords}) сомони</u></strong>, что составляет <strong><u>{usdPrice.toLocaleString('ru-RU')} ({usdPriceWords}) долларов США</u></strong> по курсу банка ({exchangeRate.toLocaleString('ru-RU', { minimumFractionDigits: 2, maximumFractionDigits: 4 })} сомони за 1 USD) на день заключения настоящего Договора. Общая стоимость составляет <strong><u>{finalPrice} {currencyShort}</u></strong>.
                     </>
                   ) : (
                     <>
-                      3.1. По соглашению Сторон цена 1 кв.м квартиры определена в размере <strong><u>{usdPrice.toLocaleString('ru-RU')} ({usdPriceWords}) долларов США</u></strong> на день заключения настоящего Договора. Общая стоимость составляет <strong><u>{finalPrice} {currencyShort}</u></strong>.
+                      3.1. По соглашению Сторон цена 1 кв.м {ruGenitive} определена в размере <strong><u>{usdPrice.toLocaleString('ru-RU')} ({usdPriceWords}) долларов США</u></strong> на день заключения настоящего Договора. Общая стоимость составляет <strong><u>{finalPrice} {currencyShort}</u></strong>.
                     </>
                   )
                 )}
               </p>
               <p>
                 {isTJ
-                  ? '3.2. Масоҳати охирини хонаи баландошёна дар шартномаи мазкур бо талаботи тавсифи ҳуҷраи истиқоматии супоридашаванда муайян карда мешавад.'
-                  : '3.2. Окончательная площадь квартиры уточняется по результатам обмеров технической инвентаризации при сдаче объекта.'}
+                  ? (nonResidential ? `3.2. Масоҳати ниҳоии ${tjObject} аз рӯи натиҷаи ченкунии техникӣ ҳангоми супоридани объект муайян карда мешавад.` : '3.2. Масоҳати охирини хонаи баландошёна дар шартномаи мазкур бо талаботи тавсифи ҳуҷраи истиқоматии супоридашаванда муайян карда мешавад.')
+                  : `3.2. Окончательная площадь ${ruGenitive} уточняется по результатам обмеров технической инвентаризации при сдаче объекта.`}
               </p>
             </div>
 
@@ -548,12 +570,12 @@ export const ContractPrintView = ({ deal: initialDeal, onClose, initialLang = de
               </p>
               <p className="pl-4">
                 {isTJ
-                  ? '4.1.3. Супоридани хонаи истиқоматии баландошёнаро баъди ба танзим даровардани ҳуҷҷатҳои дахлдор таъмин намояд.'
-                  : '4.1.3. Передать квартиру Дольщику после надлежащего оформления всей необходимой разрешительной документации.'}
+                  ? `4.1.3. Супоридани ${nonResidential ? `${tjObject}ро` : 'хонаи истиқоматии баландошёнаро'} баъди ба танзим даровардани ҳуҷҷатҳои дахлдор таъмин намояд.`
+                  : `4.1.3. Передать ${nonResidential ? ruObject : 'квартиру'} Дольщику после надлежащего оформления всей необходимой разрешительной документации.`}
               </p>
               <p className="pl-4">
                 {isTJ
-                  ? '4.1.4. Ҳуқуқи моликияти иштирокчиёни сохтмони ҳиссавӣ ба объекти сохтмони ҳиссавӣ ва ҳуқуқи моликияти хонаи истиқоматии баландошёна дар мақомоти бақайдгирӣ ба қайд мемонад.'
+                  ? `4.1.4. Ҳуқуқи моликияти иштирокчиёни сохтмони ҳиссавӣ ба объекти сохтмони ҳиссавӣ ва ҳуқуқи моликияти ${nonResidential ? tjObject : 'хонаи истиқоматии баландошёна'} дар мақомоти бақайдгирӣ ба қайд мемонад.`
                   : '4.1.4. Обеспечить регистрацию права собственности Дольщика в органах государственной регистрации.'}
               </p>
               <p className="pl-4">
@@ -563,15 +585,15 @@ export const ContractPrintView = ({ deal: initialDeal, onClose, initialLang = de
               <p className="pt-1">{isTJ ? '4.2. «Ҳиссагузор» ба худ ӯҳдадориҳои зеринро қабул менамояд:' : '4.2. «Дольщик» обязуется:'}</p>
               <p className="pl-4">
                 {isTJ
-                  ? '4.2.1. Пардохт кардани арзиши хонаи баландошёнаро ба «Ширкати сохтмонӣ» бо тариқи пули нақд якбора, ё ин ки бо созиши тарафҳо - пардохт кардани ҳиссаи худро қисм ба қисм дар асоси ҷадвали пардохт (Замима №1), ки ҷудонашавандаи шартномаи мазкур мебошад ба хазинаи «Ширкати сохтмонӣ» дар давоми сохтмони хонаи баландошёна баробари арзиши ҳиссаи худ пардохт менамояд.'
-                  : '4.2.1. Своевременно оплачивать стоимость квартиры единовременно наличными либо в рассрочку согласно согласованному Графику платежей (Приложение №1).'}
+                  ? `4.2.1. Пардохт кардани арзиши ${nonResidential ? tjObject : 'хонаи баландошёна'}ро ба «Ширкати сохтмонӣ» бо тариқи пули нақд якбора, ё ин ки бо созиши тарафҳо - пардохт кардани ҳиссаи худро қисм ба қисм дар асоси ҷадвали пардохт (Замима №1), ки ҷудонашавандаи шартномаи мазкур мебошад ба хазинаи «Ширкати сохтмонӣ» дар давоми сохтмони хонаи баландошёна баробари арзиши ҳиссаи худ пардохт менамояд.`
+                  : `4.2.1. Своевременно оплачивать стоимость ${ruGenitive} единовременно наличными либо в рассрочку согласно согласованному Графику платежей (Приложение №1).`}
               </p>
               <p className="pl-4">
                 {isTJ ? '4.2.2. Пардохт кардан, ҳангоми пайдо шудан то бастани байни тарафҳо шартномаи мазкур:' : '4.2.2. Оплатить:'}
               </p>
               <ul className="pl-8 list-disc space-y-0.5">
                 <li>{isTJ ? 'бақияи маблағ аз маблағи дар банди 3.1. қайдшуда, ё;' : 'оставшуюся сумму от согласованной стоимости;'}</li>
-                <li>{isTJ ? 'фарқият ҳангоми тағйир шудани арзиши хонаи баландошёна ба тарафи кам ё зиёд;' : 'разницу при изменении фактической площади по техпаспорту;'}</li>
+                <li>{isTJ ? `фарқият ҳангоми тағйир шудани арзиши ${nonResidential ? tjObject : 'хонаи баландошёна'} ба тарафи кам ё зиёд;` : 'разницу при изменении фактической площади по техпаспорту;'}</li>
                 <li>{isTJ ? 'ба расмият дарории ҳуҷҷатҳоро аз ҳисоби худ маблағгузорӣ менамояд.' : 'расходы по нотариальному оформлению.'}</li>
               </ul>
               <p className="pl-4">
@@ -584,7 +606,7 @@ export const ContractPrintView = ({ deal: initialDeal, onClose, initialLang = de
               </p>
               <p>
                 {isTJ
-                  ? '4.4. «Ҳиссагузор» ҳар вақт бо розигии «Ширкати сохтмонӣ» метавонад ҳуқуқи худро гузашт намояд ва ӯҳдадориҳое, ки дар Шартнома дарҷ гардидааст, ба шахси дигар диҳад. «Ширкати сохтмонӣ» вазифадор аст, ки дар мӯҳлати 25 рӯз баъд аз гирифтани огоҳинома аз «Ҳиссагузор», розигӣ ё норозигии худро ба «Ҳиссагузор» хабардор намояд. Тартиб додани шартномаи иловагӣ музднок буда «Ҳиссагузор» 1% аз маблағи умумии хона пардохт менамояд.'
+                  ? `4.4. «Ҳиссагузор» ҳар вақт бо розигии «Ширкати сохтмонӣ» метавонад ҳуқуқи худро гузашт намояд ва ӯҳдадориҳое, ки дар Шартнома дарҷ гардидааст, ба шахси дигар диҳад. «Ширкати сохтмонӣ» вазифадор аст, ки дар мӯҳлати 25 рӯз баъд аз гирифтани огоҳинома аз «Ҳиссагузор», розигӣ ё норозигии худро ба «Ҳиссагузор» хабардор намояд. Тартиб додани шартномаи иловагӣ музднок буда «Ҳиссагузор» 1% аз маблағи умумии ${nonResidential ? tjObject : 'хона'} пардохт менамояд.`
                   : '4.4. Переуступка прав требования третьим лицам осуществляется с согласия Строительной компании с уплатой 1% от стоимости объекта за оформление допсоглашения.'}
               </p>
             </div>
@@ -601,7 +623,7 @@ export const ContractPrintView = ({ deal: initialDeal, onClose, initialLang = de
               </p>
               <p>
                 {isTJ
-                  ? '5.2. Дар ҳолати бо гуноҳи яке аз тарафҳо вайрон карда шудани ӯҳдадориҳои шартномавӣ яке аз Тарафҳо аз Тарафи айбдор ҷарима дар ҳаҷми 0,5% аз маблағи хонаи истиқоматии баландошёна барои ҳар як рӯзи ба таъхир гузошта шуда, рӯёнида мешавад. Айби «Ҳиссагузор» ин даст кашидан ё ки худро дар канор кашидан аз иҷро кардани ӯҳдадориҳо, инчунин рад намудани талаботҳои мувофиқа карда шуда ва шакли ҳисоббаробаркунии шартномаи мазкур мебошад. Айби «Ширкати сохтмонӣ» ин даст кашидан ё ки худро канор кашидан аз иҷро кардани ӯҳдадориҳои шартнома.'
+                  ? `5.2. Дар ҳолати бо гуноҳи яке аз тарафҳо вайрон карда шудани ӯҳдадориҳои шартномавӣ яке аз Тарафҳо аз Тарафи айбдор ҷарима дар ҳаҷми 0,5% аз маблағи ${nonResidential ? tjObject : 'хонаи истиқоматии баландошёна'} барои ҳар як рӯзи ба таъхир гузошта шуда, рӯёнида мешавад. Айби «Ҳиссагузор» ин даст кашидан ё ки худро дар канор кашидан аз иҷро кардани ӯҳдадориҳо, инчунин рад намудани талаботҳои мувофиқа карда шуда ва шакли ҳисоббаробаркунии шартномаи мазкур мебошад. Айби «Ширкати сохтмонӣ» ин даст кашидан ё ки худро канор кашидан аз иҷро кардани ӯҳдадориҳои шартнома.`
                   : '5.2. За нарушение обязательств виновная Сторона уплачивает неустойку в размере 0,5% за каждый день просрочки.'}
               </p>
             </div>
@@ -714,19 +736,19 @@ export const ContractPrintView = ({ deal: initialDeal, onClose, initialLang = de
                       <p className="text-[11px] pt-1"><strong>с/ҳ:</strong> ____________________________________</p>
                       <div className="pt-8">
                         <p className="text-xs font-bold">
-                          {isTJ ? 'Роҳбари иншоот:' : 'Директор:'} __________________ {isTJ ? 'Абдуллоев Акмалхон Раҳматуллоевич' : (deal.developer_director || 'Иброгимов И. М.')}
+                          {isTJ ? 'Роҳбари иншоот:' : 'Руководитель объекта:'} __________________ {isTJ ? 'Абдуллоев Акмалхон Раҳматуллоевич' : 'Абдуллоев Акмалхон Рахматуллоевич'}
                         </p>
                         <p className="text-[10px] text-slate-500 mt-0.5">{isTJ ? '(имзо, мӯҳр)' : '(подпись, М.П.)'}</p>
                       </div>
                     </td>
 
                     <td className="p-3 align-top space-y-2 text-slate-950">
-                      <p className="font-extrabold text-sm">{deal.lead_name || deal.buyer_name || 'Муҳаммадизода Мирзокарим Мирзоғафур'}</p>
+                      <p className="font-extrabold text-sm">{deal.lead_name || deal.buyer_name || '____________________'}</p>
                       <p className="text-[11px] leading-relaxed">
-                        <strong>{isTJ ? 'Суроға:' : 'Адрес:'}</strong> {deal.registration_address || 'В.Суғд, Кӯҳистони Мастчоҳ, ҷамоати Иван Тоҷик, деҳаи Ревомутк'}
+                        <strong>{isTJ ? 'Суроға:' : 'Адрес:'}</strong> {deal.registration_address || '____________________'}
                       </p>
                       <p className="text-[11px] leading-relaxed">
-                        <strong>{isTJ ? 'Шиноснома:' : 'Паспорт:'}</strong> {deal.passport_series ? `${deal.passport_series} ` : ''}{deal.passport_number || 'А 03195738'} {isTJ ? 'аз' : 'от'} {formatDate(deal.passport_issue_date) || '14.02.2020'} {deal.passport_issued_by || 'ШВКД дар ноҳияи Кӯҳистони Мастчоҳ'}
+                        <strong>{isTJ ? 'Шиноснома:' : 'Паспорт:'}</strong> {deal.passport_series ? `${deal.passport_series} ` : ''}{deal.passport_number || '________'} {isTJ ? 'аз' : 'от'} {formatDate(deal.passport_issue_date) || '14.02.2020'} {deal.passport_issued_by || '____________________'}
                       </p>
                       <p className="text-[11px]"><strong>{isTJ ? 'РМА:' : 'ИНН:'}</strong> {deal.inn || '—'}</p>
                       <p className="text-[11px]"><strong>{isTJ ? 'Тел:' : 'Тел:'}</strong> {deal.lead_phone || '—'}</p>
@@ -798,23 +820,23 @@ export const ContractPrintView = ({ deal: initialDeal, onClose, initialLang = de
                 <span>{isTJ ? 'Эзоҳ' : 'Примечание'}</span>
                 <span className="text-right text-slate-700">
                   {deal.project_name
-                    ? `${deal.project_name}, ${isTJ ? 'кв. №' : 'кв. №'}${deal.unit_number || ''}`
+                    ? `${deal.project_name}, ${getUnitTitle(deal, lang)} №${deal.unit_number || ''}, ${deal.building_name || ''}, ${isTJ ? 'қабат' : 'этаж'} ${deal.floor_number ?? '—'}`
                     : '—'}
                 </span>
               </div>
 
               <div className="flex justify-between items-baseline border-b border-dotted border-slate-300 pb-0.5 pt-1">
-                <span>{isTJ ? 'Масоҳати умумии хона метри мураббаъ' : 'Общая площадь квартиры (кв.м)'}</span>
+                <span>{isTJ ? `Масоҳати ${tjObject} (м²)` : `Площадь ${ruGenitive} (м²)`}</span>
                 <span className="font-bold underline text-slate-900">{areaM2}</span>
               </div>
 
               <div className="flex justify-between items-baseline border-b border-dotted border-slate-300 pb-0.5">
-                <span>{isTJ ? 'Нархи 1 метри мураббаъ бо сомонӣ' : 'Цена 1 кв.м в сомони'}</span>
-                <span className="font-bold underline text-slate-900">{tjsPrice.toLocaleString('ru-RU')} TJS</span>
+                <span>{nonResidential ? (isTJ ? `Нархи 1 м² (${currency})` : `Цена 1 м² (${currency})`) : (isTJ ? 'Нархи 1 метри мураббаъ бо сомонӣ' : 'Цена 1 кв.м в сомони')}</span>
+                <span className="font-bold underline text-slate-900">{nonResidential ? `${rawPricePerM2.toLocaleString('ru-RU', { maximumFractionDigits: 2 })} ${currency}` : `${tjsPrice.toLocaleString('ru-RU')} TJS`}</span>
               </div>
 
               <div className="flex justify-between items-baseline border-b border-dotted border-slate-300 pb-0.5">
-                <span className="font-bold text-slate-900">{isTJ ? 'Маблағи умумии хона бо асъор' : 'Общая стоимость квартиры'}</span>
+                <span className="font-bold text-slate-900">{isTJ ? `Маблағи умумии ${tjObject}` : `Общая стоимость ${ruGenitive}`}</span>
                 <span className="font-black underline text-slate-900 text-sm sm:text-base">{finalPrice} {deal.currency || 'USD'}</span>
               </div>
 

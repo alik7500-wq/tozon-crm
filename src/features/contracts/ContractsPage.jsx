@@ -1,3 +1,4 @@
+import { getUnitTitle } from '../../utils/unitKind';
 import React, { useState, useEffect } from 'react';
 import { api } from '../../api/client';
 import { ContractPrintView } from '../deals/ContractPrintView';
@@ -115,7 +116,7 @@ export const ContractsPage = () => {
                 <tr>
                   <th className="p-3.5 pl-5">№ Договора</th>
                   <th className="p-3.5">Покупатель</th>
-                  <th className="p-3.5">Объект / Квартира</th>
+                  <th className="p-3.5">Объект продажи</th>
                   <th className="p-3.5">Форма оплаты</th>
                   <th className="p-3.5">Сумма договора</th>
                   <th className="p-3.5">Статус</th>
@@ -139,7 +140,7 @@ export const ContractsPage = () => {
                     <td className="p-3.5 text-slate-600">
                       <div>{d.project_name}</div>
                       <div className="text-[11px] text-slate-500">
-                        {d.building_name} • Кв. №{d.unit_number}
+                        {d.building_name} • {getUnitTitle(d)} №{d.unit_number}
                       </div>
                     </td>
                     <td className="p-3.5">

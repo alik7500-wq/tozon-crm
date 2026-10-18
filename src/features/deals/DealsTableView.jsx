@@ -1,3 +1,4 @@
+import { getUnitTitle, getUnitKindLabel } from '../../utils/unitKind';
 import {formatMeasure} from '../../utils/numberDisplay';
 import React from 'react';
 import {
@@ -115,7 +116,7 @@ export const DealsTableView = ({
             <tr className="border-b border-slate-200 bg-slate-50/80 text-[11px] font-bold text-slate-600 uppercase tracking-wider">
               <th className="py-3 px-4">Договор / Дата</th>
               <th className="py-3 px-4">Покупатель</th>
-              <th className="py-3 px-4">Объект и квартира</th>
+              <th className="py-3 px-4">Объект продажи</th>
               <th className="py-3 px-4">Стоимость / Тип</th>
               <th className="py-3 px-4">Оплаты / Остаток</th>
               <th className="py-3 px-4 text-center">Статус</th>
@@ -168,7 +169,7 @@ export const DealsTableView = ({
                       {deal.project_name}
                     </div>
                     <div className="text-[11px] text-slate-500 mt-0.5">
-                      Кв. <strong className="text-blue-700">№{deal.unit_number}</strong> • {deal.unit_rooms} комн., {areaM2} м² ({deal.floor_number} эт.)
+                      {getUnitTitle(deal)} <strong className="text-blue-700">№{deal.unit_number}</strong> • {getUnitKindLabel(deal)}, {areaM2} м² ({deal.floor_number} эт.)
                     </div>
                   </td>
 
