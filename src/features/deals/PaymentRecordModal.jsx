@@ -1,3 +1,4 @@
+import { getUnitTitle } from '../../utils/unitKind';
 import React, { useState, useEffect } from 'react';
 import { api } from '../../api/client';
 import { financeApi } from '../../api/finance.api';
@@ -620,9 +621,9 @@ export const PaymentRecordModal = ({
               {/* Deal summary block */}
               <div className="flex items-center justify-between rounded-2xl bg-slate-50 border border-slate-200/80 p-3 text-xs">
                 <div>
-                  <span className="text-slate-400 block font-semibold text-[11px]">Объект и квартира:</span>
+                  <span className="text-slate-400 block font-semibold text-[11px]">Объект продажи:</span>
                   <strong className="text-slate-900 font-bold text-xs">
-                    {deal.project_name}, Кв. №{deal.unit_number}
+                    {deal.project_name}, {getUnitTitle(deal)} №{deal.unit_number}
                   </strong>
                 </div>
                 <div className="text-right">

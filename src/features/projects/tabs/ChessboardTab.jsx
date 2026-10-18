@@ -4,6 +4,8 @@ import { Link } from 'react-router-dom';
 import { api } from '../../../api/client';
 import { useAuth } from '../../auth/AuthContext';
 import { ApartmentDetailModal } from '../../apartments/ApartmentDetailModal';
+import { NonResidentialUnitModal } from '../components/NonResidentialUnitModal';
+import { getUnitKindLabel, isNonResidentialUnit } from '../../../utils/unitKind';
 import {
   Layers,
   Filter,
@@ -35,6 +37,7 @@ export const ChessboardTab = ({ projectId, currency = 'USD', onOpenGenerator }) 
 
   // Selected Unit for Modal
   const [selectedUnitId, setSelectedUnitId] = useState(null);
+  const [selectedNonResidential, setSelectedNonResidential] = useState(null);
 
   const fetchChessboard = async () => {
     setIsLoading(true);
@@ -57,7 +60,11 @@ export const ChessboardTab = ({ projectId, currency = 'USD', onOpenGenerator }) 
     fetchChessboard();
   }, [projectId, statusFilter, roomsFilter]);
 
-  const handleUnitClick = (unit) => {
+  const handleUnitClick = (unit, floor, building) => {
+    if (isNonResidentialUnit(unit)) {
+      setSelectedNonResidential({ unit, floorNumber: floor.floor_number, buildingName: building.name });
+      return;
+    }
     setSelectedUnitId(unit.id);
   };
 
@@ -223,23 +230,24 @@ export const ChessboardTab = ({ projectId, currency = 'USD', onOpenGenerator }) 
               {building.sections.map((section) => (
                 <div key={section.id} className="rounded-2xl bg-white border border-slate-200 p-5 shadow-xs overflow-x-auto">
                   <div className="mb-4 text-xs font-bold text-slate-500 uppercase tracking-wider">
-                    {section.name}
+                    {String(section.name || '').replace(/^секция(?=\s|$)/i, 'Подъезд')}
                   </div>
 
-                  <div className="min-w-max space-y-2">
+                  <div className="min-w-0 space-y-2">
                     {section.floors
                       ?.slice()
-                      .sort((a, b) => Number(a.floor_number) - Number(b.floor_number))
+                      .sort((a, b) => Number(b.floor_number) - Number(a.floor_number))
                       .map((floor) => (
-                      <div key={floor.id} className="flex items-center gap-3">
+                      <div key={floor.id} className="flex min-w-0 items-center gap-3">
                         {/* Floor Number Header Box */}
                         <div className="flex h-16 w-16 shrink-0 flex-col items-center justify-center rounded-xl bg-slate-100 border border-slate-200 text-slate-700 font-bold">
                           <span className="text-base leading-none">{floor.floor_number}</span>
                           <span className="text-[10px] text-slate-400 font-medium">этаж</span>
+                          {[-1, 1].includes(floor.floor_number) && <span className="text-[9px] text-slate-500">{floor.name}</span>}
                         </div>
 
                         {/* Units Grid on Floor */}
-                        <div className="flex items-center gap-2.5 flex-wrap">
+                        <div className={`flex min-w-0 flex-1 items-center flex-wrap ${floor.floor_number === -1 ? 'gap-1' : 'gap-2.5'}`}>
                           {floor.units
                             ?.slice()
                             .sort((a, b) => {
@@ -251,18 +259,34 @@ export const ChessboardTab = ({ projectId, currency = 'USD', onOpenGenerator }) 
                             const badge = getStatusBadge(unit.status);
                             const areaM2 = formatMeasure(unit.area_m2_x100 / 100);
 
+                            if (unit.unit_kind === 'PARKING') {
+                              return (
+                                <button
+                                  key={unit.id}
+                                  onClick={() => handleUnitClick(unit, floor, building)}
+                                  title={`Машино-место №${unit.unit_number} · ${areaM2} м² · ${badge.label}`}
+                                  aria-label={`Машино-место №${unit.unit_number}, ${areaM2} м², ${badge.label}`}
+                                  className={`flex h-14 w-14 shrink-0 flex-col items-center justify-center gap-1 rounded-lg border p-1 text-center transition shadow-2xs cursor-pointer ${badge.bg}`}
+                                >
+                                  <span className="text-[10px] font-extrabold leading-tight text-slate-900">{unit.unit_number}</span>
+                                  <span className="whitespace-nowrap text-[9px] font-semibold leading-tight">{areaM2} м²</span>
+                                  <span aria-hidden="true" className={`h-1.5 w-1.5 rounded-full ${badge.dot}`} />
+                                </button>
+                              );
+                            }
+
                             return (
                               <button
                                 key={unit.id}
-                                onClick={() => handleUnitClick(unit)}
-                                className={`flex h-16 w-28 flex-col justify-between rounded-xl border p-2 text-left transition-all duration-150 shadow-2xs cursor-pointer ${badge.bg}`}
+                                onClick={() => handleUnitClick(unit, floor, building)}
+                                className={`flex h-16 ${isNonResidentialUnit(unit) ? 'w-40' : 'w-28'} flex-col justify-between rounded-xl border p-2 text-left transition-all duration-150 shadow-2xs cursor-pointer ${badge.bg}`}
                               >
                                 <div className="flex items-center justify-between">
                                   <span className="text-xs font-extrabold text-slate-900">
                                     №{unit.unit_number}
                                   </span>
                                   <span className="text-[10px] font-bold px-1.5 py-0.2 rounded-md bg-white/80 border border-slate-200/60 shadow-2xs">
-                                    {unit.rooms === 0 ? 'Студия' : `${unit.rooms}к`}
+                                    {getUnitKindLabel(unit)}
                                   </span>
                                 </div>
 
@@ -285,6 +309,15 @@ export const ChessboardTab = ({ projectId, currency = 'USD', onOpenGenerator }) 
       )}
 
       {/* Apartment Detail Modal */}
+      {selectedNonResidential && (
+        <NonResidentialUnitModal
+          key={selectedNonResidential.unit.id}
+          {...selectedNonResidential}
+          currency={currency}
+          onClose={() => setSelectedNonResidential(null)}
+          onUpdated={fetchChessboard}
+        />
+      )}
       {selectedUnitId && (
         <ApartmentDetailModal
           unitId={selectedUnitId}

@@ -1,3 +1,4 @@
+import { getUnitTitle, getUnitKindLabel } from '../../utils/unitKind';
 import {formatMeasure} from '../../utils/numberDisplay';
 import React, { useState, useEffect } from 'react';
 import { api } from '../../api/client';
@@ -163,7 +164,7 @@ export const DealDrawer = ({
   if (!isOpen) return null;
 
   const handleSignDeal = async () => {
-    if (!window.confirm('Подписать договор по данной брони? Квартира перейдет в статус «ПРОДАНО».')) return;
+    if (!window.confirm('Подписать договор по данной брони? Объект перейдет в статус «ПРОДАНО».')) return;
     setActionLoading(true);
     try {
       const res = await api.post(`/deals/${deal.id}/sign`);
@@ -664,7 +665,7 @@ export const DealDrawer = ({
                 </div>
 
                 <div className="p-3 bg-rose-950/80 rounded-xl border border-rose-800/80 text-[11px] text-rose-200 leading-relaxed">
-                  ⚠️ <strong>Предупреждение:</strong> Договор будет расторгнут, будущие обязательства по графику прекратятся, а квартира №{deal.unit_number} сразу вернется в статус <strong>СВОБОДНА</strong>. История договора и платежей останется сохраненной.
+                  ⚠️ <strong>Предупреждение:</strong> Договор будет расторгнут, будущие обязательства по графику прекратятся, а объект №{deal.unit_number} сразу вернется в статус <strong>СВОБОДНА</strong>. История договора и платежей останется сохраненной.
                 </div>
 
                 <div className="flex justify-end gap-2 pt-2">
@@ -698,7 +699,7 @@ export const DealDrawer = ({
                   </button>
                 </div>
                 <p className="text-xs text-rose-700">
-                  При отмене квартира №{deal.unit_number} будет возвращена в статус <strong>СВОБОДНА</strong>.
+                  При отмене объект №{deal.unit_number} будет возвращена в статус <strong>СВОБОДНА</strong>.
                 </p>
                 <div>
                   <label className="block text-[11px] font-semibold text-rose-900 mb-1">Причина отмены:</label>
@@ -827,7 +828,7 @@ export const DealDrawer = ({
               <div className="rounded-2xl border border-slate-200 bg-slate-50/50 p-4 space-y-3">
                 <div className="flex items-center gap-2 text-xs font-bold text-slate-900 border-b border-slate-200/80 pb-2">
                   <Building2 className="h-4 w-4 text-indigo-600" />
-                  <span>Объект и квартира</span>
+                  <span>Объект продажи</span>
                 </div>
 
                 <div className="space-y-2 text-xs">
@@ -847,7 +848,7 @@ export const DealDrawer = ({
                       <strong className="text-slate-800 text-xs">{deal.floor_number} этаж</strong>
                     </div>
                     <div>
-                      <span className="text-slate-400 text-[10px] block">Квартира №</span>
+                      <span className="text-slate-400 text-[10px] block">{getUnitTitle(deal)} №</span>
                       <strong className="text-blue-600 text-sm font-bold">№{deal.unit_number}</strong>
                     </div>
                   </div>
@@ -856,7 +857,7 @@ export const DealDrawer = ({
                     <div>
                       <span className="text-slate-500 text-[11px] block">Комнат / Площадь:</span>
                       <strong className="text-slate-900">
-                        {deal.unit_rooms} комн. • {formatMeasure(deal.area_m2_x100 / 100)} м²
+                        {getUnitKindLabel(deal)} • {formatMeasure(deal.area_m2_x100 / 100)} м²
                       </strong>
                     </div>
                     <div>
@@ -1385,7 +1386,7 @@ export const DealDrawer = ({
             name: deal.lead_name,
             deal_id: deal.id,
             contract_number: deal.contract_number,
-            apartment: `кв. ${deal.apartment_number || deal.unit_number || ''}`,
+            apartment: `${getUnitTitle(deal)} №${deal.apartment_number || deal.unit_number || ''}`,
             project_name: deal.project_name
           }}
           context="deal"
