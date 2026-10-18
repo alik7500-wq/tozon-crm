@@ -1,4 +1,5 @@
 import { formatFinanceNumber, formatFinanceText } from '../../utils/financeDisplay';
+import { ExpenseSettlementFields } from './ExpenseSettlementFields';
 import { api } from '../../api/client';
 import { canWriteSection } from '../../utils/permissions';
 import { CostAllocationFields } from '../costs/CostAllocationFields';
@@ -89,6 +90,11 @@ export const ExpensesPage = () => {
     enabled: showAddModal && canAllocateCosts,
   });
   const [editingItem, setEditingItem] = useState(null);
+  const {data:settlementOptions,isLoading:settlementLoading,error:settlementError}=useQuery({
+    queryKey:['expense-settlement-parties',user?.id],
+    queryFn:async()=>(await api.get('/finance/settlement-parties')).data,
+    enabled:showAddModal||Boolean(editingItem),
+  });
   const [printableExpense, setPrintableExpense] = useState(null);
 
   const handleDeskFilter = (deskId) => {
@@ -240,6 +246,7 @@ export const ExpensesPage = () => {
       const costWarning = (data?.data || data)?.cost_allocation_warning;
       if (costWarning) alert(costWarning);
       setCostAllocation(emptyAllocation());
+      queryClient.invalidateQueries({queryKey:['construction']});
       queryClient.invalidateQueries(['finance-expenses']);
       queryClient.invalidateQueries(['finance-cashflow']);
       queryClient.invalidateQueries(['finance-income']);
@@ -323,6 +330,7 @@ export const ExpensesPage = () => {
   const updateMutation = useMutation({
     mutationFn: financeApi.updateExpense,
     onSuccess: () => {
+      queryClient.invalidateQueries({queryKey:['construction']});
       queryClient.invalidateQueries(['finance-expenses']);
       queryClient.invalidateQueries(['finance-cashflow']);
       setEditingItem(null);
@@ -335,6 +343,7 @@ export const ExpensesPage = () => {
   const deleteMutation = useMutation({
     mutationFn: financeApi.deleteExpense,
     onSuccess: () => {
+      queryClient.invalidateQueries({queryKey:['construction']});
       queryClient.invalidateQueries(['finance-expenses']);
       queryClient.invalidateQueries(['finance-cashflow']);
     },
@@ -390,6 +399,7 @@ export const ExpensesPage = () => {
   const transferMutation = useMutation({
     mutationFn: financeApi.createTransfer,
     onSuccess: (res) => {
+      queryClient.invalidateQueries({queryKey:['construction']});
       queryClient.invalidateQueries(['finance-expenses']);
       queryClient.invalidateQueries(['finance-cashflow']);
       queryClient.invalidateQueries(['finance-income']);
@@ -456,6 +466,7 @@ export const ExpensesPage = () => {
   };
 
   const handleSubmit = (e) => {
+    if(addMutation.isPending){e?.preventDefault();return;}
     if (e && e.preventDefault) e.preventDefault();
     const cleanFormDataAmount = String(formData.amount || '').replace(',', '.').trim();
     const numAmount = parseFloat(cleanFormDataAmount);
@@ -480,7 +491,7 @@ export const ExpensesPage = () => {
     const finalDeskId = isManager ? managerDeskId : (resolved?.id || formData.cash_desk_id || 'ab90800a-73af-4cf7-88c2-397c304e2edf');
     const cleanDesc = cleanCashDeskFromComment(formData.description);
     const finalDesc = updateCommentWithCashDesk(cleanDesc, finalDeskName);
-    const keyToUse = `EXP-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
+    const keyToUse = formData.idempotency_key;
 
     let allocation;
     if (canAllocateCosts && costAllocation.mode !== 'UNASSIGNED') {
@@ -834,6 +845,7 @@ export const ExpensesPage = () => {
                   </td>
                   <td className="py-2.5 px-2.5 font-bold text-slate-900 text-xs leading-tight truncate" title={item.recipient}>
                     {item.recipient}
+                    {item.settlement_party_id&&<p className="text-blue-700 text-[10px]">Учтено во взаиморасчётах</p>}
                   </td>
                   <td className="py-2.5 px-2 text-center whitespace-nowrap">
                     <span className="inline-flex max-w-full items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-bold bg-slate-100 text-slate-700" title={item.category}>
@@ -894,6 +906,8 @@ export const ExpensesPage = () => {
                                 date: item.date,
                                 method: item.method || 'CASH',
                                 category: item.category || 'Прочее',
+                                settlement_party_id:item.settlement_party_id||null,
+                                settlement_account:item.settlement_account||null,
                                 recipient: item.recipient || '',
                                 reference: item.reference || '',
                                 description: cleanDesc,
@@ -966,7 +980,8 @@ export const ExpensesPage = () => {
                 cash_desk_id: resolved?.id || editingItem.cash_desk_id || null,
                 description: finalDesc
               });
-            }} className="p-6 space-y-3.5 text-xs">
+            }} className="p-6 space-y-3.5 text-xs max-h-[80vh] overflow-auto">
+              <ExpenseSettlementFields value={editingItem} onChange={patch=>setEditingItem(f=>({...f,...patch}))} parties={settlementOptions?.parties||[]} loading={settlementLoading} error={settlementError} disabled={updateMutation.isPending}/>
               <div className="grid grid-cols-3 gap-3">
                 <div className="col-span-2">
                   <label className="block font-bold text-slate-700 mb-1">Сумма расхода *</label>
@@ -1361,6 +1376,7 @@ export const ExpensesPage = () => {
             ) : (
               /* Modal Form */
               <form onSubmit={handleSubmit} noValidate className="p-4 sm:p-5 space-y-3 text-xs">
+                <ExpenseSettlementFields value={formData} onChange={patch=>setFormData(f=>({...f,...patch}))} parties={settlementOptions?.parties||[]} loading={settlementLoading} error={settlementError} disabled={addMutation.isPending}/>
                 {canAllocateCosts && <>
                   {costOptionsError && <p role="alert" className="text-amber-800">Не удалось загрузить блоки. РКО можно сохранить нераспределённым и отнести на блок позднее.</p>}
                   <CostAllocationFields value={costAllocation} onChange={setCostAllocation} disabled={addMutation.isPending} blocks={(costOptions?.blocks || []).map(b => ({ ...b, project_name: costOptions.projects.find(p => p.id === b.project_id)?.name || '' }))} />
