@@ -6,6 +6,7 @@ import { useAuth } from '../auth/AuthContext';
 import { hasReadPermission } from '../../utils/permissions';
 import { CostAllocationFields } from './CostAllocationFields';
 import { COST_STATES, allocationPayload } from './allocation';
+import { MaterialCostsPanel } from './MaterialCostsPanel';
 
 const number = n => n == null ? '—' : Number(n).toLocaleString('ru-RU', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 const money = minor => minor == null ? '—' : `$${number(minor / 100)}`;
@@ -45,7 +46,7 @@ export function BlockCostsPage() {
   return <div className="space-y-5 pb-16">
     <h1 className="text-2xl font-bold text-slate-900">Себестоимость по блокам</h1>
     <FinanceTabs />
-    <p className="rounded-xl bg-blue-50 p-4 text-sm text-blue-950">Накопленные оплаченные затраты по распределённым РКО / вся подтверждённая продаваемая площадь блока (квартиры и коммерция, включая проданные). Неоплаченные обязательства и расход материалов со склада в этот показатель не входят. Текущий курс валют не применяется.</p>
+    <p className="rounded-xl bg-blue-50 p-4 text-sm text-blue-950">Себестоимость = расходы по проведённым РКО + неоплаченная стоимость использованной арматуры и залитого бетона. Оплаты этих материалов связываются с их использованием и повторно в затраты не добавляются. Материалы на складе и авансы до использования не включаются. Показатель на 1 м² рассчитан по всей подтверждённой продаваемой площади блока.</p>
     <label className="flex gap-3 items-center text-sm">Затраты по дату включительно
       <input aria-label="Дата расчёта" type="date" value={asOf} onChange={e => setAsOf(e.target.value)} className="border rounded-lg p-2" />
     </label>
@@ -61,9 +62,11 @@ export function BlockCostsPage() {
       <div className="grid md:grid-cols-2 gap-4">{blocks.map(b => <article key={b.id} className="rounded-2xl border p-5 bg-white space-y-3">
         <h2 className="text-lg font-bold">{b.project_name} · {b.name}{b.archived_at ? ' (архив)' : ''}</h2>
         <dl className="grid grid-cols-2 gap-3 text-sm">
-          <div><dt className="text-slate-500">Оплаченные затраты</dt><dd className="text-xl font-bold">{money(b.amount_usd_minor)}</dd></div>
+          <div><dt className="text-slate-500">Себестоимость блока</dt><dd className="text-xl font-bold">{money(b.amount_usd_minor)}</dd></div>
           <div><dt className="text-slate-500">На 1 м²</dt><dd className="text-xl font-bold">{b.cost_per_m2_usd == null ? 'Подтвердите площадь' : `$${number(b.cost_per_m2_usd)}`}</dd></div>
-          <div><dt>Прямые</dt><dd>{money(b.direct_usd_minor)}</dd></div><div><dt>Доля общих</dt><dd>{money(b.shared_usd_minor)}</dd></div>
+          <div><dt>Прямые РКО</dt><dd>{money(b.direct_usd_minor)}</dd></div><div><dt>Доля общих РКО</dt><dd>{money(b.shared_usd_minor)}</dd></div>
+          <div><dt>Оплаченная часть затрат</dt><dd>{money(b.paid_cost_usd_minor)}</dd></div><div><dt>Не оплачено использованных материалов</dt><dd>{money(b.unpaid_material_usd_minor)}</dd></div>
+          <div><dt>Обычные расходы по РКО</dt><dd>{money(b.ordinary_rko_usd_minor)}</dd></div><div><dt>Бетон и арматура использованы</dt><dd>{money(b.material_used_usd_minor)}</dd></div>
           <div><dt>Продаваемая площадь</dt><dd>{b.basis ? `${number(b.basis.sellable_area_m2)} м²` : 'Не подтверждена'}</dd></div>
           <div><dt>В реестре помещений</dt><dd>{number(b.registry_area_m2)} м² · {b.registry_unit_count} шт.</dd></div>
         </dl>
@@ -74,6 +77,7 @@ export function BlockCostsPage() {
         </div>
         {Object.keys(b.categories).length > 0 && <details><summary className="text-sm cursor-pointer">По статьям расходов</summary>{Object.entries(b.categories).map(([key, amount]) => <div key={key} className="flex justify-between gap-3 text-sm py-1"><span>{key}</span><strong>{money(amount)}</strong></div>)}</details>}
       </article>)}</div>
+      <MaterialCostsPanel data={data} blocks={blocks} asOf={asOf} />
       <div className="flex flex-wrap gap-3">
         <label className="text-sm">Статус<select aria-label="Статус РКО" value={state} onChange={e => setState(e.target.value)} className="block border rounded-lg p-2 bg-white"><option value="ALL">Все</option>{Object.entries(COST_STATES).map(([key, label]) => <option key={key} value={key}>{label}</option>)}</select></label>
         <label className="text-sm">Блок<select aria-label="Фильтр блока" value={block} onChange={e => setBlock(e.target.value)} className="block border rounded-lg p-2 bg-white"><option value="ALL">Все, включая нераспределённые</option>{blocks.map(b => <option key={b.id} value={b.id}>{b.name}</option>)}</select></label>
