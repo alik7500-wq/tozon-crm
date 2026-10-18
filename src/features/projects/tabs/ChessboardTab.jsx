@@ -4,6 +4,8 @@ import { Link } from 'react-router-dom';
 import { api } from '../../../api/client';
 import { useAuth } from '../../auth/AuthContext';
 import { ApartmentDetailModal } from '../../apartments/ApartmentDetailModal';
+import { NonResidentialUnitModal } from '../components/NonResidentialUnitModal';
+import { getUnitKindLabel, isNonResidentialUnit } from '../../../utils/unitKind';
 import {
   Layers,
   Filter,
@@ -35,6 +37,7 @@ export const ChessboardTab = ({ projectId, currency = 'USD', onOpenGenerator }) 
 
   // Selected Unit for Modal
   const [selectedUnitId, setSelectedUnitId] = useState(null);
+  const [selectedNonResidential, setSelectedNonResidential] = useState(null);
 
   const fetchChessboard = async () => {
     setIsLoading(true);
@@ -57,7 +60,11 @@ export const ChessboardTab = ({ projectId, currency = 'USD', onOpenGenerator }) 
     fetchChessboard();
   }, [projectId, statusFilter, roomsFilter]);
 
-  const handleUnitClick = (unit) => {
+  const handleUnitClick = (unit, floor, building) => {
+    if (isNonResidentialUnit(unit)) {
+      setSelectedNonResidential({ unit, floorNumber: floor.floor_number, buildingName: building.name });
+      return;
+    }
     setSelectedUnitId(unit.id);
   };
 
@@ -236,6 +243,7 @@ export const ChessboardTab = ({ projectId, currency = 'USD', onOpenGenerator }) 
                         <div className="flex h-16 w-16 shrink-0 flex-col items-center justify-center rounded-xl bg-slate-100 border border-slate-200 text-slate-700 font-bold">
                           <span className="text-base leading-none">{floor.floor_number}</span>
                           <span className="text-[10px] text-slate-400 font-medium">этаж</span>
+                          {[-1, 1].includes(floor.floor_number) && <span className="text-[9px] text-slate-500">{floor.name}</span>}
                         </div>
 
                         {/* Units Grid on Floor */}
@@ -254,15 +262,15 @@ export const ChessboardTab = ({ projectId, currency = 'USD', onOpenGenerator }) 
                             return (
                               <button
                                 key={unit.id}
-                                onClick={() => handleUnitClick(unit)}
-                                className={`flex h-16 w-28 flex-col justify-between rounded-xl border p-2 text-left transition-all duration-150 shadow-2xs cursor-pointer ${badge.bg}`}
+                                onClick={() => handleUnitClick(unit, floor, building)}
+                                className={`flex h-16 ${isNonResidentialUnit(unit) ? 'w-40' : 'w-28'} flex-col justify-between rounded-xl border p-2 text-left transition-all duration-150 shadow-2xs cursor-pointer ${badge.bg}`}
                               >
                                 <div className="flex items-center justify-between">
                                   <span className="text-xs font-extrabold text-slate-900">
                                     №{unit.unit_number}
                                   </span>
                                   <span className="text-[10px] font-bold px-1.5 py-0.2 rounded-md bg-white/80 border border-slate-200/60 shadow-2xs">
-                                    {unit.rooms === 0 ? 'Студия' : `${unit.rooms}к`}
+                                    {getUnitKindLabel(unit)}
                                   </span>
                                 </div>
 
@@ -285,6 +293,15 @@ export const ChessboardTab = ({ projectId, currency = 'USD', onOpenGenerator }) 
       )}
 
       {/* Apartment Detail Modal */}
+      {selectedNonResidential && (
+        <NonResidentialUnitModal
+          key={selectedNonResidential.unit.id}
+          {...selectedNonResidential}
+          currency={currency}
+          onClose={() => setSelectedNonResidential(null)}
+          onUpdated={fetchChessboard}
+        />
+      )}
       {selectedUnitId && (
         <ApartmentDetailModal
           unitId={selectedUnitId}
