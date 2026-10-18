@@ -1,3 +1,4 @@
+import { getUnitTitle, getUnitKindLabel, getUnitDefaultPrice, isNonResidentialUnit } from '../../utils/unitKind';
 import {formatMeasure} from '../../utils/numberDisplay';
 import React, { useState, useEffect } from 'react';
 import { api } from '../../api/client';
@@ -36,6 +37,7 @@ export const DealWizardModal = ({
   currency: initialCurrency = 'USD',
   initialDownPaymentPercent = 30,
   initialPricePerM2 = null,
+  initialStatus = 'SIGNED',
   onDealCreated,
 }) => {
   // If unit is passed from outside, start from step 1 (Client). If not, start from step 0 (Unit Selection)
@@ -48,6 +50,7 @@ export const DealWizardModal = ({
   const [availableUnits, setAvailableUnits] = useState([]);
   const [unitSearch, setUnitSearch] = useState('');
   const [unitRoomsFilter, setUnitRoomsFilter] = useState('ALL');
+  const [unitKindFilter, setUnitKindFilter] = useState('ALL');
   const [loadingUnits, setLoadingUnits] = useState(false);
 
   // Leads
@@ -86,7 +89,7 @@ export const DealWizardModal = ({
   };
 
   // Deal Financials
-  const [dealStatus, setDealStatus] = useState('SIGNED'); // 'SIGNED' or 'RESERVED'
+  const [dealStatus, setDealStatus] = useState(initialStatus); // 'SIGNED' or 'RESERVED'
   const [reservationDays, setReservationDays] = useState(3);
   useEffect(() => {
     if (isOpen) api.get('/document-settings/configuration').then(r => setReservationDays(r.data.settings.data.reservation_days ?? 3)).catch(() => {});
@@ -150,16 +153,17 @@ export const DealWizardModal = ({
     : 50;
 
   const basePricePerM2 = selectedUnit
-    ? (selectedUnit.price_per_m2_minor > 0 ? selectedUnit.price_per_m2_minor / 100 : (parseFloat(selectedUnit.price_per_m2) || 500))
+    ? getUnitDefaultPrice(selectedUnit)
     : 500;
 
-  const calculatedBasePrice = Math.round(areaM2 * (parseFloat(pricePerM2) || basePricePerM2));
+  const roundAmount = (value) => isNonResidentialUnit(selectedUnit) ? Math.round((value + Number.EPSILON) * 100) / 100 : Math.round(value);
+  const calculatedBasePrice = roundAmount(areaM2 * (parseFloat(pricePerM2) || basePricePerM2));
 
   const actualDiscountMinor = discountType === 'PERCENT'
-    ? Math.round(calculatedBasePrice * ((parseFloat(discountValue) || 0) / 100))
-    : Math.round(parseFloat(discountValue) || 0);
+    ? roundAmount(calculatedBasePrice * ((parseFloat(discountValue) || 0) / 100))
+    : roundAmount(parseFloat(discountValue) || 0);
 
-  const finalPrice = Math.max(0, calculatedBasePrice - actualDiscountMinor);
+  const finalPrice = roundAmount(Math.max(0, calculatedBasePrice - actualDiscountMinor));
   const effectivePricePerM2 = areaM2 > 0 ? (finalPrice / areaM2).toFixed(2) : 0;
 
   const remainingBalance = paymentType === 'BARTER'
@@ -176,11 +180,9 @@ export const DealWizardModal = ({
   // Update rates when unit is selected
   useEffect(() => {
     if (selectedUnit) {
-      const p = initialPricePerM2
+      const p = initialPricePerM2 != null
         ? parseFloat(initialPricePerM2)
-        : selectedUnit.price_per_m2_minor > 0 
-        ? (selectedUnit.price_per_m2_minor / 100) 
-        : (parseFloat(selectedUnit.price_per_m2) || 500);
+        : getUnitDefaultPrice(selectedUnit);
       
       setPricePerM2(p);
       const pct = initialDownPaymentPercent || 30;
@@ -193,6 +195,7 @@ export const DealWizardModal = ({
   useEffect(() => {
     if (isOpen) {
       setSelectedUnit(initialUnit);
+      setDealStatus(initialStatus);
       setStep(initialUnit ? 1 : 0);
       setError('');
       setInitialPaymentReference('');
@@ -202,7 +205,7 @@ export const DealWizardModal = ({
       fetchLeads();
       fetchAvailableUnits();
     }
-  }, [isOpen, initialUnit]);
+  }, [isOpen, initialUnit, initialStatus]);
 
   const fetchProjects = async () => {
     try {
@@ -264,8 +267,10 @@ export const DealWizardModal = ({
   useEffect(() => {
     if ((paymentType === 'INSTALLMENT' || paymentType === 'PARTIAL_BARTER') && installmentMonths > 0 && remainingBalance > 0) {
       const months = Math.min(240, Math.max(1, parseInt(installmentMonths, 10) || 0));
-      const base = Math.floor(remainingBalance / months);
-      const remainder = remainingBalance % months;
+      const amountScale = isNonResidentialUnit(selectedUnit) ? 100 : 1;
+      const amountUnits = Math.round(remainingBalance * amountScale);
+      const base = Math.floor(amountUnits / months);
+      const remainder = amountUnits % months;
 
       // Safely parse firstPaymentDate with fallback to today + 30 days if invalid/partial
       let startYear, startMonth, startDay;
@@ -298,12 +303,12 @@ export const DealWizardModal = ({
         const dd = String(actualDay).padStart(2, '0');
         const dueDateStr = `${yyyy}-${mm}-${dd}`;
 
-        const amount = i <= remainder ? (base + 1) : base;
+        const amount = (i <= remainder ? (base + 1) : base) / amountScale;
 
         items.push({
           payment_number: i,
           due_date: dueDateStr,
-          amount_minor: amount * 100,
+          amount_minor: Math.round(amount * 100),
           status: 'UPCOMING',
         });
       }
@@ -311,7 +316,7 @@ export const DealWizardModal = ({
     } else {
       setSchedule([]);
     }
-  }, [finalPrice, downPaymentAmount, installmentMonths, paymentType, firstPaymentDate, paymentInterval, remainingBalance, barterAmount]);
+  }, [finalPrice, downPaymentAmount, installmentMonths, paymentType, firstPaymentDate, paymentInterval, remainingBalance, barterAmount, selectedUnit?.unit_kind]);
 
   const isDirty = Boolean(selectedLead || (step > (initialUnit ? 1 : 0)) || Boolean(newLeadData?.full_name?.trim()));
 
@@ -344,7 +349,7 @@ export const DealWizardModal = ({
 
   const handleNext = () => {
     if (step === 0 && !selectedUnit) {
-      setError('Пожалуйста, выберите квартиру');
+      setError('Пожалуйста, выберите объект');
       return;
     }
     if (step === 1 && !selectedLead) {
@@ -352,6 +357,10 @@ export const DealWizardModal = ({
       return;
     }
     if (step === 2) {
+      if (!(Number(pricePerM2) > 0) || !(finalPrice > 0)) {
+        setError('Укажите положительную цену и стоимость объекта');
+        return;
+      }
       if ((paymentType === 'BARTER' || paymentType === 'PARTIAL_BARTER') && !barterDescription.trim()) {
         setError('Пожалуйста, укажите описание предмета бартера (например, авто, недвижимость)');
         return;
@@ -374,6 +383,7 @@ export const DealWizardModal = ({
     setError('');
 
     try {
+      if (!selectedUnit || !selectedLead || !(Number(pricePerM2) > 0) || !(finalPrice > 0)) throw new Error('Выберите объект, покупателя и укажите положительную цену');
       if (['INSTALLMENT','PARTIAL_BARTER'].includes(paymentType)) {
         if (!firstPaymentDate || firstPaymentDate < dealDate) throw new Error('Укажите дату первого платежа не раньше даты договора');
         if (!Number.isInteger(Number(paymentInterval)) || Number(paymentInterval) < 1 || Number(paymentInterval) > 12) throw new Error('Интервал должен быть от 1 до 12 месяцев');
@@ -395,10 +405,10 @@ export const DealWizardModal = ({
         deal_date: dealDate,
         status: dealStatus,
         payment_type: paymentType,
-        base_price_minor: calculatedBasePrice * 100,
-        discount_minor: actualDiscountMinor * 100,
-        final_price_minor: finalPrice * 100,
-        down_payment_minor: downPaymentValue * 100,
+        base_price_minor: Math.round(calculatedBasePrice * 100),
+        discount_minor: Math.round(actualDiscountMinor * 100),
+        final_price_minor: Math.round(finalPrice * 100),
+        down_payment_minor: Math.round(downPaymentValue * 100),
         installment_months: (paymentType === 'INSTALLMENT' || paymentType === 'PARTIAL_BARTER') ? parseInt(installmentMonths, 10) : 0,
         barter_description: (paymentType === 'BARTER' || paymentType === 'PARTIAL_BARTER') ? barterDescription : null,
         barter_amount_minor: (paymentType === 'BARTER' || paymentType === 'PARTIAL_BARTER') ? (parseFloat(barterAmount) || 0) * 100 : 0,
@@ -431,7 +441,8 @@ export const DealWizardModal = ({
   };
 
   const filteredUnits = (availableUnits || []).filter((u) => {
-    if (unitRoomsFilter !== 'ALL' && String(u.rooms) !== String(unitRoomsFilter)) return false;
+    if (unitKindFilter !== 'ALL' && (u.unit_kind || 'APARTMENT') !== unitKindFilter) return false;
+    if (unitRoomsFilter !== 'ALL' && (isNonResidentialUnit(u) || String(u.rooms) !== String(unitRoomsFilter))) return false;
     return matchSearchQuery(u, ['project_name', 'building_name'], unitSearch, { unitFields: ['unit_number'] });
   });
 
@@ -445,7 +456,7 @@ export const DealWizardModal = ({
 
   const stepLabels = initialUnit
     ? ['1. Покупатель', '2. Условия & Цена', '3. Рассрочка/График', '4. Подтверждение']
-    : ['1. Выбор квартиры', '2. Покупатель', '3. Условия & Цена', '4. Рассрочка/График', '5. Подтверждение'];
+    : ['1. Выбор объекта', '2. Покупатель', '3. Условия & Цена', '4. Рассрочка/График', '5. Подтверждение'];
 
   const currentStepIndex = initialUnit ? step - 1 : step;
 
@@ -458,7 +469,7 @@ export const DealWizardModal = ({
             <div className="flex items-center gap-2">
               {selectedUnit && (
                 <span className="rounded-md bg-blue-50 px-2 py-0.5 text-xs font-bold text-blue-700 border border-blue-200">
-                  Кв. №{selectedUnit.unit_number} ({getUnitProjectName(selectedUnit)})
+                  {getUnitTitle(selectedUnit)} №{selectedUnit.unit_number} ({getUnitProjectName(selectedUnit)})
                 </span>
               )}
               <h3 className="text-lg font-bold text-slate-900">Оформление сделки</h3>
@@ -505,7 +516,7 @@ export const DealWizardModal = ({
               <div className="flex flex-wrap items-center justify-between gap-3">
                 <div className="flex items-center gap-2">
                   <Building2 className="h-4 w-4 text-blue-600" />
-                  <span className="text-xs font-bold text-slate-900">Выберите свободную квартиру:</span>
+                  <span className="text-xs font-bold text-slate-900">Выберите свободный объект:</span>
                 </div>
 
                 <div className="flex items-center gap-2">
@@ -543,18 +554,21 @@ export const DealWizardModal = ({
                   type="text"
                   value={unitSearch}
                   onChange={(e) => setUnitSearch(e.target.value)}
-                  placeholder="Поиск по номеру квартиры, корпусу или ЖК..."
+                  placeholder="Поиск по номеру объекта, блоку или ЖК..."
                   className="w-full rounded-xl border border-slate-300 bg-slate-50 pl-9 pr-3 py-2 text-xs outline-none focus:border-blue-500 focus:bg-white"
                 />
               </div>
 
+              <select aria-label="Тип объекта" value={unitKindFilter} onChange={e => { setUnitKindFilter(e.target.value); setUnitRoomsFilter('ALL'); }} className="w-full rounded-xl border border-slate-300 p-2 text-xs">
+                <option value="ALL">Все объекты</option><option value="APARTMENT">Квартиры</option><option value="PARKING">Машино-места</option><option value="COMMERCIAL">Коммерческие помещения</option>
+              </select>
               {/* Units List */}
               <div className="max-h-72 overflow-y-auto space-y-2 pr-1">
                 {loadingUnits ? (
-                  <div className="p-8 text-center text-xs text-slate-400">Загрузка доступных квартир...</div>
+                  <div className="p-8 text-center text-xs text-slate-400">Загрузка доступных объектов...</div>
                 ) : filteredUnits.length === 0 ? (
                   <div className="p-8 text-center text-xs text-slate-400 bg-slate-50 rounded-xl border border-slate-200">
-                    Свободные квартиры не найдены. Выберите другой проект или фильтр.
+                    Свободные объекты не найдены. Выберите другой проект или фильтр.
                   </div>
                 ) : (
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
@@ -575,14 +589,14 @@ export const DealWizardModal = ({
                           <div>
                             <div className="flex items-center gap-1.5">
                               <span className="font-extrabold text-sm text-slate-900">
-                                Кв. №{u.unit_number}
+                                {getUnitTitle(u)} №{u.unit_number}
                               </span>
                               <span className="rounded bg-slate-100 px-1.5 py-0.5 text-[10px] font-bold text-slate-600">
-                                {u.rooms} комн.
+                                {getUnitKindLabel(u)}
                               </span>
                             </div>
                             <div className="text-[11px] text-slate-500 mt-0.5">
-                              {u.project_name} • {u.floor_number} этаж ({uArea} м²)
+                              {u.project_name} • {u.building_name} • {u.floor_number} этаж ({uArea} м²)
                             </div>
                           </div>
                           {isSelected && <CheckCircle2 className="h-5 w-5 text-blue-600 shrink-0" />}
@@ -791,9 +805,9 @@ export const DealWizardModal = ({
               {/* Unit snapshot */}
               <div className="rounded-xl bg-slate-50 border border-slate-200 p-3 flex items-center justify-between text-xs">
                 <div>
-                  <span className="text-slate-500 block">Объект и квартира:</span>
+                  <span className="text-slate-500 block">Объект продажи:</span>
                   <strong className="text-slate-900">
-                    {selectedUnit?.project_name}, Кв. №{selectedUnit?.unit_number} ({selectedUnit?.rooms} комн., {areaM2} м²)
+                    {selectedUnit?.project_name}, {getUnitTitle(selectedUnit)} №{selectedUnit?.unit_number} ({areaM2} м²)
                   </strong>
                 </div>
                 <div className="text-right">
@@ -868,7 +882,7 @@ export const DealWizardModal = ({
                 </div>
 
                 {/* Ladder Discount Quick Selector */}
-                <div>
+                {!isNonResidentialUnit(selectedUnit) && <div>
                   <div className="flex items-center justify-between mb-1.5">
                     <span className="text-[11px] font-bold text-slate-700">
                       Лестничный ориентир скидки по % первого взноса:
@@ -915,6 +929,7 @@ export const DealWizardModal = ({
                   </div>
                 </div>
 
+                }
                 {/* Bargained Final Price Inputs */}
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
                   <div>
@@ -924,9 +939,18 @@ export const DealWizardModal = ({
                     <input
                       type="number"
                       min="1"
+                      aria-label="Окончательная стоимость объекта"
+                      step="0.01"
                       value={finalPrice}
                       onChange={(e) => {
                         const val = parseFloat(e.target.value) || 0;
+                        if (isNonResidentialUnit(selectedUnit)) {
+                          setPricePerM2(areaM2 > 0 ? val / areaM2 : 0);
+                          setDiscountType('AMOUNT');
+                          setDiscountValue(0);
+                          setDownPaymentAmount(roundAmount(val * (downPaymentPercent / 100)));
+                          return;
+                        }
                         const baseTot = Math.round(areaM2 * (parseFloat(pricePerM2) || basePricePerM2));
                         const disc = Math.max(0, baseTot - val);
                         setDiscountType('AMOUNT');
@@ -947,6 +971,8 @@ export const DealWizardModal = ({
                     <input
                       type="number"
                       min="1"
+                      aria-label="Цена объекта за м²"
+                      step="0.01"
                       value={pricePerM2}
                       onChange={(e) => {
                         const newP = parseFloat(e.target.value) || 0;
@@ -1191,7 +1217,7 @@ export const DealWizardModal = ({
                       <span>Подписанный договор</span>
                     </div>
                     <p className="text-[11px] text-slate-500 mt-1">
-                      Квартира переходит в статус «ПРОДАНО», генерируется официальный договор
+                      Объект переходит в статус «ПРОДАНО», генерируется официальный договор
                     </p>
                   </button>
 
@@ -1209,7 +1235,7 @@ export const DealWizardModal = ({
                       <span>Временная бронь</span>
                     </div>
                     <p className="text-[11px] text-slate-500 mt-1">
-                      Квартира бронируется на ограниченный срок с защитой от продажи
+                      Объект бронируется на ограниченный срок с защитой от продажи
                     </p>
                   </button>
                 </div>
@@ -1320,8 +1346,8 @@ export const DealWizardModal = ({
                     <strong className="text-slate-800">{selectedLead?.full_name} ({selectedLead?.phone})</strong>
                   </div>
                   <div>
-                    <span className="text-slate-400 text-[11px] block">Квартира:</span>
-                    <strong className="text-slate-800">{selectedUnit?.project_name}, Кв. №{selectedUnit?.unit_number} ({areaM2} м²)</strong>
+                    <span className="text-slate-400 text-[11px] block">Объект:</span>
+                    <strong className="text-slate-800">{selectedUnit?.project_name}, {getUnitTitle(selectedUnit)} №{selectedUnit?.unit_number} ({areaM2} м²)</strong>
                   </div>
                   <div>
                     <span className="text-slate-400 text-[11px] block">Форма оплаты:</span>
@@ -1367,7 +1393,7 @@ export const DealWizardModal = ({
                 className="flex items-center gap-2 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 px-6 py-2.5 text-xs font-bold text-white shadow-lg hover:from-emerald-700 hover:to-teal-700 transition cursor-pointer disabled:opacity-50"
               >
                 <CheckCircle2 className="h-4 w-4" />
-                <span>{isSubmitting ? 'Оформление...' : dealStatus === 'SIGNED' ? 'Подписать договор' : 'Забронировать квартиру'}</span>
+                <span>{isSubmitting ? 'Оформление...' : dealStatus === 'SIGNED' ? 'Подписать договор' : 'Забронировать объект'}</span>
               </button>
             )}
           </div>

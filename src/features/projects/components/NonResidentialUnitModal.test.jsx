@@ -4,14 +4,17 @@ import { render, screen, fireEvent, waitFor, cleanup } from '@testing-library/re
 import { NonResidentialUnitModal } from './NonResidentialUnitModal';
 import { getUnitKindLabel, isNonResidentialUnit } from '../../../utils/unitKind';
 
-const { patch } = vi.hoisted(() => ({ patch: vi.fn() }));
-vi.mock('../../../api/client', () => ({ api: { patch } }));
+const { patch, get } = vi.hoisted(() => ({ patch: vi.fn(), get: vi.fn() }));
+vi.mock('../../../api/client', () => ({ api: { patch, get } }));
 vi.mock('../../auth/AuthContext', () => ({ useAuth: () => ({ user: { role: 'ADMIN' } }) }));
 vi.mock('../../../hooks/useModalDismiss', () => ({ useModalDismiss: ({ onClose }) => ({ requestClose: onClose }) }));
+vi.mock('../../deals/DealWizardModal', () => ({ DealWizardModal: props => <div data-testid="wizard">{props.initialStatus}<button onClick={() => props.onDealCreated({ id: 91, status: props.initialStatus })}>Создать тестовую сделку</button></div> }));
+vi.mock('../../deals/DealDrawer', () => ({ DealDrawer: props => <div>Сделка {props.dealId}</div> }));
+vi.mock('../../deals/ContractPrintView', () => ({ ContractPrintView: () => null }));
 const parking = { id: 200, unit_kind: 'PARKING', unit_number: 'П-01', area_m2_x100: 2552, price_per_m2_minor: 0, status: 'AVAILABLE' };
 
 describe('nonresidential chessboard cards', () => {
-  beforeEach(() => { cleanup(); patch.mockReset(); });
+  beforeEach(() => { cleanup(); patch.mockReset(); get.mockReset(); get.mockResolvedValue({ data: { unit: parking } }); });
   it('keeps studios distinct from parking and commercial units', () => {
     expect(getUnitKindLabel(parking)).toBe('Машино-место');
     expect(getUnitKindLabel({ unit_kind: 'COMMERCIAL', rooms: 0 })).toBe('Коммерция');
@@ -59,6 +62,25 @@ describe('nonresidential chessboard cards', () => {
     await screen.findByRole('alert');
     expect(onClose).not.toHaveBeenCalled();
     expect(onUpdated).not.toHaveBeenCalled();
+  });
+
+  it.each(['SIGNED', 'RESERVED'])('opens the shared wizard with %s status and then the created deal', async (status) => {
+    const onUpdated = vi.fn();
+    render(<NonResidentialUnitModal unit={parking} currency="USD" onUpdated={onUpdated} />);
+    const action = screen.getByText(status === 'SIGNED' ? 'Оформить продажу' : 'Забронировать');
+    await waitFor(() => expect(action.disabled).toBe(false));
+    fireEvent.click(action);
+    expect(screen.getByTestId('wizard').textContent).toContain(status);
+    fireEvent.click(screen.getByText('Создать тестовую сделку'));
+    expect(screen.getByText('Сделка 91')).toBeTruthy();
+    expect(onUpdated).toHaveBeenCalledOnce();
+  });
+  it('shows an existing deal for sold parking and does not offer a new sale', async () => {
+    get.mockResolvedValue({ data: { unit: { ...parking, status: 'SOLD', active_deal: { id: 92, lead_name: 'Тестовый покупатель' } } } });
+    render(<NonResidentialUnitModal unit={{ ...parking, status: 'SOLD' }} currency="USD" />);
+    fireEvent.click(await screen.findByText('Открыть сделку и платежи'));
+    expect(screen.getByText('Сделка 92')).toBeTruthy();
+    expect(screen.queryByText('Оформить продажу')).toBeNull();
   });
 
 });

@@ -1,3 +1,4 @@
+import { getUnitTitle, isNonResidentialUnit } from '../../utils/unitKind';
 import {formatMeasure} from '../../utils/numberDisplay';
 import React, { useState, useEffect } from 'react';
 import { api } from '../../api/client';
@@ -155,7 +156,7 @@ export const EditDealModal = ({
     setUnitsLoading(true);
     api.get('/deals/available-units', { params: { projectId: deal.project_id } })
       .then(res => { if (!cancelled) setUnits((res.data?.units || res.units || []).filter(u => u.project_currency === deal.currency)); })
-      .catch(err => { if (!cancelled) setError(err.message || 'Не удалось загрузить квартиры'); })
+      .catch(err => { if (!cancelled) setError(err.message || 'Не удалось загрузить объекты'); })
       .finally(() => { if (!cancelled) setUnitsLoading(false); });
     return () => { cancelled = true; };
   }, [isOpen, amending, deal?.id, deal?.project_id, deal?.currency]);
@@ -297,7 +298,7 @@ export const EditDealModal = ({
                 </span>
               </div>
               <p className="text-[11px] text-slate-500">
-                Договор №{deal.contract_number} • Кв. №{deal.unit_number} ({deal.project_name || 'TOZON PLAZA'})
+                Договор №{deal.contract_number} • {getUnitTitle(deal)} №{deal.unit_number} ({deal.project_name || 'TOZON PLAZA'})
               </p>
             </div>
           </div>
@@ -327,21 +328,21 @@ export const EditDealModal = ({
                 setPricePerM2(String((deal.deal_price_per_m2_minor || (deal.area_m2_x100 > 0 ? Math.round(deal.final_price_minor / (deal.area_m2_x100 / 100)) : 0)) / 100));
                 setFinalPrice(String(deal.final_price_minor / 100));
               }} />
-              Изменить квартиру и стоимость
+              {isNonResidentialUnit(deal) ? 'Изменить объект и стоимость' : 'Изменить квартиру и стоимость'}
             </label>
           )}
           {amending && (
             <div className="rounded-xl border border-blue-200 bg-blue-50 p-3 space-y-3">
               <p>Договор №{deal.contract_number} от {deal.deal_date} сохраняется. Все платежи и ПКО остаются на месте. Даты графика сохраняются, плановые суммы пересчитываются пропорционально новой стоимости.</p>
-              <label className="block font-bold">Квартира
-                <select aria-label="Квартира" value={unitId} disabled={unitsLoading || isSubmitting} className="block w-full border rounded-lg p-2 bg-white" onChange={e => {
+              <label className="block font-bold">{getUnitTitle(deal)}
+                <select aria-label={getUnitTitle(deal)} value={unitId} disabled={unitsLoading || isSubmitting} className="block w-full border rounded-lg p-2 bg-white" onChange={e => {
                   setUnitId(e.target.value);
                   const unit = units.find(u => String(u.id) === e.target.value);
                   const area = unit ? unit.area_m2_x100 / 100 : deal.area_m2_x100 / 100;
                   setFinalPrice(String(Math.round((area * Number(pricePerM2) - Number(discount)) * 100) / 100));
                 }}>
                   <option value={String(deal.unit_id)}>Текущая: №{deal.unit_number} — {formatMeasure(deal.area_m2_x100 / 100)} м²</option>
-                  {units.filter(u => String(u.id) !== String(deal.unit_id)).map(u => <option key={u.id} value={String(u.id)}>{u.section_name}, этаж {u.floor_number}, №{u.unit_number} — {formatMeasure(u.area_m2_x100 / 100)} м²</option>)}
+                  {units.filter(u => String(u.id) !== String(deal.unit_id)).map(u => <option key={u.id} value={String(u.id)}>{getUnitTitle(u)} — {u.building_name}, {u.section_name}, этаж {u.floor_number}, №{u.unit_number} — {formatMeasure(u.area_m2_x100 / 100)} м²</option>)}
                 </select>
               </label>
               <p>Стоимость: ${(deal.final_price_minor / 100).toLocaleString('ru-RU', { minimumFractionDigits: 2 })} → ${Number(finalPrice).toLocaleString('ru-RU', { minimumFractionDigits: 2 })}. Площадь: {formatMeasure(deal.area_m2_x100 / 100)} → {formatMeasure(areaM2)} м².</p>
@@ -517,7 +518,7 @@ export const EditDealModal = ({
               {/* Unit Area & Commercial Price Info */}
               <div className="grid grid-cols-2 gap-2 bg-white/80 p-2.5 rounded-xl border border-slate-200/60 text-[11px]">
                 <div>
-                  <span className="text-slate-500 block">Площадь квартиры:</span>
+                  <span className="text-slate-500 block">Площадь объекта:</span>
                   <span className="font-extrabold text-slate-900">{areaM2} м²</span>
                 </div>
                 <div>
@@ -701,7 +702,7 @@ export const EditDealModal = ({
               <summary className="cursor-pointer font-bold">История изменений договора ({amendments.length})</summary>
               {amendments.map(entry => <div key={entry.id} className="border-t mt-2 pt-2">
                 <p>{new Date(entry.created_at).toLocaleString('ru-RU')} · Администратор #{entry.user_id}</p>
-                <p>Квартира №{entry.changes_json.old_unit?.unit_number || entry.changes_json.old?.unit_id} → №{entry.changes_json.new_unit?.unit_number || entry.changes_json.new?.unit_id}; стоимость ${(entry.changes_json.old?.final_price_minor / 100).toLocaleString('ru-RU')} → ${(entry.changes_json.new?.final_price_minor / 100).toLocaleString('ru-RU')}</p>
+                <p>Объект №{entry.changes_json.old_unit?.unit_number || entry.changes_json.old?.unit_id} → №{entry.changes_json.new_unit?.unit_number || entry.changes_json.new?.unit_id}; стоимость ${(entry.changes_json.old?.final_price_minor / 100).toLocaleString('ru-RU')} → ${(entry.changes_json.new?.final_price_minor / 100).toLocaleString('ru-RU')}</p>
                 <p>{entry.changes_json.reason}</p>
               </div>)}
             </details>
