@@ -7,6 +7,7 @@ import { hasReadPermission } from '../../utils/permissions';
 import { CostAllocationFields } from './CostAllocationFields';
 import { COST_STATES, allocationPayload } from './allocation';
 import { MaterialCostsPanel } from './MaterialCostsPanel';
+import { formatFinanceText } from '../../utils/financeDisplay';
 
 const number = n => n == null ? '—' : Number(n).toLocaleString('ru-RU', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 const money = minor => minor == null ? '—' : `$${number(minor / 100)}`;
@@ -85,7 +86,7 @@ export function BlockCostsPage() {
       </div>
       <p className="text-sm">Показано: {rows.length} РКО</p>
       <div className="overflow-x-auto rounded-xl border"><table className="w-full text-sm text-left"><thead className="bg-slate-100"><tr>{['Дата / РКО', 'Статья / описание', 'Сохранённая сумма', 'USD', 'Учёт', ''].map((t, i) => <th key={i} className="p-3">{t}</th>)}</tr></thead><tbody>
-        {rows.map(r => <tr key={r.id} className="border-t"><td className="p-3 whitespace-nowrap">{r.date}<br />{r.reference || `РКО-${r.id}`}</td><td className="p-3 max-w-sm"><strong>{r.category}</strong><p className="text-xs text-slate-500 break-words">{r.description}</p></td><td className="p-3 whitespace-nowrap">{number(r.amount_minor / 100)} {r.currency}</td><td className="p-3">{money(r.usd_minor)}</td><td className="p-3"><strong>{COST_STATES[r.state]}</strong><p className="text-xs">{r.reason}</p>{r.portions.map(p => <div key={p.building_id} className="text-xs">{blocks.find(b => b.id === p.building_id)?.name}: {money(p.amount)}</div>)}</td><td className="p-3">{data.can_write && r.state !== 'AUTO_EXCLUDED' && <button className="text-blue-700 underline" onClick={() => { setError(''); setEditor({ row: r, value: { mode: r.allocation?.mode || 'UNASSIGNED', building_ids: (r.allocation?.shares || []).map(s => s.building_id), reason: r.allocation?.reason || '' } }); }}>Распределить</button>}</td></tr>)}
+        {rows.map(r => <tr key={r.id} className="border-t"><td className="p-3 whitespace-nowrap">{r.date}<br />{r.reference || `РКО-${r.id}`}</td><td className="p-3 max-w-sm"><strong>{r.category}</strong><p className="text-xs text-slate-500 break-words">{formatFinanceText(r.description)}</p></td><td className="p-3 whitespace-nowrap">{number(r.amount_minor / 100)} {r.currency}</td><td className="p-3">{money(r.usd_minor)}</td><td className="p-3"><strong>{COST_STATES[r.state]}</strong><p className="text-xs">{formatFinanceText(r.reason)}</p>{r.portions.map(p => <div key={p.building_id} className="text-xs">{blocks.find(b => b.id === p.building_id)?.name}: {money(p.amount)}</div>)}</td><td className="p-3">{data.can_write && r.state !== 'AUTO_EXCLUDED' && <button className="text-blue-700 underline" onClick={() => { setError(''); setEditor({ row: r, value: { mode: r.allocation?.mode || 'UNASSIGNED', building_ids: (r.allocation?.shares || []).map(s => s.building_id), reason: r.allocation?.reason || '' } }); }}>Распределить</button>}</td></tr>)}
         {!rows.length && <tr><td colSpan={6} className="p-6 text-center text-slate-500">Нет РКО с выбранными фильтрами.</td></tr>}
       </tbody></table></div>
     </>}

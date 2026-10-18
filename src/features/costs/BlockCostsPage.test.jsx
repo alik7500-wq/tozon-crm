@@ -14,6 +14,16 @@ const state = () => ({ projects: [{ id: 3, name: 'TOZON PLAZA' }], blocks: [{ id
 const mount = () => render(<MemoryRouter><QueryClientProvider client={new QueryClient({ defaultOptions: { queries: { retry: false }, mutations: { retry: false } } })}><BlockCostsPage /></QueryClientProvider></MemoryRouter>);
 afterEach(() => { cleanup(); vi.resetAllMocks(); auth.user = { id: 1, role: 'ADMIN', permissions: [] }; });
 describe('Block costs workflow', () => {
+  it('formats decimal strings in RKO descriptions without changing dates or saved records', async () => {
+    const data = state();
+    data.rows[0].description = 'За питьевую воду • Оплачено: 40.0000000000000000 TJS; списание из USD по курсу 9.2600000000';
+    api.get.mockResolvedValue({data}); mount();
+    const description = await screen.findByText('За питьевую воду • Оплачено: 40,00 TJS; списание из USD по курсу 9,26');
+    expect(description.textContent).not.toContain('000000');
+    expect(screen.getByRole('cell', {name: /2026-10-01.*РКО-1/})).toBeTruthy();
+    expect(data.rows[0].description).toContain('40.0000000000000000');
+    expect(api.put).not.toHaveBeenCalled();
+  });
   it('does not preconfirm suggested registry area and sends only an explicit confirmed basis', async () => {
     api.get.mockResolvedValue({ data: state() }); api.put.mockResolvedValue({ data: {} }); mount();
     fireEvent.click(await screen.findByText('Подтвердить / изменить площадь'));
