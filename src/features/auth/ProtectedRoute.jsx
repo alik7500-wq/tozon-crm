@@ -37,7 +37,7 @@ export const ProtectedRoute = ({ requiredPermission }) => {
 export const PermissionGuard = ({ requiredPermission, children }) => {
   const { user } = useAuth();
   const { pathname } = useLocation();
-  if (requiredPermission && !hasReadPermission(user, requiredPermission)) {
+  if (!user || !hasFeatureAccess(user, pathname) || (requiredPermission && !hasReadPermission(user, requiredPermission))) {
     return <Navigate to="/" replace />;
   }
   return children;
