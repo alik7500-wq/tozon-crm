@@ -104,7 +104,8 @@ export const FEATURE_ACCESS = Object.freeze({
   '/crm/sms-templates': 'automation.sms_notifications'
 });
 export const hasFeatureAccess = (user, path, mode = 'read') => {
-  const key = FEATURE_ACCESS[path];
+  const normalizedPath = String(path || '').split('?')[0].replace(/\/+$/, '') || '/';
+  const key = FEATURE_ACCESS[normalizedPath];
   if (!key) return true;
   const permissions = user?.permissions || [];
   if (!permissions.includes(GRANULAR_ACCESS_PROFILE)) return true;
