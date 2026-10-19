@@ -1,3 +1,4 @@
+import { navGroups } from '../config/navigationRegistry';
 const LEGACY_PERMISSION_GROUPS = [
   { id: 'construction', title: 'Строительный учёт', permissions: [
     { key: 'construction.stock', label: 'Склад', desc: 'Поступления, выдача и перемещения материалов' },
@@ -84,10 +85,38 @@ const standalone = {
   'tasks.manage': 'tasks.view', 'automation.manage': 'automation.view',
   'users.manage': 'users.view', 'settings.manage': 'settings.view'
 };
-export const PERMISSION_GROUPS = LEGACY_PERMISSION_GROUPS.map(group => ({
+// Discover current menu entries from the same registry that renders the sidebar.
+// Existing permission keys are retained; newly registered menu permissions appear
+// in the editor without silently granting access to any user.
+const menuEntries = navGroups.flatMap(item =>
+  item.type === 'group'
+    ? item.children.map(child => ({ ...child, group: item.label }))
+    : [{ ...item, group: 'Общие разделы' }]
+).filter(item => item.permission);
+const menuByKey = new Map();
+for (const entry of menuEntries) {
+  const keys = entry.permissionsAny?.length ? entry.permissionsAny : [entry.permission];
+  for (const key of keys) {
+    if (!menuByKey.has(key)) menuByKey.set(key, []);
+    menuByKey.get(key).push(entry.label);
+  }
+}
+const knownKeys = new Set(LEGACY_PERMISSION_GROUPS.flatMap(g => g.permissions.map(p => p.key)));
+const autoMenuGroups = [...new Set(menuEntries.map(e => e.group))].map(group => ({
+  id: 'menu-' + group,
+  title: group + ' — новые функции меню',
+  permissions: menuEntries
+    .filter(e => e.group === group)
+    .filter(e => !knownKeys.has(e.permission) && !e.permissionsAny?.some(k => knownKeys.has(k)))
+    .filter((e, i, arr) => arr.findIndex(x => x.permission === e.permission) === i)
+    .map(e => ({ key: e.permission, label: e.label, desc: 'Раздел меню: ' + e.path }))
+})).filter(g => g.permissions.length);
+
+export const PERMISSION_GROUPS = [...LEGACY_PERMISSION_GROUPS, ...autoMenuGroups].map(group => ({
   ...group,
   permissions: group.permissions.filter(p => !Object.values(paired).includes(p.key)).map(p => ({
     ...p,
+    desc: menuByKey.has(p.key) ? `${p.desc}. Пункты меню: ${[...new Set(menuByKey.get(p.key))].join(', ')}` : p.desc,
     readKey: standalone[p.key] || p.key,
     writeKey: paired[p.key] || (standalone[p.key] ? p.key : `${p.key}.write`),
     legacyKeys: paired[p.key] ? [p.key, paired[p.key]] : [p.key],
