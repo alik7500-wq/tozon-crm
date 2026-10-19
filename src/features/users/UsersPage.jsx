@@ -163,6 +163,8 @@ export const UsersPage = () => {
         return { label: 'Менеджер продаж', bg: 'bg-blue-50 text-blue-700 border-blue-200', icon: UserCheck };
       case 'WAREHOUSE_MANAGER':
         return { label: 'Заведующий складом', bg: 'bg-amber-50 text-amber-700 border-amber-200', icon: Package };
+      case 'CASHIER':
+        return { label: 'Кассир', bg: 'bg-teal-50 text-teal-700 border-teal-200', icon: Wallet };
       case 'FINANCE_MANAGER':
         return { label: 'Финансист', bg: 'bg-emerald-50 text-emerald-700 border-emerald-200', icon: Wallet };
       default:
@@ -485,6 +487,7 @@ export const UsersPage = () => {
                     >
                       <option value="SALES_MANAGER">Менеджер по продажам (CRM, шахматка, лиды, сделки)</option>
                       <option value="WAREHOUSE_MANAGER">Заведующий складом (Склад стройматериалов, учет, списание, остатки)</option>
+                      <option value="CASHIER">Кассир (ПКО, приём платежей)</option>
                       <option value="FINANCE_MANAGER">Финансовый менеджер (Касса, платежи, ДДС, должники)</option>
                       <option value="DIRECTOR">Директор (Аналитика, продажи, финансы, отчеты)</option>
                       <option value="ADMIN">Администратор (Полный неограниченный доступ)</option>
