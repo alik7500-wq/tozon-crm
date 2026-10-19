@@ -138,11 +138,11 @@ export const SalesAnalyticsPage = () => {
     navigate(`/deals?${params.toString()}`);
   };
 
-  // Export to CSV
+  // Export to Excel (.xlsx)
   const handleExport = async (type) => {
     try {
       setIsExporting(true);
-      const params = { type };
+      const params = { type, format: 'xlsx' };
       if (selectedProjectId !== 'ALL') params.projectId = selectedProjectId;
       if (selectedBuildingId !== 'ALL') params.buildingId = selectedBuildingId;
       if (selectedManagerId !== 'ALL') params.managerId = selectedManagerId;
@@ -153,11 +153,11 @@ export const SalesAnalyticsPage = () => {
         responseType: 'blob'
       });
 
-      const blob = new Blob([response], { type: 'text/csv;charset=utf-8;' });
+      const blob = new Blob([response], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
       const url = window.URL.createObjectURL(blob);
       const link = document.createElement('a');
       link.href = url;
-      link.setAttribute('download', `tozon_sales_analytics_${type}_${new Date().toISOString().split('T')[0]}.csv`);
+      link.setAttribute('download', `tozon_sales_analytics_${type}_${new Date().toISOString().split('T')[0]}.xlsx`);
       document.body.appendChild(link);
       link.click();
       link.remove();
@@ -193,7 +193,7 @@ export const SalesAnalyticsPage = () => {
             className="flex items-center gap-2 px-3 py-2 rounded-xl bg-white border border-slate-200 text-xs font-bold text-slate-700 hover:bg-slate-50 hover:text-blue-600 transition shadow-2xs cursor-pointer"
           >
             <Download className="h-3.5 w-3.5" />
-            <span>{isExporting ? 'Экспорт...' : 'Экспорт в Excel (CSV)'}</span>
+            <span>{isExporting ? 'Экспорт...' : 'Экспорт в Excel (.xlsx)'}</span>
           </button>
 
           <button
@@ -396,10 +396,14 @@ export const SalesAnalyticsPage = () => {
                 <div className="rounded-3xl border border-blue-200 bg-blue-50/40 p-5 shadow-2xs">
                   <span className="text-[11px] font-bold text-blue-700 uppercase tracking-wider">Выполнение плана (USD)</span>
                   <div className="text-2xl font-black text-blue-800 mt-1">
-                    {planFactData.summary.volumeExecutionPercent}%
+                    {planFactData.summary.volumeExecutionPercent !== null && planFactData.summary.volumeExecutionPercent !== undefined
+                      ? `${planFactData.summary.volumeExecutionPercent}%`
+                      : 'Нет плана'}
                   </div>
                   <div className="text-xs text-blue-600 mt-1 font-semibold">
-                    По квартирам: {planFactData.summary.dealsExecutionPercent}%
+                    По квартирам: {planFactData.summary.dealsExecutionPercent !== null && planFactData.summary.dealsExecutionPercent !== undefined
+                      ? `${planFactData.summary.dealsExecutionPercent}%`
+                      : 'Нет плана'}
                   </div>
                 </div>
 
@@ -461,13 +465,15 @@ export const SalesAnalyticsPage = () => {
                           </td>
                           <td className="p-3 text-center font-bold">
                             <span className={`px-2 py-0.5 rounded-md text-[10px] ${
-                              m.execution.dealsPercent >= 100
+                              m.execution.dealsPercent === null || m.execution.dealsPercent === undefined
+                                ? 'bg-slate-100 text-slate-500'
+                                : m.execution.dealsPercent >= 100
                                 ? 'bg-emerald-100 text-emerald-800'
                                 : m.execution.dealsPercent > 0
                                 ? 'bg-amber-100 text-amber-800'
                                 : 'bg-slate-100 text-slate-600'
                             }`}>
-                              {m.execution.dealsPercent}%
+                              {m.execution.dealsPercent !== null && m.execution.dealsPercent !== undefined ? `${m.execution.dealsPercent}%` : 'Нет плана'}
                             </span>
                           </td>
                           <td className="p-3 text-right font-semibold text-slate-600">
@@ -504,6 +510,39 @@ export const SalesAnalyticsPage = () => {
                         </tr>
                       ))}
                     </tbody>
+                    <tfoot className="bg-emerald-50/70 border-t-2 border-emerald-300 font-bold text-slate-900">
+                      <tr>
+                        <td className="p-3 pl-4 uppercase tracking-wider text-[11px] text-emerald-950 font-black">ИТОГО</td>
+                        <td className="p-3 text-center text-slate-700">
+                          {planFactData.summary.totalTargetDeals > 0 ? `${planFactData.summary.totalTargetDeals} шт` : '—'}
+                        </td>
+                        <td className="p-3 text-center text-emerald-800 font-black">
+                          {planFactData.summary.totalActualDeals} шт
+                        </td>
+                        <td className="p-3 text-center">
+                          <span className="px-2 py-0.5 rounded-md text-[10px] bg-emerald-200/80 text-emerald-950 font-black">
+                            {planFactData.summary.dealsExecutionPercent !== null && planFactData.summary.dealsExecutionPercent !== undefined
+                              ? `${planFactData.summary.dealsExecutionPercent}%`
+                              : 'Нет плана'}
+                          </span>
+                        </td>
+                        <td className="p-3 text-right text-slate-700 font-bold">
+                          ${planFactData.summary.totalTargetVolumeUsd.toLocaleString('ru-RU')}
+                        </td>
+                        <td className="p-3 text-right text-emerald-900 font-black">
+                          ${planFactData.summary.totalActualVolumeUsd.toLocaleString('ru-RU')}
+                        </td>
+                        <td className={`p-3 text-right font-black ${
+                          planFactData.summary.volumeGapUsd >= 0 ? 'text-emerald-800' : 'text-rose-700'
+                        }`}>
+                          {planFactData.summary.volumeGapUsd >= 0 ? '+' : ''}${planFactData.summary.volumeGapUsd.toLocaleString('ru-RU')}
+                        </td>
+                        <td className="p-3 text-center text-cyan-800 font-bold">
+                          {planFactData.monthlyComparison.reduce((s, m) => s + (m.pipelineSupplementary?.reservedCount || 0), 0)} шт
+                        </td>
+                        <td className="p-3 text-center pr-4 text-slate-400">—</td>
+                      </tr>
+                    </tfoot>
                   </table>
                 </div>
               </div>
