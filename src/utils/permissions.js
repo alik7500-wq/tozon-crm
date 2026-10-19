@@ -195,9 +195,8 @@ export const hasPermission = (user, permission) => {
 
 export const hasAnyPermission = (user, permissions = []) => {
   if (!user) return false;
-  if (user.role === 'ADMIN') return true;
   const userPerms = Array.isArray(user.permissions) ? user.permissions : [];
-  if (userPerms.includes('*')) return true;
+  if (!userPerms.includes(ACCESS_PROFILE) && (user.role === 'ADMIN' || userPerms.includes('*'))) return true;
   if (!permissions || permissions.length === 0) return true;
   return permissions.some(p => userPerms.includes(p));
 };
