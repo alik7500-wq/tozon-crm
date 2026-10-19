@@ -4,7 +4,6 @@ import { ApartmentImageViewer } from './ApartmentImageViewer';
 import { api } from '../../../api/client';
 import { useI18n } from '../../../context/i18nContext';
 
-const Scene3DViewer = lazy(() => import('../../visual3d/components/Scene3DViewer').then(m => ({ default: m.Scene3DViewer })));
 const Tour360Viewer = lazy(() => import('../../tour360/components/Tour360Viewer').then(m => ({ default: m.Tour360Viewer })));
 
 import {
@@ -13,8 +12,6 @@ import {
   ShieldCheck,
   Globe,
   Layers,
-  Box,
-  Compass,
   Wind,
   Flame,
   CheckCircle2,
@@ -47,7 +44,7 @@ export const InteractiveApartmentView = ({
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState('');
 
-  // Active View Mode: 'plan' | '3d' | '360'
+  // Active View Mode: 'plan' | '360'
   const [viewMode, setViewMode] = useState('plan');
 
   // Selected Room ID
@@ -110,10 +107,13 @@ export const InteractiveApartmentView = ({
     );
   }
 
-  const { unit, layout, rooms = [], features = [], scene3d, permissions } = data;
+  const { unit, layout, rooms = [], features = [], permissions } = data;
+  const isLayoutTour = data.tour360?.presentation_scope === 'LAYOUT'
+    && String(data.tour360.presentation_unit_id) === String(unitId)
+    && String(data.tour360.presentation_layout_id) === String(layout?.id || unit.layout_type_id || unit.layout_types?.id);
   const tour360 = data.tour360?.is_active === true
     && data.tour360.entity_type === 'UNIT'
-    && String(data.tour360.entity_id) === String(unitId)
+    && (String(data.tour360.entity_id) === String(unitId) || isLayoutTour)
     ? data.tour360 : null;
 
   const activeRoom = rooms.find((r) => r.id === (hoveredRoomId || selectedRoomId)) || rooms[0];
@@ -187,29 +187,18 @@ export const InteractiveApartmentView = ({
               <span>{t('tabPlan')}</span>
             </button>
 
-            {scene3d && (
               <button
-                onClick={() => setViewMode('3d')}
-                className={`flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-bold transition cursor-pointer ${
-                  viewMode === '3d' ? 'bg-blue-600 text-white shadow-xs' : 'text-slate-700 hover:text-slate-900'
-                }`}
-              >
-                <Box className="h-3.5 w-3.5" />
-                <span>{t('tab3d')}</span>
-              </button>
-            )}
-
-            {tour360 && (
-              <button
+                type="button"
+                disabled={!tour360}
+                title={!tour360 ? (lang === 'tg' ? 'Барои ин нақша саёҳати 360° ҳоло омода нест' : 'Для этой планировки 360°-тур ещё не подготовлен') : undefined}
                 onClick={() => setViewMode('360')}
-                className={`flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-bold transition cursor-pointer ${
+                className={`flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-bold transition cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed ${
                   viewMode === '360' ? 'bg-blue-600 text-white shadow-xs' : 'text-slate-700 hover:text-slate-900'
                 }`}
               >
                 <Globe className="h-3.5 w-3.5" />
-                <span>{t('tabTour360')}</span>
+                <span>{lang === 'tg' ? 'Намоиши саёҳати 360°' : 'Показать 360°-тур'}</span>
               </button>
-            )}
           </div>
 
           <button
@@ -233,17 +222,14 @@ export const InteractiveApartmentView = ({
         </div>
       </div>
 
-      {tour360 && viewMode !== '360' && (
+      {tour360 && viewMode === '360' && (
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 rounded-2xl border border-purple-200 bg-purple-50 p-4">
           <div className="min-w-0">
             <h4 className="text-sm font-bold text-purple-950">{lang === 'tg' ? 'Саёҳати 360°-и манзил' : '360°-тур квартиры'}</h4>
             <p className="text-xs text-purple-800 break-words">{tour360.name}</p>
+            {isLayoutTour && <p className="text-xs text-purple-800 mt-1">{lang === 'tg' ? 'Намунаи ҳамин нақша аз манзили' : 'Образец такой же планировки из квартиры'} №{tour360.source_unit_number}</p>}
             {tour360.tour_type === 'SHOWROOM' && <p className="text-xs text-purple-700 mt-1">{lang === 'tg' ? 'Шоуруми виртуалӣ — намунаи ороиши дохилӣ' : 'Виртуальный шоурум — пример оформления интерьера'}</p>}
           </div>
-          <button type="button" onClick={() => setViewMode('360')} className="flex shrink-0 items-center justify-center gap-2 rounded-xl bg-purple-600 px-4 py-2.5 text-sm font-bold text-white hover:bg-purple-700 cursor-pointer">
-            <Compass className="h-4 w-4" />
-            {lang === 'tg' ? 'Намоиши саёҳати 360°' : 'Показать 360°-тур'}
-          </button>
         </div>
       )}
 
@@ -476,15 +462,6 @@ export const InteractiveApartmentView = ({
               )}
             </div>
           </div>
-        </div>
-      )}
-
-      {/* VIEW MODE 2: 3D MODEL */}
-      {viewMode === '3d' && scene3d && (
-        <div className="rounded-2xl bg-slate-900 p-2 border border-slate-800 h-[500px]">
-          <Suspense fallback={<div className="flex h-full items-center justify-center text-white text-xs">Загрузка 3D-модели...</div>}>
-            <Scene3DViewer sceneData={scene3d} unitId={unitId} />
-          </Suspense>
         </div>
       )}
 
