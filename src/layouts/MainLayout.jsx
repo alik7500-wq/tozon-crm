@@ -38,7 +38,7 @@ import {
   Table
 } from 'lucide-react';
 
-import { hasReadPermission, hasAnyPermission } from '../utils/permissions';
+import { hasReadPermission, hasAnyPermission, hasFeatureAccess } from '../utils/permissions';
 import { navGroups } from '../config/navigationRegistry';
 import { GlobalSearch } from '../components/GlobalSearch';
 import { TozonLogo } from '../components/TozonLogo';
@@ -111,14 +111,14 @@ export const MainLayout = () => {
     .filter(item => user?.permissions?.includes('access.v2') || !user?.permissions?.includes('finance.restricted') || item.id === 'finance')
     .map((item) => {
       if (item.type === 'link') {
-        if (item.permission && !hasReadPermission(user, item.permission)) {
+        if ((item.permission && !hasReadPermission(user, item.permission)) || !hasFeatureAccess(user, item.path)) {
           return null;
         }
         return item;
       }
       if (item.type === 'group') {
         const allowedChildren = item.children.filter(
-          (child) => child.permissionsAny ? child.permissionsAny.some(p=>hasReadPermission(user,p)) : !child.permission || hasReadPermission(user, child.permission)
+          (child) => hasFeatureAccess(user, child.path) && (child.permissionsAny ? child.permissionsAny.some(p=>hasReadPermission(user,p)) : !child.permission || hasReadPermission(user, child.permission))
         );
         if (allowedChildren.length === 0) {
           return null;
