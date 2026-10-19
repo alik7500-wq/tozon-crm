@@ -181,7 +181,7 @@ export const UsersPage = () => {
         : [...new Set([...current, ACCESS_PROFILE, ...keys])] };
     });
   };
-  const selectAllPermissions = () => setFormData(prev => ({ ...prev, permissions: [ACCESS_PROFILE, ...ALL_PERMISSIONS, ...(prev.permissions || []).filter(k => k === 'finance.restricted')] }));
+  const selectAllPermissions = () => setFormData(prev => ({ ...prev, permissions: [ACCESS_PROFILE, ...ALL_PERMISSIONS, ...(prev.permissions || []).filter(k => k === 'finance.restricted' || k === GRANULAR_ACCESS_PROFILE)] }));
   const clearAllPermissions = () => setFormData(prev => ({ ...prev, permissions: [ACCESS_PROFILE, ...(prev.permissions || []).filter(k => k === 'finance.restricted')] }));
 
   const getRoleBadge = (role) => {
@@ -636,6 +636,13 @@ export const UsersPage = () => {
                   </div>
                 </div>
 
+                <label className="flex items-start gap-2 rounded-lg border border-amber-200 bg-amber-50 p-3 text-xs text-amber-900">
+                  <input type="checkbox" className="mt-0.5" checked={Boolean(formData.permissions?.includes(GRANULAR_ACCESS_PROFILE))}
+                    onChange={(e) => setFormData(prev => ({ ...prev, permissions: e.target.checked
+                      ? [...new Set([...(prev.permissions || []), ACCESS_PROFILE, GRANULAR_ACCESS_PROFILE])]
+                      : (prev.permissions || []).filter(k => k !== GRANULAR_ACCESS_PROFILE) }))} />
+                  <span><strong>Включить отдельные ограничения функций для этого сотрудника.</strong> При включении доступ к новым функциям определяется галочками ниже. Без галочки действуют прежние права. Перед сохранением проверьте разрешения сотрудника.</span>
+                </label>
                 {formData.role === 'ADMIN' && <p className="text-xs text-amber-700">Администратор имеет полный доступ. Для ограничения прав выберите другую роль.</p>}
                 {/* Permission Groups Grid */}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
