@@ -7,6 +7,7 @@ import {
   ALL_PERMISSIONS,
   ROLE_DEFAULTS,
   ACCESS_PROFILE,
+  GRANULAR_ACCESS_PROFILE,
   normalizePermissions,
   canWriteSection
 } from '../../utils/permissions';
