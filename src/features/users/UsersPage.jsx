@@ -35,6 +35,9 @@ import {
 export const UsersPage = () => {
   const { user: currentUser } = useAuth();
   const [users, setUsers] = useState([]);
+  const [roles, setRoles] = useState([]);
+  const [newRoleName, setNewRoleName] = useState('');
+  const [newRoleCode, setNewRoleCode] = useState('');
   const [isLoading, setIsLoading] = useState(true);
 
   const [search, setSearch] = useState('');
@@ -66,6 +69,7 @@ export const UsersPage = () => {
 
   useEffect(() => {
     fetchUsers();
+    api.get('/roles').then(res => setRoles(res.data?.roles || [])).catch(console.error);
   }, []);
 
   const openCreateModal = () => {
@@ -113,7 +117,7 @@ export const UsersPage = () => {
   });
 
   const handleRoleChange = (newRole) => {
-    const defaultPerms = ROLE_DEFAULTS[newRole] || [];
+    const defaultPerms = roles.find(r => r.code === newRole)?.permissions || ROLE_DEFAULTS[newRole] || [];
     setFormData((prev) => ({
       ...prev,
       role: newRole,
@@ -153,6 +157,8 @@ export const UsersPage = () => {
   const clearAllPermissions = () => setFormData(prev => ({ ...prev, permissions: [ACCESS_PROFILE, ...(prev.permissions || []).filter(k => k === 'finance.restricted')] }));
 
   const getRoleBadge = (role) => {
+    const found = roles.find(r => r.code === role);
+    if (found && !found.is_system) return { label: found.name, bg: 'bg-slate-50 text-slate-700 border-slate-200', icon: UserCheck };
     switch (role) {
       case 'ADMIN':
         return { label: 'Администратор', bg: 'bg-rose-50 text-rose-700 border-rose-200', icon: ShieldCheck };
@@ -493,6 +499,7 @@ export const UsersPage = () => {
                       <option value="FINANCE_MANAGER">Финансовый менеджер (Касса, платежи, ДДС, должники)</option>
                       <option value="DIRECTOR">Директор (Аналитика, продажи, финансы, отчеты)</option>
                       <option value="ADMIN">Администратор (Полный неограниченный доступ)</option>
+                      {roles.filter(r => r.is_active && !["ADMIN","DIRECTOR","SALES_MANAGER","WAREHOUSE_MANAGER","FINANCE_MANAGER","CASHIER"].includes(r.code)).map(r => <option key={r.code} value={r.code}>{r.name}</option>)}
                     </select>
                   </div>
 
