@@ -129,7 +129,7 @@ export const UsersPage = () => {
   });
 
   const handleRoleChange = (newRole) => {
-    const defaultPerms = roles.find(r => r.code === newRole)?.permissions || ROLE_DEFAULTS[newRole] || [];
+    const defaultPerms = ROLE_DEFAULTS[newRole] || roles.find(r => r.code === newRole)?.permissions || [];
     setFormData((prev) => ({
       ...prev,
       role: newRole,
