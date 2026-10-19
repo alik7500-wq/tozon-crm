@@ -76,6 +76,22 @@ const LEGACY_PERMISSION_GROUPS = [
   }
 ];
 
+const EXTRA_PERMISSION_GROUPS = [
+  { id: 'finance-details', title: 'Финансы — дополнительные функции', permissions: [
+    { key: 'finance.customer_pko_book', label: 'Книга ПКО покупателей', desc: 'Книга регистрации поступлений покупателей' },
+    { key: 'finance.payment_calendar', label: 'Календарь платежей', desc: 'Календарь ожидаемых поступлений' },
+    { key: 'finance.plan_fact', label: 'План-факт по клиентам', desc: 'Плановые и фактические поступления' },
+    { key: 'finance.cash_transfers', label: 'Переводы между кассами', desc: 'Внутренние перемещения средств' }
+  ] },
+  { id: 'inventory-details', title: 'Объекты — дополнительные функции', permissions: [
+    { key: 'inventory.tours_360', label: '360°-туры квартир', desc: 'Панорамные презентации квартир' },
+    { key: 'inventory.parking', label: 'Парковочные места', desc: 'Управление машино-местами' }
+  ] },
+  { id: 'automation-details', title: 'Автоматизация — дополнительные функции', permissions: [
+    { key: 'automation.sms_notifications', label: 'SMS-оповещения', desc: 'Настройка SMS-уведомлений' }
+  ] }
+];
+
 export const ACCESS_PROFILE = 'access.v2';
 const paired = {
   'inventory.view': 'inventory.manage', 'leads.view': 'leads.manage',
@@ -112,7 +128,7 @@ const autoMenuGroups = [...new Set(menuEntries.map(e => e.group))].map(group => 
     .map(e => ({ key: e.permission, label: e.label, desc: 'Раздел меню: ' + e.path }))
 })).filter(g => g.permissions.length);
 
-export const PERMISSION_GROUPS = [...LEGACY_PERMISSION_GROUPS, ...autoMenuGroups].map(group => ({
+export const PERMISSION_GROUPS = [...LEGACY_PERMISSION_GROUPS, ...EXTRA_PERMISSION_GROUPS, ...autoMenuGroups].map(group => ({
   ...group,
   permissions: group.permissions.filter(p => !Object.values(paired).includes(p.key)).map(p => ({
     ...p,
