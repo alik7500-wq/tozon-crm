@@ -183,7 +183,7 @@ export const UsersPage = () => {
     });
   };
   const selectAllPermissions = () => setFormData(prev => ({ ...prev, permissions: [ACCESS_PROFILE, ...ALL_PERMISSIONS, ...(prev.permissions || []).filter(k => k === 'finance.restricted' || k === GRANULAR_ACCESS_PROFILE)] }));
-  const clearAllPermissions = () => setFormData(prev => ({ ...prev, permissions: [ACCESS_PROFILE, ...(prev.permissions || []).filter(k => k === 'finance.restricted')] }));
+  const clearAllPermissions = () => setFormData(prev => ({ ...prev, permissions: [ACCESS_PROFILE, ...(prev.permissions || []).filter(k => k === 'finance.restricted' || k === GRANULAR_ACCESS_PROFILE)] }));
 
   const getRoleBadge = (role) => {
     const found = roles.find(r => r.code === role);
