@@ -191,6 +191,7 @@ export const UsersPage = () => {
           name: formData.name.trim(),
           email: formData.email.trim(),
           role: formData.role,
+          is_sales_rep: Boolean(formData.is_sales_rep),
           permissions: formData.permissions,
           is_active: formData.is_active
         };
@@ -204,6 +205,7 @@ export const UsersPage = () => {
           name: formData.name.trim(),
           email: formData.email.trim(),
           role: formData.role,
+          is_sales_rep: Boolean(formData.is_sales_rep),
           password: formData.password.trim(),
           permissions: formData.permissions
         });
