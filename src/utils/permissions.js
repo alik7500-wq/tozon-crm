@@ -112,6 +112,7 @@ export const normalizePermissions = (permissions = []) => {
 
 
 export const ROLE_DEFAULTS = {
+  CASHIER: ['access.v2'],
   ADMIN: ALL_PERMISSIONS,
   DIRECTOR: [
     'analytics.view', 'analytics.reports',
