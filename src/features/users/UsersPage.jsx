@@ -53,6 +53,23 @@ export const UsersPage = () => {
     is_active: 1,
   });
 
+  const editRole = async (role, action) => {
+    if (role.is_system) {
+      alert('Системные роли защищены от изменения и отключения');
+      return;
+    }
+    const name = action === 'rename' ? window.prompt('Новое название роли', role.name) : null;
+    if (action === 'rename' && (!name || !name.trim())) return;
+    if (action === 'toggle' && !window.confirm(role.is_active ? 'Отключить роль «' + role.name + '»?' : 'Включить роль «' + role.name + '»?')) return;
+    try {
+      await api.patch('/roles/' + encodeURIComponent(role.code), action === 'rename' ? { name: name.trim() } : { is_active: !role.is_active });
+      const res = await api.get('/roles');
+      setRoles(res.data?.roles || []);
+    } catch (err) {
+      alert(err.response?.data?.message || err.message || 'Не удалось изменить роль');
+    }
+  };
+
   const createRole = async () => {
     try {
       await api.post('/roles', { name: newRoleName.trim(), code: 'ROLE_' + Date.now().toString(36).toUpperCase(), permissions: [ACCESS_PROFILE] });
@@ -294,7 +311,15 @@ export const UsersPage = () => {
             <button type="button" disabled={!newRoleName.trim()} onClick={createRole} className="rounded-lg bg-blue-600 px-4 py-2 text-xs font-bold text-white disabled:opacity-50">Добавить роль</button>
           </div>
           <div className="flex flex-wrap gap-2">
-            {roles.map(r => <span key={r.code} className="rounded-lg bg-slate-100 px-2 py-1 text-xs">{r.name}</span>)}
+            {roles.map(r => (
+              <span key={r.code} className="inline-flex items-center gap-2 rounded-lg bg-slate-100 px-2 py-1 text-xs">
+                <span>{r.name}{!r.is_active ? ' (отключена)' : ''}</span>
+                {!r.is_system && <>
+                  <button type="button" title="Переименовать роль" aria-label={'Переименовать ' + r.name} onClick={() => editRole(r, 'rename')} className="text-blue-700 hover:underline">Редактировать</button>
+                  <button type="button" title={r.is_active ? 'Отключить роль' : 'Включить роль'} onClick={() => editRole(r, 'toggle')} className="text-slate-600 hover:underline">{r.is_active ? 'Отключить' : 'Включить'}</button>
+                </>}
+              </span>
+            ))}
           </div>
         </div>
       )}
