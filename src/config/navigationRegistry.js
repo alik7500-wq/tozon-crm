@@ -1,5 +1,3 @@
-import { useAuth } from '../features/auth/AuthContext';
-import { api } from '../api/client';
 import {
   LayoutDashboard,
   Building2,
