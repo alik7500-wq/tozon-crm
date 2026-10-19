@@ -92,6 +92,23 @@ const EXTRA_PERMISSION_GROUPS = [
   ] }
 ];
 
+// Granular permissions are opt-in for each account. Existing access.v2 profiles
+// keep their legacy behavior until explicitly migrated to this profile.
+export const GRANULAR_ACCESS_PROFILE = 'access.granular.v1';
+export const FEATURE_ACCESS = Object.freeze({
+  '/finance/customer-pko-book': 'finance.customer_pko_book',
+  '/finance/calendar': 'finance.payment_calendar',
+  '/payments/plan-fact': 'finance.plan_fact',
+  '/crm/sms-notifications': 'automation.sms_notifications'
+});
+export const hasFeatureAccess = (user, path, mode = 'read') => {
+  const key = FEATURE_ACCESS[path];
+  if (!key) return true;
+  const permissions = user?.permissions || [];
+  if (!permissions.includes(GRANULAR_ACCESS_PROFILE)) return true;
+  return permissions.includes(key) && (mode !== 'write' || permissions.includes(key + '.write'));
+};
+
 export const ACCESS_PROFILE = 'access.v2';
 const paired = {
   'inventory.view': 'inventory.manage', 'leads.view': 'leads.manage',
