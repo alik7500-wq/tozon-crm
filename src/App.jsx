@@ -23,6 +23,7 @@ import { ContractsPage } from './features/contracts/ContractsPage';
 import { PaymentCalendarPage } from './features/finance/PaymentCalendarPage';
 import { DebtorsPage } from './features/finance/DebtorsPage';
 import { IncomePage } from './features/finance/IncomePage';
+import { CustomerPkoBookPage } from './features/finance/CustomerPkoBookPage';
 import { ExpensesPage } from './features/finance/ExpensesPage';
 import { CashflowPage } from './features/finance/CashflowPage';
 import { PlanFactPage } from './features/finance/PlanFactPage';
@@ -86,6 +87,7 @@ function App() {
                   <Route path="/finance/calendar" element={<PaymentCalendarPage />} />
                   <Route path="/finance/debtors" element={<DebtorsPage />} />
                   <Route path="/finance/income" element={<IncomePage />} />
+                  <Route path="/finance/customer-pko-book" element={<PermissionGuard requiredPermission="finance.payments"><CustomerPkoBookPage /></PermissionGuard>} />
                   <Route path="/finance/expenses" element={<ExpensesPage />} />
                   <Route path="/finance/cashflow" element={<CashflowPage />} />
                   <Route path="/reports" element={<ReportsPage />} />

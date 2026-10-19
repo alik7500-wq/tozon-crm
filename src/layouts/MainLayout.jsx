@@ -154,6 +154,7 @@ export const MainLayout = () => {
         { label: 'Календарь платежей', path: '/finance/calendar', icon: Calendar, permission: 'finance.view' },
         { label: 'Реестр должников', path: '/finance/debtors', icon: AlertCircle, permission: 'finance.debtors' },
         { label: 'Доходы (ПКО)', path: '/finance/income', icon: TrendingUp, permission: 'finance.payments' },
+        { label: 'Книга ПКО покупателей', path: '/finance/customer-pko-book', icon: Table, permission: 'finance.payments' },
         { label: 'Расходы (РКО)', path: '/finance/expenses', icon: TrendingDown, permission: 'finance.expenses' },
         { label: 'Строительный учёт', path: '/finance/construction', icon: Table, permission: 'construction.stock', permissionsAny: ['construction.stock','construction.advance','construction.settlements','construction.settings'] },
         { label: 'ДДС (Движение средств)', path: '/finance/cashflow', icon: Wallet, permission: 'finance.cashflow' },

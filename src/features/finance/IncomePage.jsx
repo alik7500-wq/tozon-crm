@@ -30,6 +30,7 @@ import {
   PieChart, Pie, Cell
 } from 'recharts';
 import dayjs from 'dayjs';
+import { Link } from 'react-router-dom';
 
 const INCOME_COLORS = ['#10b981', '#06b6d4', '#3b82f6', '#8b5cf6', '#f59e0b', '#ec4899', '#14b8a6', '#6366f1'];
 const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -661,6 +662,7 @@ export const IncomePage = () => {
       </div>
 
       {/* Payments Table */}
+      <Link to="/finance/customer-pko-book" className="inline-flex rounded-xl border border-blue-200 bg-blue-50 px-4 py-2 font-bold text-blue-700">Книга ПКО покупателей</Link>
       <div className="rounded-3xl bg-white shadow-2xs border border-slate-200 overflow-hidden">
         <div className="p-5 border-b border-slate-100 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
           <div className="flex items-center gap-3">
@@ -1075,6 +1077,7 @@ export const IncomePage = () => {
                 <input
                   type="text"
                   value={editingItem.reference}
+                  readOnly={editingItem.isCustomerPko}
                   onChange={e => setEditingItem({ ...editingItem, reference: e.target.value })}
                   placeholder="ПКО-0001..."
                   className="w-full rounded-xl border border-slate-300 bg-slate-50 px-3 py-1.5 outline-none font-bold text-slate-900"
@@ -1264,7 +1267,8 @@ export const IncomePage = () => {
                         type="text"
                         value={formData.reference}
                         onChange={e => setFormData({ ...formData, reference: e.target.value })}
-                        placeholder="ПКО-10449..."
+                        readOnly={Boolean(formData.deal_id)}
+                        placeholder={formData.deal_id ? 'Номер будет присвоен автоматически' : 'Номер документа'}
                         className="w-full rounded-xl border border-slate-300 bg-slate-50 px-2.5 py-1.5 text-xs outline-none focus:border-emerald-500"
                       />
                     </div>
@@ -1499,7 +1503,8 @@ export const IncomePage = () => {
                         type="text"
                         value={formData.reference}
                         onChange={e => setFormData({ ...formData, reference: e.target.value })}
-                        placeholder="ПКО-10449..."
+                        readOnly={Boolean(formData.deal_id)}
+                        placeholder={formData.deal_id ? 'Номер будет присвоен автоматически' : 'Номер документа'}
                         className="w-full rounded-xl border border-slate-300 bg-slate-50 px-2.5 py-1.5 text-xs outline-none focus:border-emerald-500"
                       />
                     </div>

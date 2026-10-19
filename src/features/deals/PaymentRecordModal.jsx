@@ -536,9 +536,12 @@ export const PaymentRecordModal = ({
         currency: dealCurrency
       });
 
+      const savedPayment = res.data?.payment || res.payment || res.data?.data?.payment || {};
+      const savedNumber = savedPayment.document_number || savedPayment.reference || 'Номер уточняется';
       const createdPayment = {
         id: res.data?.payment?.id || res.data?.id || res.id || 'ПКО',
-        payment_number: cleanRef,
+        payment_number: savedNumber,
+        document_number: savedPayment.document_number || null,
         payment_date: paymentDate,
         amount: cashAmountTJS,
         amount_minor: Math.round(cashAmountTJS * 100),
@@ -548,7 +551,7 @@ export const PaymentRecordModal = ({
         exchange_rate: exchangeRate,
         payment_method: method,
         method: method,
-        reference: cleanRef,
+        reference: savedNumber,
         payer_name: deal.lead_name || deal.buyer_name,
         comment: fullCommentParts.join(' • ')
       };
@@ -565,7 +568,7 @@ export const PaymentRecordModal = ({
           amount_usd: equivalentInDealCurrency,
           exchange_rate: exchangeRate,
           cash_desk_name: deskName,
-          reference: cleanRef,
+          reference: savedNumber,
           payer_name: deal.lead_name || deal.buyer_name,
           contract_number: formatContractNumber(deal.contract_number),
           payment_date: paymentDate,
@@ -863,13 +866,14 @@ export const PaymentRecordModal = ({
               <div className="grid grid-cols-2 gap-2">
                 <div>
                   <label className="block text-[11px] font-bold text-slate-700 mb-1">
-                    Номер чека / ПКО
+                    Номер ПКО — автоматически
                   </label>
                   <input
                     type="text"
                     value={reference}
+                    readOnly
                     onChange={(e) => setReference(e.target.value)}
-                    placeholder="ПКО-10492..."
+                    placeholder="Будет присвоен при сохранении"
                     className="w-full rounded-xl border border-slate-300 bg-white px-2.5 py-1.5 text-xs outline-none focus:border-blue-500 font-medium"
                   />
                 </div>

@@ -12,6 +12,7 @@ export const FinanceTabs = ({ compact = false, className = '' }) => {
     { label: 'Календарь поступлений', path: '/finance/calendar', permission: 'finance.view', icon: Calendar },
     { label: 'Реестр должников', path: '/finance/debtors', permission: 'finance.debtors', icon: AlertCircle },
     { label: 'Реестр приходов (ПКО)', path: '/finance/income', permission: 'finance.payments', icon: TrendingUp },
+    { label: 'Книга ПКО покупателей', path: '/finance/customer-pko-book', permission: 'finance.payments', icon: Table },
     { label: 'Реестр расходов (РКО)', path: '/finance/expenses', permission: 'finance.expenses', icon: TrendingDown },
     { label: 'Строительный учёт', path: '/finance/construction', permissionsAny: ['construction.stock','construction.advance','construction.settlements','construction.settings'], icon: Table },
     { label: 'ДДС (Движение средств)', path: '/finance/cashflow', permission: 'finance.cashflow', icon: Wallet },
