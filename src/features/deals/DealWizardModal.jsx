@@ -1263,19 +1263,20 @@ export const DealWizardModal = ({
                     {recordInitialPayment && (
                       <div className="space-y-2.5 pt-2.5 border-t border-emerald-200/80 text-xs animate-in fade-in">
                         <p className="text-[11px] text-emerald-900 font-medium">
-                          Укажите номер документа из книги регистрации ПКО и фактическую дату оплаты клиентом:
+                          Номер ПКО будет присвоен автоматически из книги покупателей. Укажите фактическую дату оплаты:
                         </p>
 
                         <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                           <div>
                             <label className="block text-[11px] font-bold text-slate-800 mb-1">
-                              Номер ПКО (по книге) *
+                              Номер ПКО — автоматически
                             </label>
                             <input
                               type="text"
                               value={initialPaymentReference}
+                              readOnly
                               onChange={(e) => setInitialPaymentReference(e.target.value)}
-                              placeholder="Напр. 1, 28 или 105"
+                              placeholder="Будет присвоен при сохранении"
                               className="w-full rounded-xl border border-emerald-300 bg-white px-3 py-2 text-xs font-bold text-slate-900 outline-none focus:border-emerald-600 focus:ring-1 focus:ring-emerald-500 shadow-xs"
                             />
                           </div>
