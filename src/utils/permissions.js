@@ -100,7 +100,8 @@ export const FEATURE_ACCESS = Object.freeze({
   '/finance/calendar': 'finance.payment_calendar',
   '/payments/plan-fact': 'finance.plan_fact',
   '/payments/fact': 'finance.plan_fact',
-  '/crm/sms-notifications': 'automation.sms_notifications'
+  '/crm/sms-notifications': 'automation.sms_notifications',
+  '/crm/sms-templates': 'automation.sms_notifications'
 });
 export const hasFeatureAccess = (user, path, mode = 'read') => {
   const key = FEATURE_ACCESS[path];
