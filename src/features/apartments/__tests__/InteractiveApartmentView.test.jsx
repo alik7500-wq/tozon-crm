@@ -138,8 +138,26 @@ describe('InteractiveApartmentView', () => {
   ])('does not offer a different apartment, building or draft tour: %j', async tour => {
     renderTour(tour);
     await screen.findByText('Требуется утверждённая планировка');
-    expect(screen.queryByRole('button', { name: 'Показать 360°-тур' })).toBeNull();
+    expect(screen.getByRole('button', { name: 'Показать 360°-тур' }).disabled).toBe(true);
     expect(screen.queryByRole('button', { name: 'Виртуальный тур 360°' })).toBeNull();
+  });
+
+  it('replaces the 3D model tab with a working tour for the same layout', async () => {
+    renderTour({ ...apartmentTour, entity_id: 83, presentation_scope: 'LAYOUT',
+      presentation_unit_id: 201, presentation_layout_id: 9, source_unit_number: '7' });
+    fireEvent.click(await screen.findByRole('button', { name: 'Показать 360°-тур' }));
+    expect(await screen.findByTestId('apartment-tour')).toBeDefined();
+    expect(screen.getByText('Образец такой же планировки из квартиры №7')).toBeDefined();
+    expect(screen.queryByRole('button', { name: '3D-модель' })).toBeNull();
+  });
+
+  it.each([
+    { presentation_unit_id: 202, presentation_layout_id: 9 },
+    { presentation_unit_id: 201, presentation_layout_id: 11 },
+  ])('rejects a layout tour scoped to another apartment or layout: %j', async scope => {
+    renderTour({ ...apartmentTour, entity_id: 83, presentation_scope: 'LAYOUT', ...scope });
+    await screen.findByText('Требуется утверждённая планировка');
+    expect(screen.getByRole('button', { name: 'Показать 360°-тур' }).disabled).toBe(true);
   });
 
   it('resets presentation mode when the manager switches apartments', async () => {
