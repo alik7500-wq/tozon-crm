@@ -37,7 +37,6 @@ export const UsersPage = () => {
   const [users, setUsers] = useState([]);
   const [roles, setRoles] = useState([]);
   const [newRoleName, setNewRoleName] = useState('');
-  const [newRoleCode, setNewRoleCode] = useState('');
   const [isLoading, setIsLoading] = useState(true);
 
   const [search, setSearch] = useState('');
@@ -56,9 +55,8 @@ export const UsersPage = () => {
 
   const createRole = async () => {
     try {
-      await api.post('/roles', { name: newRoleName.trim(), code: newRoleCode.trim().toUpperCase(), permissions: [ACCESS_PROFILE] });
+      await api.post('/roles', { name: newRoleName.trim(), code: 'ROLE_' + Date.now().toString(36).toUpperCase(), permissions: [ACCESS_PROFILE] });
       setNewRoleName('');
-      setNewRoleCode('');
       const res = await api.get('/roles');
       setRoles(res.data?.roles || []);
     } catch (err) {
@@ -293,8 +291,7 @@ export const UsersPage = () => {
           <h2 className="text-sm font-bold">Справочник ролей</h2>
           <div className="flex flex-wrap gap-2">
             <input aria-label="Название роли" placeholder="Название роли" value={newRoleName} onChange={e => setNewRoleName(e.target.value)} className="border rounded-lg px-3 py-2 text-xs flex-1" />
-            <input aria-label="Код роли" placeholder="Код: LAWYER" value={newRoleCode} onChange={e => setNewRoleCode(e.target.value.toUpperCase())} className="border rounded-lg px-3 py-2 text-xs" />
-            <button type="button" disabled={!newRoleName.trim() || !newRoleCode.trim()} onClick={createRole} className="rounded-lg bg-blue-600 px-4 py-2 text-xs font-bold text-white disabled:opacity-50">Добавить роль</button>
+            <button type="button" disabled={!newRoleName.trim()} onClick={createRole} className="rounded-lg bg-blue-600 px-4 py-2 text-xs font-bold text-white disabled:opacity-50">Добавить роль</button>
           </div>
           <div className="flex flex-wrap gap-2">
             {roles.map(r => <span key={r.code} className="rounded-lg bg-slate-100 px-2 py-1 text-xs">{r.name}</span>)}
