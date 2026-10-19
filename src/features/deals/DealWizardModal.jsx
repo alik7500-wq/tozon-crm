@@ -114,30 +114,21 @@ export const DealWizardModal = ({
   const [firstPaymentDate, setFirstPaymentDate] = useState('');
   const [schedule, setSchedule] = useState([]);
 
-  // Auto-set firstPaymentDate to the next month with the contractual day of month (Requirement 3)
+  // Zero down payment: first installment is due on the contract date.
+  // Otherwise preserve the existing next-month default.
   useEffect(() => {
-    if (dealDate) {
-      const parts = dealDate.split('-');
-      if (parts.length === 3 && parts[0].length === 4) {
-        const year = parseInt(parts[0], 10);
-        const month = parseInt(parts[1], 10);
-        const day = parseInt(parts[2], 10);
-
-        let nextMonth = month + 1;
-        let nextYear = year;
-        if (nextMonth > 12) {
-          nextMonth = 1;
-          nextYear += 1;
-        }
-
-        const maxDays = new Date(nextYear, nextMonth, 0).getDate();
-        const actualDay = Math.min(day, maxDays);
-
-        const nextDateStr = `${nextYear}-${String(nextMonth).padStart(2, '0')}-${String(actualDay).padStart(2, '0')}`;
-        setFirstPaymentDate(nextDateStr);
-      }
+    if (!dealDate) return;
+    if (Number(downPaymentAmount) <= 0) {
+      setFirstPaymentDate(dealDate);
+      return;
     }
-  }, [dealDate]);
+    const [year, month, day] = dealDate.split('-').map(Number);
+    if (!year || !month || !day) return;
+    const nextMonth = month === 12 ? 1 : month + 1;
+    const nextYear = month === 12 ? year + 1 : year;
+    const actualDay = Math.min(day, new Date(nextYear, nextMonth, 0).getDate());
+    setFirstPaymentDate(`${nextYear}-${String(nextMonth).padStart(2, '0')}-${String(actualDay).padStart(2, '0')}`);
+  }, [dealDate, downPaymentAmount]);
 
   // Initial Payment PKO controls
   const [initialPaymentReference, setInitialPaymentReference] = useState('');
@@ -843,19 +834,7 @@ export const DealWizardModal = ({
                     if (!initialPaymentDate || initialPaymentDate === dealDate) {
                       setInitialPaymentDate(newD);
                     }
-                    if (newD) {
-                      const parts = newD.split('-');
-                      if (parts.length === 3) {
-                        const y = parseInt(parts[0], 10);
-                        const m = parseInt(parts[1], 10);
-                        const d = parseInt(parts[2], 10);
-                        const nextMonth = new Date(y, m, d);
-                        const nextY = nextMonth.getFullYear();
-                        const nextM = String(nextMonth.getMonth() + 1).padStart(2, '0');
-                        const nextD = String(nextMonth.getDate()).padStart(2, '0');
-                        setFirstPaymentDate(`${nextY}-${nextM}-${nextD}`);
-                      }
-                    }
+
                   }}
                   className="w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-xs font-bold outline-none focus:border-blue-500"
                 />
