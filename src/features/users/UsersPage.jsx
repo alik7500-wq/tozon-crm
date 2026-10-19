@@ -54,6 +54,18 @@ export const UsersPage = () => {
     is_active: 1,
   });
 
+  const createRole = async () => {
+    try {
+      await api.post('/roles', { name: newRoleName.trim(), code: newRoleCode.trim().toUpperCase(), permissions: [ACCESS_PROFILE] });
+      setNewRoleName('');
+      setNewRoleCode('');
+      const res = await api.get('/roles');
+      setRoles(res.data?.roles || []);
+    } catch (err) {
+      alert(err.message || 'Не удалось создать роль');
+    }
+  };
+
   const fetchUsers = async () => {
     setIsLoading(true);
     try {
@@ -276,6 +288,19 @@ export const UsersPage = () => {
         )}
       </div>
 
+      {canManageUsers && (
+        <div className="rounded-2xl border border-slate-200 bg-white p-4 space-y-3">
+          <h2 className="text-sm font-bold">Справочник ролей</h2>
+          <div className="flex flex-wrap gap-2">
+            <input aria-label="Название роли" placeholder="Название роли" value={newRoleName} onChange={e => setNewRoleName(e.target.value)} className="border rounded-lg px-3 py-2 text-xs flex-1" />
+            <input aria-label="Код роли" placeholder="Код: LAWYER" value={newRoleCode} onChange={e => setNewRoleCode(e.target.value.toUpperCase())} className="border rounded-lg px-3 py-2 text-xs" />
+            <button type="button" disabled={!newRoleName.trim() || !newRoleCode.trim()} onClick={createRole} className="rounded-lg bg-blue-600 px-4 py-2 text-xs font-bold text-white disabled:opacity-50">Добавить роль</button>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            {roles.map(r => <span key={r.code} className="rounded-lg bg-slate-100 px-2 py-1 text-xs">{r.name}</span>)}
+          </div>
+        </div>
+      )}
       {/* Filter Toolbar */}
       <div className="flex items-center justify-between gap-4 rounded-2xl bg-white p-4 border border-slate-200 shadow-2xs">
         <div className="relative min-w-[240px] max-w-md flex-1">
