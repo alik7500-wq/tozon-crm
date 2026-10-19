@@ -29,7 +29,8 @@ import {
   Check,
   SlidersHorizontal,
   Info,
-  Package
+  Package,
+  Power
 } from 'lucide-react';
 
 export const UsersPage = () => {
@@ -253,6 +254,21 @@ export const UsersPage = () => {
     }
   };
 
+  const toggleUserActive = async (u) => {
+    if (String(u.id) === String(currentUser?.id)) {
+      alert('Нельзя отключить собственную учётную запись');
+      return;
+    }
+    const nextActive = u.is_active ? 0 : 1;
+    if (!window.confirm((nextActive ? 'Включить' : 'Отключить') + ' учётную запись сотрудника «' + u.name + '»?')) return;
+    try {
+      await api.patch('/users/' + u.id, { is_active: nextActive });
+      await fetchUsers();
+    } catch (err) {
+      alert(err.response?.data?.message || err.message || 'Не удалось изменить статус сотрудника');
+    }
+  };
+
   const handleDeleteUser = async (u) => {
     if (String(u.id) === String(currentUser?.id)) {
       alert('Нельзя удалить собственную учетную запись');
@@ -445,6 +461,14 @@ export const UsersPage = () => {
                               <span>Доступы</span>
                             </button>
 
+                            <button type="button" onClick={() => openEditModal(u)} title="Редактировать сотрудника" aria-label={'Редактировать ' + u.name} className="p-1.5 rounded-lg text-slate-500 hover:text-blue-700 hover:bg-blue-50 transition">
+                              <Edit2 className="h-4 w-4" />
+                            </button>
+                            {currentUser?.role === 'ADMIN' && String(u.id) !== String(currentUser?.id) && (
+                              <button type="button" onClick={() => toggleUserActive(u)} title={u.is_active ? 'Отключить сотрудника' : 'Включить сотрудника'} aria-label={(u.is_active ? 'Отключить ' : 'Включить ') + u.name} className="p-1.5 rounded-lg text-slate-500 hover:text-amber-700 hover:bg-amber-50 transition">
+                                <Power className="h-4 w-4" />
+                              </button>
+                            )}
                             {currentUser?.role === 'ADMIN' && String(u.id) !== String(currentUser?.id) && (
                               <button
                                 onClick={() => handleDeleteUser(u)}
