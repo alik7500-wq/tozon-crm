@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { api } from '../../api/client';
 import { useAuth } from '../auth/AuthContext';
 import { AnalyticsTabs } from '../../components/AnalyticsTabs';
@@ -30,13 +30,16 @@ import {
   ShieldAlert
 } from 'lucide-react';
 import { SalesControlPanel } from './SalesControlPanel';
+import { SalesManagementDashboard } from './SalesManagementDashboard';
 
 export const SalesAnalyticsPage = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
 
-  // Active section tab: 'plan_fact', 'funnel', 'managers', 'demand'
-  const [activeTab, setActiveTab] = useState('plan_fact');
+  // Active section tab: 'plan_fact', 'funnel', 'managers', 'demand', 'control', 'management'
+  const initialTab = searchParams.get('tab') || 'plan_fact';
+  const [activeTab, setActiveTab] = useState(initialTab);
 
   // Filters
   const [selectedProjectId, setSelectedProjectId] = useState('ALL');
@@ -104,8 +107,10 @@ export const SalesAnalyticsPage = () => {
   };
 
   useEffect(() => {
-    fetchAllAnalytics();
-  }, [selectedProjectId, selectedBuildingId, selectedManagerId, selectedPeriod]);
+    if (activeTab !== 'control' && activeTab !== 'management') {
+      fetchAllAnalytics();
+    }
+  }, [selectedProjectId, selectedBuildingId, selectedManagerId, selectedPeriod, activeTab]);
 
   // Navigate to Deals with full filter preservation
   const navigateToDeals = ({ status, managerId, period }) => {
@@ -283,6 +288,28 @@ export const SalesAnalyticsPage = () => {
         {/* Mode switcher tabs */}
         <div className="flex items-center gap-1 bg-slate-100 p-1 rounded-xl">
           <button
+            onClick={() => setActiveTab('management')}
+            className={`px-3 py-1.5 rounded-lg text-xs font-bold transition cursor-pointer flex items-center gap-1.5 ${
+              activeTab === 'management'
+                ? 'bg-blue-600 text-white shadow-2xs'
+                : 'text-slate-600 hover:text-slate-900'
+            }`}
+          >
+            <TrendingUp className="h-3 w-3" />
+            <span>Управление продажами (3.7)</span>
+          </button>
+          <button
+            onClick={() => setActiveTab('control')}
+            className={`px-3 py-1.5 rounded-lg text-xs font-bold transition cursor-pointer flex items-center gap-1.5 ${
+              activeTab === 'control'
+                ? 'bg-blue-600 text-white shadow-2xs'
+                : 'text-slate-600 hover:text-slate-900'
+            }`}
+          >
+            <ShieldAlert className="h-3 w-3" />
+            <span>Контроль продаж</span>
+          </button>
+          <button
             onClick={() => setActiveTab('plan_fact')}
             className={`px-3 py-1.5 rounded-lg text-xs font-bold transition cursor-pointer ${
               activeTab === 'plan_fact'
@@ -322,22 +349,13 @@ export const SalesAnalyticsPage = () => {
           >
             Спрос на квартиры
           </button>
-          <button
-            onClick={() => setActiveTab('control')}
-            className={`px-3 py-1.5 rounded-lg text-xs font-bold transition cursor-pointer flex items-center gap-1.5 ${
-              activeTab === 'control'
-                ? 'bg-blue-600 text-white shadow-2xs'
-                : 'text-slate-600 hover:text-slate-900'
-            }`}
-          >
-            <ShieldAlert className="h-3 w-3" />
-            <span>Контроль продаж</span>
-          </button>
         </div>
       </div>
 
       {/* Main Content Area */}
-      {activeTab === 'control' ? (
+      {activeTab === 'management' ? (
+        <SalesManagementDashboard />
+      ) : activeTab === 'control' ? (
         <SalesControlPanel />
       ) : isLoading ? (
         <div className="flex flex-col items-center justify-center p-20 bg-white rounded-3xl border border-slate-200">

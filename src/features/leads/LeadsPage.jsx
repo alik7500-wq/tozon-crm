@@ -53,15 +53,26 @@ export const LeadsPage = () => {
   });
 
   // Filters
-  const [search, setSearch] = useState('');
+  const [search, setSearch] = useState(searchParams.get('search') || '');
   const [statusFilter, setStatusFilter] = useState('');
   const [projectFilter, setProjectFilter] = useState('');
   const [quickFilter, setQuickFilter] = useState(''); // 'ALL', 'NEW', 'UNASSIGNED', 'AWAITING_CONTACT', 'OVERDUE', 'IN_PROGRESS', 'CLOSED'
 
   // Modals / Drawer
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
-  const [selectedLeadId, setSelectedLeadId] = useState(null);
+  const [selectedLeadId, setSelectedLeadId] = useState(searchParams.get('leadId') ? Number(searchParams.get('leadId')) : null);
   const [leadToEdit, setLeadToEdit] = useState(null);
+
+  useEffect(() => {
+    const leadIdParam = searchParams.get('leadId');
+    if (leadIdParam) {
+      setSelectedLeadId(Number(leadIdParam));
+    }
+    const searchParam = searchParams.get('search');
+    if (searchParam && !search) {
+      setSearch(searchParam);
+    }
+  }, [searchParams]);
 
   // Assignment & First-contact modals (Phase 2)
   const [leadToAssign, setLeadToAssign] = useState(null);

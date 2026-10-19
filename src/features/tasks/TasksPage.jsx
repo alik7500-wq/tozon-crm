@@ -34,7 +34,7 @@ export const TasksPage = () => {
   const [dateFilter, setDateFilter] = useState(initialDateFilter); // ALL, TODAY, OVERDUE, COMPLETED
   const [statusFilter, setStatusFilter] = useState(initialStatusFilter); // ALL, OPEN, COMPLETED
   const [assignedUserIdFilter, setAssignedUserIdFilter] = useState(initialAssignedUserId);
-  const [search, setSearch] = useState('');
+  const [search, setSearch] = useState(searchParams.get('search') || '');
 
   useEffect(() => {
     const dFilter = searchParams.get('dateFilter');
@@ -43,6 +43,8 @@ export const TasksPage = () => {
     if (sFilter) setStatusFilter(sFilter);
     const uFilter = searchParams.get('assignedUserId');
     if (uFilter) setAssignedUserIdFilter(uFilter);
+    const sQuery = searchParams.get('search');
+    if (sQuery) setSearch(sQuery);
   }, [searchParams]);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);

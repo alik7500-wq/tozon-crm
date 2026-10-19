@@ -1,6 +1,7 @@
+import React, { useState, useEffect } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { useAuth } from '../auth/AuthContext';
 import { canWriteSection } from '../../utils/permissions';
-import React, { useState, useEffect } from 'react';
 import { api } from '../../api/client';
 import { PaymentRecordModal } from '../deals/PaymentRecordModal';
 import { DealDrawer } from '../deals/DealDrawer';
@@ -25,12 +26,22 @@ import {
 export const PaymentsPage = () => {
   const { user } = useAuth();
   const canRecordPayment = canWriteSection(user, 'finance.payments');
+  const [searchParams] = useSearchParams();
   const [deals, setDeals] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [search, setSearch] = useState('');
+  const [search, setSearch] = useState(searchParams.get('search') || '');
   const [selectedDealForPayment, setSelectedDealForPayment] = useState(null);
-  const [selectedDealIdForDrawer, setSelectedDealIdForDrawer] = useState(null);
+  const [selectedDealIdForDrawer, setSelectedDealIdForDrawer] = useState(
+    searchParams.get('dealId') ? Number(searchParams.get('dealId')) : null
+  );
   const [contractToPrint, setContractToPrint] = useState(null);
+
+  useEffect(() => {
+    const dId = searchParams.get('dealId');
+    if (dId) setSelectedDealIdForDrawer(Number(dId));
+    const sr = searchParams.get('search');
+    if (sr) setSearch(sr);
+  }, [searchParams]);
 
   const fetchDeals = async () => {
     try {
