@@ -39,6 +39,7 @@ import {
 } from 'lucide-react';
 
 import { hasReadPermission, hasAnyPermission } from '../utils/permissions';
+import { navGroups } from '../config/navigationRegistry';
 import { GlobalSearch } from '../components/GlobalSearch';
 import { TozonLogo } from '../components/TozonLogo';
 
@@ -105,67 +106,6 @@ export const MainLayout = () => {
     navigate('/login');
   };
 
-  const navGroups = [
-    { type: 'link', label: 'Обзор', path: '/', icon: LayoutDashboard },
-    { type: 'link', label: 'Задачи', path: '/tasks', icon: CheckSquare, permission: 'tasks.manage' },
-    {
-      type: 'group',
-      id: 'crm',
-      label: 'CRM',
-      icon: Users,
-      children: [
-        { label: 'Лиды', path: '/leads', icon: UserPlus, permission: 'leads.view' },
-        { label: 'Сделки', path: '/deals', icon: FileCheck, permission: 'deals.view' },
-        { label: 'Клиенты', path: '/clients', icon: Users, permission: 'leads.view' },
-        { label: 'SMS-оповещения', path: '/crm/sms-notifications', icon: Smartphone, permission: 'automation.manage' },
-      ],
-    },
-    {
-      type: 'group',
-      id: 'inventory',
-      label: 'Проекты',
-      icon: Building2,
-      children: [
-        { label: 'Объекты ЖК', path: '/projects', icon: Building2, permission: 'inventory.view' },
-        { label: 'Квартиры', path: '/apartments', icon: Home, permission: 'inventory.view' },
-      ],
-    },
-    {
-      type: 'group',
-      id: 'analytics',
-      label: 'Аналитика',
-      icon: BarChart3,
-      children: [
-        { label: 'Сводные отчеты', path: '/reports', icon: BarChart3, permission: 'analytics.reports' },
-        { label: 'Продажи и Спрос 3.5', path: '/analytics/sales', icon: TrendingUp, permission: 'analytics.view' },
-        { label: 'Аналитика 1.0', path: '/analytics/1', icon: PieChart, permission: 'analytics.view' },
-        { label: 'Аналитика 2.0', path: '/analytics/2', icon: TrendingUp, permission: 'analytics.view' },
-        { label: 'Аналитика 3.0', path: '/analytics/3', icon: Target, permission: 'analytics.view' },
-      ],
-    },
-    {
-      type: 'group',
-      id: 'finance',
-      label: 'Финансы',
-      icon: CreditCard,
-      children: [
-        { label: 'Приём платежей', path: '/payments', icon: CreditCard, permission: 'finance.payments' },
-        { label: 'План-Факт по клиентам', path: '/payments/plan-fact', icon: Table, permission: 'finance.view' },
-        { label: 'Календарь платежей', path: '/finance/calendar', icon: Calendar, permission: 'finance.view' },
-        { label: 'Реестр должников', path: '/finance/debtors', icon: AlertCircle, permission: 'finance.debtors' },
-        { label: 'Доходы (ПКО)', path: '/finance/income', icon: TrendingUp, permission: 'finance.payments' },
-        { label: 'Книга ПКО покупателей', path: '/finance/customer-pko-book', icon: Table, permission: 'finance.payments' },
-        { label: 'Расходы (РКО)', path: '/finance/expenses', icon: TrendingDown, permission: 'finance.expenses' },
-        { label: 'Строительный учёт', path: '/finance/construction', icon: Table, permission: 'construction.stock', permissionsAny: ['construction.stock','construction.advance','construction.settlements','construction.settings'] },
-        { label: 'ДДС (Движение средств)', path: '/finance/cashflow', icon: Wallet, permission: 'finance.cashflow' },
-        { label: 'Себестоимость блоков', path: '/finance/costs', icon: Table, permission: 'finance.costs' },
-      ],
-    },
-    { type: 'link', label: 'Автоматизация', path: '/automation', icon: Zap, permission: 'automation.manage' },
-    { type: 'link', label: 'Уведомления', path: '/notifications', icon: Bell },
-    { type: 'link', label: 'Пользователи', path: '/users', icon: Users, permission: 'users.manage' },
-    { type: 'link', label: 'Настройки', path: '/settings', icon: Settings, permission: 'settings.manage' },
-  ];
 
   const filteredNavGroups = navGroups
     .filter(item => user?.permissions?.includes('access.v2') || !user?.permissions?.includes('finance.restricted') || item.id === 'finance')
