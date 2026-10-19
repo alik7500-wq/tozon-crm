@@ -157,9 +157,9 @@ export const ROLE_DEFAULTS = {
 
 export const hasPermission = (user, permission) => {
   if (!user) return false;
-  if (user.role === 'ADMIN') return true;
+  if (user.role === 'ADMIN' && !user.permissions?.includes(ACCESS_PROFILE)) return true;
   const userPerms = Array.isArray(user.permissions) ? user.permissions : [];
-  if (userPerms.includes('*')) return true;
+  if (userPerms.includes('*') && !userPerms.includes(ACCESS_PROFILE)) return true;
   if (!permission) return true;
   return userPerms.includes(permission);
 };
