@@ -103,6 +103,15 @@ export const ContractPrintView = ({ deal: initialDeal, onClose, initialLang = de
     return str;
   };
 
+  // Building names may already include their label (e.g. "Блок Б").
+  // Avoid printing "Блоки Блок Б" / "Блок Блок Б" in contracts.
+  const formatBuildingName = (rawName, tajik = true) => {
+    const value = String(rawName || '').trim();
+    if (!value) return tajik ? 'Блоки А' : 'Блок А';
+    const withoutPrefix = value.replace(/^(?:(?:блоки|блок|block)\s+)+/i, '').trim();
+    return `${tajik ? 'Блоки' : 'Блок'} ${withoutPrefix || value}`;
+  };
+
   // Clean company name formatter
   const cleanCompanyName = (rawName) => {
     let name = (rawName || 'Тозон')
@@ -548,11 +557,11 @@ export const ContractPrintView = ({ deal: initialDeal, onClose, initialLang = de
                   </>
                 ) : isTJ ? (
                   <>
-                    2.1. «Тарафҳо» оиди тайёр намудан ва дар оянда ба имзо расонидани шартномаи сохтмони шарикии хонаи бисёрошёна, ки дар суроғаи <strong><u>{deal.project_address || deal.project_name || 'шаҳри Хуҷанд, кӯчаи Бахтиёр Ёқубов'}</u></strong> ҷойгир мебошад, аҳду паймон кардаанд. Дар асоси шартнома «Ширкати сохтмонӣ» сармаблағгузор баромад менамояд ва «Ҳиссагузор» ҳамчун маблағгузор баромад менамояд ва дар оянда «Ҳиссагузор» соҳибмулки хонаи <strong><u>{deal.unit_rooms || '—'}</u></strong> ҳуҷрагӣ, <strong><u>{deal.building_name ? `Блоки ${deal.building_name}` : deal.section_name ? `Сексияи ${deal.section_name}` : 'Блоки А'}</u></strong>, қабати <strong><u>{deal.floor_number || '—'}</u></strong>, рақами хонаи <strong><u>{deal.unit_number || '—'}</u></strong> бо масоҳати тахминии <strong><u>{areaM2}</u></strong> м.кв. ҷойгир мебошад эътироф мешавад.
+                    2.1. «Тарафҳо» оиди тайёр намудан ва дар оянда ба имзо расонидани шартномаи сохтмони шарикии хонаи бисёрошёна, ки дар суроғаи <strong><u>{deal.project_address || deal.project_name || 'шаҳри Хуҷанд, кӯчаи Бахтиёр Ёқубов'}</u></strong> ҷойгир мебошад, аҳду паймон кардаанд. Дар асоси шартнома «Ширкати сохтмонӣ» сармаблағгузор баромад менамояд ва «Ҳиссагузор» ҳамчун маблағгузор баромад менамояд ва дар оянда «Ҳиссагузор» соҳибмулки хонаи <strong><u>{deal.unit_rooms || '—'}</u></strong> ҳуҷрагӣ, <strong><u>{deal.building_name ? formatBuildingName(deal.building_name, true) : deal.section_name ? `Сексияи ${deal.section_name}` : 'Блоки А'}</u></strong>, қабати <strong><u>{deal.floor_number || '—'}</u></strong>, рақами хонаи <strong><u>{deal.unit_number || '—'}</u></strong> бо масоҳати тахминии <strong><u>{areaM2}</u></strong> м.кв. ҷойгир мебошад эътироф мешавад.
                   </>
                 ) : (
                   <>
-                    2.1. Предметом настоящего Договора является долевое участие Сторон в строительстве многоэтажного жилого дома по адресу: <strong><u>{deal.project_address || deal.project_name || 'г. Худжанд'}</u></strong>. В результате исполнения Договора «Дольщик» приобретает в собственность <strong><u>{deal.unit_rooms || '—'}</u></strong>-комнатную квартиру, <strong><u>{deal.building_name ? `Блок ${deal.building_name}` : deal.section_name ? `Секция ${deal.section_name}` : 'Блок А'}</u></strong>, этаж <strong><u>{deal.floor_number || '—'}</u></strong>, номер квартиры <strong><u>{deal.unit_number || '—'}</u></strong>, ориентировочной площадью <strong><u>{areaM2}</u></strong> кв.м.
+                    2.1. Предметом настоящего Договора является долевое участие Сторон в строительстве многоэтажного жилого дома по адресу: <strong><u>{deal.project_address || deal.project_name || 'г. Худжанд'}</u></strong>. В результате исполнения Договора «Дольщик» приобретает в собственность <strong><u>{deal.unit_rooms || '—'}</u></strong>-комнатную квартиру, <strong><u>{deal.building_name ? formatBuildingName(deal.building_name, false) : deal.section_name ? `Секция ${deal.section_name}` : 'Блок А'}</u></strong>, этаж <strong><u>{deal.floor_number || '—'}</u></strong>, номер квартиры <strong><u>{deal.unit_number || '—'}</u></strong>, ориентировочной площадью <strong><u>{areaM2}</u></strong> кв.м.
                   </>
                 )}
               </p>
