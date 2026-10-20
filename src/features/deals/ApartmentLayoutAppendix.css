@@ -1,0 +1,29 @@
+.layout-appendix-preview { overflow-x: auto; background: #edf2f7; padding: 20px; }
+.layout-appendix-warning { padding: 12px; margin-bottom: 12px; background: #fff4d7; color: #674900; font: 13px Arial,sans-serif; }
+.layout-appendix-sheet { box-sizing: border-box; width: 100%; min-width: 900px; min-height: 650px; background: white; padding: 24px; color: #173c55; font: 12px Arial,sans-serif; display: flex; flex-direction: column; gap: 12px; }
+.layout-appendix-heading { display: flex; justify-content: space-between; gap: 24px; padding-bottom: 12px; border-bottom: 1px solid #173c55; }
+.layout-appendix-heading h1 { font-size: 21px; font-weight: 700; margin: 0; }
+.layout-appendix-heading p { margin: 5px 0 0; font-size: 11px; }
+.layout-appendix-facts { display: grid; grid-template-columns: 1.1fr 1.2fr 1.1fr 1fr .55fr .9fr; gap: 12px; margin: 0; padding: 12px; background: #f0f4f7; border-radius: 5px; }
+.layout-appendix-facts dt { font-size: 10px; color: #627182; margin-bottom: 5px; }
+.layout-appendix-facts dd { margin: 0; font-size: 13px; font-weight: bold; }
+.layout-appendix-buyer { margin: 0; }
+.layout-appendix-plans { flex: 1; display: grid; grid-template-columns: 3fr 2fr; gap: 16px; min-height: 0; }
+.layout-appendix-plans figure { margin: 0; display: flex; flex-direction: column; min-width: 0; min-height: 0; }
+.layout-appendix-plans figcaption { font-weight: bold; font-size: 12px; padding-bottom: 8px; }
+.layout-appendix-image { flex: 1; min-height: 0; height: 320px; border: 1px solid #d7e0e7; padding: 6px; display: flex; align-items: center; justify-content: center; }
+.layout-appendix-image img { width: 100%; height: 100%; object-fit: contain; }
+.layout-appendix-note { margin: 0; font-size: 10px; color: #627182; }
+.layout-appendix-signatures { display: grid; grid-template-columns: 1fr 1fr; gap: 55px; border-top: 1px solid #d7e0e7; padding-top: 10px; }
+.layout-appendix-signatures p { font-size: 10px; margin: 5px 0; min-height: 13px; }
+.layout-appendix-signature-line { border-bottom: 1px solid #a8b7c5; margin-top: 20px; }
+.layout-appendix-signatures small { font-size: 9px; color: #627182; }
+.layout-appendix-sheet p,.layout-appendix-sheet dd { overflow-wrap: anywhere; }
+@media print {
+  .layout-appendix-preview { padding: 0 !important; overflow: visible !important; background: white; }
+  .layout-appendix-sheet { page: apartmentLayout; break-inside: avoid; width: 277mm; min-width: 0; height: 187mm; min-height: 0; padding: 0; gap: 3mm; font-size: 10pt; }
+  .layout-appendix-heading h1 { font-size: 17pt; }
+  .layout-appendix-heading { padding-bottom: 3mm; }
+  .layout-appendix-image { height: 100mm; }
+  .layout-appendix-signature-line { margin-top: 5mm; }
+}

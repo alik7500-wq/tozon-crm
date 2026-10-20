@@ -1,3 +1,4 @@
+import { ApartmentLayoutAppendix } from './ApartmentLayoutAppendix';
 import { getUnitTitle, isNonResidentialUnit, getUnitKind } from '../../utils/unitKind';
 import {formatMeasure} from '../../utils/numberDisplay';
 import { defaultPrintLanguage } from '../settings/InterfaceSettingsTab';
@@ -15,7 +16,8 @@ import {
 } from 'lucide-react';
 
 export const ContractPrintView = ({ deal: initialDeal, onClose, initialLang = defaultPrintLanguage() }) => {
-  const [activeTab, setActiveTab] = useState('CONTRACT'); // 'CONTRACT' or 'SCHEDULE'
+  const [activeTab, setActiveTab] = useState('CONTRACT'); // CONTRACT, SCHEDULE or LAYOUT
+  const [appendixReady, setAppendixReady] = useState(false);
   const [lang, setLang] = useState(initialLang); // 'TJ' (Тоҷикӣ) or 'RU' (Русский)
   const [asyncDeal, setAsyncDeal] = useState(initialDeal);
 
@@ -33,18 +35,22 @@ export const ContractPrintView = ({ deal: initialDeal, onClose, initialLang = de
   }, []);
 
   useEffect(() => {
+    let alive = true;
     setAsyncDeal(initialDeal);
+    setAppendixReady(false);
+    setActiveTab('CONTRACT');
     const targetId = initialDeal?.id || initialDeal?.deal_id;
     if (targetId && (!initialDeal?.schedules || initialDeal.schedules.length === 0 || !initialDeal?.passport_number)) {
       import('../../api/client').then(({ api }) => {
         api.get(`/deals/${targetId}`)
           .then(res => {
             const d = res?.data?.deal || res?.data || res;
-            if (d && d.id) setAsyncDeal(d);
+            if (alive && d && d.id) setAsyncDeal(d);
           })
           .catch(err => console.warn('Could not fetch canonical deal for print:', err));
       });
     }
+    return () => { alive = false; };
   }, [initialDeal]);
 
   if (!initialDeal) return null;
@@ -58,6 +64,7 @@ export const ContractPrintView = ({ deal: initialDeal, onClose, initialLang = de
 
 
   const handlePrint = () => {
+    if (activeTab === 'LAYOUT' && !appendixReady) return;
     window.print();
   };
 
@@ -308,7 +315,7 @@ export const ContractPrintView = ({ deal: initialDeal, onClose, initialLang = de
 
   return createPortal(
     <div className="print-portal-root fixed inset-0 z-50 overflow-y-auto bg-slate-900/60 backdrop-blur-xs p-2 sm:p-6 flex justify-center animate-in fade-in print:static print:p-0 print:m-0 print:bg-white print:overflow-visible print:block print:h-auto">
-      <div className="print-document-root relative w-full max-w-4xl bg-white rounded-2xl shadow-2xl overflow-hidden flex flex-col my-auto border border-slate-200 print:border-none print:shadow-none print:rounded-none print:max-w-none print:w-full print:overflow-visible print:m-0 print:p-0 print:static print:block print:h-auto">
+      <div className={`print-document-root relative w-full ${activeTab === 'LAYOUT' ? 'max-w-6xl' : 'max-w-4xl'} bg-white rounded-2xl shadow-2xl overflow-hidden flex flex-col my-auto border border-slate-200 print:border-none print:shadow-none print:rounded-none print:max-w-none print:w-full print:overflow-visible print:m-0 print:p-0 print:static print:block print:h-auto`}>
         
         {/* ================= HEADER CONTROLS (Hidden during print) ================= */}
         <div className="print:hidden flex items-center justify-between bg-slate-900 text-white px-4 sm:px-6 py-3.5 border-b border-slate-800 flex-wrap gap-3">
@@ -324,7 +331,7 @@ export const ContractPrintView = ({ deal: initialDeal, onClose, initialLang = de
             <span className="text-slate-600">|</span>
 
             {/* Document Type Switcher */}
-            <div className="flex bg-slate-800 p-1 rounded-xl border border-slate-700">
+            <div className="flex flex-wrap bg-slate-800 p-1 rounded-xl border border-slate-700">
               <button
                 onClick={() => setActiveTab('CONTRACT')}
                 className={`flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs font-bold transition cursor-pointer ${
@@ -348,6 +355,10 @@ export const ContractPrintView = ({ deal: initialDeal, onClose, initialLang = de
                 <FileSpreadsheet className="h-3.5 w-3.5" />
                 <span>{isTJ ? 'Ҷадвали пардохт' : 'График платежей'}</span>
               </button>
+              {!nonResidential && <button onClick={() => { if (activeTab !== 'LAYOUT') { setAppendixReady(false); setActiveTab('LAYOUT'); } }}
+                className={`flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs font-bold transition cursor-pointer ${activeTab === 'LAYOUT' ? 'bg-blue-600 text-white shadow-xs' : 'text-slate-300 hover:text-white'}`}>
+                <FileText className="h-3.5 w-3.5" /><span>{isTJ ? 'Нақшаи хона' : 'Планировка квартиры'}</span>
+              </button>}
             </div>
           </div>
 
@@ -383,7 +394,7 @@ export const ContractPrintView = ({ deal: initialDeal, onClose, initialLang = de
             </div>
 
             {/* Print Button */}
-            {!nonResidential && <>
+            {!nonResidential && activeTab !== 'LAYOUT' && <>
             <TemplateDocumentButton kind={activeTab === 'SCHEDULE' ? 'SCHEDULE' : 'CONTRACT'} language={lang} projectId={deal.project_id} context={dealDocumentContext(deal)}/>
             <TemplateDocumentButton kind="ACT" label="Акт Word" language={lang} projectId={deal.project_id} context={dealDocumentContext(deal)}/>
             <TemplateDocumentButton kind="OFFER" label="Предложение Word" language={lang} projectId={deal.project_id} context={dealDocumentContext(deal)}/>
@@ -392,13 +403,16 @@ export const ContractPrintView = ({ deal: initialDeal, onClose, initialLang = de
             </>}
             <button
               onClick={handlePrint}
-              className="flex items-center gap-2 rounded-xl bg-blue-600 hover:bg-blue-700 px-4 py-2 text-xs font-bold text-white shadow-md transition cursor-pointer"
+              disabled={activeTab === 'LAYOUT' && !appendixReady}
+              className="flex items-center gap-2 rounded-xl bg-blue-600 hover:bg-blue-700 disabled:opacity-50 disabled:cursor-wait px-4 py-2 text-xs font-bold text-white shadow-md transition cursor-pointer"
             >
               <Printer className="h-4 w-4" />
               <span>{isTJ ? 'Чоп кардан / PDF' : 'Печать / PDF'}</span>
             </button>
           </div>
         </div>
+
+        {activeTab === 'LAYOUT' && !nonResidential && <ApartmentLayoutAppendix key={deal.unit_id || deal.units?.id || deal.unit?.id || deal.id} deal={deal} language={lang} onReady={setAppendixReady} />}
 
         {/* ================= TAB 1: МАТНИ ШАРТНОМА (CORRECTED LEGAL TAJIK CONTRACT) ================= */}
         {activeTab === 'CONTRACT' && (
