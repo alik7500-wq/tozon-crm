@@ -30,6 +30,8 @@ export const ClientModal = ({
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState('');
   const [isScannerOpen, setIsScannerOpen] = useState(false);
+  const [loadedClient, setLoadedClient] = useState(null);
+  const [loadedClientId, setLoadedClientId] = useState(null);
 
   // Form State
   const [fullName, setFullName] = useState('');
@@ -46,23 +48,50 @@ export const ClientModal = ({
   const [notes, setNotes] = useState('');
 
   const isEdit = mode === 'edit';
+  const targetId = client?.lead_id || client?.id;
+  const canEdit = !isEdit || (loadedClientId === String(targetId) && loadedClient !== null);
+
+  // List rows are summaries: load the authoritative lead before editing.
+  useEffect(() => {
+    if (!isOpen || !isEdit) return;
+    let cancelled = false;
+    setLoadedClient(null);
+    setLoadedClientId(null);
+    setError('');
+    if (!/^\d+$/.test(String(targetId))) {
+      setError('Не удалось определить карточку клиента. Сохранение недоступно.');
+      return;
+    }
+    api.get(`/leads/${targetId}`).then(res => {
+      if (cancelled) return;
+      const lead = res.data?.lead || res.lead;
+      if (!lead || String(lead.id) !== String(targetId)) {
+        throw new Error('Сервер вернул неполные данные клиента');
+      }
+      setLoadedClient(lead);
+      setLoadedClientId(String(targetId));
+    }).catch(err => {
+      if (!cancelled) setError(`Не удалось загрузить полную карточку клиента: ${err.message}. Закройте окно и попробуйте снова.`);
+    });
+    return () => { cancelled = true; };
+  }, [isOpen, isEdit, targetId]);
 
   useEffect(() => {
     if (!isOpen) return;
 
-    if (isEdit && client) {
-      setFullName(client.name || client.full_name || '');
-      setPhone(client.phone || '');
-      setSecondaryPhone(client.secondary_phone || '');
-      setPassportSeries(client.passport_series || '');
-      setPassportNumber(client.passport_number || '');
-      setPassportIssuedBy(client.passport_issued_by || '');
-      setPassportIssueDate(client.passport_issue_date ? String(client.passport_issue_date).split('T')[0] : '');
-      setBirthDate(client.birth_date ? String(client.birth_date).split('T')[0] : '');
-      setRegistrationAddress(client.address || client.registration_address || '');
-      setInn(client.inn || '');
-      setResponsibleUserId(client.responsible_user_id ? String(client.responsible_user_id) : '');
-      setNotes(client.notes || '');
+    if (isEdit && canEdit) {
+      setFullName(loadedClient.name || loadedClient.full_name || '');
+      setPhone(loadedClient.phone || '');
+      setSecondaryPhone(loadedClient.secondary_phone || '');
+      setPassportSeries(loadedClient.passport_series || '');
+      setPassportNumber(loadedClient.passport_number || '');
+      setPassportIssuedBy(loadedClient.passport_issued_by || '');
+      setPassportIssueDate(loadedClient.passport_issue_date ? String(loadedClient.passport_issue_date).split('T')[0] : '');
+      setBirthDate(loadedClient.birth_date ? String(loadedClient.birth_date).split('T')[0] : '');
+      setRegistrationAddress(loadedClient.registration_address || loadedClient.address || '');
+      setInn(loadedClient.inn || '');
+      setResponsibleUserId(loadedClient.responsible_user_id ? String(loadedClient.responsible_user_id) : '');
+      setNotes(loadedClient.notes || '');
       setError('');
     } else if (!isEdit) {
       setFullName('');
@@ -79,7 +108,7 @@ export const ClientModal = ({
       setNotes('');
       setError('');
     }
-  }, [client, isOpen, mode, isEdit]);
+  }, [loadedClient, canEdit, isOpen, isEdit]);
 
   // Load users for manager assignment
   useEffect(() => {
@@ -103,19 +132,19 @@ export const ClientModal = ({
 
   const isDirty = Boolean(
     isEdit
-      ? client && (
-          fullName !== (client.name || client.full_name || '') ||
-          phone !== (client.phone || '') ||
-          secondaryPhone !== (client.secondary_phone || '') ||
-          passportSeries !== (client.passport_series || '') ||
-          passportNumber !== (client.passport_number || '') ||
-          passportIssuedBy !== (client.passport_issued_by || '') ||
-          passportIssueDate !== (client.passport_issue_date ? String(client.passport_issue_date).split('T')[0] : '') ||
-          birthDate !== (client.birth_date ? String(client.birth_date).split('T')[0] : '') ||
-          registrationAddress !== (client.address || client.registration_address || '') ||
-          inn !== (client.inn || '') ||
-          responsibleUserId !== (client.responsible_user_id ? String(client.responsible_user_id) : '') ||
-          notes !== (client.notes || '')
+      ? canEdit && loadedClient && (
+          fullName !== (loadedClient.name || loadedClient.full_name || '') ||
+          phone !== (loadedClient.phone || '') ||
+          secondaryPhone !== (loadedClient.secondary_phone || '') ||
+          passportSeries !== (loadedClient.passport_series || '') ||
+          passportNumber !== (loadedClient.passport_number || '') ||
+          passportIssuedBy !== (loadedClient.passport_issued_by || '') ||
+          passportIssueDate !== (loadedClient.passport_issue_date ? String(loadedClient.passport_issue_date).split('T')[0] : '') ||
+          birthDate !== (loadedClient.birth_date ? String(loadedClient.birth_date).split('T')[0] : '') ||
+          registrationAddress !== (loadedClient.registration_address || loadedClient.address || '') ||
+          inn !== (loadedClient.inn || '') ||
+          responsibleUserId !== (loadedClient.responsible_user_id ? String(loadedClient.responsible_user_id) : '') ||
+          notes !== (loadedClient.notes || '')
         )
       : (
           fullName ||
@@ -146,6 +175,7 @@ export const ClientModal = ({
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    if (!canEdit || isSubmitting) return;
     if (!fullName.trim() || !phone.trim()) {
       setError('ФИО и телефон обязательны для заполнения');
       return;
@@ -171,7 +201,6 @@ export const ClientModal = ({
       };
 
       if (isEdit) {
-        const targetId = client?.lead_id || client?.id;
         if (targetId) {
           await api.patch(`/leads/${targetId}`, payload);
         }
@@ -236,6 +265,10 @@ export const ClientModal = ({
             </div>
           )}
 
+          {isEdit && !canEdit && !error && (
+            <p role="status" className="text-slate-600">Загрузка полной карточки клиента...</p>
+          )}
+          <fieldset disabled={!canEdit || isSubmitting}>
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
             
             {/* Left Card: Личные и контактные данные */}
@@ -311,6 +344,9 @@ export const ClientModal = ({
                     className="w-full rounded-xl border border-slate-200 bg-white px-3 py-1.5 text-xs font-semibold text-slate-900 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition cursor-pointer"
                   >
                     <option value="">Не назначен</option>
+                    {responsibleUserId && !users.some(u => String(u.id) === responsibleUserId) && (
+                      <option value={responsibleUserId}>{loadedClient?.responsible_user_name || `Менеджер №${responsibleUserId}`}</option>
+                    )}
                     {users.map(u => (
                       <option key={u.id} value={u.id}>
                         {u.name} ({u.role})
@@ -435,6 +471,8 @@ export const ClientModal = ({
 
           </div>
 
+          </fieldset>
+
           {/* Footer */}
           <div className="flex items-center justify-end gap-3 pt-3 border-t border-slate-100">
             <button
@@ -446,7 +484,7 @@ export const ClientModal = ({
             </button>
             <button
               type="submit"
-              disabled={isSubmitting}
+              disabled={isSubmitting || !canEdit}
               className={`flex items-center gap-2 px-5 py-2 rounded-xl text-white font-bold transition shadow-xs cursor-pointer text-xs disabled:opacity-50 ${
                 isEdit
                   ? 'bg-amber-600 hover:bg-amber-500'
@@ -466,7 +504,7 @@ export const ClientModal = ({
         isOpen={isScannerOpen}
         onClose={() => setIsScannerOpen(false)}
         onConfirmData={handleScannerConfirmed}
-        existingClientData={client}
+        existingClientData={loadedClient || client}
       />
     </div>
   );
