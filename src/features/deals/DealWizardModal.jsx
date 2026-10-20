@@ -159,8 +159,6 @@ export const DealWizardModal = ({
 
   const remainingBalance = paymentType === 'BARTER'
     ? 0
-    : paymentType === 'PARTIAL_BARTER'
-    ? Math.max(0, finalPrice - (parseFloat(barterAmount) || 0) - (parseFloat(downPaymentAmount) || 0))
     : Math.max(0, finalPrice - (parseFloat(downPaymentAmount) || 0));
 
   const getUnitProjectName = (u) => {
@@ -379,6 +377,8 @@ export const DealWizardModal = ({
         if (!firstPaymentDate || firstPaymentDate < dealDate) throw new Error('Укажите дату первого платежа не раньше даты договора');
         if (!Number.isInteger(Number(paymentInterval)) || Number(paymentInterval) < 1 || Number(paymentInterval) > 12) throw new Error('Интервал должен быть от 1 до 12 месяцев');
       }
+      if (paymentType === 'PARTIAL_BARTER' && (Number(barterAmount) < 0 || Number(barterAmount) > Number(downPaymentAmount))) throw new Error('Стоимость бартера должна входить в первоначальный взнос и не превышать его');
+      if (paymentType === 'PARTIAL_BARTER' && recordInitialPayment && Number(barterAmount) > 0) throw new Error('Бартер и денежную доплату оформляйте отдельными ПКО. Отключите автоматическое оформление всего первоначального взноса.');
       const downPaymentValue = (paymentType === 'INSTALLMENT' || paymentType === 'PARTIAL_BARTER')
         ? downPaymentAmount
         : finalPrice;
@@ -1032,7 +1032,7 @@ export const DealWizardModal = ({
                   {paymentType === 'PARTIAL_BARTER' && (
                     <div>
                       <label className="block text-[11px] font-semibold text-amber-900 mb-1">
-                        Оценочная стоимость бартера ({currency})
+                        Оценочная стоимость бартера ({currency}) — входит в первоначальный взнос
                       </label>
                       <input
                         type="number"
@@ -1069,7 +1069,7 @@ export const DealWizardModal = ({
                   <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
                     <div>
                       <label className="block text-xs font-bold text-slate-700 mb-1">
-                        Первоначальный взнос ({downPaymentPercent}%)
+                        Первоначальный взнос, включая бартер ({downPaymentPercent}%)
                       </label>
                       <div className="flex gap-1.5">
                         <input
