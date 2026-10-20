@@ -362,6 +362,10 @@ export const ContractPrintView = ({ deal: initialDeal, onClose, initialLang = de
                 <FileSpreadsheet className="h-3.5 w-3.5" />
                 <span>{isTJ ? 'Ҷадвали пардохт' : 'График платежей'}</span>
               </button>
+              {isPartialBarter && <button onClick={() => setActiveTab('BARTER_ACT')}
+                className={`flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs font-bold transition cursor-pointer ${activeTab === 'BARTER_ACT' ? 'bg-blue-600 text-white shadow-xs' : 'text-slate-300 hover:text-white'}`}>
+                <FileText className="h-3.5 w-3.5" /><span>{isTJ ? 'Санади қабулу супоридан' : 'Акт приёма-передачи'}</span>
+              </button>}
               {!nonResidential && <button onClick={() => { if (activeTab !== 'LAYOUT') { setAppendixReady(false); setActiveTab('LAYOUT'); } }}
                 className={`flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs font-bold transition cursor-pointer ${activeTab === 'LAYOUT' ? 'bg-blue-600 text-white shadow-xs' : 'text-slate-300 hover:text-white'}`}>
                 <FileText className="h-3.5 w-3.5" /><span>{isTJ ? 'Нақшаи хона' : 'Планировка квартиры'}</span>
@@ -420,6 +424,33 @@ export const ContractPrintView = ({ deal: initialDeal, onClose, initialLang = de
         </div>
 
         {activeTab === 'LAYOUT' && !nonResidential && <ApartmentLayoutAppendix key={deal.unit_id || deal.units?.id || deal.unit?.id || deal.id} deal={deal} language={lang} onReady={setAppendixReady} />}
+
+        {activeTab === 'BARTER_ACT' && isPartialBarter && (
+          <div id="print-section" className="p-8 sm:p-14 text-slate-950 text-xs sm:text-[13px] leading-relaxed font-serif bg-white space-y-4">
+            <div className="print:hidden text-amber-800 bg-amber-50 rounded-lg p-3 font-sans text-xs">✎ {isTJ ? 'Барои таҳрир матнро пахш кунед. Тағйирот танҳо барои чопи ҷорӣ аст ва дар пойгоҳи додаҳо сабт намешавад.' : 'Нажмите на текст, чтобы отредактировать его перед печатью. Правки действуют только в этом окне и не сохраняются в базе.'}</div>
+            <div contentEditable suppressContentEditableWarning spellCheck={false} className="outline-none focus:ring-1 focus:ring-blue-200 rounded p-1 whitespace-pre-wrap">
+              <h1 className="text-center text-lg font-bold uppercase">{isTJ ? 'САНАДИ ҚАБУЛУ СУПОРИДАНИ ВОСИТАИ НАҚЛИЁТ' : 'АКТ ПРИЁМА-ПЕРЕДАЧИ АВТОМОБИЛЯ'}</h1>
+              <p className="text-center">{isTJ ? 'Замима ба шартномаи' : 'Приложение к договору'} № {displayContractNumber(deal.contract_number)} {isTJ ? 'аз' : 'от'} {dealDate}</p>
+              <p>{isTJ ? 'ш. Хуҷанд' : 'г. Худжанд'} — «____» __________ 20___</p>
+              <p>{isTJ ? 'ҶДММ «Тозон», дар симои Роҳбари иншооти «TOZON PLAZA» дар шаҳри Хуҷанд Абдуллоев Акмалхон Раҳматуллоевич, ки дар асоси Ваколатномаи № 2 амал менамояд (минбаъд «Қабулкунанда»), ва шаҳрванд' : 'ООО «Тозон», в лице Руководителя объекта «TOZON PLAZA» в городе Худжанде Абдуллоева Акмалхона Рахматуллоевича, действующего на основании доверенности № 2 (далее «Принимающая сторона»), и гражданин'} {deal.lead_name || deal.buyer_name || '________________________'} {isTJ ? '(минбаъд «Супоранда») санади мазкурро тартиб доданд.' : '(далее «Передающая сторона») составили настоящий акт.'}</p>
+              <p><strong>1.</strong> {isTJ ? 'Супоранда воситаи нақлиётро ҳамчун қисми пешпардохт супорид ва Қабулкунанда онро қабул намуд:' : 'Передающая сторона передала автомобиль в качестве части первоначального взноса, а Принимающая сторона приняла его:'}</p>
+              <p>{isTJ ? 'Тамға ва модел' : 'Марка и модель'}: _________________________________</p>
+              <p>{isTJ ? 'Соли истеҳсол' : 'Год выпуска'}: __________  {isTJ ? 'Ранги мошин' : 'Цвет'}: __________</p>
+              <p>{isTJ ? 'Рақами давлатӣ' : 'Госномер'}: ______________  VIN: ___________________________</p>
+              <p>{isTJ ? 'Рақами муҳаррик' : 'Номер двигателя'}: __________________________</p>
+              <p>{isTJ ? 'Шаҳодатномаи бақайдгирӣ' : 'Свидетельство о регистрации'}: _____________________</p>
+              <p>{isTJ ? 'Масофаи тайшуда' : 'Пробег'}: _______________ км</p>
+              <p><strong>2.</strong> {isTJ ? 'Арзиши мувофиқашудаи мошин' : 'Согласованная стоимость автомобиля'}: <strong>{vehicleValueTjs === 120000 ? (isTJ ? '120 000 (як саду бист ҳазор) сомонӣ' : '120 000 (сто двадцать тысяч) сомони') : '____________ сомонӣ / сомони'}</strong>. {isTJ ? 'Ин маблағ ҳамчун қисми пешпардохти шартнома ба ҳисоб гирифта мешавад ва воридоти нақдӣ ба хазина нест.' : 'Эта сумма засчитывается как часть первоначального взноса и не является наличным поступлением в кассу.'}</p>
+              <p><strong>3.</strong> {isTJ ? 'Ҳолати техникӣ ва нуқсонҳо' : 'Техническое состояние и недостатки'}: __________________________________________</p>
+              <p><strong>4.</strong> {isTJ ? 'Калидҳо, ҳуҷҷатҳо ва лавозимоти супоридашуда' : 'Переданные ключи, документы и принадлежности'}: __________________________________________</p>
+              <p><strong>5.</strong> {isTJ ? 'Аз лаҳзаи супоридани воқеии мошин ва имзои санад ҳуқуқи ихтиёрдорӣ тибқи банди 6.5-и шартнома ба Қабулкунанда мегузарад. Тарафҳо расмиёти бақайдгириро мувофиқи қонун анҷом медиҳанд.' : 'С момента фактической передачи и подписания акта право распоряжения автомобилем переходит к Принимающей стороне согласно пункту 6.5 договора. Стороны оформляют необходимые регистрационные действия в соответствии с законом.'}</p>
+              <p><strong>6.</strong> {isTJ ? 'Супоранда ҳуқуқи худро ба мошин ва набудани гарав, ҳабс ва баҳсро тасдиқ мекунад, ба истиснои' : 'Передающая сторона подтверждает своё право на автомобиль и отсутствие залога, ареста и споров, кроме'}: __________________________</p>
+              <p><strong>7.</strong> {isTJ ? 'Санад дар ду нусхаи баробарэътибор таҳия шудааст.' : 'Акт составлен в двух экземплярах равной юридической силы.'}</p>
+              <p className="pt-8">{isTJ ? 'СУПОРАНДА' : 'ПЕРЕДАЛ'}: __________________ /__________________/</p>
+              <p className="pt-6">{isTJ ? 'ҚАБУЛКУНАНДА' : 'ПРИНЯЛ'}: __________________ /Абдуллоев А. Р./</p>
+            </div>
+          </div>
+        )}
 
         {/* ================= TAB 1: МАТНИ ШАРТНОМА (CORRECTED LEGAL TAJIK CONTRACT) ================= */}
         {activeTab === 'CONTRACT' && (
