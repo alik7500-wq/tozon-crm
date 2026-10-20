@@ -59,6 +59,21 @@ describe('contract apartment layout appendix',()=>{
     await screen.findAllByRole('img');resolveOld(bundle(1));
     await waitFor(()=>expect(screen.getAllByRole('img').map(img=>img.getAttribute('src'))).toEqual(['/plan-2-2d.png','/plan-2-3d.png']));
   });
+  it('supports combined package print (Весь пакет) with contract, schedule, and layout appendix', async () => {
+    render(<ContractPrintView deal={deal} initialLang="RU" onClose={() => {}} />);
+    const allBtn = screen.getByRole('button', { name: 'Весь пакет' });
+    fireEvent.click(allBtn);
+    expect(printButton().disabled).toBe(true);
+    const plans = await screen.findAllByRole('img');
+    plans.forEach(img => fireEvent.load(img));
+    await waitFor(() => expect(printButton().disabled).toBe(false));
+    const printSection = document.getElementById('print-section');
+    expect(printSection.textContent).toContain('ДОГОВОР ДОЛЕВОГО УЧАСТИЯ');
+    expect(printSection.textContent).toContain('График платежей');
+    expect(printSection.textContent).toContain('Приложение № 2');
+    fireEvent.click(printButton());
+    expect(window.print).toHaveBeenCalledOnce();
+  });
   it('does not offer an apartment appendix for parking',()=>{
     render(<ContractPrintView deal={{...deal,unit_kind:'PARKING'}} initialLang="RU" onClose={()=>{}}/>);
     expect(screen.queryByRole('button',{name:'Планировка квартиры'})).toBeNull();

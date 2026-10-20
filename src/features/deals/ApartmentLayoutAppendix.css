@@ -21,9 +21,20 @@
 .layout-appendix-sheet p,.layout-appendix-sheet dd { overflow-wrap: anywhere; }
 @media print {
   .layout-appendix-preview { padding: 0 !important; overflow: visible !important; background: white; }
-  .layout-appendix-sheet { page: apartmentLayout; break-inside: avoid; width: 277mm; min-width: 0; height: 187mm; min-height: 0; padding: 0; gap: 3mm; font-size: 10pt; }
-  .layout-appendix-heading h1 { font-size: 17pt; }
-  .layout-appendix-heading { padding-bottom: 3mm; }
-  .layout-appendix-image { height: 100mm; }
-  .layout-appendix-signature-line { margin-top: 5mm; }
+  .layout-appendix-sheet {
+    page: apartmentLayout;
+    break-inside: avoid;
+    width: 100% !important;
+    max-width: 100% !important;
+    min-width: 0 !important;
+    height: auto !important;
+    min-height: 0 !important;
+    padding: 0 !important;
+    gap: 3mm !important;
+    font-size: 10pt !important;
+  }
+  .layout-appendix-heading h1 { font-size: 15pt !important; }
+  .layout-appendix-heading { padding-bottom: 2mm !important; }
+  .layout-appendix-image { height: 85mm !important; max-height: 90mm !important; }
+  .layout-appendix-signature-line { margin-top: 4mm !important; }
 }
