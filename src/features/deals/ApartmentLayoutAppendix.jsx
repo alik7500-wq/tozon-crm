@@ -26,7 +26,8 @@ export function ApartmentLayoutAppendix({ deal, language, onReady }) {
       return () => { alive = false; };
     }
     api.get(`/inventory/units/${unitId}/presentation`).then(res => {
-      const data = res?.data?.data;
+      // The shared API interceptor already returns response.data.
+      const data = res?.data?.data || res?.data || res;
       if (!data?.unit || String(data.unit.id) !== String(unitId)) throw new Error('Wrong unit presentation');
       if (alive) setState({ data });
     }).catch(() => { if (alive) setState({ error: true }); });
