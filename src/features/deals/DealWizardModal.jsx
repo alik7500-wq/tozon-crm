@@ -2,6 +2,7 @@ import { getUnitTitle, getUnitKindLabel, getUnitDefaultPrice, isNonResidentialUn
 import {formatMeasure} from '../../utils/numberDisplay';
 import React, { useState, useEffect } from 'react';
 import { api } from '../../api/client';
+import { dictionariesApi } from '../../api/dictionaries.api';
 import { useModalDismiss } from '../../hooks/useModalDismiss';
 import { matchSearchQuery } from '../../utils/searchUtils';
 import {
@@ -134,6 +135,31 @@ export const DealWizardModal = ({
   const [initialPaymentReference, setInitialPaymentReference] = useState('');
   const [initialPaymentDate, setInitialPaymentDate] = useState('');
   const [initialPaymentMethod, setInitialPaymentMethod] = useState('CASH');
+  const [initialPaymentCashDeskId, setInitialPaymentCashDeskId] = useState('');
+  const [incomeCashDesks, setIncomeCashDesks] = useState([]);
+  const [cashDesksLoading, setCashDesksLoading] = useState(false);
+  const [cashDesksError, setCashDesksError] = useState('');
+  const needsInitialPayment = dealStatus === 'SIGNED' && recordInitialPayment && downPaymentAmount > 0;
+
+  useEffect(() => {
+    setInitialPaymentCashDeskId('');
+    setIncomeCashDesks([]);
+    setCashDesksError('');
+    if (!isOpen || !needsInitialPayment) return;
+    let cancelled = false;
+    setCashDesksLoading(true);
+    dictionariesApi.getItems('CASH_DESK', { purpose: 'income' })
+      .then(items => {
+        if (cancelled) return;
+        if (!Array.isArray(items)) throw new Error('Некорректный список касс');
+        setIncomeCashDesks(items.filter(d => d.is_active !== false && d.id));
+      })
+      .catch(err => {
+        if (!cancelled) setCashDesksError(err.message || 'Не удалось загрузить кассы');
+      })
+      .finally(() => { if (!cancelled) setCashDesksLoading(false); });
+    return () => { cancelled = true; };
+  }, [isOpen, needsInitialPayment]);
 
   const [error, setError] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -373,6 +399,11 @@ export const DealWizardModal = ({
 
     try {
       if (!selectedUnit || !selectedLead || !(Number(pricePerM2) > 0) || !(finalPrice > 0)) throw new Error('Выберите объект, покупателя и укажите положительную цену');
+      if (needsInitialPayment) {
+        if (cashDesksLoading) throw new Error('Дождитесь загрузки касс');
+        if (cashDesksError) throw new Error(cashDesksError);
+        if (!incomeCashDesks.some(d => String(d.id) === initialPaymentCashDeskId)) throw new Error('Выберите кассу зачисления первоначального взноса');
+      }
       if (['INSTALLMENT','PARTIAL_BARTER'].includes(paymentType)) {
         if (!firstPaymentDate || firstPaymentDate < dealDate) throw new Error('Укажите дату первого платежа не раньше даты договора');
         if (!Number.isInteger(Number(paymentInterval)) || Number(paymentInterval) < 1 || Number(paymentInterval) > 12) throw new Error('Интервал должен быть от 1 до 12 месяцев');
@@ -404,16 +435,17 @@ export const DealWizardModal = ({
         barter_description: (paymentType === 'BARTER' || paymentType === 'PARTIAL_BARTER') ? barterDescription : null,
         barter_amount_minor: (paymentType === 'BARTER' || paymentType === 'PARTIAL_BARTER') ? (parseFloat(barterAmount) || 0) * 100 : 0,
         reservation_expires_at: reservationExpiresAt,
-        record_initial_payment: recordInitialPayment,
+        record_initial_payment: needsInitialPayment,
+        initial_payment_cash_desk_id: needsInitialPayment ? initialPaymentCashDeskId : null,
         initial_payment_reference: initialPaymentReference,
         initial_payment_date: initialPaymentDate || dealDate,
         initial_payment_method: initialPaymentMethod,
-        initial_payment_amount_tjs: recordInitialPayment ? Math.round(downPaymentValue * 9.27 * 100) / 100 : null,
-        initial_payment_amount_usd: recordInitialPayment ? downPaymentValue : null,
-        initial_payment_exchange_rate: recordInitialPayment ? 9.27 : null,
-        amount_tjs: recordInitialPayment ? Math.round(downPaymentValue * 9.27 * 100) / 100 : null,
-        amount_usd: recordInitialPayment ? downPaymentValue : null,
-        exchange_rate: recordInitialPayment ? 9.27 : null,
+        initial_payment_amount_tjs: needsInitialPayment ? Math.round(downPaymentValue * 9.27 * 100) / 100 : null,
+        initial_payment_amount_usd: needsInitialPayment ? downPaymentValue : null,
+        initial_payment_exchange_rate: needsInitialPayment ? 9.27 : null,
+        amount_tjs: needsInitialPayment ? Math.round(downPaymentValue * 9.27 * 100) / 100 : null,
+        amount_usd: needsInitialPayment ? downPaymentValue : null,
+        exchange_rate: needsInitialPayment ? 9.27 : null,
         first_payment_date: firstPaymentDate || null,
         installment_interval_months: Number(paymentInterval) || 1,
         schedules: (paymentType === 'INSTALLMENT' || paymentType === 'PARTIAL_BARTER') ? schedule : [],
@@ -1305,6 +1337,20 @@ export const DealWizardModal = ({
                               <option value="BANK_TRANSFER">🏦 Банковский перевод</option>
                               <option value="CARD">💳 Банковская карта</option>
                             </select>
+                          </div>
+                          <div className="sm:col-span-3">
+                            <label htmlFor="initial-payment-cash-desk" className="block text-[11px] font-bold text-slate-800 mb-1">Касса зачисления *</label>
+                            <select
+                              id="initial-payment-cash-desk"
+                              value={initialPaymentCashDeskId}
+                              onChange={e => setInitialPaymentCashDeskId(e.target.value)}
+                              disabled={cashDesksLoading || Boolean(cashDesksError)}
+                              className="w-full rounded-xl border border-emerald-300 bg-white px-3 py-2 text-xs font-bold text-slate-900 outline-none focus:border-emerald-600 focus:ring-1 focus:ring-emerald-500 disabled:opacity-50"
+                            >
+                              <option value="">{cashDesksLoading ? 'Загрузка касс...' : 'Выберите кассу'}</option>
+                              {incomeCashDesks.map(d => <option key={d.id} value={d.id}>{d.name}</option>)}
+                            </select>
+                            {cashDesksError ? <p role="alert" className="mt-1 text-xs text-rose-700">Не удалось загрузить кассы: {cashDesksError}. Снимите отметку взноса и включите её повторно для загрузки.</p> : !cashDesksLoading && incomeCashDesks.length === 0 ? <p role="alert" className="mt-1 text-xs text-rose-700">Нет доступных активных касс для приёма платежа. Проверьте права доступа.</p> : <p className="mt-1 text-[11px] text-slate-600">В эту кассу будет зачислен первоначальный взнос и оформлен ПКО.</p>}
                           </div>
                         </div>
                       </div>
