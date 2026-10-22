@@ -29,6 +29,7 @@ import {
   Tag,
   Sparkles
 } from 'lucide-react';
+import { VehicleDetailsFields } from './VehicleDetailsFields';
 import { PassportScannerModal } from '../documents/PassportScannerModal';
 
 export const DealWizardModal = ({
@@ -105,6 +106,7 @@ export const DealWizardModal = ({
   // Barter fields
   const [barterDescription, setBarterDescription] = useState('');
   const [barterAmount, setBarterAmount] = useState(0);
+  const [vehicleDetails, setVehicleDetails] = useState({});
 
   // Installment Calculator
   const [downPaymentPercent, setDownPaymentPercent] = useState(30);
@@ -216,6 +218,7 @@ export const DealWizardModal = ({
       setInitialPaymentReference('');
       setInitialPaymentDate(dealDate);
       setInitialPaymentMethod('CASH');
+      setVehicleDetails({});
       fetchProjects();
       fetchLeads();
       fetchAvailableUnits();
@@ -433,6 +436,7 @@ export const DealWizardModal = ({
         down_payment_minor: Math.round(downPaymentValue * 100),
         installment_months: (paymentType === 'INSTALLMENT' || paymentType === 'PARTIAL_BARTER') ? parseInt(installmentMonths, 10) : 0,
         barter_description: (paymentType === 'BARTER' || paymentType === 'PARTIAL_BARTER') ? barterDescription : null,
+        vehicle_details: paymentType === 'PARTIAL_BARTER' ? vehicleDetails : null,
         barter_amount_minor: (paymentType === 'BARTER' || paymentType === 'PARTIAL_BARTER') ? (parseFloat(barterAmount) || 0) * 100 : 0,
         reservation_expires_at: reservationExpiresAt,
         record_initial_payment: needsInitialPayment,
@@ -1074,6 +1078,7 @@ export const DealWizardModal = ({
                       />
                     </div>
                   )}
+                  {paymentType === 'PARTIAL_BARTER' && <VehicleDetailsFields value={vehicleDetails} onChange={setVehicleDetails} />}
                 </div>
               )}
 
