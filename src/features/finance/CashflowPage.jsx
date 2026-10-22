@@ -33,6 +33,18 @@ const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12
 
 export const isValidUuid = (val) => Boolean(val && typeof val === 'string' && UUID_REGEX.test(val.trim()));
 
+// Derive card status from the displayed currency balances, not the server activity flag.
+const cashDeskBalanceState = (desk) => {
+  const balances = ['balanceUsd', 'balanceTjs', 'balanceRub'].map(key => {
+    const value = Number(desk?.[key] ?? 0);
+    return Number.isFinite(value) ? Number(value.toFixed(2)) : 0;
+  });
+  return {
+    hasBalance: balances.some(value => value !== 0),
+    hasFunds: balances.some(value => value > 0)
+  };
+};
+
 export const CATEGORY_DEFINITIONS = [
   { code: 'ALL', name: 'Все категории' },
   { code: 'PARTNER_INVESTMENT', name: 'Инвестиции партнёров' },
@@ -510,7 +522,7 @@ export const CashflowPage = () => {
       totalExpenseUsd: found ? found.totalExpenseUsd : 0,
       totalIncomeTjs: found ? found.totalIncomeTjs : 0,
       totalExpenseTjs: found ? found.totalExpenseTjs : 0,
-      hasBalance: found ? found.hasBalance : false
+      ...cashDeskBalanceState(found)
     };
   });
 
@@ -530,7 +542,7 @@ export const CashflowPage = () => {
         totalExpenseUsd: sd.totalExpenseUsd || 0,
         totalIncomeTjs: sd.totalIncomeTjs || 0,
         totalExpenseTjs: sd.totalExpenseTjs || 0,
-        hasBalance: sd.hasBalance
+        ...cashDeskBalanceState(sd)
       });
     }
   });
@@ -1705,11 +1717,11 @@ export const CashflowPage = () => {
                     <div className="flex items-center justify-between gap-2 mb-2">
                       <span className="text-2xl">{desk.icon}</span>
                       <span className={`text-[10px] font-extrabold px-2 py-0.5 rounded-md uppercase tracking-wider ${
-                        desk.hasBalance
+                        desk.hasFunds
                           ? 'bg-emerald-50 text-emerald-700 border border-emerald-100'
                           : 'bg-slate-100 text-slate-400'
                       }`}>
-                        {desk.hasBalance ? 'Есть средства' : 'Пусто'}
+                        {desk.hasFunds ? 'Есть средства' : 'Нет средств'}
                       </span>
                     </div>
 
