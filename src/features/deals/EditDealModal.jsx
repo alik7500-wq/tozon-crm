@@ -2,6 +2,7 @@ import { getUnitTitle, isNonResidentialUnit } from '../../utils/unitKind';
 import {formatMeasure} from '../../utils/numberDisplay';
 import React, { useState, useEffect } from 'react';
 import { api } from '../../api/client';
+import { VehicleDetailsFields } from './VehicleDetailsFields';
 import { useModalDismiss } from '../../hooks/useModalDismiss';
 import {
   X,
@@ -54,6 +55,37 @@ export const EditDealModal = ({
   const scheduleChanged = installmentMonths !== String(deal?.installment_months || 0) || firstPaymentDate !== originalFirstDate || paymentInterval !== String(deal?.installment_interval_months || 1);
   const [reservationExpiresAt, setReservationExpiresAt] = useState('');
   const [barterDescription, setBarterDescription] = useState('');
+  const [vehicleDetails, setVehicleDetails] = useState({});
+  const [vehicleBaseline, setVehicleBaseline] = useState({});
+  const [vehicleReady, setVehicleReady] = useState(false);
+  const [vehicleError, setVehicleError] = useState('');
+  const vehicleChanged = JSON.stringify(vehicleDetails) !== JSON.stringify(vehicleBaseline);
+
+  useEffect(() => {
+    setVehicleDetails({});
+    setVehicleBaseline({});
+    setVehicleReady(false);
+    setVehicleError('');
+    if (!isOpen || !deal || paymentType !== 'PARTIAL_BARTER') return;
+    let cancelled = false;
+    const populate = value => {
+      const details = value && typeof value === 'object' && !Array.isArray(value) ? value : {};
+      setVehicleDetails(details);
+      setVehicleBaseline(details);
+      setVehicleReady(true);
+    };
+    if (deal.vehicle_details !== undefined) {
+      populate(deal.vehicle_details);
+    } else {
+      api.get(`/deals/${deal.id}`).then(res => {
+        if (cancelled) return;
+        const canonical = res.data?.deal || res.deal;
+        if (!canonical || String(canonical.id) !== String(deal.id) || canonical.vehicle_details === undefined) throw new Error('Неполные данные договора');
+        populate(canonical.vehicle_details);
+      }).catch(err => { if (!cancelled) setVehicleError(err.message || 'Ошибка загрузки данных автомобиля'); });
+    }
+    return () => { cancelled = true; };
+  }, [isOpen, deal?.id, paymentType, deal?.vehicle_details]);
 
   // Financial State
   const [pricePerM2, setPricePerM2] = useState('');
@@ -163,7 +195,7 @@ export const EditDealModal = ({
 
   const isDirty = Boolean(
     deal && (
-      scheduleChanged || amending || amendmentReason || unitId !== String(deal.unit_id) ||
+      vehicleChanged || scheduleChanged || amending || amendmentReason || unitId !== String(deal.unit_id) ||
       contractNumber !== (deal.contract_number || '') ||
       dealDate !== (deal.deal_date || deal.created_at?.split('T')[0] || '') ||
       leadName !== (deal.lead_name || '') ||
@@ -195,6 +227,10 @@ export const EditDealModal = ({
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    if (paymentType === 'PARTIAL_BARTER' && !vehicleReady) {
+      setError(vehicleError || 'Дождитесь загрузки данных автомобиля');
+      return;
+    }
     if (!dealDate) {
       setError('Укажите дату договора / сделки');
       return;
@@ -241,6 +277,8 @@ export const EditDealModal = ({
         reservation_expires_at: reservationExpiresAt || null,
         barter_description: barterDescription.trim() || null
       };
+
+      if (paymentType === 'PARTIAL_BARTER' && vehicleChanged) payload.vehicle_details = vehicleDetails;
 
       // Paid metadata edits must not accidentally include locked financial keys.
       if (isPaidDeal) {
@@ -498,6 +536,12 @@ export const EditDealModal = ({
                     className="w-full rounded-xl border border-slate-200 bg-white px-3 py-1.5 text-xs font-semibold text-slate-900 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition"
                   />
                 </div>
+              )}
+              {paymentType === 'PARTIAL_BARTER' && (
+                <fieldset disabled={!vehicleReady || isSubmitting}>
+                  {vehicleError ? <p role="alert" className="text-xs text-rose-700">Не удалось загрузить данные автомобиля: {vehicleError}. Откройте договор заново.</p> : !vehicleReady && <p role="status" className="text-xs text-slate-600">Загрузка данных автомобиля...</p>}
+                  <VehicleDetailsFields value={vehicleDetails} onChange={setVehicleDetails} />
+                </fieldset>
               )}
             </div>
 
