@@ -1,3 +1,4 @@
+import './VehicleHandoverAct.css';
 import { ApartmentLayoutAppendix } from './ApartmentLayoutAppendix';
 import { getUnitTitle, isNonResidentialUnit, getUnitKind } from '../../utils/unitKind';
 import {formatMeasure} from '../../utils/numberDisplay';
@@ -454,27 +455,34 @@ export const ContractPrintView = ({ deal: initialDeal, onClose, initialLang = de
           {activeTab === 'LAYOUT' && <ApartmentLayoutAppendix key={deal.unit_id || deal.units?.id || deal.unit?.id || deal.id} deal={deal} language={lang} onReady={setAppendixReady} />}
 
           {activeTab === 'BARTER_ACT' && isPartialBarter && (
-            <div id="print-section" className="p-8 sm:p-14 text-slate-950 text-xs sm:text-[13px] leading-relaxed font-serif bg-white space-y-4">
-              <div className="print:hidden text-amber-800 bg-amber-50 rounded-lg p-3 font-sans text-xs">✎ {isTJ ? 'Барои таҳрир матнро пахш кунед. Тағйирот танҳо барои чопи ҷорӣ аст ва дар пойгоҳи додаҳо сабт намешавад.' : 'Нажмите на текст, чтобы отредактировать его перед печатью. Правки действуют только в этом окне и не сохраняются в базе.'}</div>
-              <div contentEditable suppressContentEditableWarning spellCheck={false} className="outline-none focus:ring-1 focus:ring-blue-200 rounded p-1 whitespace-pre-wrap">
-                <h1 className="text-center text-lg font-bold uppercase">{isTJ ? 'САНАДИ ҚАБУЛУ СУПОРИДАНИ ВОСИТАИ НАҚЛИЁТ' : 'АКТ ПРИЁМА-ПЕРЕДАЧИ АВТОМОБИЛЯ'}</h1>
-                <p className="text-center">{isTJ ? 'Замима ба шартномаи' : 'Приложение к договору'} № <u className="font-bold">{displayContractNumber(deal.contract_number)}</u> {isTJ ? 'аз' : 'от'} <u className="font-bold">{dealDate}</u></p>
-                <p>{isTJ ? 'ш. Хуҷанд' : 'г. Худжанд'} — <u className="font-bold">{handoverDateText}</u></p>
+            <div id="print-section" className="vehicle-handover-act">
+              <div className="vehicle-act-hint print:hidden">✎ {isTJ ? 'Барои таҳрир матнро пахш кунед. Тағйирот танҳо барои чопи ҷорӣ аст ва дар пойгоҳи додаҳо сабт намешавад.' : 'Нажмите на текст, чтобы отредактировать его перед печатью. Правки действуют только в этом окне и не сохраняются в базе.'}</div>
+              <div contentEditable suppressContentEditableWarning spellCheck={false} className="vehicle-act-body outline-none focus:ring-1 focus:ring-blue-200">
+                <div className="vehicle-act-heading"><h1>{isTJ ? 'САНАДИ ҚАБУЛУ СУПОРИДАНИ ВОСИТАИ НАҚЛИЁТ' : 'АКТ ПРИЁМА-ПЕРЕДАЧИ АВТОМОБИЛЯ'}</h1>
+                <p>{isTJ ? 'Замима ба шартномаи' : 'Приложение к договору'} № <u className="font-bold">{displayContractNumber(deal.contract_number)}</u> {isTJ ? 'аз' : 'от'} <u className="font-bold">{dealDate}</u></p>
+                </div>
+                <div className="vehicle-act-date"><span>{isTJ ? 'ш. Хуҷанд' : 'г. Худжанд'}</span><u className="font-bold">{handoverDateText}</u></div>
                 <p>{isTJ ? 'ҶДММ «Тозон», дар симои Роҳбари иншооти «TOZON PLAZA» дар шаҳри Хуҷанд Абдуллоев Акмалхон Раҳматуллоевич, ки дар асоси Ваколатномаи № 2 амал менамояд (минбаъд «Қабулкунанда»), ва шаҳрванд' : 'ООО «Тозон», в лице Руководителя объекта «TOZON PLAZA» в городе Худжанде Абдуллоева Акмалхона Рахматуллоевича, действующего на основании доверенности № 2 (далее «Принимающая сторона»), и гражданин'} <u className="font-bold">{deal.lead_name || deal.buyer_name || '________________________'}</u> {isTJ ? '(минбаъд «Супоранда») санади мазкурро тартиб доданд.' : '(далее «Передающая сторона») составили настоящий акт.'}</p>
                 <p><strong>1.</strong> {isTJ ? 'Супоранда воситаи нақлиётро ҳамчун қисми пешпардохт супорид ва Қабулкунанда онро қабул намуд:' : 'Передающая сторона передала автомобиль в качестве части первоначального взноса, а Принимающая сторона приняла его:'}</p>
-                <p>{isTJ ? 'Тамға ва модел' : 'Марка и модель'}: <u className="font-bold">{vehicleText('brand_model')}</u></p>
-                <p>{isTJ ? 'Соли истеҳсол' : 'Год выпуска'}: <u className="font-bold">{vehicleText('production_year')}</u>  {isTJ ? 'Ранги мошин' : 'Цвет'}: <u className="font-bold">{vehicleText('color')}</u></p>
-                <p>{isTJ ? 'Рақами давлатӣ' : 'Госномер'}: <u className="font-bold">{vehicleText('registration_number')}</u>  VIN: <u className="font-bold">{vehicleText('vin')}</u></p>
-                <p>{isTJ ? 'Шаҳодатномаи бақайдгирӣ' : 'Свидетельство о регистрации'}: <u className="font-bold">{vehicleText('registration_certificate')}</u></p>
-                <p>{isTJ ? 'Масофаи тайшуда' : 'Пробег'}: <u className="font-bold">{vehicleText('mileage_km')}</u> км</p>
-                <p><strong>2.</strong> {isTJ ? 'Арзиши мувофиқашудаи мошин' : 'Согласованная стоимость автомобиля'}: <strong><u className="font-bold">{vehicleValueText}</u></strong>. {isTJ ? 'Ин маблағ ҳамчун қисми пешпардохти шартнома ба ҳисоб гирифта мешавад ва воридоти нақдӣ ба хазина нест.' : 'Эта сумма засчитывается как часть первоначального взноса и не является наличным поступлением в кассу.'}</p>
+                <table className="vehicle-act-specs" aria-label={isTJ ? 'Маълумоти воситаи нақлиёт' : 'Данные автомобиля'}><tbody>
+                  <tr><th scope="row">{isTJ ? 'Тамға ва модел' : 'Марка и модель'}</th><td><u className="font-bold">{vehicleText('brand_model')}</u></td></tr>
+                  <tr><th scope="row">{isTJ ? 'Соли истеҳсол' : 'Год выпуска'}</th><td><u className="font-bold">{vehicleText('production_year')}</u></td></tr>
+                  <tr><th scope="row">{isTJ ? 'Ранги мошин' : 'Цвет'}</th><td><u className="font-bold">{vehicleText('color')}</u></td></tr>
+                  <tr><th scope="row">{isTJ ? 'Рақами давлатӣ' : 'Госномер'}</th><td><u className="font-bold">{vehicleText('registration_number')}</u></td></tr>
+                  <tr><th scope="row">{'VIN'}</th><td><u className="font-bold">{vehicleText('vin')}</u></td></tr>
+                  <tr><th scope="row">{isTJ ? 'Шаҳодатномаи бақайдгирӣ' : 'Свидетельство о регистрации'}</th><td><u className="font-bold">{vehicleText('registration_certificate')}</u></td></tr>
+                  <tr><th scope="row">{isTJ ? 'Масофаи тайшуда' : 'Пробег'}</th><td><u className="font-bold">{vehicleText('mileage_km')}</u> км</td></tr>
+                </tbody></table>
+                <p className="vehicle-act-value"><strong>2.</strong> {isTJ ? 'Арзиши мувофиқашудаи мошин' : 'Согласованная стоимость автомобиля'}: <strong><u className="font-bold">{vehicleValueText}</u></strong>. {isTJ ? 'Ин маблағ ҳамчун қисми пешпардохти шартнома ба ҳисоб гирифта мешавад ва воридоти нақдӣ ба хазина нест.' : 'Эта сумма засчитывается как часть первоначального взноса и не является наличным поступлением в кассу.'}</p>
                 <p><strong>3.</strong> {isTJ ? 'Ҳолати техникӣ ва нуқсонҳо' : 'Техническое состояние и недостатки'}: <u className="font-bold">{vehicleText('condition')}</u></p>
                 <p><strong>4.</strong> {isTJ ? 'Калидҳо, ҳуҷҷатҳо ва лавозимоти супоридашуда' : 'Переданные ключи, документы и принадлежности'}: <u className="font-bold">{vehicleText('accessories')}</u></p>
                 <p><strong>5.</strong> {isTJ ? 'Аз лаҳзаи супоридани воқеии мошин ва имзои санад ҳуқуқи ихтиёрдорӣ тибқи банди 6.5-и шартнома ба Қабулкунанда мегузарад. Тарафҳо расмиёти бақайдгириро мувофиқи қонун анҷом медиҳанд.' : 'С момента фактической передачи и подписания акта право распоряжения автомобилем переходит к Принимающей стороне согласно пункту 6.5 договора. Стороны оформляют необходимые регистрационные действия в соответствии с законом.'}</p>
                 <p><strong>6.</strong> {isTJ ? 'Супоранда ҳуқуқи худро ба мошин ва набудани гарав, ҳабс ва баҳсро тасдиқ мекунад, ба истиснои' : 'Передающая сторона подтверждает своё право на автомобиль и отсутствие залога, ареста и споров, кроме'}: <u className="font-bold">{vehicleText('encumbrances')}</u></p>
                 <p><strong>7.</strong> {isTJ ? 'Санад дар ду нусхаи баробарэътибор таҳия шудааст.' : 'Акт составлен в двух экземплярах равной юридической силы.'}</p>
-                <p className="pt-8">{isTJ ? 'СУПОРАНДА' : 'ПЕРЕДАЛ'}: __________________ /__________________/</p>
-                <p className="pt-6">{isTJ ? 'ҚАБУЛКУНАНДА' : 'ПРИНЯЛ'}: __________________ /Абдуллоев А. Р./</p>
+                <div className="vehicle-act-signatures">
+                  <div><p className="vehicle-act-signature-title">{isTJ ? 'СУПОРАНДА' : 'ПЕРЕДАЛ'}</p><p className="vehicle-act-signature-line">__________________</p><p>{isTJ ? 'Имзо / Ному насаб' : 'Подпись / ФИО'}</p><p>________________________</p></div>
+                  <div><p className="vehicle-act-signature-title">{isTJ ? 'ҚАБУЛКУНАНДА' : 'ПРИНЯЛ'}</p><p className="vehicle-act-signature-line">__________________</p><p>Абдуллоев А. Р.</p></div>
+                </div>
               </div>
             </div>
           )}
