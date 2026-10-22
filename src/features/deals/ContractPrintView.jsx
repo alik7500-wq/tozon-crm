@@ -40,7 +40,7 @@ export const ContractPrintView = ({ deal: initialDeal, onClose, initialLang = de
     setAppendixReady(false);
     setActiveTab('CONTRACT');
     const targetId = initialDeal?.id || initialDeal?.deal_id;
-    if (targetId && (!initialDeal?.schedules || initialDeal.schedules.length === 0 || !initialDeal?.passport_number || (initialDeal?.payment_type === 'PARTIAL_BARTER' && initialDeal?.barter_amount_minor === undefined))) {
+    if (targetId && (!initialDeal?.schedules || initialDeal.schedules.length === 0 || !initialDeal?.passport_number || (initialDeal?.payment_type === 'PARTIAL_BARTER' && (initialDeal?.barter_amount_minor === undefined || initialDeal?.vehicle_details === undefined)))) {
       import('../../api/client').then(({ api }) => {
         api.get(`/deals/${targetId}`)
           .then(res => {
@@ -216,6 +216,9 @@ export const ContractPrintView = ({ deal: initialDeal, onClose, initialLang = de
   };
 
   const isPartialBarter = deal.payment_type === 'PARTIAL_BARTER';
+  const vehicle = deal.vehicle_details && typeof deal.vehicle_details === 'object' && !Array.isArray(deal.vehicle_details) ? deal.vehicle_details : {};
+  const handoverDateText = typeof vehicle.handover_date === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(vehicle.handover_date) ? vehicle.handover_date.split('-').reverse().join('.') : '«____» __________ 20___';
+  const vehicleText = key => typeof vehicle[key] === 'string' && vehicle[key].trim() ? vehicle[key] : '________________________';
   const currency = deal.currency || deal.project_currency || 'USD';
   // barter_amount_minor is stored in the contract currency, in hundredths.
   // Print that saved amount directly; do not invent a somoni conversion.
@@ -456,20 +459,19 @@ export const ContractPrintView = ({ deal: initialDeal, onClose, initialLang = de
               <div contentEditable suppressContentEditableWarning spellCheck={false} className="outline-none focus:ring-1 focus:ring-blue-200 rounded p-1 whitespace-pre-wrap">
                 <h1 className="text-center text-lg font-bold uppercase">{isTJ ? 'САНАДИ ҚАБУЛУ СУПОРИДАНИ ВОСИТАИ НАҚЛИЁТ' : 'АКТ ПРИЁМА-ПЕРЕДАЧИ АВТОМОБИЛЯ'}</h1>
                 <p className="text-center">{isTJ ? 'Замима ба шартномаи' : 'Приложение к договору'} № {displayContractNumber(deal.contract_number)} {isTJ ? 'аз' : 'от'} {dealDate}</p>
-                <p>{isTJ ? 'ш. Хуҷанд' : 'г. Худжанд'} — «____» __________ 20___</p>
+                <p>{isTJ ? 'ш. Хуҷанд' : 'г. Худжанд'} — {handoverDateText}</p>
                 <p>{isTJ ? 'ҶДММ «Тозон», дар симои Роҳбари иншооти «TOZON PLAZA» дар шаҳри Хуҷанд Абдуллоев Акмалхон Раҳматуллоевич, ки дар асоси Ваколатномаи № 2 амал менамояд (минбаъд «Қабулкунанда»), ва шаҳрванд' : 'ООО «Тозон», в лице Руководителя объекта «TOZON PLAZA» в городе Худжанде Абдуллоева Акмалхона Рахматуллоевича, действующего на основании доверенности № 2 (далее «Принимающая сторона»), и гражданин'} {deal.lead_name || deal.buyer_name || '________________________'} {isTJ ? '(минбаъд «Супоранда») санади мазкурро тартиб доданд.' : '(далее «Передающая сторона») составили настоящий акт.'}</p>
                 <p><strong>1.</strong> {isTJ ? 'Супоранда воситаи нақлиётро ҳамчун қисми пешпардохт супорид ва Қабулкунанда онро қабул намуд:' : 'Передающая сторона передала автомобиль в качестве части первоначального взноса, а Принимающая сторона приняла его:'}</p>
-                <p>{isTJ ? 'Тамға ва модел' : 'Марка и модель'}: _________________________________</p>
-                <p>{isTJ ? 'Соли истеҳсол' : 'Год выпуска'}: __________  {isTJ ? 'Ранги мошин' : 'Цвет'}: __________</p>
-                <p>{isTJ ? 'Рақами давлатӣ' : 'Госномер'}: ______________  VIN: ___________________________</p>
-                <p>{isTJ ? 'Рақами муҳаррик' : 'Номер двигателя'}: __________________________</p>
-                <p>{isTJ ? 'Шаҳодатномаи бақайдгирӣ' : 'Свидетельство о регистрации'}: _____________________</p>
-                <p>{isTJ ? 'Масофаи тайшуда' : 'Пробег'}: _______________ км</p>
+                <p>{isTJ ? 'Тамға ва модел' : 'Марка и модель'}: {vehicleText('brand_model')}</p>
+                <p>{isTJ ? 'Соли истеҳсол' : 'Год выпуска'}: {vehicleText('production_year')}  {isTJ ? 'Ранги мошин' : 'Цвет'}: {vehicleText('color')}</p>
+                <p>{isTJ ? 'Рақами давлатӣ' : 'Госномер'}: {vehicleText('registration_number')}  VIN: {vehicleText('vin')}</p>
+                <p>{isTJ ? 'Шаҳодатномаи бақайдгирӣ' : 'Свидетельство о регистрации'}: {vehicleText('registration_certificate')}</p>
+                <p>{isTJ ? 'Масофаи тайшуда' : 'Пробег'}: {vehicleText('mileage_km')} км</p>
                 <p><strong>2.</strong> {isTJ ? 'Арзиши мувофиқашудаи мошин' : 'Согласованная стоимость автомобиля'}: <strong>{vehicleValueText}</strong>. {isTJ ? 'Ин маблағ ҳамчун қисми пешпардохти шартнома ба ҳисоб гирифта мешавад ва воридоти нақдӣ ба хазина нест.' : 'Эта сумма засчитывается как часть первоначального взноса и не является наличным поступлением в кассу.'}</p>
-                <p><strong>3.</strong> {isTJ ? 'Ҳолати техникӣ ва нуқсонҳо' : 'Техническое состояние и недостатки'}: __________________________________________</p>
-                <p><strong>4.</strong> {isTJ ? 'Калидҳо, ҳуҷҷатҳо ва лавозимоти супоридашуда' : 'Переданные ключи, документы и принадлежности'}: __________________________________________</p>
+                <p><strong>3.</strong> {isTJ ? 'Ҳолати техникӣ ва нуқсонҳо' : 'Техническое состояние и недостатки'}: {vehicleText('condition')}</p>
+                <p><strong>4.</strong> {isTJ ? 'Калидҳо, ҳуҷҷатҳо ва лавозимоти супоридашуда' : 'Переданные ключи, документы и принадлежности'}: {vehicleText('accessories')}</p>
                 <p><strong>5.</strong> {isTJ ? 'Аз лаҳзаи супоридани воқеии мошин ва имзои санад ҳуқуқи ихтиёрдорӣ тибқи банди 6.5-и шартнома ба Қабулкунанда мегузарад. Тарафҳо расмиёти бақайдгириро мувофиқи қонун анҷом медиҳанд.' : 'С момента фактической передачи и подписания акта право распоряжения автомобилем переходит к Принимающей стороне согласно пункту 6.5 договора. Стороны оформляют необходимые регистрационные действия в соответствии с законом.'}</p>
-                <p><strong>6.</strong> {isTJ ? 'Супоранда ҳуқуқи худро ба мошин ва набудани гарав, ҳабс ва баҳсро тасдиқ мекунад, ба истиснои' : 'Передающая сторона подтверждает своё право на автомобиль и отсутствие залога, ареста и споров, кроме'}: __________________________</p>
+                <p><strong>6.</strong> {isTJ ? 'Супоранда ҳуқуқи худро ба мошин ва набудани гарав, ҳабс ва баҳсро тасдиқ мекунад, ба истиснои' : 'Передающая сторона подтверждает своё право на автомобиль и отсутствие залога, ареста и споров, кроме'}: {vehicleText('encumbrances')}</p>
                 <p><strong>7.</strong> {isTJ ? 'Санад дар ду нусхаи баробарэътибор таҳия шудааст.' : 'Акт составлен в двух экземплярах равной юридической силы.'}</p>
                 <p className="pt-8">{isTJ ? 'СУПОРАНДА' : 'ПЕРЕДАЛ'}: __________________ /__________________/</p>
                 <p className="pt-6">{isTJ ? 'ҚАБУЛКУНАНДА' : 'ПРИНЯЛ'}: __________________ /Абдуллоев А. Р./</p>
