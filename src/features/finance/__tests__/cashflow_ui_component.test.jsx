@@ -124,7 +124,7 @@ describe('CashflowPage RTL Real Component Test Suite', () => {
     await waitFor(() => expect(financeApi.getCashflow).toHaveBeenCalled());
 
     // Click Investment Cash Desk badge
-    const badge = screen.getByTitle(/Фильтр по кассе: Инвестиционная касса TOZON PLAZA/i);
+    const badge = await screen.findByTitle(/Фильтр по кассе: Инвестиционная касса TOZON PLAZA/i);
     fireEvent.click(badge);
 
     await waitFor(() => {
