@@ -40,11 +40,11 @@ export const ContractPrintView = ({ deal: initialDeal, onClose, initialLang = de
     setAppendixReady(false);
     setActiveTab('CONTRACT');
     const targetId = initialDeal?.id || initialDeal?.deal_id;
-    if (targetId && (!initialDeal?.schedules || initialDeal.schedules.length === 0 || !initialDeal?.passport_number)) {
+    if (targetId && (!initialDeal?.schedules || initialDeal.schedules.length === 0 || !initialDeal?.passport_number || (initialDeal?.payment_type === 'PARTIAL_BARTER' && initialDeal?.barter_amount_minor === undefined))) {
       import('../../api/client').then(({ api }) => {
         api.get(`/deals/${targetId}`)
           .then(res => {
-            const d = res?.data?.deal || res?.data || res;
+            const d = res?.data?.deal || res?.deal || res?.data || res;
             if (alive && d && d.id) setAsyncDeal(d);
           })
           .catch(err => console.warn('Could not fetch canonical deal for print:', err));
@@ -215,14 +215,19 @@ export const ContractPrintView = ({ deal: initialDeal, onClose, initialLang = de
     return parts.filter(Boolean).join(' ');
   };
 
-  // The vehicle clause applies exclusively to partial-barter contracts.
-  // Contract 0054 records the agreed vehicle value in somoni; do not
-  // misrepresent a USD barter snapshot as a somoni amount for other deals.
   const isPartialBarter = deal.payment_type === 'PARTIAL_BARTER';
-  const isContract0054 = String(deal.contract_number || '').replace(/^0+/, '') === '54';
-  const vehicleValueTjs = isContract0054 ? 120000 : null;
+  const currency = deal.currency || deal.project_currency || 'USD';
+  // barter_amount_minor is stored in the contract currency, in hundredths.
+  // Print that saved amount directly; do not invent a somoni conversion.
+  const barterMinor = Number(deal.barter_amount_minor);
+  const hasBarterAmount = Number.isSafeInteger(barterMinor) && barterMinor > 0;
+  const barterCurrencyLabel = currency === 'USD'
+    ? (isTJ ? 'доллари ИМА (USD)' : 'долларов США (USD)')
+    : currency === 'TJS' ? (isTJ ? 'сомонӣ (TJS)' : 'сомони (TJS)') : currency;
+  const vehicleValueText = hasBarterAmount
+    ? `${formatMoney(barterMinor)} ${barterCurrencyLabel}`
+    : `________________ ${barterCurrencyLabel}`;
 
-  const currency = deal.currency || 'USD';
   const currencyShort = currency === 'USD' ? 'доллари ИМА' : 'сомонӣ';
 
   const dateObj = new Date(deal.deal_date || deal.created_at || Date.now());
@@ -460,7 +465,7 @@ export const ContractPrintView = ({ deal: initialDeal, onClose, initialLang = de
                 <p>{isTJ ? 'Рақами муҳаррик' : 'Номер двигателя'}: __________________________</p>
                 <p>{isTJ ? 'Шаҳодатномаи бақайдгирӣ' : 'Свидетельство о регистрации'}: _____________________</p>
                 <p>{isTJ ? 'Масофаи тайшуда' : 'Пробег'}: _______________ км</p>
-                <p><strong>2.</strong> {isTJ ? 'Арзиши мувофиқашудаи мошин' : 'Согласованная стоимость автомобиля'}: <strong>{vehicleValueTjs === 120000 ? (isTJ ? '120 000 (як саду бист ҳазор) сомонӣ' : '120 000 (сто двадцать тысяч) сомони') : '____________ сомонӣ / сомони'}</strong>. {isTJ ? 'Ин маблағ ҳамчун қисми пешпардохти шартнома ба ҳисоб гирифта мешавад ва воридоти нақдӣ ба хазина нест.' : 'Эта сумма засчитывается как часть первоначального взноса и не является наличным поступлением в кассу.'}</p>
+                <p><strong>2.</strong> {isTJ ? 'Арзиши мувофиқашудаи мошин' : 'Согласованная стоимость автомобиля'}: <strong>{vehicleValueText}</strong>. {isTJ ? 'Ин маблағ ҳамчун қисми пешпардохти шартнома ба ҳисоб гирифта мешавад ва воридоти нақдӣ ба хазина нест.' : 'Эта сумма засчитывается как часть первоначального взноса и не является наличным поступлением в кассу.'}</p>
                 <p><strong>3.</strong> {isTJ ? 'Ҳолати техникӣ ва нуқсонҳо' : 'Техническое состояние и недостатки'}: __________________________________________</p>
                 <p><strong>4.</strong> {isTJ ? 'Калидҳо, ҳуҷҷатҳо ва лавозимоти супоридашуда' : 'Переданные ключи, документы и принадлежности'}: __________________________________________</p>
                 <p><strong>5.</strong> {isTJ ? 'Аз лаҳзаи супоридани воқеии мошин ва имзои санад ҳуқуқи ихтиёрдорӣ тибқи банди 6.5-и шартнома ба Қабулкунанда мегузарад. Тарафҳо расмиёти бақайдгириро мувофиқи қонун анҷом медиҳанд.' : 'С момента фактической передачи и подписания акта право распоряжения автомобилем переходит к Принимающей стороне согласно пункту 6.5 договора. Стороны оформляют необходимые регистрационные действия в соответствии с законом.'}</p>
@@ -733,9 +738,9 @@ export const ContractPrintView = ({ deal: initialDeal, onClose, initialLang = de
               {isPartialBarter && (
                 <p>
                   {isTJ ? (
-                    <><strong>6.5.</strong> Ба тарафи «Ҳиссагузор» ҳуқуқ дода мешавад, ки ҳамчун қисми пешпардохт воситаи нақлиёт (мошин)-и худро ба Тарафи Фурӯшанда супорад. Арзиши мошин бо мувофиқаи тарафҳо ба маблағи <strong>{vehicleValueTjs === 120000 ? '120 000 (як саду бист ҳазор) сомонӣ' : '________________ сомонӣ'}</strong> муайян карда мешавад ва ҳамчун қисми пардохти шартнома ҳисоб мегардад. Аз лаҳзаи қабулу супоридани мошин ва имзои санади қабул, ҳуқуқи ихтиёрдорӣ ба мошин ба Тарафи «Ширкати сохтмонӣ» мегузарад ва «Ширкати сохтмонӣ» ҳуқуқ дорад мошинро фурӯшад ё ба таври дигар ихтиёрдорӣ намояд.</>
+                    <><strong>6.5.</strong> Ба тарафи «Ҳиссагузор» ҳуқуқ дода мешавад, ки ҳамчун қисми пешпардохт воситаи нақлиёт (мошин)-и худро ба Тарафи Фурӯшанда супорад. Арзиши мошин бо мувофиқаи тарафҳо ба маблағи <strong>{vehicleValueText}</strong> муайян карда мешавад ва ҳамчун қисми пардохти шартнома ҳисоб мегардад. Аз лаҳзаи қабулу супоридани мошин ва имзои санади қабул, ҳуқуқи ихтиёрдорӣ ба мошин ба Тарафи «Ширкати сохтмонӣ» мегузарад ва «Ширкати сохтмонӣ» ҳуқуқ дорад мошинро фурӯшад ё ба таври дигар ихтиёрдорӣ намояд.</>
                   ) : (
-                    <><strong>6.5.</strong> Дольщик вправе передать продавцу принадлежащий ему автомобиль в качестве части первоначального взноса. Согласованная сторонами стоимость автомобиля составляет <strong>{vehicleValueTjs === 120000 ? '120 000 (сто двадцать тысяч) сомони' : '________________ сомони'}</strong> и засчитывается в оплату договора. С момента передачи автомобиля и подписания акта приёма-передачи право распоряжения автомобилем переходит к Строительной компании, которая вправе продать его или распорядиться им иным образом.</>
+                    <><strong>6.5.</strong> Дольщик вправе передать продавцу принадлежащий ему автомобиль в качестве части первоначального взноса. Согласованная сторонами стоимость автомобиля составляет <strong>{vehicleValueText}</strong> и засчитывается в оплату договора. С момента передачи автомобиля и подписания акта приёма-передачи право распоряжения автомобилем переходит к Строительной компании, которая вправе продать его или распорядиться им иным образом.</>
                   )}
                 </p>
               )}
