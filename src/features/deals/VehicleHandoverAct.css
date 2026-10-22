@@ -1,0 +1,48 @@
+.vehicle-handover-act {
+  padding: 32px 48px 40px;
+  background: white;
+  color: #0f172a;
+  font-family: Georgia, 'Times New Roman', serif;
+  font-size: 14px;
+  line-height: 1.6;
+}
+.vehicle-act-hint {
+  margin-bottom: 28px;
+  padding: 12px 16px;
+  border-radius: 8px;
+  background: #fffbeb;
+  color: #92400e;
+  font: 12px/1.5 Arial, sans-serif;
+}
+.vehicle-act-body > p { margin: 12px 0; text-align: justify; }
+.vehicle-act-body u { font-weight: 700; text-underline-offset: 3px; overflow-wrap: anywhere; }
+.vehicle-act-heading { text-align: center; margin-bottom: 22px; }
+.vehicle-act-heading h1 { margin: 0 0 8px; font-size: 19px; line-height: 1.35; font-weight: 700; }
+.vehicle-act-heading p { margin: 0; font-size: 13px; }
+.vehicle-act-date { display: flex; justify-content: space-between; gap: 16px; margin-bottom: 18px; }
+.vehicle-act-specs { width: 100%; border-collapse: collapse; margin: 16px 0; table-layout: fixed; }
+.vehicle-act-specs th, .vehicle-act-specs td { border: 1px solid #cbd5e1; padding: 7px 12px; text-align: left; vertical-align: top; overflow-wrap: anywhere; }
+.vehicle-act-specs th { width: 40%; background: #f8fafc; font-weight: 400; }
+.vehicle-act-body > .vehicle-act-value { padding: 12px 16px; border: 1px solid #94a3b8; background: #f8fafc; margin: 20px 0; }
+.vehicle-act-signatures { display: grid; grid-template-columns: 1fr 1fr; gap: 32px; margin-top: 32px; break-inside: avoid; }
+.vehicle-act-signatures p { margin: 4px 0; }
+.vehicle-act-signature-title { font-weight: 700; letter-spacing: .04em; }
+.vehicle-act-signatures .vehicle-act-signature-line { margin-top: 20px; }
+@media screen and (max-width: 600px) {
+  .vehicle-handover-act { padding: 24px 18px; font-size: 13px; }
+  .vehicle-act-heading h1 { font-size: 17px; }
+  .vehicle-act-specs th, .vehicle-act-specs td { padding: 6px 8px; }
+  .vehicle-act-signatures { grid-template-columns: 1fr; gap: 24px; }
+}
+@media print {
+  .vehicle-handover-act { font-size: 12px; line-height: 1.45; }
+  .vehicle-act-heading { margin-bottom: 16px; break-inside: avoid; }
+  .vehicle-act-heading h1 { font-size: 17px; }
+  .vehicle-act-heading p { font-size: 12px; }
+  .vehicle-act-date { margin-bottom: 12px; }
+  .vehicle-act-body > p { margin: 9px 0; orphans: 3; widows: 3; }
+  .vehicle-act-specs { margin: 12px 0; }
+  .vehicle-act-specs th, .vehicle-act-specs td { padding: 4px 10px; }
+  .vehicle-act-body > .vehicle-act-value { margin: 14px 0; padding: 10px 12px; break-inside: avoid; }
+  .vehicle-act-signatures { margin-top: 24px; }
+}
