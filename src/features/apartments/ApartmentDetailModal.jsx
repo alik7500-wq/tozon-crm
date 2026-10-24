@@ -1600,6 +1600,7 @@ export const ApartmentDetailModal = ({
         <React.Suspense fallback={null}>
           <LayoutEditorModal
             layoutId={editingLayoutId}
+            projectId={unit?.floors?.sections?.buildings?.projects?.id || unit?.project_id || unit?.layout_types?.project_id}
             isOpen={Boolean(editingLayoutId)}
             onClose={() => setEditingLayoutId(null)}
             onUpdated={() => fetchUnit()}
