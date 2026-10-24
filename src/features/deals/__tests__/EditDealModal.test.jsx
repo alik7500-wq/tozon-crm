@@ -14,7 +14,7 @@ afterEach(cleanup);
 const open=()=>{const updated=vi.fn();const close=vi.fn();render(<EditDealModal isOpen deal={deal} onClose={close} onDealUpdated={updated}/>);return {updated,close};};
 describe('contract amendment form',()=>{
  it('allows paid unit swap, shows new debt and submits immutable identity',async()=>{
-   const {updated}=open();fireEvent.click(screen.getByRole('checkbox',{name:'Изменить квартиру и стоимость'}));
+   const {updated}=open();fireEvent.click(screen.getByRole('checkbox',{name:'Изменить квартиру, стоимость и первоначальный взнос'}));
    await screen.findByRole('option',{name:/A2/});
    fireEvent.change(screen.getByLabelText('Квартира'),{target:{value:'2'}});
    fireEvent.change(screen.getByLabelText('Причина изменения'),{target:{value:'Client requested replacement'}});
@@ -30,13 +30,13 @@ describe('contract amendment form',()=>{
  });
  it('retains entered data after unavailable unit conflict',async()=>{
    api.post.mockRejectedValue(new Error('Квартира занята'));const {close}=open();
-   fireEvent.click(screen.getByRole('checkbox',{name:'Изменить квартиру и стоимость'}));await screen.findByRole('option',{name:/A2/});
+   fireEvent.click(screen.getByRole('checkbox',{name:'Изменить квартиру, стоимость и первоначальный взнос'}));await screen.findByRole('option',{name:/A2/});
    fireEvent.change(screen.getByLabelText('Причина изменения'),{target:{value:'Agreed'}});
    fireEvent.click(screen.getByRole('button',{name:'Сохранить изменения'}));
    await screen.findByText('Квартира занята');expect(close).not.toHaveBeenCalled();expect(screen.getByDisplayValue('Agreed')).toBeTruthy();
  });
  it('calculates cents without whole-dollar rounding',async()=>{
-   open();fireEvent.click(screen.getByRole('checkbox',{name:'Изменить квартиру и стоимость'}));
+   open();fireEvent.click(screen.getByRole('checkbox',{name:'Изменить квартиру, стоимость и первоначальный взнос'}));
    await screen.findByRole('option',{name:/A2/});
    fireEvent.change(screen.getByDisplayValue('480'),{target:{value:'480.01'}});
    expect(screen.getByDisplayValue('44256.92')).toBeTruthy();
@@ -49,3 +49,39 @@ it('allows changing paid installment term and sends concurrency stamp only with 
 });
 
 it('submits first payment date and interval for a paid contract without changing amounts',async()=>{open();fireEvent.change(screen.getByLabelText('Дата первого платежа'),{target:{value:'2026-11-15'}});fireEvent.change(screen.getByLabelText('Интервал (месяцев)'),{target:{value:'3'}});fireEvent.click(screen.getByRole('button',{name:'Сохранить изменения'}));await waitFor(()=>expect(api.patch).toHaveBeenCalled());const p=api.patch.mock.calls[0][1];expect(p.first_payment_date).toBe('2026-11-15');expect(p.installment_interval_months).toBe(3);expect(p).not.toHaveProperty('final_price_minor');});
+
+it('changes the down payment on a paid contract only through an audited amendment',async()=>{
+ open();expect(screen.getByLabelText('Первоначальный взнос').disabled).toBe(true);
+ fireEvent.click(screen.getByRole('checkbox',{name:'Изменить квартиру, стоимость и первоначальный взнос'}));
+ await screen.findByRole('option',{name:/A2/});
+ expect(screen.getByLabelText('Первоначальный взнос').disabled).toBe(false);
+ fireEvent.change(screen.getByLabelText('Первоначальный взнос'),{target:{value:'16641'}});
+ fireEvent.change(screen.getByLabelText('Причина изменения'),{target:{value:'Agreed additional deposit'}});
+ fireEvent.click(screen.getByRole('button',{name:'Сохранить изменения'}));
+ await waitFor(()=>expect(api.post).toHaveBeenCalledWith('/deals/1/amend',expect.objectContaining({down_payment_minor:1664100,expected_updated_at:deal.updated_at})));
+ expect(api.patch).not.toHaveBeenCalled();
+});
+it('includes the car once in the first deposit and sends the vehicle details with the agreement',async()=>{
+ open();fireEvent.click(screen.getByRole('checkbox',{name:'Изменить квартиру, стоимость и первоначальный взнос'}));
+ await screen.findByRole('option',{name:/A2/});
+ fireEvent.click(screen.getByRole('checkbox',{name:'Включить автомобиль в первоначальный взнос'}));
+ fireEvent.change(screen.getByLabelText('Стоимость автомобиля'),{target:{value:'10000'}});
+ expect(screen.getByLabelText('Первоначальный взнос').value).toBe('16641');
+ fireEvent.change(screen.getByLabelText('Стоимость автомобиля'),{target:{value:'12000'}});
+ expect(screen.getByLabelText('Первоначальный взнос').value).toBe('18641');
+ fireEvent.change(screen.getByLabelText('Описание автомобиля'),{target:{value:'Test Motors'}});
+ fireEvent.change(screen.getByLabelText('VIN'),{target:{value:'TESTVIN123'}});
+ fireEvent.change(screen.getByLabelText('Причина изменения'),{target:{value:'Additional vehicle deposit'}});
+ fireEvent.click(screen.getByRole('button',{name:'Сохранить изменения'}));
+ await waitFor(()=>expect(api.post).toHaveBeenCalledWith('/deals/1/amend',expect.objectContaining({down_payment_minor:1864100,barter_amount_minor:1200000,payment_type:'PARTIAL_BARTER',barter_description:'Test Motors',vehicle_details:{vin:'TESTVIN123'}})));
+ expect(api.patch).not.toHaveBeenCalled();
+});
+it('rejects a deposit greater than the agreed price without sending an amendment',async()=>{
+ open();fireEvent.click(screen.getByRole('checkbox',{name:'Изменить квартиру, стоимость и первоначальный взнос'}));
+ await screen.findByRole('option',{name:/A2/});
+ fireEvent.change(screen.getByLabelText('Первоначальный взнос'),{target:{value:'50000'}});
+ fireEvent.change(screen.getByLabelText('Причина изменения'),{target:{value:'Test'}});
+ fireEvent.submit(screen.getByRole('button',{name:'Сохранить изменения'}).closest('form'));
+ await screen.findByText('Первоначальный взнос должен быть от 0 до суммы договора');
+ expect(api.post).not.toHaveBeenCalled();
+});
