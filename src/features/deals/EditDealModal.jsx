@@ -55,6 +55,7 @@ export const EditDealModal = ({
   const scheduleChanged = installmentMonths !== String(deal?.installment_months || 0) || firstPaymentDate !== originalFirstDate || paymentInterval !== String(deal?.installment_interval_months || 1);
   const [reservationExpiresAt, setReservationExpiresAt] = useState('');
   const [barterDescription, setBarterDescription] = useState('');
+  const [barterAmount, setBarterAmount] = useState('0');
   const [vehicleDetails, setVehicleDetails] = useState({});
   const [vehicleBaseline, setVehicleBaseline] = useState({});
   const [vehicleReady, setVehicleReady] = useState(false);
@@ -74,7 +75,9 @@ export const EditDealModal = ({
       setVehicleBaseline(details);
       setVehicleReady(true);
     };
-    if (deal.vehicle_details !== undefined) {
+    if (deal.payment_type !== 'PARTIAL_BARTER') {
+      populate({});
+    } else if (deal.vehicle_details !== undefined) {
       populate(deal.vehicle_details);
     } else {
       api.get(`/deals/${deal.id}`).then(res => {
@@ -103,7 +106,7 @@ export const EditDealModal = ({
   const remainingDebtMinor = Math.max(0, previewPriceMinor - totalPaidMinor);
   const overpaymentMinor = Math.max(0, totalPaidMinor - previewPriceMinor);
   const selectedUnit = units.find(u => String(u.id) === unitId);
-  const canAmend = ['SIGNED', 'RESERVED'].includes(deal?.status) && ['FULL', 'INSTALLMENT'].includes(deal?.payment_type);
+  const canAmend = ['SIGNED', 'RESERVED'].includes(deal?.status) && ['FULL', 'INSTALLMENT', 'PARTIAL_BARTER'].includes(deal?.payment_type);
 
   const areaM2 = amending && selectedUnit ? selectedUnit.area_m2_x100 / 100 : deal
     ? (deal.area_m2_x100 ? deal.area_m2_x100 / 100 : (deal.units?.area_m2_x100 ? deal.units.area_m2_x100 / 100 : 0))
@@ -136,6 +139,7 @@ export const EditDealModal = ({
       setPaymentInterval(String(deal.installment_interval_months || 1));
       setReservationExpiresAt(deal.reservation_expires_at ? deal.reservation_expires_at.split('T')[0] : '');
       setBarterDescription(deal.barter_description || '');
+      setBarterAmount(String((deal.barter_amount_minor || 0) / 100));
 
       const initialPricePerM2 = deal.deal_price_per_m2_minor
         ? deal.deal_price_per_m2_minor / 100
@@ -195,7 +199,7 @@ export const EditDealModal = ({
 
   const isDirty = Boolean(
     deal && (
-      vehicleChanged || scheduleChanged || amending || amendmentReason || unitId !== String(deal.unit_id) ||
+      barterAmount !== String((deal.barter_amount_minor || 0) / 100) || vehicleChanged || scheduleChanged || amending || amendmentReason || unitId !== String(deal.unit_id) ||
       contractNumber !== (deal.contract_number || '') ||
       dealDate !== (deal.deal_date || deal.created_at?.split('T')[0] || '') ||
       leadName !== (deal.lead_name || '') ||
@@ -253,7 +257,18 @@ export const EditDealModal = ({
       if (amending) {
         if (!amendmentReason.trim()) throw new Error('Укажите причину изменения договора');
         if (!Number.isFinite(fPrice) || fPrice <= 0 || !Number.isFinite(pM2) || pM2 <= 0) throw new Error('Укажите положительную стоимость');
-        const res = await api.post(`/deals/${deal.id}/amend`, {
+        if (!Number.isFinite(Number(downPayment)) || dPmt < 0 || dPmt > fPrice) throw new Error('Первоначальный взнос должен быть от 0 до суммы договора');
+        const barter = Number(barterAmount);
+        if (paymentType === 'PARTIAL_BARTER' && (!Number.isFinite(barter) || barter <= 0 || barter > dPmt || !barterDescription.trim())) throw new Error('Укажите описание и стоимость автомобиля, входящую в первоначальный взнос');
+        const changedTerms = {};
+        if (Math.round(dPmt * 100) !== (deal.down_payment_minor || 0)) changedTerms.down_payment_minor = Math.round(dPmt * 100);
+        if (paymentType === 'PARTIAL_BARTER') {
+          if (paymentType !== deal.payment_type) changedTerms.payment_type = paymentType;
+          if (Math.round(barter * 100) !== (deal.barter_amount_minor || 0)) changedTerms.barter_amount_minor = Math.round(barter * 100);
+          if (barterDescription.trim() !== (deal.barter_description || '')) changedTerms.barter_description = barterDescription.trim();
+          if (vehicleChanged) changedTerms.vehicle_details = vehicleDetails;
+        }
+        const res = await api.post(`/deals/${deal.id}/amend`, { ...changedTerms,
           unit_id: Number(unitId), final_price_minor: Math.round(fPrice * 100),
           deal_price_per_m2_minor: Math.round(pM2 * 100),
           reason: amendmentReason.trim(), expected_updated_at: deal.updated_at
@@ -365,13 +380,15 @@ export const EditDealModal = ({
                 setAmending(e.target.checked); setError(''); setUnitId(String(deal.unit_id));
                 setPricePerM2(String((deal.deal_price_per_m2_minor || (deal.area_m2_x100 > 0 ? Math.round(deal.final_price_minor / (deal.area_m2_x100 / 100)) : 0)) / 100));
                 setFinalPrice(String(deal.final_price_minor / 100));
+                setDownPayment(String((deal.down_payment_minor || 0) / 100));
+                setPaymentType(deal.payment_type); setBarterAmount(String((deal.barter_amount_minor || 0) / 100)); setBarterDescription(deal.barter_description || '');
               }} />
-              {isNonResidentialUnit(deal) ? 'Изменить объект и стоимость' : 'Изменить квартиру и стоимость'}
+              {isNonResidentialUnit(deal) ? 'Изменить объект, стоимость и первоначальный взнос' : 'Изменить квартиру, стоимость и первоначальный взнос'}
             </label>
           )}
           {amending && (
             <div className="rounded-xl border border-blue-200 bg-blue-50 p-3 space-y-3">
-              <p>Договор №{deal.contract_number} от {deal.deal_date} сохраняется. Все платежи и ПКО остаются на месте. Даты графика сохраняются, плановые суммы пересчитываются пропорционально новой стоимости.</p>
+              <p>Договор №{deal.contract_number} от {deal.deal_date} сохраняется. Все платежи и ПКО остаются на месте. Даты графика сохраняются, плановые суммы пересчитываются исходя из суммы договора за вычетом общего первоначального взноса.</p>
               <label className="block font-bold">{getUnitTitle(deal)}
                 <select aria-label={getUnitTitle(deal)} value={unitId} disabled={unitsLoading || isSubmitting} className="block w-full border rounded-lg p-2 bg-white" onChange={e => {
                   setUnitId(e.target.value);
@@ -384,6 +401,23 @@ export const EditDealModal = ({
                 </select>
               </label>
               <p>Стоимость: ${(deal.final_price_minor / 100).toLocaleString('ru-RU', { minimumFractionDigits: 2 })} → ${Number(finalPrice).toLocaleString('ru-RU', { minimumFractionDigits: 2 })}. Площадь: {formatMeasure(deal.area_m2_x100 / 100)} → {formatMeasure(areaM2)} м².</p>
+              <div className="space-y-3 border-t border-blue-200 pt-3">
+                <label className="flex gap-2 items-center font-bold"><input type="checkbox" aria-label="Включить автомобиль в первоначальный взнос" checked={paymentType === 'PARTIAL_BARTER'} disabled={deal.payment_type === 'PARTIAL_BARTER'} onChange={e => {
+                  setPaymentType(e.target.checked ? 'PARTIAL_BARTER' : deal.payment_type);
+                  if (!e.target.checked) { setDownPayment(String(Math.max(0, Math.round((Number(downPayment) - Number(barterAmount)) * 100) / 100))); setBarterAmount('0'); }
+                }} />Включить автомобиль в первоначальный взнос</label>
+                {paymentType === 'PARTIAL_BARTER' && <>
+                  <label className="block font-bold">Стоимость автомобиля ({deal.currency})<input aria-label="Стоимость автомобиля" type="number" min="0.01" step="0.01" required value={barterAmount} onChange={e => {
+                    const next = e.target.value;
+                    setDownPayment(String(Math.max(0, Math.round((Number(downPayment) - Number(barterAmount) + Number(next)) * 100) / 100)));
+                    setBarterAmount(next);
+                  }} className="block w-full border rounded-lg p-2 bg-white" /></label>
+                  <label className="block font-bold">Описание автомобиля<input aria-label="Описание автомобиля" required maxLength={2000} value={barterDescription} onChange={e => setBarterDescription(e.target.value)} className="block w-full border rounded-lg p-2 bg-white" /></label>
+                  <fieldset disabled={!vehicleReady || isSubmitting}>{vehicleError ? <p role="alert">{vehicleError}</p> : !vehicleReady ? <p role="status">Загрузка данных автомобиля...</p> : <VehicleDetailsFields value={vehicleDetails} onChange={setVehicleDetails} />}</fieldset>
+                </>}
+                <p>Общий первоначальный взнос: <strong>{Number(downPayment).toLocaleString('ru-RU', {minimumFractionDigits:2})} {deal.currency}</strong>{paymentType === 'PARTIAL_BARTER' && <> (автомобиль: {Number(barterAmount).toLocaleString('ru-RU')} {deal.currency}; денежная часть: {(Number(downPayment)-Number(barterAmount)).toLocaleString('ru-RU')} {deal.currency})</>}.</p>
+                <p>В график рассрочки: <strong>{Math.max(0,Number(finalPrice)-Number(downPayment)).toLocaleString('ru-RU', {minimumFractionDigits:2})} {deal.currency}</strong>. Стоимость автомобиля уже входит в первый взнос и повторно не вычитается. Изменение условий само по себе не оформляет оплату или ПКО.</p>
+              </div>
               <label className="block font-bold">Причина изменения
                 <textarea aria-label="Причина изменения" required maxLength={2000} value={amendmentReason} onChange={e => setAmendmentReason(e.target.value)} className="block w-full border rounded-lg p-2 bg-white" />
               </label>
@@ -537,7 +571,7 @@ export const EditDealModal = ({
                   />
                 </div>
               )}
-              {paymentType === 'PARTIAL_BARTER' && (
+              {paymentType === 'PARTIAL_BARTER' && !amending && (
                 <fieldset disabled={!vehicleReady || isSubmitting}>
                   {vehicleError ? <p role="alert" className="text-xs text-rose-700">Не удалось загрузить данные автомобиля: {vehicleError}. Откройте договор заново.</p> : !vehicleReady && <p role="status" className="text-xs text-slate-600">Загрузка данных автомобиля...</p>}
                   <VehicleDetailsFields value={vehicleDetails} onChange={setVehicleDetails} />
@@ -621,12 +655,15 @@ export const EditDealModal = ({
 
                 <div>
                   <label className="block text-[10px] font-bold text-slate-600 mb-1">
-                    Перв. взнос (USD)
+                    Перв. взнос ({deal.currency || 'USD'})
                   </label>
                   <input
                     type="number"
                     step="0.01"
-                    disabled={isPaidDeal || amending}
+                    disabled={isPaidDeal && !amending}
+                    aria-label="Первоначальный взнос"
+                    min="0"
+                    max={finalPrice}
                     value={downPayment}
                     onChange={(e) => setDownPayment(e.target.value)}
                     className="w-full rounded-xl border border-slate-200 bg-white px-2 py-1.5 text-xs font-semibold text-slate-800 outline-none focus:border-blue-500 transition disabled:bg-slate-100 disabled:text-slate-600 disabled:cursor-not-allowed"
