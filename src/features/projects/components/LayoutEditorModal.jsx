@@ -456,7 +456,7 @@ export const LayoutEditorModal = ({ layoutId, projectId, isOpen, onClose, onUpda
             </div>
           ) : (
             <>
-              {activeTab === 'tour360' && <LayoutPanoramaPreview layout={layout} projectId={projectId} />}
+              {activeTab === 'tour360' && <LayoutPanoramaPreview layout={layout} projectId={layout.project_id || projectId} />}
 
               {/* TAB 1: BASIC INFO */}
               {activeTab === 'basic' && (

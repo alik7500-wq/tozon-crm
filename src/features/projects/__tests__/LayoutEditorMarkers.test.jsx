@@ -7,7 +7,7 @@ const mocks = vi.hoisted(() => ({get: vi.fn(), patch: vi.fn()}));
 vi.mock('../../../api/client', () => ({api: mocks}));
 vi.mock('../../../context/i18nContext', () => ({useI18n: () => ({t: key => key, getText: (tg, ru) => ru})}));
 vi.mock('../../../components/ImageUpload', () => ({default: () => null}));
-vi.mock('../components/LayoutPanoramaPreview', () => ({LayoutPanoramaPreview: () => null}));
+vi.mock('../components/LayoutPanoramaPreview', () => ({LayoutPanoramaPreview: ({projectId}) => <div data-testid="panorama-project">{projectId}</div>}));
 beforeEach(() => {
   window.PointerEvent = class extends MouseEvent { constructor(type, options) {super(type, options); this.pointerId = options.pointerId ?? 1;} };
   HTMLElement.prototype.setPointerCapture = vi.fn();
@@ -49,4 +49,12 @@ it('clamps a dragged marker to the image bounds', async () => {
   fireEvent.pointerUp(canvas, {pointerId:1});
   expect(screen.getByTestId('editing-room-marker').style.left).toBe('0%');
   expect(screen.getByTestId('editing-room-marker').style.top).toBe('100%');
+});
+
+it.each([undefined,3])('provides the layout project for panorama saving when caller project is %s', async projectId => {
+  mocks.get.mockResolvedValue({data:{layout:{id:5,project_id:3,name:'План',code:'B2'},rooms:[]}});
+  render(<LayoutEditorModal layoutId={5} projectId={projectId} isOpen onClose={() => {}} />);
+  await screen.findByDisplayValue('План');
+  fireEvent.click(screen.getByText('360° Тур'));
+  expect(screen.getByTestId('panorama-project').textContent).toBe('3');
 });
