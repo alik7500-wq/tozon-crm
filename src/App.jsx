@@ -1,3 +1,4 @@
+import { RkoBookPage } from './features/finance/RkoBookPage';
 import { ContractCongratulationsModal } from './components/sms/ContractCongratulationsModal';
 import React from 'react';
 import { ConstructionPage } from './features/construction/ConstructionPage';
@@ -88,6 +89,7 @@ function App() {
                   <Route path="/finance/debtors" element={<DebtorsPage />} />
                   <Route path="/finance/income" element={<IncomePage />} />
                   <Route path="/finance/customer-pko-book" element={<PermissionGuard requiredPermission="finance.payments"><CustomerPkoBookPage /></PermissionGuard>} />
+                  <Route path="/finance/rko-book" element={<PermissionGuard requiredPermission="finance.expenses"><RkoBookPage /></PermissionGuard>} />
                   <Route path="/finance/expenses" element={<ExpensesPage />} />
                   <Route path="/finance/cashflow" element={<CashflowPage />} />
                   <Route path="/reports" element={<ReportsPage />} />

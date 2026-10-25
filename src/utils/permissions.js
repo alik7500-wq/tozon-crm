@@ -78,6 +78,7 @@ const LEGACY_PERMISSION_GROUPS = [
 
 const EXTRA_PERMISSION_GROUPS = [
   { id: 'finance-details', title: 'Финансы — дополнительные функции', permissions: [
+    { key: 'finance.rko_book', label: 'Книга регистрации РКО', desc: 'Регистрация расходных кассовых ордеров' },
     { key: 'finance.customer_pko_book', label: 'Книга ПКО покупателей', desc: 'Книга регистрации поступлений покупателей' },
     { key: 'finance.payment_calendar', label: 'Календарь платежей', desc: 'Календарь ожидаемых поступлений' },
     { key: 'finance.plan_fact', label: 'План-факт по клиентам', desc: 'Плановые и фактические поступления' },
@@ -96,6 +97,7 @@ const EXTRA_PERMISSION_GROUPS = [
 // keep their legacy behavior until explicitly migrated to this profile.
 export const GRANULAR_ACCESS_PROFILE = 'access.granular.v1';
 export const FEATURE_ACCESS = Object.freeze({
+  '/finance/rko-book': 'finance.rko_book',
   '/finance/customer-pko-book': 'finance.customer_pko_book',
   '/finance/calendar': 'finance.payment_calendar',
   '/payments/plan-fact': 'finance.plan_fact',
