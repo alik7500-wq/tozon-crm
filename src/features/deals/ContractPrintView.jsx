@@ -493,7 +493,7 @@ export const ContractPrintView = ({ deal: initialDeal, onClose, initialLang = de
               
               {/* Title Header */}
               <div className="text-center pb-2">
-                <h1 className="text-base sm:text-lg font-black tracking-tight uppercase text-slate-950 leading-snug">
+                <h1 className="text-xs sm:text-[13px] print:text-[13px] font-black tracking-tight uppercase text-slate-950 leading-snug">
                 {isTJ ? (
                   <>
                     {nonResidential ? `ШАРТНОМА ОИД БА ${tjObject.toUpperCase()}` : 'ШАРТНОМАИ ИШТИРОКИ ҲИССАГУЗОРӢ ДАР СОХТМОНИ БИНОИ ИСТИҚОМАТӢ'} № <u className="font-mono">{displayContractNumber(deal.contract_number)}</u>
