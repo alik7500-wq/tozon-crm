@@ -1,6 +1,6 @@
 import React from 'react';
 import { useAuth } from '../features/auth/AuthContext';
-import { hasReadPermission } from '../utils/permissions';
+import { hasReadPermission, hasFeatureAccess } from '../utils/permissions';
 import { NavLink } from 'react-router-dom';
 import { CreditCard, Calendar, AlertCircle, TrendingUp, TrendingDown, Wallet, Table } from 'lucide-react';
 
@@ -14,6 +14,7 @@ export const FinanceTabs = ({ compact = false, className = '' }) => {
     { label: 'Реестр приходов (ПКО)', path: '/finance/income', permission: 'finance.payments', icon: TrendingUp },
     { label: 'Книга ПКО покупателей', path: '/finance/customer-pko-book', permission: 'finance.payments', icon: Table },
     { label: 'Реестр расходов (РКО)', path: '/finance/expenses', permission: 'finance.expenses', icon: TrendingDown },
+    { label: 'Книга регистрации РКО', path: '/finance/rko-book', permission: 'finance.expenses', icon: Table },
     { label: 'Строительный учёт', path: '/finance/construction', permissionsAny: ['construction.stock','construction.advance','construction.settlements','construction.settings'], icon: Table },
     { label: 'ДДС (Движение средств)', path: '/finance/cashflow', permission: 'finance.cashflow', icon: Wallet },
     { label: 'Себестоимость блоков', path: '/finance/costs', permission: 'finance.costs', icon: Table },
@@ -21,7 +22,7 @@ export const FinanceTabs = ({ compact = false, className = '' }) => {
 
   return (
     <div className={`flex flex-wrap items-center gap-1.5 border-b border-slate-200 ${compact ? 'pb-1 mb-1' : 'pb-3 mb-6'} ${className}`}>
-      {tabs.filter(tab => tab.permissionsAny ? tab.permissionsAny.some(key => hasReadPermission(user, key)) : hasReadPermission(user, tab.permission)).map((tab) => {
+      {tabs.filter(tab => hasFeatureAccess(user, tab.path) && (tab.permissionsAny ? tab.permissionsAny.some(key => hasReadPermission(user, key)) : hasReadPermission(user, tab.permission))).map((tab) => {
         const Icon = tab.icon;
         return (
           <NavLink

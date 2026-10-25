@@ -1,6 +1,10 @@
 import { api } from './client.js';
 
 export const financeApi = {
+  getRkoBook: async (filters = {}) => {
+    const res = await api.get('/finance/expenses/book', {params: filters});
+    return res?.data || res;
+  },
   getIncome: async (filters = {}) => {
     const res = await api.get('/finance/income', { params: filters });
     return res?.data || res;

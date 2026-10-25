@@ -1,7 +1,8 @@
+import { Link } from 'react-router-dom';
 import { formatFinanceNumber, formatFinanceText } from '../../utils/financeDisplay';
 import { ExpenseSettlementFields } from './ExpenseSettlementFields';
 import { api } from '../../api/client';
-import { canWriteSection } from '../../utils/permissions';
+import { canWriteSection, hasFeatureAccess } from '../../utils/permissions';
 import { CostAllocationFields } from '../costs/CostAllocationFields';
 import { emptyAllocation, allocationPayload } from '../costs/allocation';
 import { saveExpenseWithAllocation } from '../costs/saveExpenseWithAllocation';
@@ -553,6 +554,7 @@ export const ExpensesPage = () => {
 
       {/* Finance Navigation Tabs */}
       <FinanceTabs />
+      {hasFeatureAccess(user, '/finance/rko-book') && <Link to="/finance/rko-book" className="inline-flex rounded-xl border border-blue-200 bg-blue-50 px-4 py-2 font-bold text-blue-700">Книга регистрации РКО</Link>}
 
       {/* Currency KPI Summary Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
