@@ -605,7 +605,11 @@ export const ContractPrintView = ({ deal: initialDeal, onClose, initialLang = de
                     {' '}{isTJ ? 'Маблағи умумии шартнома:' : 'Общая стоимость по договору:'} <strong>{finalPrice} {currency}</strong>.
                   </>
                 ) : isTJ ? (
-                  exchangeRate && exchangeRate > 0 ? (
+                  currency === 'USD' ? (
+                    <>
+                      3.1. Бо маслиҳати «Тарафҳо» нархи 1 м.кв. хонаи истиқоматиро ба <strong><u>{usdPrice.toLocaleString('ru-RU')} ({usdPriceWords}) доллари ИМА</u></strong> ба ҳолати рӯзи имзогузории шартномаи мазкур нархгузорӣ намуда, пардохт аз руи курби асъори миллии бонк дар рузи пардохт бо асъори милли кабул карда мешавад . Маблағи умумии шартнома <strong><u>{finalPrice} {currencyShort}</u></strong>-ро ташкил медиҳад.
+                    </>
+                  ) : exchangeRate && exchangeRate > 0 ? (
                     <>
                       3.1. Бо маслиҳати «Тарафҳо» нархи 1 м.кв. {nonResidential ? `${tjObject}ро` : 'хонаи истиқоматиро'} ба <strong><u>{tjsPrice.toLocaleString('ru-RU')} ({tjsPriceWords}) сомонӣ</u></strong>, ки ин <strong><u>{usdPrice.toLocaleString('ru-RU')} ({usdPriceWords}) доллари ИМА</u></strong> аз рӯи қурби имрӯзаи бонк {exchangeRate.toLocaleString('ru-RU', { minimumFractionDigits: 2, maximumFractionDigits: 4 })} сомонӣ нисбати 1 доллари ИМА, ба ҳолати рӯзи имзогузории шартномаи мазкур ташкил медиҳад нархгузорӣ намудаанд.
                     </>
