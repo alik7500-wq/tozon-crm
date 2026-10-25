@@ -607,7 +607,7 @@ export const ContractPrintView = ({ deal: initialDeal, onClose, initialLang = de
                 ) : isTJ ? (
                   currency === 'USD' ? (
                     <>
-                      3.1. Бо маслиҳати «Тарафҳо» нархи 1 м.кв. хонаи истиқоматиро ба <strong><u>{usdPrice.toLocaleString('ru-RU')} ({usdPriceWords}) доллари ИМА</u></strong> ба ҳолати рӯзи имзогузории шартномаи мазкур нархгузорӣ намуда, пардохт аз руи курби асъори миллии бонк дар рузи пардохт бо асъори милли кабул карда мешавад . Маблағи умумии шартнома <strong><u>{finalPrice} {currencyShort}</u></strong>-ро ташкил медиҳад.
+                      3.1. Бо мувофиқаи «Тарафҳо» нархи 1 м.кв. хонаи истиқоматӣ дар рӯзи имзои шартномаи мазкур ба маблағи <strong><u>{usdPrice.toLocaleString('ru-RU')} ({usdPriceWords}) доллари ИМА</u></strong> муқаррар карда шудааст. Пардохт бо асъори миллӣ аз рӯйи қурби бонк дар рӯзи пардохт қабул карда мешавад. Маблағи умумии шартнома <strong><u>{finalPrice} {currencyShort}</u></strong>-ро ташкил медиҳад.
                     </>
                   ) : exchangeRate && exchangeRate > 0 ? (
                     <>
@@ -619,7 +619,11 @@ export const ContractPrintView = ({ deal: initialDeal, onClose, initialLang = de
                     </>
                   )
                 ) : (
-                  exchangeRate && exchangeRate > 0 ? (
+                  currency === 'USD' ? (
+                    <>
+                      3.1. По соглашению «Сторон» цена 1 кв.м жилой квартиры на день подписания настоящего договора установлена в размере <strong><u>{usdPrice.toLocaleString('ru-RU')} ({usdPriceWords}) долларов США</u></strong>. Оплата принимается в национальной валюте по курсу банка на день платежа. Общая сумма договора составляет <strong><u>{finalPrice} {currencyShort}</u></strong>.
+                    </>
+                  ) : exchangeRate && exchangeRate > 0 ? (
                     <>
                       3.1. По соглашению Сторон цена 1 кв.м {ruGenitive} определена в размере <strong><u>{tjsPrice.toLocaleString('ru-RU')} ({tjsPriceWords}) сомони</u></strong>, что составляет <strong><u>{usdPrice.toLocaleString('ru-RU')} ({usdPriceWords}) долларов США</u></strong> по курсу банка ({exchangeRate.toLocaleString('ru-RU', { minimumFractionDigits: 2, maximumFractionDigits: 4 })} сомони за 1 USD) на день заключения настоящего Договора. Общая стоимость составляет <strong><u>{finalPrice} {currencyShort}</u></strong>.
                     </>
