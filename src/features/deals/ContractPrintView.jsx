@@ -1,4 +1,5 @@
 import './VehicleHandoverAct.css';
+import { buildPrintedSchedule } from './printedSchedule';
 import { ApartmentLayoutAppendix } from './ApartmentLayoutAppendix';
 import { getUnitTitle, isNonResidentialUnit, getUnitKind } from '../../utils/unitKind';
 import {formatMeasure} from '../../utils/numberDisplay';
@@ -41,7 +42,7 @@ export const ContractPrintView = ({ deal: initialDeal, onClose, initialLang = de
     setAppendixReady(false);
     setActiveTab('CONTRACT');
     const targetId = initialDeal?.id || initialDeal?.deal_id;
-    if (targetId && (!initialDeal?.schedules || initialDeal.schedules.length === 0 || !initialDeal?.passport_number || (initialDeal?.payment_type === 'PARTIAL_BARTER' && (initialDeal?.barter_amount_minor === undefined || initialDeal?.vehicle_details === undefined)))) {
+    if (targetId && (!initialDeal?.schedules || initialDeal.schedules.length === 0 || !Array.isArray(initialDeal?.payments) || !initialDeal?.passport_number || (initialDeal?.payment_type === 'PARTIAL_BARTER' && (initialDeal?.barter_amount_minor === undefined || initialDeal?.vehicle_details === undefined)))) {
       import('../../api/client').then(({ api }) => {
         api.get(`/deals/${targetId}`)
           .then(res => {
@@ -297,46 +298,14 @@ export const ContractPrintView = ({ deal: initialDeal, onClose, initialLang = de
   const lastSchedule = schedules.length > 0 ? schedules[schedules.length - 1] : null;
   const lastPaymentDate = lastSchedule ? formatDate(lastSchedule.due_date) : '—';
 
-  // Canonical Down Payment Covered resolution
-  const activePayments = (deal.payments || []).filter(p => p.status !== 'VOIDED');
-  const totalActivePaidMinor = activePayments.length > 0
-    ? activePayments.reduce((sum, p) => sum + (p.amount_minor || 0), 0)
-    : (deal.paid_amount_minor ?? deal.total_paid_minor ?? 0);
-
-  const plannedDpMinor = deal.down_payment_minor || 0;
-
-  const actualDpPaidMinor = deal.down_payment_covered_minor !== undefined
-    ? deal.down_payment_covered_minor
-    : (deal.pko_allocations && deal.pko_allocations.length > 0
-        ? deal.pko_allocations.reduce((sum, p) => sum + (p.down_payment_allocated_minor || 0), 0)
-        : Math.min(totalActivePaidMinor, plannedDpMinor));
-
-  const totalPaidMinor = totalActivePaidMinor;
+  const { rows: printedRows, payments: printedPayments, totalPaidMinor } = buildPrintedSchedule(deal);
   const remainingDebtMinor = Math.max(0, (deal.final_price_minor || 0) - totalPaidMinor);
-
-  // Table rows for Schedule tab
-  const tableRows = [];
-  tableRows.push({
-    num: 1,
-    planDate: advanceDate,
-    planAmount: plannedDpMinor,
-    actualDate: actualDpPaidMinor > 0 ? advanceDate : '',
-    actualAmount: actualDpPaidMinor > 0 ? actualDpPaidMinor : null,
-    note: isTJ ? 'Маблағи пешпардохти аввал' : 'Сумма первоначального взноса',
-  });
-
-  schedules.forEach((s, idx) => {
-    const isPaid = s.status === 'PAID';
-    const isPartial = s.status === 'PARTIAL';
-    tableRows.push({
-      num: idx + 2,
-      planDate: formatDate(s.due_date),
-      planAmount: s.amount_minor,
-      actualDate: isPaid || isPartial ? formatDate(s.updated_at || s.due_date) : '',
-      actualAmount: s.paid_amount_minor > 0 ? s.paid_amount_minor : null,
-      note: s.note || '',
-    });
-  });
+  const tableRows = printedRows.map((row, index) => ({ ...row, num: index + 1,
+    planDate: row.dueDate ? formatDate(row.dueDate) : '',
+    actualDates: [...new Set(row.parts.map(part => part.date ? formatDate(part.date) : '—'))],
+    note: row.kind === 'downPayment' ? (isTJ ? 'Маблағи пешпардохти аввал' : 'Сумма первоначального взноса')
+      : row.kind === 'unallocated' ? (isTJ ? 'Маблағи тақсимнашуда' : 'Оплата сверх распределённой суммы графика') : row.note,
+  }));
 
   return createPortal(
     <div className="print-portal-root fixed inset-0 z-50 overflow-y-auto bg-slate-900/60 backdrop-blur-xs p-2 sm:p-6 flex justify-center animate-in fade-in print:static print:p-0 print:m-0 print:bg-white print:overflow-visible print:block print:h-auto">
@@ -964,6 +933,9 @@ export const ContractPrintView = ({ deal: initialDeal, onClose, initialLang = de
               <h3 className="font-black text-xs sm:text-sm text-slate-900 mb-1.5 uppercase">
                 {isTJ ? 'Ҷадвали пардохти қарз' : 'График погашения задолженности'}
               </h3>
+              <p className="text-[10px] sm:text-xs mb-2 text-slate-700">
+                {isTJ ? 'Маблағҳои воридшуда аввал қарзи пешинаро мепӯшонанд. Дар ҷадвал маблағи ба ҳар пардохти нақшавӣ ҳисобшуда ва санаҳои воқеии ПКО нишон дода шудаанд. Рӯйхати ПКО дар поён оварда шудааст.' : 'Поступления сначала погашают самый ранний долг. В графике показаны зачтённые в каждый плановый платёж суммы и реальные даты ПКО. Список поступлений приведён ниже.'}
+              </p>
 
               <table className="w-full text-[11px] sm:text-xs border-2 border-slate-900 border-collapse text-center">
                 <thead>
@@ -975,7 +947,7 @@ export const ContractPrintView = ({ deal: initialDeal, onClose, initialLang = de
                       {isTJ ? 'Мувофиқи ҷадвал' : 'По графику (план)'}
                     </th>
                     <th colSpan="2" className="border-r border-slate-900 p-1.5 bg-slate-200/70">
-                      {isTJ ? 'Дар асл' : 'По факту (оплачено)'}
+                      {isTJ ? 'Ба пардохти нақшавӣ ҳисоб шуд' : 'Зачтено в плановый платёж'}
                     </th>
                     <th rowSpan="2" className="p-1.5 min-w-[140px]">
                       {isTJ ? 'Эзоҳ' : 'Примечание'}
@@ -998,16 +970,20 @@ export const ContractPrintView = ({ deal: initialDeal, onClose, initialLang = de
                         {row.planDate}
                       </td>
                       <td className="border-r border-slate-900 p-1 text-right pr-2 font-bold text-slate-900">
-                        {formatMoney(row.planAmount)}
+                        {row.planAmount === null ? '' : formatMoney(row.planAmount)}
                       </td>
                       <td className="border-r border-slate-900 p-1 text-slate-700">
-                        {row.actualDate || ''}
+                        {row.actualDates.map(date => <div key={date}>{date}</div>)}
+                        {row.actualAmount > 0 && row.actualDates.length === 0 ? '—' : ''}
                       </td>
                       <td className="border-r border-slate-900 p-1 text-right pr-2 font-bold text-slate-900">
                         {row.actualAmount !== null ? formatMoney(row.actualAmount) : ''}
                       </td>
-                      <td className="p-1 text-left pl-2 text-slate-700 truncate max-w-[180px]">
+                      <td className="p-1 text-left pl-2 text-slate-700 whitespace-normal break-words max-w-[180px]">
                         {row.note}
+                        {row.parts.length > 1 && row.parts.map((part, partIndex) => <div key={partIndex} className="text-[10px]">
+                          {part.date ? formatDate(part.date) : '—'}: {formatMoney(part.amountMinor)}
+                        </div>)}
                       </td>
                     </tr>
                   ))}
@@ -1040,6 +1016,22 @@ export const ContractPrintView = ({ deal: initialDeal, onClose, initialLang = de
                 </tbody>
               </table>
             </div>
+
+            {printedPayments.length > 0 && <div className="mt-4">
+              <h3 className="font-bold text-xs mb-1">{isTJ ? 'Воридоти воқеӣ аз рӯи ПКО' : 'Фактические поступления по ПКО'}</h3>
+              <table className="w-full text-[11px] border border-slate-400 border-collapse">
+                <thead><tr className="bg-slate-100">
+                  <th className="border border-slate-400 p-1">{isTJ ? 'Сана' : 'Дата'}</th>
+                  <th className="border border-slate-400 p-1">{isTJ ? 'Ҳуҷҷат' : 'Документ'}</th>
+                  <th className="border border-slate-400 p-1">{isTJ ? 'Ба шартнома ҳисоб шуд' : 'Зачтено по договору'}, {currency}</th>
+                </tr></thead>
+                <tbody>{printedPayments.map((payment, index) => <tr key={payment.id || index}>
+                  <td className="border border-slate-400 p-1">{formatDate(payment.payment_date)}</td>
+                  <td className="border border-slate-400 p-1">{payment.reference || payment.document_number || '—'}</td>
+                  <td className="border border-slate-400 p-1 text-right">{formatMoney(payment.creditedMinor)}</td>
+                </tr>)}</tbody>
+              </table>
+            </div>}
 
             {/* Bottom Signatures Block */}
             <div className="print-avoid-break border-t border-slate-300 pt-8 mt-12 grid grid-cols-2 gap-12 font-sans text-xs sm:text-sm">
