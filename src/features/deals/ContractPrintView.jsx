@@ -981,7 +981,7 @@ export const ContractPrintView = ({ deal: initialDeal, onClose, initialLang = de
                       </td>
                       <td className="p-1 text-left pl-2 text-slate-700 whitespace-normal break-words max-w-[180px]">
                         {row.note}
-                        {row.parts.length > 1 && row.parts.map((part, partIndex) => <div key={partIndex} className="text-[10px]">
+                        {row.kind !== 'downPayment' && row.parts.length > 0 && row.parts.map((part, partIndex) => <div key={partIndex} className="text-[10px]">
                           {part.date ? formatDate(part.date) : '—'}: {formatMoney(part.amountMinor)}
                         </div>)}
                       </td>
