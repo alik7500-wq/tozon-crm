@@ -232,17 +232,19 @@ export const DealWizardModal = ({
   // Update rates when unit is selected
   useEffect(() => {
     if (selectedUnit) {
-      const p = initialPricePerM2 != null
+      const p = isNonResidentialUnit(selectedUnit) && initialPricePerM2 != null
         ? parseFloat(initialPricePerM2)
         : getUnitDefaultPrice(selectedUnit);
       
       setPricePerM2(p);
-      const pct = initialDownPaymentPercent || 30;
+      setDiscountValue(0);
+      setDiscountType('AMOUNT');
+      const pct = initialDownPaymentPercent ?? 30;
       setDownPaymentPercent(pct);
       const total = Math.round(areaM2 * p);
       setDownPaymentAmount(Math.round(total * (pct / 100)));
     }
-  }, [selectedUnit, initialPricePerM2, initialDownPaymentPercent]);
+  }, [selectedUnit, initialPricePerM2, initialDownPaymentPercent, isOpen]);
 
   useEffect(() => {
     if (isOpen) {

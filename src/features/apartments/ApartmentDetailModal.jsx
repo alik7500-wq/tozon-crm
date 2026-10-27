@@ -1058,8 +1058,7 @@ export const ApartmentDetailModal = ({
                       >
                         <Plus className="h-4 w-4" />
                         <span>
-                          Оформить сделку ({activeTier.percent}% взнос • {activeTier.tieredPricePerM2} $/м²
-                          {activeTier.percent > 0 ? ` • Выгода: +${activeTier.discountTotal.toLocaleString()} $` : ''})
+                          Оформить сделку
                         </span>
                       </button>
                     </div>
@@ -1212,8 +1211,6 @@ export const ApartmentDetailModal = ({
           onClose={() => setIsDealWizardOpen(false)}
           unit={unit}
           currency={projectCurrency}
-          initialDownPaymentPercent={activeTier?.percent || 30}
-          initialPricePerM2={activeTier?.tieredPricePerM2 || basePricePerM2}
           onDealCreated={() => {
             fetchUnit();
             if (onUnitUpdated) onUnitUpdated();

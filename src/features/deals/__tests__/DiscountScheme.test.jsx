@@ -21,3 +21,11 @@ fireEvent.click(screen.getByText('Далее'));fireEvent.click(screen.getByText
 fireEvent.click(screen.getByText('Подписать договор'));
 await waitFor(()=>expect(api.post).toHaveBeenLastCalledWith('/deals',expect.objectContaining({discount_scheme_id:'scheme',discount_scheme_updated_at:'v1',discount_rule_payment_percent:payment,base_price_minor:base,discount_minor:disc,final_price_minor:final,down_payment_minor:Math.round(final*payment/100),installment_months:months})));
 });
+
+it('opens apartments at inventory price instead of the old calculator price',async()=>{
+ api.get.mockImplementation(path=>Promise.resolve({data:path==='/leads'?{leads:[{id:1,full_name:'Покупатель',phone:'000'}]}:{schemes:[]}}));
+ render(<DealWizardModal isOpen unit={{id:300,unit_kind:'APARTMENT',area_m2_x100:5645,price_per_m2_minor:70000}} initialPricePerM2={670} onClose={vi.fn()}/>);
+ fireEvent.click(await screen.findByText('Покупатель'));fireEvent.click(screen.getByText('Далее'));
+ expect(screen.getByLabelText('Цена объекта за м²')).toHaveValue(700);
+ expect(screen.getByLabelText('Окончательная стоимость объекта')).toHaveValue(39515);
+});
