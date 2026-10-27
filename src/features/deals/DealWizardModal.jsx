@@ -1023,12 +1023,12 @@ export const DealWizardModal = ({
                     <button
                       key={t.id}
                       type="button"
+                      disabled={!!appliedDiscount}
                       onClick={() => {
-                        clearDiscountScheme();
                         setPaymentType(t.id);
                         if (t.id === 'FULL') {
                           setDownPaymentPercent(100);
-                          setDownPaymentAmount(Math.round(areaM2*basePricePerM2*100)/100);
+                          setDownPaymentAmount(finalPrice);
                         }
                       }}
                       className={`p-3 rounded-xl border text-left transition cursor-pointer ${
