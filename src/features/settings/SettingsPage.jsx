@@ -1,3 +1,4 @@
+import { DiscountSchemesTab } from './DiscountSchemesTab';
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { api } from '../../api/client';
@@ -189,6 +190,7 @@ export const SettingsPage = () => {
         ['Компания','Реквизиты и подписанты для ваших бланков',()=>setActiveTab('company'),Briefcase],
         ['Настройки интерфейса','Основной цвет и язык печатных форм',()=>setActiveTab('interface'),Settings],
         ['Нумерация','Маски номеров новых договоров, ПКО и РКО',()=>setActiveTab('numbering'),Layers],
+        ['Схемы скидок','Взнос, процент скидки, срок и временные акции',()=>setActiveTab('discounts'),CheckCircle2],
         ['Скидки и бронирование','Лимит скидки и срок брони по умолчанию',()=>setActiveTab('rules'),CheckCircle2],
         ['Строительные компании','Справочник застройщиков',()=>setActiveTab('builders'),Building2],
         ['Филиалы','Адреса и контакты подразделений',()=>setActiveTab('branches'),MapPin],
@@ -255,6 +257,7 @@ export const SettingsPage = () => {
 
       {/* TAB: DICTIONARIES */}
       {activeTab === 'templates' && user?.role === 'ADMIN' && <DocumentTemplatesTab projects={projects}/>}
+      {activeTab === 'discounts' && user?.role === 'ADMIN' && <DiscountSchemesTab projects={projects}/>}
       {activeTab === 'interface' && <InterfaceSettingsTab/>}
       {activeTab === 'telegram-finance' && ['ADMIN','DIRECTOR'].includes(user?.role) && <TelegramFinanceTab/>}
       {['company','numbering','rules','builders','branches'].includes(activeTab) && user?.role === 'ADMIN' && <CompanySettingsTab key={activeTab} section={activeTab}/>}

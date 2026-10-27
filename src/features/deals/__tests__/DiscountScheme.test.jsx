@@ -1,0 +1,23 @@
+import React from 'react';
+import {it,expect,vi,afterEach} from 'vitest';
+import {render,screen,fireEvent,waitFor,cleanup} from '@testing-library/react';
+import '@testing-library/jest-dom/vitest';
+import {DealWizardModal} from '../DealWizardModal';
+import {api} from '../../../api/client';
+vi.mock('../../../api/client',()=>({api:{get:vi.fn(),post:vi.fn()}}));
+vi.mock('../../documents/PassportScannerModal',()=>({PassportScannerModal:()=>null}));
+afterEach(cleanup);
+it.each([[5,2.86,30],[100,21.43,0]])('submits verified %s percent scheme and exact money',async(payment,discount,months)=>{
+const unit={id:300,project_id:3,unit_kind:'APARTMENT',unit_number:'24',area_m2_x100:4322,price_per_m2_minor:70000,project_currency:'USD'};
+api.get.mockImplementation(path=>Promise.resolve({data:path==='/discount-schemes'?{schemes:[{id:'scheme',project_id:3,name:'Плаза',updated_at:'v1',is_active:true,rules:[{payment_percent:payment,discount_percent:discount,months}]}]}:path==='/leads'?{leads:[{id:1,full_name:'Покупатель',phone:'000'}]}:{}}));
+api.post.mockResolvedValue({data:{deal:{id:1}}});
+render(<DealWizardModal isOpen unit={unit} onClose={vi.fn()}/>);
+fireEvent.click(await screen.findByText('Покупатель'));fireEvent.click(screen.getByText('Далее'));
+fireEvent.click(await screen.findByText(`Взнос ${payment}%`));
+const base=3025400,disc=Math.round(base*discount/100),final=base-disc;
+expect(screen.getByLabelText('Окончательная стоимость объекта')).toHaveValue(final/100);
+expect(screen.getByLabelText('Окончательная стоимость объекта')).toBeDisabled();
+fireEvent.click(screen.getByText('Далее'));fireEvent.click(screen.getByText('Далее'));
+fireEvent.click(screen.getByText('Подписать договор'));
+await waitFor(()=>expect(api.post).toHaveBeenLastCalledWith('/deals',expect.objectContaining({discount_scheme_id:'scheme',discount_scheme_updated_at:'v1',discount_rule_payment_percent:payment,base_price_minor:base,discount_minor:disc,final_price_minor:final,down_payment_minor:Math.round(final*payment/100),installment_months:months})));
+});
