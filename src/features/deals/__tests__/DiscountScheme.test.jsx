@@ -7,14 +7,14 @@ import {api} from '../../../api/client';
 vi.mock('../../../api/client',()=>({api:{get:vi.fn(),post:vi.fn()}}));
 vi.mock('../../documents/PassportScannerModal',()=>({PassportScannerModal:()=>null}));
 afterEach(cleanup);
-it.each([[5,2.86,30],[100,21.43,0]])('submits verified %s percent scheme and exact money',async(payment,discount,months)=>{
+it.each([[5,2.86,30],[100,21.43,0],[5,2.86,30,650]])('submits verified %s percent scheme and exact money',async(payment,discount,months,price)=>{
 const unit={id:300,project_id:3,unit_kind:'APARTMENT',unit_number:'24',area_m2_x100:4322,price_per_m2_minor:70000,project_currency:'USD'};
-api.get.mockImplementation(path=>Promise.resolve({data:path==='/discount-schemes'?{schemes:[{id:'scheme',project_id:3,name:'Плаза',updated_at:'v1',is_active:true,rules:[{payment_percent:payment,discount_percent:discount,months}]}]}:path==='/leads'?{leads:[{id:1,full_name:'Покупатель',phone:'000'}]}:{}}));
+api.get.mockImplementation(path=>Promise.resolve({data:path==='/discount-schemes'?{schemes:[{id:'scheme',project_id:3,name:'Плаза',updated_at:'v1',is_active:true,rules:[{payment_percent:payment,discount_percent:discount,months,...(price?{price_per_m2:price}:{})}]}]}:path==='/leads'?{leads:[{id:1,full_name:'Покупатель',phone:'000'}]}:{}}));
 api.post.mockResolvedValue({data:{deal:{id:1}}});
 render(<DealWizardModal isOpen unit={unit} onClose={vi.fn()}/>);
 fireEvent.click(await screen.findByText('Покупатель'));fireEvent.click(screen.getByText('Далее'));
 fireEvent.click(await screen.findByText(`Взнос ${payment}%`));
-const base=3025400,disc=Math.round(base*discount/100),final=base-disc;
+const base=3025400,final=price?Math.round(4322*price):base-Math.round(base*discount/100),disc=base-final;
 expect(screen.getByLabelText('Окончательная стоимость объекта')).toHaveValue(final/100);
 expect(screen.getByLabelText('Окончательная стоимость объекта')).toBeDisabled();
 fireEvent.click(screen.getByText('Далее'));fireEvent.click(screen.getByText('Далее'));

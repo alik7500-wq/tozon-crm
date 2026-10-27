@@ -37,8 +37,11 @@ export function DiscountSchemesTab({ projects }) {
         </div>
         <p className="text-xs text-slate-500">Для постоянной схемы оставьте даты пустыми. Для временной акции задайте период.</p>
         <label className="flex gap-2"><input type="checkbox" checked={form.is_active} onChange={e=>field('is_active',e.target.checked)}/>Схема включена</label>
-        {form.rules.map((rule,i)=><div key={i} className="grid grid-cols-[1fr_1fr_1fr_auto] gap-3 items-end">
-          {[['payment_percent','Взнос (%)'],['discount_percent','Скидка (%)'],['months','Срок (месяцев)']].map(([key,title])=><label key={key} className="text-sm">{title}<input aria-label={`${title} ${i+1}`} type="number" min="0" max={key==='months'?120:100} step={key==='months'?1:0.01} value={rule[key]} onChange={e=>field('rules',form.rules.map((r,j)=>j===i?{...r,[key]:e.target.value}:r))} className="w-full border rounded-lg p-2"/></label>)}
+        <p className="text-xs text-slate-500">Если указана цена за м², продажа рассчитывается по этой цене. Процент скидки дополнительно не вычитается. Оставьте цену пустой для расчёта по проценту.</p>
+        {form.rules.map((rule,i)=><div key={i} className="grid grid-cols-2 xl:grid-cols-[1fr_1fr_1.5fr_1fr_auto] gap-3 items-end">
+          {[['payment_percent','Взнос (%)'],['discount_percent','Скидка (%)']].map(([key,title])=><label key={key} className="text-sm">{title}<input aria-label={`${title} ${i+1}`} type="number" min="0" max={key==='months'?120:100} step={key==='months'?1:0.01} value={rule[key]} onChange={e=>field('rules',form.rules.map((r,j)=>j===i?{...r,[key]:e.target.value}:r))} className="w-full border rounded-lg p-2"/></label>)}
+          <label className="text-sm">Цена со скидкой за м² ({projects.find(p=>Number(p.id)===Number(form.project_id))?.currency || 'USD'})<input aria-label={`Цена со скидкой за м² ${i+1}`} type="number" min="0.01" step="0.01" placeholder="По проценту скидки" value={rule.price_per_m2 ?? ''} onChange={e=>field('rules',form.rules.map((r,j)=>j===i?{...r,price_per_m2:e.target.value}:r))} className="w-full border rounded-lg p-2"/></label>
+          <label className="text-sm">Срок (месяцев)<input aria-label={`Срок (месяцев) ${i+1}`} type="number" min="0" max="120" step="1" value={rule.months} onChange={e=>field('rules',form.rules.map((r,j)=>j===i?{...r,months:e.target.value}:r))} className="w-full border rounded-lg p-2"/></label>
           <button aria-label={`Удалить условие ${i+1}`} onClick={()=>field('rules',form.rules.filter((_,j)=>j!==i))} className="p-2 text-red-600">✕</button>
         </div>)}
         <button onClick={()=>field('rules',[...form.rules,{payment_percent:'',discount_percent:'',months:30}])} className="border border-dashed rounded-xl p-3 w-full">+ Добавить условие</button>
