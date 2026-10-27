@@ -194,7 +194,9 @@ export const DealWizardModal = ({
     : roundAmount(areaM2 * (parseFloat(pricePerM2) || basePricePerM2));
 
   const actualDiscountMinor = appliedDiscount
-    ? Math.round(calculatedBasePrice * appliedDiscount.rule.discount_percent) / 100
+    ? (appliedDiscount.rule.price_per_m2 != null
+      ? Math.round((Math.round(calculatedBasePrice*100)-Math.round(Number(selectedUnit.area_m2_x100)*Math.round(Number(appliedDiscount.rule.price_per_m2)*100)/100)))/100
+      : Math.round(calculatedBasePrice * appliedDiscount.rule.discount_percent) / 100)
     : discountType === 'PERCENT'
     ? roundAmount(calculatedBasePrice * ((parseFloat(discountValue) || 0) / 100))
     : roundAmount(parseFloat(discountValue) || 0);
@@ -207,7 +209,9 @@ export const DealWizardModal = ({
   const clearDiscountScheme = () => { setAppliedDiscount(null); setDiscountValue(0); setPricePerM2(basePricePerM2); setDownPaymentAmount(Math.round(areaM2*basePricePerM2*downPaymentPercent)/100); };
   const applyDiscountRule = rule => {
     const baseMinor = Math.round(areaM2*basePricePerM2*100);
-    const finalMinor = baseMinor-Math.round(baseMinor*rule.discount_percent/100);
+    const finalMinor = rule.price_per_m2 != null
+      ? Math.round(Number(selectedUnit.area_m2_x100)*Math.round(Number(rule.price_per_m2)*100)/100)
+      : baseMinor-Math.round(baseMinor*rule.discount_percent/100);
     setAppliedDiscount({ scheme: selectedScheme, rule });
     setPricePerM2(basePricePerM2); setDownPaymentPercent(rule.payment_percent);
     setDownPaymentAmount(Math.round(finalMinor*rule.payment_percent/100)/100);
@@ -936,10 +940,10 @@ export const DealWizardModal = ({
                       {availableSchemes.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
                     </select>
                     <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">{selectedScheme?.rules.map(rule => <button type="button" key={rule.payment_percent} onClick={() => applyDiscountRule(rule)} className={`border p-3 rounded-xl text-left ${appliedDiscount?.scheme.id === selectedScheme.id && appliedDiscount?.rule.payment_percent === rule.payment_percent ? 'bg-blue-600 text-white' : 'bg-white'}`}>
-                      <strong>Взнос {rule.payment_percent}%</strong><span className="block text-xs">Скидка {rule.discount_percent}% · {rule.months ? `${rule.months} мес.` : 'Полная оплата'}</span>
+                      <strong>Взнос {rule.payment_percent}%</strong><span className="block text-xs">{rule.price_per_m2 != null ? `${Number(rule.price_per_m2).toLocaleString()} ${currency}/м²` : `Скидка ${rule.discount_percent}%`} · {rule.months ? `${rule.months} мес.` : 'Полная оплата'}</span>
                     </button>)}</div>
                   </> : <p className="text-xs text-slate-500">Для этого ЖК нет действующих схем. Их можно добавить в настройках.</p>}
-                  {appliedDiscount && <div className="p-3 bg-blue-50 rounded-xl text-xs">Применена схема «{appliedDiscount.scheme.name}»: скидка {appliedDiscount.rule.discount_percent}% от базовой цены. <button type="button" onClick={clearDiscountScheme} className="underline font-bold">Перейти к ручным условиям</button></div>}
+                  {appliedDiscount && <div className="p-3 bg-blue-50 rounded-xl text-xs">Применена схема «{appliedDiscount.scheme.name}»: {appliedDiscount.rule.price_per_m2 != null ? `цена ${Number(appliedDiscount.rule.price_per_m2).toLocaleString()} ${currency}/м²` : `скидка ${appliedDiscount.rule.discount_percent}% от базовой цены`}. <button type="button" onClick={clearDiscountScheme} className="underline font-bold">Перейти к ручным условиям</button></div>}
                 </div>}
                 {/* Bargained Final Price Inputs */}
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
