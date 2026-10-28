@@ -130,4 +130,15 @@ describe('Cash desk availability badges', () => {
     expect(within(card).queryByText(expected === 'Есть средства' ? 'Нет средств' : 'Есть средства')).toBeNull();
   });
 
+ it('shows analytical barter losses in red with a loss label instead of cash availability',async()=>{
+  financeApi.getCashflow.mockResolvedValue({...mockCashflowResponse,cashDesksSummary:[{...mockCashflowResponse.cashDesksSummary[0],isAnalytical:true,balanceUsd:-1621.62,balanceTjs:-15000,resultDetails:[{asset:'Hyundai Genesis',costTjs:100000,proceedsTjs:85000,sellingCostTjs:0}]}]});
+  renderComponent();
+  const heading=await screen.findByRole('heading',{name:mockCashDesks[0].name,level:4});
+  const card=heading.parentElement.parentElement;
+  expect(within(card).getByText('Убыток')).toBeDefined();
+  expect(within(card).getByText(/Финансовый результат/)).toBeDefined();
+  expect(within(card).queryByText('Есть средства')).toBeNull();
+  expect(within(card).queryByText('Нет средств')).toBeNull();
+ });
+
 });

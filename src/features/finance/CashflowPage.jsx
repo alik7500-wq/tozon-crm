@@ -515,9 +515,11 @@ export const CashflowPage = () => {
       name: desk.name,
       displayName: desk.name.replace(/^Касса Менеджера:\s*/i, 'Менеджер '),
       icon: desk.icon || '🏢',
+      isAnalytical: !!found?.isAnalytical,
+      resultDetails: found?.resultDetails || [],
       balanceUsd: found ? found.balanceUsd : 0,
       balanceTjs: found ? found.balanceTjs : 0,
-      balanceRub: found ? found.balanceRub : 0,
+      balanceRub: found?.balanceRub || 0,
       totalIncomeUsd: found ? found.totalIncomeUsd : 0,
       totalExpenseUsd: found ? found.totalExpenseUsd : 0,
       totalIncomeTjs: found ? found.totalIncomeTjs : 0,
@@ -535,6 +537,8 @@ export const CashflowPage = () => {
         name: sd.name,
         displayName: sd.name.replace(/^Касса Менеджера:\s*/i, 'Менеджер '),
         icon: '💼',
+        isAnalytical: !!sd.isAnalytical,
+        resultDetails: sd.resultDetails || [],
         balanceUsd: sd.balanceUsd,
         balanceTjs: sd.balanceTjs,
         balanceRub: sd.balanceRub || 0,
@@ -1405,7 +1409,7 @@ export const CashflowPage = () => {
                             ? 'bg-white text-slate-900 border-white shadow-lg scale-105 ring-2 ring-amber-400'
                             : 'bg-white/15 hover:bg-white/25 border-white/20 text-white shadow-sm'
                         }`}
-                        title="Нажмите для фильтрации операций по этой кассе"
+                        title={desk.isAnalytical ? `Финансовый результат, не денежные средства. ${(desk.resultDetails || []).map(r=>`${r.asset}: принято ${r.costTjs} TJS, продано ${r.proceedsTjs} TJS, расходы ${r.sellingCostTjs} TJS`).join('; ')}` : 'Нажмите для фильтрации операций по этой кассе'}
                       >
                         <span className="text-base">{desk.icon}</span>
                         <div>
@@ -1421,7 +1425,7 @@ export const CashflowPage = () => {
                           </div>
                           <div className="flex items-center gap-2 font-mono font-black text-xs mt-0.5">
                             {hasUsd && (
-                              <span className={isFiltered ? 'text-emerald-700' : 'text-emerald-300'}>
+                              <span className={desk.balanceUsd < 0 ? (isFiltered ? 'text-rose-600' : 'text-rose-300') : (isFiltered ? 'text-emerald-700' : 'text-emerald-300')}>
                                 ${desk.balanceUsd.toLocaleString('ru-RU', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                               </span>
                             )}
@@ -1721,13 +1725,14 @@ export const CashflowPage = () => {
                           ? 'bg-emerald-50 text-emerald-700 border border-emerald-100'
                           : 'bg-slate-100 text-slate-400'
                       }`}>
-                        {desk.hasFunds ? 'Есть средства' : 'Нет средств'}
+                        {desk.isAnalytical ? (desk.balanceTjs < 0 ? 'Убыток' : desk.balanceTjs > 0 ? 'Прибыль' : 'Результат 0') : (desk.hasFunds ? 'Есть средства' : 'Нет средств')}
                       </span>
                     </div>
 
                     <h4 className="text-xs font-black text-slate-900 line-clamp-2 leading-tight">
                       {desk.displayName}
                     </h4>
+                    {desk.isAnalytical && <><p className="text-[10px] text-slate-500 mt-1">Финансовый результат · не денежные средства</p>{desk.resultDetails.map((r,i)=><p key={i} className="text-[10px] text-slate-600 mt-1">{r.asset}: принято {r.costTjs.toLocaleString('ru-RU')} TJS → продано {r.proceedsTjs.toLocaleString('ru-RU')} TJS</p>)}</>}
                   </div>
 
                   <div className="space-y-1.5 pt-2 border-t border-slate-100">
