@@ -186,7 +186,7 @@ export const PassportScannerModal = ({
         existingClientData?.id || null
       );
 
-      setAnalysisResult(res);
+      setAnalysisResult({ ...res, threshold: res.threshold ?? res.threshold_used });
 
       if (!res.quality?.acceptable) {
         setStep('UPLOAD');
@@ -210,7 +210,7 @@ export const PassportScannerModal = ({
   };
 
   const acceptAnalysis = (res) => {
-    setAnalysisResult(res);
+    setAnalysisResult({ ...res, threshold: res.threshold ?? res.threshold_used });
       const doc = res.document || {};
 
       // Compose full name from surname, given_name, patronymic
