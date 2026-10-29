@@ -209,7 +209,11 @@ export const PassportScannerModal = ({
     }
   };
 
-  const acceptAnalysis = (res) => {
+  const acceptAnalysis = (res, previews) => {
+    if(previews?.length){
+      files.forEach(f=>{if(f.previewUrl)URL.revokeObjectURL(f.previewUrl);});
+      setFiles(previews);setActivePreviewIndex(0);
+    }
     setAnalysisResult({ ...res, threshold: res.threshold ?? res.threshold_used });
       const doc = res.document || {};
 
