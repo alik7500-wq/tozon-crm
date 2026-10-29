@@ -16,6 +16,7 @@ import {
   Sparkles
 } from 'lucide-react';
 import ImageUpload from '../../../components/ImageUpload';
+import { MapBuildingRegions, getBuildingOutline } from './MapBuildingRegions';
 
 export const VisualMapsTab = ({ projectId, onSelectUnit }) => {
   const { user } = useAuth();
@@ -23,6 +24,8 @@ export const VisualMapsTab = ({ projectId, onSelectUnit }) => {
   const [activeMap, setActiveMap] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
   const [imageSize, setImageSize] = useState(null);
+  const [hoveredRegion, setHoveredRegion] = useState(null);
+  const [selectedRegion, setSelectedRegion] = useState(null);
 
   // Edit / Draw Mode
   const [isEditMode, setIsEditMode] = useState(false);
@@ -39,6 +42,7 @@ export const VisualMapsTab = ({ projectId, onSelectUnit }) => {
 
   const imageContainerRef = useRef(null);
   const measuredImage = imageSize?.src === activeMap?.image_path ? imageSize : null;
+  const activeRegion = hoveredRegion ?? selectedRegion;
 
   const fetchMaps = async () => {
     setIsLoading(true);
@@ -65,6 +69,8 @@ export const VisualMapsTab = ({ projectId, onSelectUnit }) => {
     if (activeMap) {
       setHotspots(activeMap.hotspots || []);
       setSelectedHotspotIdx(null);
+      setHoveredRegion(null);
+      setSelectedRegion(null);
     }
   }, [activeMap]);
 
@@ -263,8 +269,12 @@ export const VisualMapsTab = ({ projectId, onSelectUnit }) => {
               />
 
               {/* Hotspots Overlay */}
+              {measuredImage && !isEditMode && <MapBuildingRegions imagePath={activeMap.image_path} hotspots={hotspots}
+                activeIndex={activeRegion} selectedIndex={selectedRegion} onHover={setHoveredRegion} onSelect={setSelectedRegion} />}
               {measuredImage && hotspots.map((h, idx) => {
                 const isSelected = isEditMode && selectedHotspotIdx === idx;
+                const isBuildingRegion = !isEditMode && Boolean(getBuildingOutline(activeMap.image_path, h.label));
+                const isRegionActive = !isEditMode && activeRegion === idx;
                 
                 let hotspotColorStyle = 'border-blue-500 bg-blue-500/20 hover:bg-blue-500/40 hover:border-blue-400 z-10';
                 if (isSelected) {
@@ -290,13 +300,21 @@ export const VisualMapsTab = ({ projectId, onSelectUnit }) => {
                 return (
                   <div
                     key={idx}
+                    role={isBuildingRegion ? undefined : 'button'}
+                    tabIndex={isBuildingRegion ? undefined : 0}
+                    aria-label={isBuildingRegion ? undefined : `Выделить ${h.label}`}
+                    onMouseEnter={() => { if (!isEditMode) setHoveredRegion(idx); }}
+                    onMouseLeave={() => { if (!isEditMode) setHoveredRegion(null); }}
+                    onFocus={() => { if (!isEditMode) setHoveredRegion(idx); }}
+                    onBlur={() => { if (!isEditMode) setHoveredRegion(null); }}
+                    onKeyDown={event => { if (!isEditMode && (event.key === 'Enter' || event.key === ' ')) { event.preventDefault(); setSelectedRegion(idx); } }}
                     onClick={() => {
                       if (isEditMode) {
                         setSelectedHotspotIdx(idx);
                       } else if (h.target_unit_id && onSelectUnit) {
                         onSelectUnit(h.target_unit_id);
                       } else {
-                        alert(`Выбрана зона: ${h.label}`);
+                        setSelectedRegion(idx);
                       }
                     }}
                     style={{
@@ -305,9 +323,9 @@ export const VisualMapsTab = ({ projectId, onSelectUnit }) => {
                       width: `${h.width_pct}%`,
                       height: `${h.height_pct}%`,
                     }}
-                    className={`absolute flex items-center justify-center transition-all cursor-pointer rounded-lg border-2 ${hotspotColorStyle}`}
+                    className={`absolute flex items-center justify-center transition-all rounded-lg ${isBuildingRegion ? 'pointer-events-none z-10' : `cursor-pointer border-2 ${hotspotColorStyle}`}`}
                   >
-                    <span className="rounded-md bg-slate-900/80 px-2 py-0.5 text-[11px] font-extrabold text-white shadow-sm backdrop-blur-xs">
+                    <span className={`rounded-md px-2 py-0.5 text-[11px] font-extrabold shadow-sm backdrop-blur-xs ${isRegionActive ? 'bg-blue-600 text-white ring-2 ring-amber-300' : 'bg-slate-900/80 text-white'}`}>
                       {h.label || (h.unit_number ? `Кв. №${h.unit_number}` : `Область ${idx + 1}`)}
                     </span>
                   </div>
@@ -415,8 +433,21 @@ export const VisualMapsTab = ({ projectId, onSelectUnit }) => {
             <div className="rounded-2xl bg-white border border-slate-200 p-5 shadow-xs">
               <h4 className="text-sm font-bold text-slate-900 mb-2">Интерактивный генплан</h4>
               <p className="text-xs text-slate-500 leading-relaxed">
-                Наведите курсор на размеченную область на генплане, чтобы подсветить соответствующий корпус здания.
+                Наведите курсор на размеченный корпус — его контур подсветится. Нажмите на корпус или выберите его ниже, чтобы закрепить выделение.
               </p>
+              {measuredImage && hotspots.length > 0 && <div className="mt-4 flex flex-wrap gap-2" aria-label="Выбор корпуса">
+                {hotspots.map((hotspot, index) => <button key={hotspot.id ?? index} type="button"
+                  onMouseEnter={() => setHoveredRegion(index)} onMouseLeave={() => setHoveredRegion(null)}
+                  onFocus={() => setHoveredRegion(index)} onBlur={() => setHoveredRegion(null)}
+                  onClick={() => setSelectedRegion(index)} aria-pressed={selectedRegion === index}
+                  className={`rounded-lg border px-3 py-2 text-xs font-bold transition ${activeRegion === index ? 'border-blue-600 bg-blue-600 text-white' : 'border-slate-200 text-slate-700 hover:border-blue-400'}`}>
+                  {hotspot.label || `Область ${index + 1}`}
+                </button>)}
+              </div>}
+              <div role="status" className="mt-4 text-sm font-bold text-blue-700">
+                {activeRegion !== null && hotspots[activeRegion] ? `Выделен: ${hotspots[activeRegion].label}` : 'Корпус не выбран'}
+              </div>
+              {selectedRegion !== null && <button type="button" onClick={() => { setSelectedRegion(null); setHoveredRegion(null); }} className="mt-3 text-xs font-semibold text-slate-500 hover:text-blue-600">Снять выделение</button>}
             </div>
           )}
         </div>
