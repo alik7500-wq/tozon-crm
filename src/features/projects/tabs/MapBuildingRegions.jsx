@@ -9,6 +9,13 @@ const outlines = {
   'Блок Г': [[150, 98], [215, 48], [251, 83], [182, 136]]
 };
 
+export function getBuildingMediaTarget(imagePath, projectId, hotspot) {
+  if (imagePath !== reviewedMap || String(projectId) !== '3') return null;
+  if (!['Блок А', 'Блок Б'].includes(hotspot?.label) || ![3, 4].includes(Number(hotspot?.target_building_id))) return null;
+  // Confirmed active project media: TOZON PLAZA с высоты (IMG_9690.JPG).
+  return 37;
+}
+
 export function getBuildingOutline(imagePath, label) {
   if (imagePath !== reviewedMap || !outlines[label]) return null;
   return outlines[label].map(([x, y]) => `${x / 792 * 100},${y / 709 * 100}`).join(' ');
