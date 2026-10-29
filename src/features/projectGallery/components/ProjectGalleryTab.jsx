@@ -18,7 +18,7 @@ const CATEGORY_NAMES = {
   ALL: 'Все материалы',
   EXTERIOR: 'Фасады',
   COURTYARD: 'Двор и благоустройство',
-  MASTERPLAN: 'Генплан',
+  MASTERPLAN: 'Вид сверху / генплан',
   ENTRANCE: 'Входная группа',
   INTERIOR: 'Интерьеры',
   FLOOR_PLAN: 'Планировки',
@@ -49,8 +49,8 @@ export const ProjectGalleryTab = ({ projectId, onOpenAdminManager }) => {
   const fetchMedia = async () => {
     setIsLoading(true);
     try {
-      const items = await projectGalleryApi.getProjectMedia(projectId);
-      setMediaList(items || []);
+      const items = await projectGalleryApi.getProjectMedia(projectId, { is_active: true });
+      setMediaList((items || []).filter(item => item.is_active !== false));
     } catch (err) {
       console.error('Failed to fetch project media:', err);
     } finally {
@@ -163,12 +163,12 @@ export const ProjectGalleryTab = ({ projectId, onOpenAdminManager }) => {
               className="group relative bg-white rounded-2xl border border-slate-200 overflow-hidden shadow-2xs hover:shadow-lg hover:border-blue-300 transition-all duration-300 flex flex-col cursor-pointer"
             >
               {/* Thumbnail Container */}
-              <div className="relative aspect-4/3 w-full overflow-hidden bg-slate-900">
+              <div className="relative aspect-5/4 w-full overflow-hidden bg-slate-100">
                 <img
                   src={item.url || item.image_url}
                   alt={item.title}
                   loading="lazy"
-                  className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                  className="w-full h-full object-contain"
                 />
 
                 {/* Overlays and Badges */}
@@ -198,11 +198,14 @@ export const ProjectGalleryTab = ({ projectId, onOpenAdminManager }) => {
               {/* Card Footer */}
               <div className="p-3.5 flex-1 flex flex-col justify-between">
                 <div>
-                  <h4 className="text-xs font-bold text-slate-900 group-hover:text-blue-600 transition-colors line-clamp-1">
+                  {item.metadata?.kind === 'architectural_visualization' && (
+                    <p className="text-[10px] font-semibold uppercase tracking-wide text-slate-400 mb-1.5">Проектная визуализация</p>
+                  )}
+                  <h4 className="text-sm font-bold text-slate-900 group-hover:text-blue-600 transition-colors line-clamp-2">
                     {item.title}
                   </h4>
                   {item.description && (
-                    <p className="text-[11px] text-slate-500 mt-1 line-clamp-2 leading-relaxed">
+                    <p className="text-xs text-slate-500 mt-1.5 line-clamp-3 leading-relaxed">
                       {item.description}
                     </p>
                   )}
