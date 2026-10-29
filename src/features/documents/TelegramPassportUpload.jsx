@@ -1,9 +1,11 @@
+import {QRCode} from 'antd';
 import React, {useEffect, useRef, useState} from 'react';
 import {api} from '../../api/client';
 
 const base='/documents/passport/telegram';
 export function TelegramPassportUpload({onResult}) {
   const [session,setSession]=useState(null),[error,setError]=useState(''),[busy,setBusy]=useState(false);
+  const [sent,setSent]=useState(false);
   const active=useRef(null),resultHandler=useRef(onResult);
   resultHandler.current=onResult;
   useEffect(()=>()=>{const id=active.current;active.current=null;if(id)void api.delete(`${base}/${id}`).catch(()=>{});},[]);
@@ -36,7 +38,7 @@ export function TelegramPassportUpload({onResult}) {
     void poll();return()=>{stopped=true;clearTimeout(timer);};
   },[session?.id]);
   const create=async()=>{
-    setBusy(true);setError('');
+    setBusy(true);setError('');setSent(false);
     try{
       if(active.current)await api.delete(`${base}/${active.current}`);
       const response=await api.post(base);
@@ -47,22 +49,41 @@ export function TelegramPassportUpload({onResult}) {
   };
   const approve=async()=>{
     setBusy(true);
-    try{await api.post(`${base}/${session.id}/approve`);setSession(prev=>({...prev,status:'UPLOAD'}));}
+    try{await api.post(`${base}/${session.id}/approve`);setSession(prev=>({...prev,status:'UPLOAD',linked:true}));}
     catch{setError('Подключение не подтверждено. Создайте новую сессию.');}
     finally{setBusy(false);}
   };
-  return <section className="rounded-xl border border-blue-200 bg-blue-50 p-4 space-y-3">
-    <h4 className="font-bold">Сфотографировать через Telegram</h4>
-    <p className="text-sm">Фото передаётся через Telegram и обрабатывается ИИ. Фотография будет показана рядом с распознанными данными для сверки. Результат нужно проверить перед заполнением договора.</p>
-    {!session?<button type="button" disabled={busy} onClick={create} className="rounded-lg bg-blue-600 text-white px-4 py-2">Открыть сканирование через бот</button>:<>
-      <a href={session.url} target="_blank" rel="noreferrer" className="font-semibold text-blue-700 underline">Открыть Telegram на телефоне</a>
-      <p className="text-xs break-all select-all">Можно скопировать ссылку на телефон: {session.url}</p>
-      {session.status==='PAIRING'?<div>
-        <p>Подключается Telegram: <strong>{session.telegram_name}</strong>. Подтвердите, только если это Ваш аккаунт.</p>
-        <button type="button" disabled={busy} onClick={approve} className="bg-blue-600 text-white rounded px-3 py-2">Подтвердить подключение</button>
-      </div>:<p className="text-sm">{{PENDING:'Откройте ссылку и нажмите «Запустить» в Telegram.',UPLOAD:'Отправьте фото паспорта в бот и нажмите «Распознать паспорт».',PROCESSING:'Идёт распознавание…',REVIEW:'В боте нажмите «Передать в договор».',READY:'Получаю данные…'}[session.status]||'Ожидаю подключения…'}</p>}
-      <button type="button" disabled={busy} onClick={create} className="text-sm underline">Создать новую ссылку</button>
-    </>}
-    {error&&<p role="alert" className="text-red-700">{error}</p>}
+  const sendLink=async()=>{
+    setBusy(true);setError('');
+    try{await api.post(`${base}/${session.id}/send`,{url:session.url});setSent(true);}
+    catch{setError('Не удалось отправить. Откройте бот по QR-коду.');}
+    finally{setBusy(false);}
+  };
+  return <section className="rounded-xl border border-blue-200 bg-blue-50 p-4">
+    <h4 className="font-bold mb-2">Сфотографировать паспорт телефоном</h4>
+    {!session?<>
+      <p className="text-sm mb-3">Откройте бот по QR-коду или получите запрос в своём Telegram.</p>
+      <button type="button" disabled={busy} onClick={create} className="rounded-lg bg-blue-600 text-white px-4 py-2">Сканировать через Telegram</button>
+    </>:<div className="flex flex-col sm:flex-row gap-5 items-center sm:items-start">
+      <div className="bg-white rounded-xl p-3 shrink-0 text-center">
+        <QRCode value={session.url} size={160} bordered={false} errorLevel="M" />
+        <p className="text-xs mt-1 text-slate-600">Наведите камеру телефона</p>
+      </div>
+      <div className="space-y-3 flex-1">
+        <p className="text-sm">1. Откройте бот. 2. Сфотографируйте паспорт. 3. Нажмите «Распознать».</p>
+        {session.linked&&<>
+          <p className="text-sm">Ваш Telegram: <strong>{session.telegram_name||'подключён'}</strong></p>
+          <button type="button" disabled={busy||sent||session.status!=='UPLOAD'} onClick={sendLink} className="rounded-lg bg-blue-600 text-white px-4 py-2 disabled:opacity-60">{sent?'✓ Запрос отправлен в Telegram':'Отправить запрос в мой Telegram'}</button>
+        </>}
+        <div><a href={session.url} target="_blank" rel="noreferrer" className="text-blue-700 font-semibold underline">Открыть бот на этом устройстве</a></div>
+        {session.status==='PAIRING'?<div className="rounded-lg bg-white p-3">
+          <p className="text-sm mb-2">Первое подключение: <strong>{session.telegram_name}</strong>. Подтвердите, что это Ваш аккаунт.</p>
+          <button type="button" disabled={busy} onClick={approve} className="bg-blue-600 text-white rounded px-3 py-2">Подключить мой Telegram</button>
+        </div>:<p role="status" className="text-sm font-medium">{{PENDING:'Сканируйте QR-код и нажмите «Запустить» в боте.',UPLOAD:'Ожидаю фотографии паспорта в боте.',PROCESSING:'Распознаю паспорт…',REVIEW:'В боте нажмите «Передать в договор».',READY:'Загружаю фотографии и данные…'}[session.status]||'Ожидаю подключения…'}</p>}
+        <button type="button" disabled={busy} onClick={create} className="text-xs underline text-slate-600">Обновить QR-код</button>
+        <p className="text-xs text-slate-500">Ссылка действует 15 минут. Фото обрабатывается через Telegram и ИИ; перед заполнением договора проверьте данные.</p>
+      </div>
+    </div>}
+    {error&&<p role="alert" className="text-red-700 mt-3">{error}</p>}
   </section>;
 }

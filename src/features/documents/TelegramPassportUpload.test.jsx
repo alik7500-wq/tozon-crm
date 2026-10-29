@@ -1,0 +1,22 @@
+import React from 'react';
+import {it,expect,vi,afterEach} from 'vitest';
+import {render,screen,fireEvent,waitFor,cleanup} from '@testing-library/react';
+const {api}=vi.hoisted(()=>({api:{post:vi.fn(),get:vi.fn(),delete:vi.fn().mockResolvedValue({})}}));
+vi.mock('../../api/client',()=>({api}));
+vi.mock('antd',()=>({QRCode:({value})=><svg data-testid="scan-qr" data-value={value}/>}));
+import {TelegramPassportUpload} from './TelegramPassportUpload';
+afterEach(()=>{cleanup();vi.clearAllMocks();});
+it('shows a local QR and sends only on manager request',async()=>{
+ const url='https://t.me/TozonFinanceBot?start=passport_test';
+ api.post.mockResolvedValue({data:{id:'s',url,linked:true,status:'UPLOAD',telegram_name:'Test Manager'}});
+ api.get.mockResolvedValue({data:{id:'s',status:'UPLOAD',telegram_name:'Test Manager'}});
+ render(<TelegramPassportUpload onResult={vi.fn()}/>);
+ fireEvent.click(screen.getByText('Сканировать через Telegram'));
+ await screen.findByTestId('scan-qr');
+ expect(screen.getByTestId('scan-qr').getAttribute('data-value')).toBe(url);
+ expect(api.post).toHaveBeenCalledTimes(1);
+ fireEvent.click(screen.getByText('Отправить запрос в мой Telegram'));
+ await waitFor(()=>expect(api.post).toHaveBeenCalledWith('/documents/passport/telegram/s/send',{url}));
+ await screen.findByText('✓ Запрос отправлен в Telegram');
+ expect(screen.queryByText(/Можно скопировать ссылку/)).toBeNull();
+});
