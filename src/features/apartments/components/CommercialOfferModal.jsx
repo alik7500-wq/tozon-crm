@@ -239,7 +239,8 @@ export const CommercialOfferModal = ({
     return rooms.reduce((acc, r) => acc + (parseFloat(r.area) || 0), 0);
   }, [rooms]);
 
-  const externalAreaDiff = Math.max(0, Number((areaM2 - roomSumArea).toFixed(2)));
+  const hasCompleteRoomAreas = rooms.length > 0 && rooms.every(r => r.area != null && Number(r.area) > 0);
+  const externalAreaDiff = hasCompleteRoomAreas ? Math.max(0, Number((areaM2 - roomSumArea).toFixed(2))) : 0;
   const isBlockA = /Блок\s+[АA]$/u.test(buildingName);
 
   // Formatted date of generation

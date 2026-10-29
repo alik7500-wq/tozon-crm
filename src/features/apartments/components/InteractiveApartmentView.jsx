@@ -302,7 +302,7 @@ export const InteractiveApartmentView = ({
               )}
 
               {/* Render Room Badges */}
-              {rooms.filter(r => r.area != null && shownImage?.url === furnishedPlanImg).map((r) => {
+              {rooms.filter(r => r.position_x_percent != null && r.position_y_percent != null && shownImage?.url === furnishedPlanImg).map((r) => {
                 const isSelected = selectedRoomId === r.id;
                 const isHovered = hoveredRoomId === r.id;
                 const activeState = isSelected || isHovered;
@@ -340,7 +340,7 @@ export const InteractiveApartmentView = ({
                         activeState ? 'bg-amber-600 text-white' : 'bg-slate-900/85 text-white'
                       }`}
                     >
-                      {r.area != null ? `${formatMeasure(r.area)} м²` : (lang === 'tg' ? 'Масоҳат аниқ карда мешавад' : 'Площадь уточняется')}
+                      {r.area != null ? `${formatMeasure(r.area)} м²` : '—'}
                     </span>
                   </div>
                 );
@@ -426,7 +426,7 @@ export const InteractiveApartmentView = ({
                             <h5 className="text-sm font-bold text-slate-900">{name}</h5>
                           </div>
                           <span className="rounded-lg bg-white px-2 py-1 text-xs font-extrabold text-slate-800 border border-slate-200 shadow-2xs">
-                            {formatMeasure(r.area)} м²
+                            {r.area != null ? `${formatMeasure(r.area)} м²` : (lang === 'tg' ? 'Масоҳат дақиқ карда мешавад' : 'Площадь уточняется')}
                           </span>
                         </div>
 
