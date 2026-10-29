@@ -279,7 +279,9 @@ export const LayoutEditorModal = ({ layoutId, projectId, isOpen, onClose, onUpda
 
     try {
       if (editingRoom?.id) {
-        await api.patch(`/inventory/layouts/${layoutId}/rooms/${editingRoom.id}`, roomForm);
+        const payload = { ...roomForm };
+        if (payload.area === '' && editingRoom.area == null) delete payload.area;
+        await api.patch(`/inventory/layouts/${layoutId}/rooms/${editingRoom.id}`, payload);
       } else {
         await api.post(`/inventory/layouts/${layoutId}/rooms`, roomForm);
       }
@@ -680,7 +682,7 @@ export const LayoutEditorModal = ({ layoutId, projectId, isOpen, onClose, onUpda
                             {r.room_number}
                           </div>
                           <span className="mt-0.5 rounded-md bg-slate-900/85 px-1.5 py-0.2 text-[10px] font-bold text-white shadow-xs backdrop-blur-xs">
-                            {trimDecimalZeros(r.area)} м²
+                            {r.area != null ? `${trimDecimalZeros(r.area)} м²` : 'Площадь уточняется'}
                           </span>
                         </div>
                       ))}
@@ -760,11 +762,11 @@ export const LayoutEditorModal = ({ layoutId, projectId, isOpen, onClose, onUpda
                         </div>
 
                         <div>
-                          <label className="block text-[11px] font-bold text-slate-700 mb-1">Площадь (м²) *</label>
+                          <label className="block text-[11px] font-bold text-slate-700 mb-1">Площадь (м²){!editingRoom || editingRoom.area != null ? ' *' : ' — уточняется'}</label>
                           <input
                             type="number"
                             step="0.01"
-                            required
+                            required={!editingRoom || editingRoom.area != null}
                             value={roomForm.area}
                             onChange={(e) => setRoomForm({ ...roomForm, area: e.target.value })}
                             placeholder="20.75"
@@ -868,7 +870,7 @@ export const LayoutEditorModal = ({ layoutId, projectId, isOpen, onClose, onUpda
                             </span>
                             <div>
                               <p className="text-xs font-bold text-slate-900">{getText(r.name_tg, r.name_ru)}</p>
-                              <p className="text-[10px] text-slate-500">{formatMeasure(r.area)} м²</p>
+                              <p className="text-[10px] text-slate-500">{r.area != null ? `${formatMeasure(r.area)} м²` : 'Площадь уточняется'}</p>
                             </div>
                           </div>
 

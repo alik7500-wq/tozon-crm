@@ -333,4 +333,13 @@ describe('Block A catalog preparation', () => {
     expect(screen.queryByText(/81\.20/)).toBeNull();
     expect(screen.getAllByText('$56,826 USD').length).toBeGreaterThan(0);
   });
+ it('does not label the unknown room-area remainder as a balcony',async()=>{
+  const previous=api.get.getMockImplementation();
+  api.get.mockImplementation(path=>path.includes('/units/89/presentation')?Promise.resolve({data:{data:{...mockPresentation1,rooms:mockPresentation1.rooms.map((r,i)=>i===0?{...r,area:null}:r)}}}):previous(path));
+  render(<CommercialOfferModal unit={mockUnit1} onClose={vi.fn()} initialLang="RU"/>);
+  await screen.findByText('Гостиная');
+  expect(screen.queryByText(/Балкон\/лоджия/)).toBeNull();
+  expect(screen.queryByText(/Площадь комнат:/)).toBeNull();
+ });
+
 });

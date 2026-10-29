@@ -170,4 +170,14 @@ describe('InteractiveApartmentView', () => {
     expect(await screen.findByRole('button', { name: 'Показать 360°-тур' })).toBeDefined();
     expect(screen.queryByTestId('apartment-tour')).toBeNull();
   });
+  it('shows a described room and its marker without inventing an unknown area', async()=>{
+    localStorage.setItem('tozon_lang','ru');
+    api.get.mockResolvedValue({data:{data:{...mockPresentation,layout:{id:28,furnished_plan_path:'/plan.png'},images:[{type:'furnished_plan',url:'/plan.png'}],rooms:[{id:100,room_number:1,name_ru:'Гостиная',description_ru:'Отдельная общая комната.',area:null,position_x_percent:45,position_y_percent:60}]}}});
+    render(<I18nProvider><InteractiveApartmentView unitId={201}/></I18nProvider>);
+    expect(await screen.findByText('Площадь уточняется')).toBeDefined();
+    expect(screen.getByText('Отдельная общая комната.')).toBeDefined();
+    expect(screen.getAllByText('1').length).toBe(2);
+    expect(screen.queryByText('0 м²')).toBeNull();
+  });
+
 });
