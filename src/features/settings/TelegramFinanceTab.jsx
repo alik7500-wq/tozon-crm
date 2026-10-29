@@ -28,8 +28,8 @@ export function TelegramFinanceTab() {
     <div className="rounded-2xl border border-blue-200 bg-blue-50 p-5">
       <h2 className="font-bold text-lg">TOZON CRM — отчёты в Telegram</h2>
       <p className="mt-2 text-sm">Продажи, поступления, итоговые расходы и остатки по кассам. Ежедневно в <strong>22:00 по Худжанду</strong>.</p>
-      <p className="mt-2 text-sm">Акмалхону доступны ПКО и РКО всех касс. Остальным — операции своей кассы. Ввод РКО разрешается отдельно; перед записью бот требует подтверждение.</p>
-      <a className="inline-block mt-4 bg-blue-600 text-white px-4 py-2 rounded-xl text-sm" href="https://t.me/TozonFinanceBot" target="_blank" rel="noopener noreferrer">Открыть @TozonFinanceBot</a>
+      <p className="mt-2 text-sm">Руководителю доступны ПКО и РКО всех касс. Остальным — операции своей кассы. Ввод РКО разрешается отдельно; перед записью бот требует подтверждение.</p>
+      {import.meta.env.VITE_COMMERCIAL_TEST !== 'true' && <a className="inline-block mt-4 bg-blue-600 text-white px-4 py-2 rounded-xl text-sm" href="https://t.me/TozonFinanceBot" target="_blank" rel="noopener noreferrer">Открыть @TozonFinanceBot</a>}
     </div>
     {error && <p role="alert" className="p-3 bg-red-50 text-red-700 rounded-xl">{error}</p>}
     <div className="flex items-center justify-between gap-3"><h3 className="font-bold">Доступ к отчётам</h3><button onClick={load} disabled={busy} className="text-blue-600 text-sm">Обновить</button></div>

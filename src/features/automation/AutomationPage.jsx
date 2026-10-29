@@ -168,7 +168,7 @@ export const AutomationPage = () => {
   };
 
   const copyWebhookUrl = () => {
-    const url = 'https://tozon-backend.onrender.com/api/leads/webhook';
+    const url = api.defaults.baseURL + '/leads/webhook';
     navigator.clipboard.writeText(url);
     setCopiedUrl(true);
     setTimeout(() => setCopiedUrl(false), 3000);
@@ -640,7 +640,7 @@ export const AutomationPage = () => {
 
             <div className="flex items-center gap-3 rounded-2xl bg-slate-900 p-3.5 text-white font-mono text-xs overflow-x-auto">
               <span className="text-emerald-400 font-bold select-none">POST</span>
-              <span className="text-slate-200 select-all">https://tozon-backend.onrender.com/api/leads/webhook</span>
+              <span className="text-slate-200 select-all">{api.defaults.baseURL + '/leads/webhook'}</span>
             </div>
           </div>
 

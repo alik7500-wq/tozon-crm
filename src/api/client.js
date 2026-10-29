@@ -1,7 +1,7 @@
 import axios from 'axios';
+import {environment} from './environment';
 
-const rawBaseUrl = import.meta.env.VITE_API_URL || 'https://tozon-backend.onrender.com/api';
-const baseURL = rawBaseUrl.endsWith('/api') ? rawBaseUrl : `${rawBaseUrl.replace(/\/$/, '')}/api`;
+const baseURL = environment.apiUrl;
 
 export const api = axios.create({
   baseURL,

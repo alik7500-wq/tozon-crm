@@ -245,7 +245,7 @@ export function LayoutPanoramaPreview({ layout, projectId }) {
           <p className="text-xs text-amber-700">Панель Skybox доступна ниже при настроенном серверном API. Сферическую проекцию и геометрию необходимо проверять.</p>
         </div>}
       </div>
-      {Number(layout?.id) === 7 && Number(projectId) === 3 && (
+      {import.meta.env.VITE_COMMERCIAL_TEST !== 'true' && Number(layout?.id) === 7 && Number(projectId) === 3 && (
         <section className="space-y-2 rounded-xl border border-emerald-200 bg-emerald-50 p-4">
           <h4 className="font-semibold text-emerald-950">Тестовая гостиная — Skybox AI 360°</h4>
           <p className="text-xs text-emerald-900">Внешняя демонстрация по ссылке Skybox AI. Не является опубликованным туром CRM и не подтверждает соответствие планировке.</p>

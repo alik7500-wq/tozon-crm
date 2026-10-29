@@ -9,7 +9,7 @@ import { thumbnail } from '@cloudinary/url-gen/actions/resize';
 // Initialize Cloudinary for displaying the uploaded image if needed
 export const cld = new Cloudinary({
   cloud: {
-    cloudName: import.meta.env.VITE_CLOUDINARY_CLOUD_NAME || 'r3pnvm9s'
+    cloudName: import.meta.env.VITE_CLOUDINARY_CLOUD_NAME || 'unconfigured'
   }
 });
 
