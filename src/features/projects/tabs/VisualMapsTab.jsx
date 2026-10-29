@@ -16,9 +16,9 @@ import {
   Sparkles
 } from 'lucide-react';
 import ImageUpload from '../../../components/ImageUpload';
-import { MapBuildingRegions, getBuildingOutline } from './MapBuildingRegions';
+import { MapBuildingRegions, getBuildingOutline, getBuildingMediaTarget } from './MapBuildingRegions';
 
-export const VisualMapsTab = ({ projectId, onSelectUnit }) => {
+export const VisualMapsTab = ({ projectId, onSelectUnit, onOpenMedia }) => {
   const { user } = useAuth();
   const [maps, setMaps] = useState([]);
   const [activeMap, setActiveMap] = useState(null);
@@ -43,6 +43,12 @@ export const VisualMapsTab = ({ projectId, onSelectUnit }) => {
   const imageContainerRef = useRef(null);
   const measuredImage = imageSize?.src === activeMap?.image_path ? imageSize : null;
   const activeRegion = hoveredRegion ?? selectedRegion;
+  const selectRegion = index => {
+    setSelectedRegion(index);
+    if (index === null || isEditMode) return;
+    const mediaId = getBuildingMediaTarget(activeMap?.image_path, projectId, hotspots[index]);
+    if (mediaId !== null) onOpenMedia?.(mediaId);
+  };
 
   const fetchMaps = async () => {
     setIsLoading(true);
@@ -270,7 +276,7 @@ export const VisualMapsTab = ({ projectId, onSelectUnit }) => {
 
               {/* Hotspots Overlay */}
               {measuredImage && !isEditMode && <MapBuildingRegions imagePath={activeMap.image_path} hotspots={hotspots}
-                activeIndex={activeRegion} selectedIndex={selectedRegion} onHover={setHoveredRegion} onSelect={setSelectedRegion} />}
+                activeIndex={activeRegion} selectedIndex={selectedRegion} onHover={setHoveredRegion} onSelect={selectRegion} />}
               {measuredImage && hotspots.map((h, idx) => {
                 const isSelected = isEditMode && selectedHotspotIdx === idx;
                 const isBuildingRegion = !isEditMode && Boolean(getBuildingOutline(activeMap.image_path, h.label));
@@ -307,14 +313,14 @@ export const VisualMapsTab = ({ projectId, onSelectUnit }) => {
                     onMouseLeave={() => { if (!isEditMode) setHoveredRegion(null); }}
                     onFocus={() => { if (!isEditMode) setHoveredRegion(idx); }}
                     onBlur={() => { if (!isEditMode) setHoveredRegion(null); }}
-                    onKeyDown={event => { if (!isEditMode && (event.key === 'Enter' || event.key === ' ')) { event.preventDefault(); setSelectedRegion(idx); } }}
+                    onKeyDown={event => { if (!isEditMode && (event.key === 'Enter' || event.key === ' ')) { event.preventDefault(); selectRegion(idx); } }}
                     onClick={() => {
                       if (isEditMode) {
                         setSelectedHotspotIdx(idx);
                       } else if (h.target_unit_id && onSelectUnit) {
                         onSelectUnit(h.target_unit_id);
                       } else {
-                        setSelectedRegion(idx);
+                        selectRegion(idx);
                       }
                     }}
                     style={{
@@ -433,13 +439,15 @@ export const VisualMapsTab = ({ projectId, onSelectUnit }) => {
             <div className="rounded-2xl bg-white border border-slate-200 p-5 shadow-xs">
               <h4 className="text-sm font-bold text-slate-900 mb-2">Интерактивный генплан</h4>
               <p className="text-xs text-slate-500 leading-relaxed">
-                Наведите курсор на размеченный корпус — его контур подсветится. Нажмите на корпус или выберите его ниже, чтобы закрепить выделение.
+                {onOpenMedia && hotspots.some(hotspot => getBuildingMediaTarget(activeMap.image_path, projectId, hotspot) !== null)
+                  ? 'Наведите курсор на корпус — его контур подсветится. Нажатие на блок А или Б открывает визуализацию объекта. Для блоков В и Г нажатие закрепляет выделение.'
+                  : 'Наведите курсор на размеченный корпус — его контур подсветится. Нажмите на корпус или выберите его ниже, чтобы закрепить выделение.'}
               </p>
               {measuredImage && hotspots.length > 0 && <div className="mt-4 flex flex-wrap gap-2" aria-label="Выбор корпуса">
                 {hotspots.map((hotspot, index) => <button key={hotspot.id ?? index} type="button"
                   onMouseEnter={() => setHoveredRegion(index)} onMouseLeave={() => setHoveredRegion(null)}
                   onFocus={() => setHoveredRegion(index)} onBlur={() => setHoveredRegion(null)}
-                  onClick={() => setSelectedRegion(index)} aria-pressed={selectedRegion === index}
+                  onClick={() => selectRegion(index)} aria-pressed={selectedRegion === index}
                   className={`rounded-lg border px-3 py-2 text-xs font-bold transition ${activeRegion === index ? 'border-blue-600 bg-blue-600 text-white' : 'border-slate-200 text-slate-700 hover:border-blue-400'}`}>
                   {hotspot.label || `Область ${index + 1}`}
                 </button>)}

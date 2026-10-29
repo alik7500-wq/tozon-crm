@@ -23,6 +23,29 @@ it('shows active materials and keeps archived images out of cards and the viewer
   expect(screen.queryByTitle('Следующее (→)')).toBeNull();
 });
 
+it('opens the requested active image after loading and stays closed after dismissal', async () => {
+  projectGalleryApi.getProjectMedia.mockResolvedValue([
+    { id: 1, title: 'Фасад', url: '/facade.jpg', category: 'EXTERIOR', is_active: true },
+    { id: 37, title: 'TOZON PLAZA с высоты', url: '/aerial.jpg', category: 'MASTERPLAN', is_active: true }
+  ]);
+  render(<ProjectGalleryTab projectId={3} initialMediaId={37} />);
+  await screen.findByText('2 / 2');
+  expect(screen.getAllByAltText('TOZON PLAZA с высоты')).toHaveLength(2);
+  fireEvent.click(screen.getByTitle('Закрыть (Esc)'));
+  expect(screen.queryByText('2 / 2')).toBeNull();
+  expect(screen.getAllByAltText('TOZON PLAZA с высоты')).toHaveLength(1);
+});
+
+it('reports a missing or archived target without opening a different image', async () => {
+  projectGalleryApi.getProjectMedia.mockResolvedValue([
+    { id: 1, title: 'Другой фасад', url: '/other.jpg', category: 'EXTERIOR', is_active: true },
+    { id: 37, title: 'Архив', url: '/archived.jpg', category: 'MASTERPLAN', is_active: false }
+  ]);
+  render(<ProjectGalleryTab projectId={3} initialMediaId={37} />);
+  expect((await screen.findByRole('alert')).textContent).toContain('Запрошенная визуализация недоступна');
+  expect(screen.queryByTitle('Закрыть (Esc)')).toBeNull();
+});
+
 it('keeps the project visualization label and complete image in the card', async () => {
   projectGalleryApi.getProjectMedia.mockResolvedValue([
     { id: 1, title: 'Вид здания', url: '/render.jpg', category: 'EXTERIOR', is_active: true, metadata: { kind: 'architectural_visualization' } }

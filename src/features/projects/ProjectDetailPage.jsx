@@ -43,6 +43,7 @@ export const ProjectDetailPage = () => {
   const [inventory, setInventory] = useState(null);
   const [layouts, setLayouts] = useState([]);
   const [activeTab, setActiveTab] = useState('chessboard'); // 'overview', 'chessboard', 'layouts', 'maps'
+  const [requestedMediaId, setRequestedMediaId] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isGeneratorOpen, setIsGeneratorOpen] = useState(false);
 
@@ -244,6 +245,8 @@ export const ProjectDetailPage = () => {
             >
               <ProjectGalleryTab
                 projectId={id}
+                initialMediaId={requestedMediaId}
+                onInitialMediaHandled={() => setRequestedMediaId(null)}
                 onOpenAdminManager={() => setActiveTab('visual_admin')}
               />
             </React.Suspense>
@@ -333,7 +336,7 @@ export const ProjectDetailPage = () => {
         )}
 
         {activeTab === 'maps' && (
-          <VisualMapsTab projectId={id} />
+          <VisualMapsTab projectId={id} onOpenMedia={mediaId => { setRequestedMediaId(mediaId); setActiveTab('gallery'); }} />
         )}
 
         {activeTab === 'layouts' && (

@@ -39,12 +39,13 @@ const CATEGORY_COLORS = {
   OTHER: 'bg-slate-50 text-slate-700 border-slate-200/60'
 };
 
-export const ProjectGalleryTab = ({ projectId, onOpenAdminManager }) => {
+export const ProjectGalleryTab = ({ projectId, onOpenAdminManager, initialMediaId = null, onInitialMediaHandled }) => {
   const { user } = useAuth();
   const [mediaList, setMediaList] = useState([]);
   const [selectedCategory, setSelectedCategory] = useState('ALL');
   const [isLoading, setIsLoading] = useState(true);
   const [lightboxIndex, setLightboxIndex] = useState(null);
+  const [navigationError, setNavigationError] = useState('');
 
   const fetchMedia = async () => {
     setIsLoading(true);
@@ -62,6 +63,15 @@ export const ProjectGalleryTab = ({ projectId, onOpenAdminManager }) => {
     if (projectId) fetchMedia();
   }, [projectId]);
 
+  useEffect(() => {
+    if (isLoading || initialMediaId === null) return;
+    const index = mediaList.findIndex(item => String(item.id) === String(initialMediaId));
+    setSelectedCategory('ALL');
+    setLightboxIndex(index >= 0 ? index : null);
+    setNavigationError(index >= 0 ? '' : 'Запрошенная визуализация недоступна. Выберите другой материал из галереи.');
+    onInitialMediaHandled?.();
+  }, [initialMediaId, isLoading, mediaList, onInitialMediaHandled]);
+
   // Extract only available categories present in the project
   const availableCategories = ['ALL', ...new Set(mediaList.map(m => m.category).filter(Boolean))];
 
@@ -74,6 +84,7 @@ export const ProjectGalleryTab = ({ projectId, onOpenAdminManager }) => {
 
   return (
     <div className="space-y-6 animate-in fade-in duration-300">
+      {navigationError && <p role="alert" className="rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900">{navigationError}</p>}
       {/* Gallery Header & Filter Toolbar */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-white p-4 sm:p-5 rounded-2xl border border-slate-200/80 shadow-2xs">
         <div className="flex flex-wrap items-center gap-2">

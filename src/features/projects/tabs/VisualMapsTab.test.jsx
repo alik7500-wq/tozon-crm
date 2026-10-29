@@ -80,3 +80,21 @@ it('pins a selected building with click or keyboard, changes it from the sidebar
   fireEvent.click(screen.getByRole('button', { name: 'Снять выделение' }));
   expect(screen.getByRole('status').textContent).toBe('Корпус не выбран');
 });
+
+it('opens the configured visual for A and Б from polygons, keyboard and sidebar; В and Г stay selectable', async () => {
+  const onOpenMedia = vi.fn();
+  const linked = labels.map((h, i) => ({ ...h, target_building_id: i === 0 ? 4 : i === 1 ? 3 : null }));
+  api.get.mockResolvedValue({ data: { maps: [{ id: 3, title: 'Генплан', image_path: realMap, hotspots: linked }] } });
+  render(<VisualMapsTab projectId={3} onOpenMedia={onOpenMedia} />);
+  loadImage(await screen.findByAltText('Генплан'), 792, 709);
+  fireEvent.mouseEnter(screen.getByRole('button', { name: 'Выделить Блок А' }));
+  expect(onOpenMedia).not.toHaveBeenCalled();
+  fireEvent.click(screen.getByRole('button', { name: 'Выделить Блок А' }));
+  expect(onOpenMedia).toHaveBeenLastCalledWith(37);
+  fireEvent.keyDown(screen.getByRole('button', { name: 'Выделить Блок Б' }), { key: 'Enter' });
+  expect(onOpenMedia).toHaveBeenCalledTimes(2);
+  fireEvent.click(screen.getByRole('button', { name: 'Блок А', exact: true }));
+  expect(onOpenMedia).toHaveBeenCalledTimes(3);
+  for (const name of ['Блок В', 'Блок Г']) fireEvent.click(screen.getByRole('button', { name, exact: true }));
+  expect(onOpenMedia).toHaveBeenCalledTimes(3);
+});
