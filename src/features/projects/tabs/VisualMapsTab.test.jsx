@@ -26,7 +26,7 @@ it('anchors all four labels to the scaled image rather than its letterbox', asyn
   loadImage(img, 792, 709);
   expect(img.parentElement.style.maxWidth).toBe(`${600 * 792 / 709}px`);
   for (const label of labels) {
-    const overlay = screen.getByText(label.label).parentElement;
+    const overlay = screen.getAllByText(label.label).find(element => element.parentElement.style.left).parentElement;
     expect(overlay.parentElement).toBe(img.parentElement);
     expect(overlay.style.left).toBe(`${label.x_pct}%`);
     expect(overlay.style.top).toBe(`${label.y_pct}%`);
@@ -43,6 +43,40 @@ it('remeasures a different map before displaying its labels', async () => {
   const img = screen.getByAltText('Фасад');
   expect(screen.queryByText('Новый ракурс')).toBeNull();
   loadImage(img, 1200, 600);
-  expect(screen.getByText('Новый ракурс')).toBeTruthy();
+  expect(screen.getAllByText('Новый ракурс').length).toBeGreaterThan(0);
   expect(img.parentElement.style.maxWidth).toBe('1200px');
+});
+
+const realMap = 'https://res.cloudinary.com/r3pnvm9s/image/upload/v1787392389/tozon-crm/euh4vu4ocbgschzszw3p.png';
+async function renderGenplan() {
+  api.get.mockResolvedValue({ data: { maps: [{ id: 3, title: 'Генплан', image_path: realMap, hotspots: labels }] } });
+  render(<VisualMapsTab projectId={3} />);
+  loadImage(await screen.findByAltText('Генплан'), 792, 709);
+}
+it('highlights the full roof on hover and shows its name in the sidebar', async () => {
+  await renderGenplan();
+  const polygon = screen.getByRole('button', { name: 'Выделить Блок А' });
+  expect(polygon.tagName.toLowerCase()).toBe('polygon');
+  expect(polygon.getAttribute('fill')).toBe('transparent');
+  fireEvent.mouseEnter(polygon);
+  expect(polygon.getAttribute('fill')).toBe('rgba(59,130,246,0.45)');
+  expect(screen.getByRole('status').textContent).toBe('Выделен: Блок А');
+  fireEvent.mouseLeave(polygon);
+  expect(polygon.getAttribute('fill')).toBe('transparent');
+  expect(screen.getByRole('status').textContent).toBe('Корпус не выбран');
+});
+it('pins a selected building with click or keyboard, changes it from the sidebar, and clears it', async () => {
+  await renderGenplan();
+  const a = screen.getByRole('button', { name: 'Выделить Блок А' });
+  fireEvent.click(a); fireEvent.mouseLeave(a);
+  expect(a.getAttribute('aria-pressed')).toBe('true');
+  expect(a.getAttribute('fill')).toBe('rgba(59,130,246,0.45)');
+  const b = screen.getByRole('button', { name: 'Выделить Блок Б' });
+  fireEvent.focus(b); fireEvent.keyDown(b, { key: 'Enter' }); fireEvent.blur(b);
+  expect(screen.getByRole('status').textContent).toBe('Выделен: Блок Б');
+  expect(a.getAttribute('fill')).toBe('transparent');
+  fireEvent.click(screen.getByRole('button', { name: 'Блок Г', exact: true }));
+  expect(screen.getByRole('status').textContent).toBe('Выделен: Блок Г');
+  fireEvent.click(screen.getByRole('button', { name: 'Снять выделение' }));
+  expect(screen.getByRole('status').textContent).toBe('Корпус не выбран');
 });
