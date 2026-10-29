@@ -1,3 +1,4 @@
+import { TelegramPassportUpload } from './TelegramPassportUpload';
 import React, { useState, useRef, useEffect } from 'react';
 import { passportApi } from './passportApi';
 import { useI18n } from '../../context/i18nContext';
@@ -196,6 +197,20 @@ export const PassportScannerModal = ({
         return;
       }
 
+      acceptAnalysis(res);
+    } catch (err) {
+      console.error('Analysis failed:', err);
+      setStep('UPLOAD');
+      setErrorMessage(
+        err.message || 'Ошибка распознавания. Попробуйте еще раз или введите данные вручную.'
+      );
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const acceptAnalysis = (res) => {
+    setAnalysisResult(res);
       const doc = res.document || {};
 
       // Compose full name from surname, given_name, patronymic
@@ -228,21 +243,12 @@ export const PassportScannerModal = ({
         registration_address: doc.registered_address || '',
         inn: doc.inn || doc.personal_number || '',
         sex: doc.sex || '',
-        country: doc.country || 'TJK',
-        country_name: doc.country_name || 'Таджикистан',
-        document_type: doc.document_type || 'passport'
+        country: doc.country || '',
+        country_name: doc.country_name || '',
+        document_type: doc.document_type || ''
       });
 
       setStep('REVIEW');
-    } catch (err) {
-      console.error('Analysis failed:', err);
-      setStep('UPLOAD');
-      setErrorMessage(
-        err.message || 'Ошибка распознавания. Попробуйте еще раз или введите данные вручную.'
-      );
-    } finally {
-      setIsLoading(false);
-    }
   };
 
   const handleFieldChange = (field, val) => {
@@ -353,6 +359,7 @@ export const PassportScannerModal = ({
         {/* STEP 1: UPLOAD & PHOTO CAPTURE */}
         {step === 'UPLOAD' && (
           <div className="p-6 overflow-y-auto space-y-6">
+            <TelegramPassportUpload onResult={acceptAnalysis} />
             <div className="text-center max-w-xl mx-auto space-y-2">
               <h4 className="text-base font-bold text-slate-900">Загрузите или сфотографируйте документ</h4>
               <p className="text-xs text-slate-500">
