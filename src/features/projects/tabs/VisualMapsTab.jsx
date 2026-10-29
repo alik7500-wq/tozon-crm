@@ -22,6 +22,7 @@ export const VisualMapsTab = ({ projectId, onSelectUnit }) => {
   const [maps, setMaps] = useState([]);
   const [activeMap, setActiveMap] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [imageSize, setImageSize] = useState(null);
 
   // Edit / Draw Mode
   const [isEditMode, setIsEditMode] = useState(false);
@@ -37,6 +38,7 @@ export const VisualMapsTab = ({ projectId, onSelectUnit }) => {
   const [isUploading, setIsUploading] = useState(false);
 
   const imageContainerRef = useRef(null);
+  const measuredImage = imageSize?.src === activeMap?.image_path ? imageSize : null;
 
   const fetchMaps = async () => {
     setIsLoading(true);
@@ -243,18 +245,25 @@ export const VisualMapsTab = ({ projectId, onSelectUnit }) => {
         <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
           {/* Visual Image with interactive hotspots */}
           <div className="lg:col-span-3 rounded-2xl bg-white border border-slate-200 p-4 shadow-xs">
+            <div className="flex w-full justify-center overflow-hidden rounded-xl bg-slate-900 border border-slate-200 select-none">
             <div
               ref={imageContainerRef}
-              className="relative w-full overflow-hidden rounded-xl bg-slate-900 border border-slate-200 select-none"
+              className="relative w-full"
+              style={measuredImage ? { maxWidth: `${600 * measuredImage.width / measuredImage.height}px` } : undefined}
             >
               <img
+                key={activeMap.image_path}
                 src={activeMap.image_path}
                 alt={activeMap.title}
                 className="w-full h-auto max-h-[600px] object-contain mx-auto block"
+                onLoad={event => {
+                  const { naturalWidth, naturalHeight } = event.currentTarget;
+                  if (naturalWidth > 0 && naturalHeight > 0) setImageSize({ src: activeMap.image_path, width: naturalWidth, height: naturalHeight });
+                }}
               />
 
               {/* Hotspots Overlay */}
-              {hotspots.map((h, idx) => {
+              {measuredImage && hotspots.map((h, idx) => {
                 const isSelected = isEditMode && selectedHotspotIdx === idx;
                 
                 let hotspotColorStyle = 'border-blue-500 bg-blue-500/20 hover:bg-blue-500/40 hover:border-blue-400 z-10';
@@ -306,6 +315,7 @@ export const VisualMapsTab = ({ projectId, onSelectUnit }) => {
               })}
 
 
+            </div>
             </div>
           </div>
 
