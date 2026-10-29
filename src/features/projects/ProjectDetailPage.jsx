@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { api } from '../../api/client';
 import { apartmentStats } from './apartmentStats';
+import { ProjectMetricsTab } from './tabs/ProjectMetricsTab';
 import { useAuth } from '../auth/AuthContext';
 import { ChessboardTab } from './tabs/ChessboardTab';
 import { LayoutsTab } from './tabs/LayoutsTab';
@@ -39,6 +40,7 @@ export const ProjectDetailPage = () => {
 
   const [project, setProject] = useState(null);
   const [stats, setStats] = useState(null);
+  const [inventory, setInventory] = useState(null);
   const [layouts, setLayouts] = useState([]);
   const [activeTab, setActiveTab] = useState('chessboard'); // 'overview', 'chessboard', 'layouts', 'maps'
   const [isLoading, setIsLoading] = useState(true);
@@ -55,9 +57,13 @@ export const ProjectDetailPage = () => {
       // 2. Fetch stats safely
       try {
         const statsRes = await api.get(`/inventory/projects/${id}/chessboard`);
-        setStats(apartmentStats(statsRes.data?.chessboard || []));
+        const chessboard = statsRes.data?.chessboard || [];
+        setInventory(chessboard);
+        setStats(apartmentStats(chessboard));
       } catch (err) {
         console.warn('Failed to load project stats:', err);
+        setInventory(null);
+        setStats(null);
       }
 
       // 3. Fetch layouts safely
@@ -339,31 +345,8 @@ export const ProjectDetailPage = () => {
         )}
 
         {activeTab === 'overview' && (
-          <div className="rounded-2xl bg-white border border-slate-200 p-6 space-y-6 shadow-xs">
-            <h3 className="text-lg font-bold text-slate-900">Описание объекта</h3>
-            <p className="text-sm text-slate-600 leading-relaxed">
-              {project.description || 'Описание для данного жилого комплекса пока не заполнено.'}
-            </p>
-
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 border-t border-slate-100 pt-5 text-xs text-slate-600">
-              <div>
-                <span className="font-semibold text-slate-400 block">Валюта расчетов:</span>
-                <span className="text-sm font-bold text-slate-800">{project.currency}</span>
-              </div>
-              <div>
-                <span className="font-semibold text-slate-400 block">Общая площадь квартир:</span>
-                <span className="text-sm font-bold text-slate-800">
-                  {stats ? (stats.total_area_x100 / 100).toLocaleString() : 0} м²
-                </span>
-              </div>
-              <div>
-                <span className="font-semibold text-slate-400 block">Дата добавления в CRM:</span>
-                <span className="text-sm font-bold text-slate-800">
-                  {new Date(project.created_at).toLocaleDateString()}
-                </span>
-              </div>
-            </div>
-          </div>
+          <ProjectMetricsTab project={project} buildings={inventory} onRetry={fetchProjectData}
+            onBuildingUpdated={building => setInventory(current => current?.map(item => item.id === building.id ? { ...item, ...building } : item) ?? null)} />
         )}
 
         {activeTab === 'visual_admin' && (
