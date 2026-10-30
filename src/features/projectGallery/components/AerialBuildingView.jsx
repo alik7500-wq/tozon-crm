@@ -1,23 +1,27 @@
 import React, { useId, useState } from 'react';
 import { aerialBlocks, getAerialBuildingInfo } from './aerialBuildingInfo';
 import { formatMetricArea } from '../../projects/projectAreaMetrics';
+import { TypicalFloorPlanView } from './TypicalFloorPlanView';
 
 export function AerialBuildingView({ image, buildings, initialBuildingId = null }) {
   const [selected, setSelected] = useState(() => aerialBlocks.some(block => block.id === Number(initialBuildingId)) ? Number(initialBuildingId) : null);
   const [hovered, setHovered] = useState(null);
+  const [floorBlockId, setFloorBlockId] = useState(null);
   const clipId = useId().replaceAll(':', '');
   const activeId = hovered ?? selected;
   const active = aerialBlocks.find(block => block.id === activeId);
   const info = active ? getAerialBuildingInfo(buildings, active.id) : null;
   const src = image.url || image.image_url;
   const areaText = group => group.missing ? 'Уточняется' : formatMetricArea(group.area);
+  const openFloorPlan = blockId => { setSelected(blockId); setHovered(null); setFloorBlockId(blockId); };
+  if (floorBlockId !== null) return <TypicalFloorPlanView key={floorBlockId} block={aerialBlocks.find(block => block.id === floorBlockId)} onBack={() => setFloorBlockId(null)} />;
 
   return <div className="mx-auto grid w-full max-w-[1500px] items-center gap-5 lg:grid-cols-[minmax(0,1fr)_300px]">
     <div>
       <div className="mb-3 flex items-center justify-center gap-2" aria-label="Блоки объекта">
         {aerialBlocks.map(block => <button key={block.id} type="button" aria-pressed={selected === block.id}
           onMouseEnter={() => setHovered(block.id)} onMouseLeave={() => setHovered(null)} onFocus={() => setHovered(block.id)} onBlur={() => setHovered(null)}
-          onClick={() => setSelected(block.id)} className={`rounded-xl border px-4 py-2 text-sm font-bold transition ${activeId === block.id ? 'border-orange-400 bg-orange-500 text-slate-950' : 'border-white/30 bg-white/10 text-white hover:bg-white/20'}`}>{block.name}</button>)}
+          onClick={() => openFloorPlan(block.id)} className={`rounded-xl border px-4 py-2 text-sm font-bold transition ${activeId === block.id ? 'border-orange-400 bg-orange-500 text-slate-950' : 'border-white/30 bg-white/10 text-white hover:bg-white/20'}`}>{block.name}</button>)}
       </div>
       <div className="relative mx-auto w-full overflow-hidden rounded-xl shadow-2xl" style={{ maxWidth: 'calc((100dvh - 260px) * 1.25)' }}>
         <img src={src} alt={image.title} className={`block h-auto w-full transition-[filter] duration-200 ${active ? 'brightness-60' : ''}`} />
@@ -27,8 +31,8 @@ export function AerialBuildingView({ image, buildings, initialBuildingId = null 
           {aerialBlocks.map(block => <polygon key={block.id} points={block.points} role="button" tabIndex={0}
             aria-label={`Показать информацию: ${block.name}`} aria-pressed={selected === block.id}
             onMouseEnter={() => setHovered(block.id)} onMouseLeave={() => setHovered(null)} onFocus={() => setHovered(block.id)} onBlur={() => setHovered(null)}
-            onClick={() => setSelected(block.id)} onKeyDown={event => {
-              if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); setSelected(block.id); }
+            onClick={() => openFloorPlan(block.id)} onKeyDown={event => {
+              if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); openFloorPlan(block.id); }
             }} fill="transparent" stroke={activeId === block.id ? '#fb923c' : 'transparent'} strokeWidth="3" vectorEffect="non-scaling-stroke"
             className="pointer-events-auto cursor-pointer transition-colors focus:outline-none" />)}
         </svg>
@@ -36,12 +40,13 @@ export function AerialBuildingView({ image, buildings, initialBuildingId = null 
           className={`pointer-events-none absolute -translate-x-1/2 rounded-lg px-3 py-1 text-xs font-bold shadow-lg ${activeId === block.id ? 'bg-orange-500 text-slate-950' : 'bg-slate-950/80 text-white'}`}>{block.name}</span>)}
       </div>
       <h3 className="mt-3 text-center text-base font-bold text-white">{image.title}</h3>
-      <p className="mt-1 text-center text-xs text-slate-400">Проектная визуализация · Наведите курсор на корпус или выберите блок</p>
+      <p className="mt-1 text-center text-xs text-slate-400">Наведите курсор для информации · Нажмите на корпус, чтобы открыть типовой этаж</p>
       {image.description && <details className="mt-3 text-xs text-slate-400"><summary className="cursor-pointer text-center">Описание визуализации</summary><p className="mt-2 leading-relaxed">{image.description}</p></details>}
     </div>
     <aside aria-label="Информация о выбранном блоке" aria-live="polite" className="lg:max-h-[calc(100dvh-150px)] lg:overflow-y-auto rounded-2xl border border-white/20 bg-white p-5 text-slate-900 shadow-2xl">
       {active ? <>
         <div className="flex items-center justify-between gap-2 border-b border-slate-100 pb-4"><h4 className="text-xl font-bold">{active.name}</h4><span className="rounded-full bg-orange-50 px-2.5 py-1 text-[10px] font-bold text-orange-700">TOZON PLAZA</span></div>
+        <button type="button" onClick={() => openFloorPlan(active.id)} className="mt-4 w-full rounded-xl bg-orange-500 px-4 py-3 text-sm font-bold text-slate-950 hover:bg-orange-400">Открыть типовую планировку</button>
         {info ? <>
           <dl className="mt-4 grid grid-cols-2 gap-3"><div className="rounded-xl bg-slate-50 p-3"><dt className="text-xs text-slate-500">Всего квартир</dt><dd className="mt-1 text-2xl font-bold">{info.apartments.total_units}</dd></div><div className="rounded-xl bg-emerald-50 p-3"><dt className="text-xs text-emerald-700">Свободно квартир</dt><dd className="mt-1 text-2xl font-bold text-emerald-800">{info.apartments.available_units}</dd></div></dl>
           <h5 className="mt-5 text-xs font-bold uppercase tracking-wide text-slate-400">По комнатности</h5>

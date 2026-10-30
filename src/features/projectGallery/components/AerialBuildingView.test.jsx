@@ -36,14 +36,30 @@ it('opens with the building selected on the genplan, and updates the card and co
   fireEvent.mouseLeave(a);
   expect(within(panel).getByRole('heading', { name: 'Блок Б' })).toBeTruthy();
 });
-it('pins selection using mouse or keyboard and clears it without leaving the image', () => {
+it('opens each block floor plan with mouse or keyboard and returns with its selection preserved', () => {
   render(<AerialBuildingView image={image} buildings={buildings} />);
   fireEvent.click(screen.getByRole('button', { name: 'Показать информацию: Блок А' }));
+  expect(screen.getByAltText('Типовая планировка Блок А, этажи 2–9').getAttribute('src')).toBe('/layouts/floors/block_a_typical_floor.webp');
+  fireEvent.click(screen.getByRole('button', { name: 'Увеличить план' }));
+  expect(screen.getByAltText('Типовая планировка Блок А, этажи 2–9').style.width).toBe('125%');
+  fireEvent.click(screen.getByRole('button', { name: 'Сбросить масштаб плана' }));
+  expect(screen.getByAltText('Типовая планировка Блок А, этажи 2–9').style.width).toBe('100%');
+  fireEvent.click(screen.getByRole('button', { name: '← К изображению здания' }));
   expect(screen.getByRole('button', { name: 'Блок А', exact: true }).getAttribute('aria-pressed')).toBe('true');
   fireEvent.keyDown(screen.getByRole('button', { name: 'Показать информацию: Блок Б' }), { key: ' ' });
+  expect(screen.getByAltText('Типовая планировка Блок Б, этажи 2–9').getAttribute('src')).toBe('/layouts/floors/block_b_typical_floor.webp');
+  fireEvent.keyDown(window, { key: 'Escape' });
   expect(screen.getByRole('heading', { name: 'Блок Б' })).toBeTruthy();
   fireEvent.click(screen.getByRole('button', { name: 'Снять выбор блока' }));
   expect(screen.getByRole('heading', { name: 'Выберите блок' })).toBeTruthy();
+});
+it('opens the floor plan from a block button or the information card', () => {
+  render(<AerialBuildingView image={image} buildings={buildings} initialBuildingId={4} />);
+  fireEvent.click(screen.getByRole('button', { name: 'Открыть типовую планировку' }));
+  expect(screen.getByAltText('Типовая планировка Блок А, этажи 2–9')).toBeTruthy();
+  fireEvent.click(screen.getByRole('button', { name: '← К изображению здания' }));
+  fireEvent.click(screen.getByRole('button', { name: 'Блок Б', exact: true }));
+  expect(screen.getByAltText('Типовая планировка Блок Б, этажи 2–9')).toBeTruthy();
 });
 it('does not show zero counts when inventory failed to load', () => {
   render(<AerialBuildingView image={image} buildings={null} initialBuildingId={4} />);

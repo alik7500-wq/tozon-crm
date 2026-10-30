@@ -1,0 +1,40 @@
+{
+  "source_filename": "Пахтакор 9эт.-Model.pdf-16.10.1 (1)(1).pdf",
+  "source_sha256": "f0b9fd92cbc8a274771bb1573f4e2da0cf97c857afd9f4fd2ad8a91a874164bc",
+  "source_library_id": "libfile_322156e63aec81919c18d6afc446663c",
+  "page": 1,
+  "render_scale": 2.5,
+  "note": "Original floor drawing; margins and adjacent block excluded, no room geometry inferred. Sales areas are maintained in CRM.",
+  "items": [
+    {
+      "block": "A",
+      "path": "public/layouts/floors/block_a_typical_floor.webp",
+      "crop_pdf_points": [
+        45,
+        190,
+        735,
+        1017
+      ],
+      "size": [
+        1726,
+        2068
+      ],
+      "sha256": "e04b5fce1b8d17de48a433eceff00fc4096f80ff1d9a727a2963223e74a43566"
+    },
+    {
+      "block": "B",
+      "path": "public/layouts/floors/block_b_typical_floor.webp",
+      "crop_pdf_points": [
+        45,
+        930,
+        1165,
+        1585
+      ],
+      "size": [
+        2801,
+        1638
+      ],
+      "sha256": "efa3c69fbd5c3eed718f59b73f33d8af13ae3e5d59f9085e3572cc64e8a18195"
+    }
+  ]
+}
