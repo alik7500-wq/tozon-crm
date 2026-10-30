@@ -88,3 +88,29 @@ describe('parking and commercial sales', () => {
     expect(document.getElementById('print-section').textContent).toContain('-комнатную квартиру');
   });
 });
+
+// Fixed parking prices must not depend on the presence or size of a floor area.
+it.each([null, 2552, 10000])('sells one fixed-price parking place with area %s for exactly 10000 USD', async area => {
+  const fixed = { ...unit, area_m2_x100: area, manual_total_price_minor: 1000000, price_per_m2_minor: 0 };
+  api.post.mockResolvedValue({ data: { deal: { ...deal, final_price_minor: 1000000 } } });
+  render(<DealWizardModal isOpen unit={fixed} onClose={vi.fn()} />);
+  fireEvent.click(await screen.findByText('Тестовый покупатель'));
+  fireEvent.click(screen.getByText('Далее'));
+  expect(screen.getByLabelText('Цена за машино-место').value).toBe('10000');
+  expect(screen.getByLabelText('Окончательная стоимость объекта').value).toBe('10000');
+  fireEvent.click(screen.getByText('Далее'));
+  fireEvent.click(screen.getByText('Далее'));
+  fireEvent.click(screen.getByText('Подписать договор'));
+  await waitFor(() => expect(api.post).toHaveBeenCalled());
+  const payload = api.post.mock.calls.find(call => call[0] === '/deals')[1];
+  expect(payload.base_price_minor).toBe(1000000);
+  expect(payload.final_price_minor).toBe(1000000);
+  expect(payload.schedules.reduce((sum, row) => sum + row.amount_minor, 0) + payload.down_payment_minor).toBe(1000000);
+});
+it('prints fixed parking as one place without an invented area or square metre price', () => {
+  render(<ContractPrintView deal={{ ...deal, area_m2_x100: null, deal_price_per_m2_minor: 0, final_price_minor: 1000000 }} initialLang="RU" onClose={vi.fn()} />);
+  const text = document.getElementById('print-section').textContent;
+  expect(text).toContain('Цена за одно машино-место');
+  expect(text).toContain('количество: 1 место');
+  expect(text).not.toContain('Цена 1 м²');
+});

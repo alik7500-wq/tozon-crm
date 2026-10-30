@@ -5,7 +5,7 @@ import { api } from '../../../api/client';
 import { useAuth } from '../../auth/AuthContext';
 import { ApartmentDetailModal } from '../../apartments/ApartmentDetailModal';
 import { NonResidentialUnitModal } from '../components/NonResidentialUnitModal';
-import { getUnitKindLabel, isNonResidentialUnit } from '../../../utils/unitKind';
+import { getUnitKindLabel, isFixedParking, isNonResidentialUnit } from '../../../utils/unitKind';
 import {
   Layers,
   Filter,
@@ -258,18 +258,19 @@ export const ChessboardTab = ({ projectId, currency = 'USD', onOpenGenerator }) 
                             .map((unit) => {
                             const badge = getStatusBadge(unit.status);
                             const areaM2 = formatMeasure(unit.area_m2_x100 / 100);
+                            const parkingValue = isFixedParking(unit) ? `${formatMeasure(unit.manual_total_price_minor / 100)} ${currency}` : `${areaM2} м²`;
 
                             if (unit.unit_kind === 'PARKING') {
                               return (
                                 <button
                                   key={unit.id}
                                   onClick={() => handleUnitClick(unit, floor, building)}
-                                  title={`Машино-место №${unit.unit_number} · ${areaM2} м² · ${badge.label}`}
-                                  aria-label={`Машино-место №${unit.unit_number}, ${areaM2} м², ${badge.label}`}
-                                  className={`flex h-14 w-14 shrink-0 flex-col items-center justify-center gap-1 rounded-lg border p-1 text-center transition shadow-2xs cursor-pointer ${badge.bg}`}
+                                  title={`Машино-место №${unit.unit_number} · ${parkingValue} · ${badge.label}`}
+                                  aria-label={`Машино-место №${unit.unit_number}, ${parkingValue}, ${badge.label}`}
+                                  className={`flex h-14 w-24 shrink-0 flex-col items-center justify-center gap-1 rounded-lg border p-1 text-center transition shadow-2xs cursor-pointer ${badge.bg}`}
                                 >
                                   <span className="text-[10px] font-extrabold leading-tight text-slate-900">{unit.unit_number}</span>
-                                  <span className="whitespace-nowrap text-[9px] font-semibold leading-tight">{areaM2} м²</span>
+                                  <span className="whitespace-nowrap text-[9px] font-semibold leading-tight">{parkingValue}</span>
                                   <span aria-hidden="true" className={`h-1.5 w-1.5 rounded-full ${badge.dot}`} />
                                 </button>
                               );

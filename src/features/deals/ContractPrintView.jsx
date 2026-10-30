@@ -60,6 +60,7 @@ export const ContractPrintView = ({ deal: initialDeal, onClose, initialLang = de
   const deal = asyncDeal || initialDeal;
   const nonResidential = isNonResidentialUnit(deal);
   const parking = getUnitKind(deal) === 'PARKING';
+  const fixedParking = parking && deal.deal_price_per_m2_minor === 0;
   const ruObject = nonResidential ? (parking ? 'машино-место' : 'коммерческое помещение') : 'квартиру';
   const ruGenitive = nonResidential ? (parking ? 'машино-места' : 'коммерческого помещения') : 'квартиры';
   const tjObject = nonResidential ? (parking ? 'ҷойи таваққуф' : 'бинои ғайриистиқоматӣ') : 'хона';
@@ -547,7 +548,7 @@ export const ContractPrintView = ({ deal: initialDeal, onClose, initialLang = de
                     {isTJ ? '2.1. Мавзӯи шартнома — иштироки ҳиссавӣ дар сохтмон ва супоридани' : '2.1. Предмет договора — долевое участие в строительстве и передача объекта:'} <strong>{getUnitTitle(deal, lang)} №{deal.unit_number || '—'}</strong>.
                     {' '}{deal.project_address || deal.project_name || '—'}, {deal.building_name || deal.section_name || '—'};
                     {' '}{isTJ ? 'қабат' : 'этаж'} <strong>{deal.floor_number ?? '—'}</strong>;
-                    {' '}{isTJ ? 'масоҳат' : 'площадь'} <strong>{areaM2} м²</strong>.
+                    {' '}{fixedParking && !deal.area_m2_x100 ? (isTJ ? 'миқдор: 1 ҷой.' : 'количество: 1 место.') : <>{isTJ ? 'масоҳат' : 'площадь'} <strong>{areaM2} м²</strong>.</>}
                     {parking && (isTJ ? ' Масоҳати гузаргоҳҳои умумӣ ба масоҳати ҷойи фурӯш дохил намешавад.' : ' Площадь общих проездов не включена в площадь продаваемого места.')}
                   </>
                 ) : isTJ ? (
@@ -570,7 +571,7 @@ export const ContractPrintView = ({ deal: initialDeal, onClose, initialLang = de
               <p>
                 {nonResidential ? (
                   <>
-                    {isTJ ? `3.1. Нархи 1 м² ${tjObject}:` : `3.1. Цена 1 м² ${ruGenitive}:`} <strong>{rawPricePerM2.toLocaleString('ru-RU', { maximumFractionDigits: 2 })} {currency}</strong>.
+                    {fixedParking ? (isTJ ? '3.1. Нархи як ҷойи таваққуф:' : '3.1. Цена за одно машино-место:') : (isTJ ? `3.1. Нархи 1 м² ${tjObject}:` : `3.1. Цена 1 м² ${ruGenitive}:`)} <strong>{fixedParking ? finalPrice : rawPricePerM2.toLocaleString('ru-RU', { maximumFractionDigits: 2 })} {currency}</strong>.
                     {' '}{isTJ ? 'Маблағи умумии шартнома:' : 'Общая стоимость по договору:'} <strong>{finalPrice} {currency}</strong>.
                   </>
                 ) : isTJ ? (
@@ -643,7 +644,7 @@ export const ContractPrintView = ({ deal: initialDeal, onClose, initialLang = de
                   : '4.1.4. Обеспечить регистрацию права собственности Дольщика в органах государственной регистрации.'}
               </p>
               <p className="pl-4">
-                {isTJ ? '4.1.5. «Ширкати сохтмонӣ» хароҷоти шиносномаи техникиро ба ӯҳда намегирад. Ҳамаи хароҷоти вобаста ба барасмиятдарории ҳуҷҷатҳои хона то гирифтани шиносномаи техникӣ, аз ҷумла хароҷоти таҳия ва гирифтани шиносномаи техникӣ, аз ҳисоби худи «Ҳиссагузор» пардохт карда мешаванд.' : '4.1.5. «Строительная компания» не несёт расходы по оформлению технического паспорта. Все расходы, связанные с оформлением документов на квартиру до получения технического паспорта, включая расходы на его изготовление и получение, Дольщик оплачивает самостоятельно за свой счёт.'}
+                {isTJ ? `4.1.5. «Ширкати сохтмонӣ» хароҷоти шиносномаи техникиро ба ӯҳда намегирад. Ҳамаи хароҷоти вобаста ба барасмиятдарории ҳуҷҷатҳои ${nonResidential ? tjObject : 'хона'} то гирифтани шиносномаи техникӣ, аз ҷумла хароҷоти таҳия ва гирифтани шиносномаи техникӣ, аз ҳисоби худи «Ҳиссагузор» пардохт карда мешаванд.` : `4.1.5. «Строительная компания» не несёт расходы по оформлению технического паспорта. Все расходы, связанные с оформлением документов на ${nonResidential ? ruObject : 'квартиру'} до получения технического паспорта, включая расходы на его изготовление и получение, Дольщик оплачивает самостоятельно за свой счёт.`}
               </p>
 
               <p className="pt-1">{isTJ ? '4.2. «Ҳиссагузор» ба худ ӯҳдадориҳои зеринро қабул менамояд:' : '4.2. «Дольщик» обязуется:'}</p>
@@ -908,13 +909,13 @@ export const ContractPrintView = ({ deal: initialDeal, onClose, initialLang = de
               </div>
 
               <div className="flex justify-between items-baseline border-b border-dotted border-slate-300 pb-0.5 pt-1">
-                <span>{isTJ ? `Масоҳати ${tjObject} (м²)` : `Площадь ${ruGenitive} (м²)`}</span>
-                <span className="font-bold underline text-slate-900">{areaM2}</span>
+                <span>{fixedParking ? (isTJ ? 'Миқдор' : 'Количество') : (isTJ ? `Масоҳати ${tjObject} (м²)` : `Площадь ${ruGenitive} (м²)`)}</span>
+                <span className="font-bold underline text-slate-900">{fixedParking ? (isTJ ? '1 ҷой' : '1 место') : areaM2}</span>
               </div>
 
               <div className="flex justify-between items-baseline border-b border-dotted border-slate-300 pb-0.5">
-                <span>{nonResidential ? (isTJ ? `Нархи 1 м² (${currency})` : `Цена 1 м² (${currency})`) : (isTJ ? 'Нархи 1 метри мураббаъ бо сомонӣ' : 'Цена 1 кв.м в сомони')}</span>
-                <span className="font-bold underline text-slate-900">{nonResidential ? `${rawPricePerM2.toLocaleString('ru-RU', { maximumFractionDigits: 2 })} ${currency}` : `${tjsPrice.toLocaleString('ru-RU')} TJS`}</span>
+                <span>{fixedParking ? (isTJ ? 'Нархи як ҷой' : 'Цена за место') : nonResidential ? (isTJ ? `Нархи 1 м² (${currency})` : `Цена 1 м² (${currency})`) : (isTJ ? 'Нархи 1 метри мураббаъ бо сомонӣ' : 'Цена 1 кв.м в сомони')}</span>
+                <span className="font-bold underline text-slate-900">{fixedParking ? `${finalPrice} ${currency}` : nonResidential ? `${rawPricePerM2.toLocaleString('ru-RU', { maximumFractionDigits: 2 })} ${currency}` : `${tjsPrice.toLocaleString('ru-RU')} TJS`}</span>
               </div>
 
               <div className="flex justify-between items-baseline border-b border-dotted border-slate-300 pb-0.5">

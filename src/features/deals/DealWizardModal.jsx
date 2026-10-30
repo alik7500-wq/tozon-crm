@@ -1,4 +1,4 @@
-import { getUnitTitle, getUnitKindLabel, getUnitDefaultPrice, isNonResidentialUnit } from '../../utils/unitKind';
+import { getUnitTitle, getUnitKindLabel, getUnitDefaultPrice, isFixedParking, isNonResidentialUnit } from '../../utils/unitKind';
 import {formatMeasure} from '../../utils/numberDisplay';
 import React, { useState, useEffect } from 'react';
 import { api } from '../../api/client';
@@ -180,7 +180,9 @@ export const DealWizardModal = ({
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   // Calculations
-  const areaM2 = selectedUnit 
+  const fixedParking = isFixedParking(selectedUnit);
+  // A fixed parking price is multiplied by one place, never by its physical area.
+  const areaM2 = fixedParking ? 1 : selectedUnit
     ? (selectedUnit.area_m2_x100 ? (selectedUnit.area_m2_x100 / 100) : (parseFloat(selectedUnit.area) || 50)) 
     : 50;
 
@@ -204,7 +206,7 @@ export const DealWizardModal = ({
   const finalPrice = appliedDiscount ? Math.round((calculatedBasePrice-actualDiscountMinor)*100)/100 : roundAmount(Math.max(0, calculatedBasePrice - actualDiscountMinor));
   const unitProjectId = selectedUnit?.project_id || selectedUnit?.floors?.sections?.buildings?.projects?.id;
   const discountBusinessDate = new Date(Date.now() + 5*60*60*1000).toISOString().slice(0,10);
-  const availableSchemes = discountSchemes.filter(s => s.is_active && String(s.project_id) === String(unitProjectId) && (!s.starts_on || s.starts_on <= discountBusinessDate) && (!s.ends_on || s.ends_on >= discountBusinessDate));
+  const availableSchemes = (fixedParking ? [] : discountSchemes).filter(s => s.is_active && String(s.project_id) === String(unitProjectId) && (!s.starts_on || s.starts_on <= discountBusinessDate) && (!s.ends_on || s.ends_on >= discountBusinessDate));
   const selectedScheme = availableSchemes.find(s => s.id === schemeId) || availableSchemes[0];
   const clearDiscountScheme = () => { setAppliedDiscount(null); setDiscountValue(0); setPricePerM2(basePricePerM2); setDownPaymentAmount(Math.round(areaM2*basePricePerM2*downPaymentPercent)/100); };
   const applyDiscountRule = rule => {
@@ -238,6 +240,7 @@ export const DealWizardModal = ({
       
       setPricePerM2(p);
       setDiscountValue(0);
+      setAppliedDiscount(null);
       setDiscountType('AMOUNT');
       const pct = initialDownPaymentPercent ?? 30;
       setDownPaymentPercent(pct);
@@ -661,7 +664,7 @@ export const DealWizardModal = ({
                               </span>
                             </div>
                             <div className="text-[11px] text-slate-500 mt-0.5">
-                              {u.project_name} • {u.building_name} • {u.floor_number} этаж ({uArea} м²)
+                              {u.project_name} • {u.building_name} • {u.floor_number} этаж ({isFixedParking(u) ? '1 место' : `${uArea} м²`})
                             </div>
                           </div>
                           {isSelected && <CheckCircle2 className="h-5 w-5 text-blue-600 shrink-0" />}
@@ -872,7 +875,7 @@ export const DealWizardModal = ({
                 <div>
                   <span className="text-slate-500 block">Объект продажи:</span>
                   <strong className="text-slate-900">
-                    {selectedUnit?.project_name}, {getUnitTitle(selectedUnit)} №{selectedUnit?.unit_number} ({areaM2} м²)
+                    {selectedUnit?.project_name}, {getUnitTitle(selectedUnit)} №{selectedUnit?.unit_number} ({fixedParking ? '1 место' : `${areaM2} м²`})
                   </strong>
                 </div>
                 <div className="text-right">
@@ -926,11 +929,11 @@ export const DealWizardModal = ({
                       <span>Параметры стоимости и согласованная цена сделки</span>
                     </h4>
                     <p className="text-[11px] text-slate-500 mt-0.5">
-                      Стартовая цена: <strong className="text-slate-800 font-bold">{basePricePerM2} {currency}/м²</strong> ({Math.round(areaM2 * basePricePerM2).toLocaleString()} {currency})
+                      Стартовая цена: <strong className="text-slate-800 font-bold">{basePricePerM2} {currency}/{fixedParking ? 'место' : 'м²'}</strong> ({Math.round(areaM2 * basePricePerM2).toLocaleString()} {currency})
                     </p>
                   </div>
                   <span className="px-2.5 py-1 rounded-xl bg-white border border-indigo-200 text-indigo-700 font-extrabold text-xs shadow-2xs">
-                    {areaM2} м²
+                    {fixedParking ? '1 место' : `${areaM2} м²`}
                   </span>
                 </div>
 
@@ -978,19 +981,19 @@ export const DealWizardModal = ({
                       className="w-full rounded-xl border-2 border-indigo-300 bg-white px-3 py-2 text-sm font-black text-indigo-900 outline-none focus:border-indigo-600 shadow-xs"
                     />
                     <span className="text-[11px] text-slate-500 font-semibold mt-1 block">
-                      Фактически: <strong className="text-slate-800">{effectivePricePerM2} {currency}/м²</strong>
+                      Фактически: <strong className="text-slate-800">{effectivePricePerM2} {currency}/{fixedParking ? 'место' : 'м²'}</strong>
                     </span>
                   </div>
 
                   <div>
                     <label className="block text-xs font-bold text-slate-800 mb-1">
-                      Или цена за 1 м² ({currency}) *
+                      {fixedParking ? 'Цена за одно машино-место' : 'Или цена за 1 м²'} ({currency}) *
                     </label>
                     <input
                       type="number"
                       min="1"
                       disabled={!!appliedDiscount}
-                      aria-label="Цена объекта за м²"
+                      aria-label={fixedParking ? 'Цена за машино-место' : 'Цена объекта за м²'}
                       step="0.01"
                       value={pricePerM2}
                       onChange={(e) => {
@@ -1094,7 +1097,7 @@ export const DealWizardModal = ({
                   <span className="text-lg font-extrabold">{finalPrice.toLocaleString()} {currency}</span>
                 </div>
                 <div className="text-right">
-                  <span className="text-[10px] text-slate-400 block">{areaM2} м² × {pricePerM2} {currency}</span>
+                  <span className="text-[10px] text-slate-400 block">{fixedParking ? '1 место' : `${areaM2} м²`} × {pricePerM2} {currency}</span>
                   {actualDiscountMinor > 0 && (
                     <span className="text-[11px] text-emerald-400 font-semibold">Скидка -{actualDiscountMinor.toLocaleString()}</span>
                   )}
@@ -1385,7 +1388,7 @@ export const DealWizardModal = ({
                   </div>
                   <div>
                     <span className="text-slate-400 text-[11px] block">Объект:</span>
-                    <strong className="text-slate-800">{selectedUnit?.project_name}, {getUnitTitle(selectedUnit)} №{selectedUnit?.unit_number} ({areaM2} м²)</strong>
+                    <strong className="text-slate-800">{selectedUnit?.project_name}, {getUnitTitle(selectedUnit)} №{selectedUnit?.unit_number} ({fixedParking ? '1 место' : `${areaM2} м²`})</strong>
                   </div>
                   <div>
                     <span className="text-slate-400 text-[11px] block">Форма оплаты:</span>

@@ -7,7 +7,9 @@ export const getUnitTitle = (unit, language = 'RU') => {
   return names[getUnitKind(unit)] || names.APARTMENT;
 };
 
-export const getUnitDefaultPrice = (unit) => Number(unit?.price_per_m2_minor) > 0
+export const isFixedParking = (unit) => getUnitKind(unit) === 'PARKING' && unit?.manual_total_price_minor != null;
+
+export const getUnitDefaultPrice = (unit) => isFixedParking(unit) ? Number(unit.manual_total_price_minor) / 100 : Number(unit?.price_per_m2_minor) > 0
   ? Number(unit.price_per_m2_minor) / 100
   : (Number(unit?.price_per_m2) > 0 ? Number(unit.price_per_m2) : (isNonResidentialUnit(unit) ? 0 : 500));
 

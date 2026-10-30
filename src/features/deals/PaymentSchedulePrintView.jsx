@@ -1,3 +1,4 @@
+import { getUnitTitle } from '../../utils/unitKind';
 import {formatMeasure} from '../../utils/numberDisplay';
 import { defaultPrintLanguage } from '../settings/InterfaceSettingsTab';
 import { TemplateDocumentButton } from '../settings/TemplateDocumentButton';
@@ -95,6 +96,7 @@ export const PaymentSchedulePrintView = ({ deal, onClose, initialLang = defaultP
     : currency === 'USD' ? 'долларах США (USD)' : 'сомони (TJS)';
   const currencyShort = currency === 'USD' ? 'USD' : 'TJS';
 
+  const fixedParking = deal.unit_kind === 'PARKING' && deal.deal_price_per_m2_minor === 0;
   const areaM2 = deal.area_m2_x100
     ? formatMeasure(deal.area_m2_x100 / 100)
     : deal.unit_area
@@ -269,23 +271,23 @@ export const PaymentSchedulePrintView = ({ deal, onClose, initialLang = defaultP
               <span>{isTJ ? 'Эзоҳ' : 'Примечание'}</span>
               <span className="text-right text-slate-700">
                 {deal.project_name
-                  ? `${deal.project_name}, ${isTJ ? 'кв. №' : 'кв. №'}${deal.unit_number || ''}`
+                  ? `${deal.project_name}, ${getUnitTitle(deal, lang)} №${deal.unit_number || ''}`
                   : '—'}
               </span>
             </div>
 
             <div className="flex justify-between items-baseline border-b border-dotted border-slate-300 pb-0.5 pt-1">
-              <span>{isTJ ? 'Масоҳати умумии хона метри мураббаъ' : 'Общая площадь квартиры (кв.м)'}</span>
-              <span className="font-bold underline text-slate-900">{areaM2}</span>
+              <span>{fixedParking ? (isTJ ? 'Миқдор' : 'Количество') : (isTJ ? 'Масоҳати умумии хона метри мураббаъ' : 'Общая площадь квартиры (кв.м)')}</span>
+              <span className="font-bold underline text-slate-900">{fixedParking ? (isTJ ? '1 ҷой' : '1 место') : areaM2}</span>
             </div>
 
             <div className="flex justify-between items-baseline border-b border-dotted border-slate-300 pb-0.5">
-              <span>{isTJ ? `Нархи 1 метри мураббаъ бо ${currencyLabel}` : `Цена 1 кв.м в ${currencyLabel}`}</span>
-              <span className="font-bold underline text-slate-900">{pricePerM2}</span>
+              <span>{fixedParking ? (isTJ ? 'Нархи як ҷой' : 'Цена за место') : (isTJ ? `Нархи 1 метри мураббаъ бо ${currencyLabel}` : `Цена 1 кв.м в ${currencyLabel}`)}</span>
+              <span className="font-bold underline text-slate-900">{fixedParking ? finalPrice : pricePerM2}</span>
             </div>
 
             <div className="flex justify-between items-baseline border-b border-dotted border-slate-300 pb-0.5">
-              <span className="font-bold text-slate-900">{isTJ ? `Маблағи умумии хона бо ${currencyLabel}` : `Общая стоимость квартиры в ${currencyLabel}`}</span>
+              <span className="font-bold text-slate-900">{fixedParking ? (isTJ ? 'Маблағи умумӣ' : 'Общая стоимость машино-места') : (isTJ ? `Маблағи умумии хона бо ${currencyLabel}` : `Общая стоимость квартиры в ${currencyLabel}`)}</span>
               <span className="font-black underline text-slate-900 text-sm sm:text-base">{finalPrice}</span>
             </div>
 
