@@ -1,3 +1,4 @@
+import { LinkedBuildingViewer } from '../projectGallery/components/LinkedBuildingViewer';
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { api } from '../../api/client';
@@ -44,6 +45,7 @@ export const ProjectDetailPage = () => {
   const [layouts, setLayouts] = useState([]);
   const [activeTab, setActiveTab] = useState('chessboard'); // 'overview', 'chessboard', 'layouts', 'maps'
   const [requestedMediaId, setRequestedMediaId] = useState(null);
+  const [linkedBuildingId, setLinkedBuildingId] = useState(null);
   const [requestedBuildingId, setRequestedBuildingId] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isGeneratorOpen, setIsGeneratorOpen] = useState(false);
@@ -338,8 +340,9 @@ export const ProjectDetailPage = () => {
           </ErrorBoundary>
         )}
 
+        {linkedBuildingId !== null && <LinkedBuildingViewer buildingId={linkedBuildingId} onClose={() => setLinkedBuildingId(null)} />}
         {activeTab === 'maps' && (
-          <VisualMapsTab projectId={id} onOpenMedia={(mediaId, buildingId) => { setRequestedMediaId(mediaId); setRequestedBuildingId(buildingId); setActiveTab('gallery'); }} />
+          <VisualMapsTab projectId={id} onOpenMedia={(mediaId, buildingId) => { if (mediaId === 'vg-schematic' && String(id) !== '4') { setLinkedBuildingId(buildingId); return; } setRequestedMediaId(mediaId); setRequestedBuildingId(buildingId); setActiveTab('gallery'); }} />
         )}
 
         {activeTab === 'layouts' && (

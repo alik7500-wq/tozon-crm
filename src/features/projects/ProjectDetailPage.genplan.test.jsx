@@ -49,3 +49,24 @@ it.each(['Блок А', 'Блок Б'])('opens the requested aerial visualizatio
   fireEvent.click(screen.getByTitle('Закрыть (Esc)'));
   expect(screen.queryByText('1 / 1')).toBeNull();
 });
+
+it.each([[6,'Блок В'],[7,'Блок Г']])('opens the linked project from %s without reusing A/Б inventory', async (id,name) => {
+  api.get.mockImplementation(async path => {
+    if (path === '/projects/3') return { data: { project: { id:3, name:'TOZON PLAZA' } } };
+    if (path === '/inventory/projects/3/chessboard') return { data: { chessboard: [] } };
+    if (path === '/inventory/projects/4/chessboard') return { data: { chessboard: [{ id, project_id:4, sections:[{floors:[{floor_number:5, units:[{rooms:3, status:'AVAILABLE', area_m2_x100:9000}]}]}] }] } };
+    if (path.endsWith('/layouts')) return { data:{ layouts:[] } };
+    if (path === '/visual-maps/projects/3') return { data:{maps:[{id:3,title:'Генплан',image_path:'https://res.cloudinary.com/r3pnvm9s/image/upload/v1787392389/tozon-crm/euh4vu4ocbgschzszw3p.png',hotspots:[{label:name,target_building_id:null,x_pct:10,y_pct:10,width_pct:10,height_pct:5}]}]} };
+    throw new Error(path);
+  });
+  render(<MemoryRouter initialEntries={['/projects/3']}><Routes><Route path="/projects/:id" element={<ProjectDetailPage />} /></Routes></MemoryRouter>);
+  fireEvent.click(await screen.findByRole('button', { name:'Генплан и Фасады' }));
+  const img=await screen.findByAltText('Генплан');Object.defineProperty(img,'naturalWidth',{value:792});Object.defineProperty(img,'naturalHeight',{value:709});fireEvent.load(img);
+  fireEvent.click(screen.getByRole('button',{name:`Выделить ${name}`}));
+  await screen.findByText('3-комнатные');
+  expect(api.get).toHaveBeenCalledWith('/inventory/projects/4/chessboard');
+  fireEvent.click(screen.getByRole('button',{name:`${name}, 5 этаж`,exact:true}));
+  expect(screen.getByRole('heading',{name:`${name} · 5 этаж`})).toBeTruthy();
+  fireEvent.keyDown(window,{key:'Escape'});
+  expect(screen.getByText('1 / 1')).toBeTruthy();
+});

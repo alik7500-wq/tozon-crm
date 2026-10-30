@@ -55,3 +55,15 @@ it('keeps the project visualization label and complete image in the card', async
   expect(img.className).toContain('object-contain');
   expect(screen.getByText('Проектная визуализация')).toBeTruthy();
 });
+
+it('opens the V/Г schematic inside project 4 even when there are no uploaded media', async () => {
+  projectGalleryApi.getProjectMedia.mockResolvedValue([]);
+  render(<ProjectGalleryTab projectId={4} initialMediaId="vg-schematic" initialBuildingId={7} buildings={[{ id:7,project_id:4,sections:[] }]} />);
+  await screen.findByText('1 / 1');
+  expect(screen.getByRole('heading',{name:'Блок Г',exact:true})).toBeTruthy();
+  expect(screen.queryByRole('button',{name:'Блок А',exact:true})).toBeNull();
+  fireEvent.mouseEnter(screen.getByRole('button',{name:'Блок В, 4 этаж',exact:true}));
+  expect(screen.getByRole('heading',{name:'Блок В · 4 этаж'})).toBeTruthy();
+  fireEvent.click(screen.getByRole('button',{name:'Блок В, 4 этаж',exact:true}));
+  expect(screen.getByAltText('Типовая планировка Блок В, 4 этаж').getAttribute('src')).toContain('block_v_typical');
+});

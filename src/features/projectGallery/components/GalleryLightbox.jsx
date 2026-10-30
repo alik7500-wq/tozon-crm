@@ -77,7 +77,7 @@ export const GalleryLightbox = ({
 
       {/* Main Image Container */}
       <div className={interactive ? 'relative w-full h-full overflow-y-auto px-4 pt-24 pb-16 sm:px-16' : 'relative w-full h-full flex items-center justify-center p-4 sm:p-16'}>
-        {interactive ? <AerialBuildingView key={`${currentImage.id}:${initialBuildingId}`} image={currentImage} buildings={buildings} initialBuildingId={initialBuildingId} /> : <img
+        {interactive ? <AerialBuildingView key={`${currentImage.id}:${initialBuildingId}`} projectId={projectId} image={currentImage} buildings={buildings} initialBuildingId={initialBuildingId} /> : <img
           key={currentImage.id || currentImage.url}
           src={currentImage.url || currentImage.image_url}
           alt={currentImage.title}

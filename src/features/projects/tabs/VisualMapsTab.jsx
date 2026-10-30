@@ -47,7 +47,7 @@ export const VisualMapsTab = ({ projectId, onSelectUnit, onOpenMedia }) => {
     setSelectedRegion(index);
     if (index === null || isEditMode) return;
     const mediaId = getBuildingMediaTarget(activeMap?.image_path, projectId, hotspots[index]);
-    if (mediaId !== null) onOpenMedia?.(mediaId, Number(hotspots[index].target_building_id));
+    if (mediaId !== null) onOpenMedia?.(mediaId, Number(hotspots[index].target_building_id) || ({ 'Блок В': 6, 'Блок Г': 7 }[hotspots[index].label]));
   };
 
   const fetchMaps = async () => {
@@ -55,6 +55,10 @@ export const VisualMapsTab = ({ projectId, onSelectUnit, onOpenMedia }) => {
     try {
       const res = await api.get(`/visual-maps/projects/${projectId}`);
       const mapList = res.data.maps || [];
+      if (!mapList.length && String(projectId) === '4') mapList.push({ id: 'vg-genplan', kind: 'GENPLAN', title: 'Генплан · Блоки В и Г', image_path: 'https://res.cloudinary.com/r3pnvm9s/image/upload/v1787392389/tozon-crm/euh4vu4ocbgschzszw3p.png', hotspots: [
+        { label: 'Блок В', target_building_id: 6, x_pct: 10.5, y_pct: 14.5, width_pct: 10, height_pct: 4.5 },
+        { label: 'Блок Г', target_building_id: 7, x_pct: 19, y_pct: 9.5, width_pct: 10, height_pct: 4.5 }
+      ], readOnly: true });
       setMaps(mapList);
       if (mapList.length > 0 && !activeMap) {
         setActiveMap(mapList[0]);
@@ -187,7 +191,7 @@ export const VisualMapsTab = ({ projectId, onSelectUnit, onOpenMedia }) => {
           )}
         </div>
 
-        {activeMap && user?.role === 'ADMIN' && (
+        {activeMap && user?.role === 'ADMIN' && !activeMap?.readOnly && (
           <div className="flex items-center gap-2">
             <button
               onClick={() => setIsEditMode(!isEditMode)}
@@ -243,7 +247,7 @@ export const VisualMapsTab = ({ projectId, onSelectUnit, onOpenMedia }) => {
           <p className="mt-1 text-xs text-slate-500 max-w-sm">
             Загрузите визуальный генеральный план объекта для разметки корпусов и наглядного выбора квартир.
           </p>
-          {user?.role === 'ADMIN' && (
+          {user?.role === 'ADMIN' && !activeMap?.readOnly && (
             <button
               onClick={() => setIsUploadModalOpen(true)}
               className="mt-4 flex items-center gap-2 rounded-xl bg-blue-600 px-4 py-2 text-xs font-bold text-white shadow-md hover:bg-blue-700 transition cursor-pointer"

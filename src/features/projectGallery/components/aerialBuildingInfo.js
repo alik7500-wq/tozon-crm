@@ -1,17 +1,19 @@
+import { vgBlocks } from './vgBuildingModel';
 import { apartmentStats } from '../../projects/apartmentStats';
 import { projectAreaMetrics } from '../../projects/projectAreaMetrics';
 import { getUnitKind } from '../../../utils/unitKind';
 
-export const isTozonAerial = (projectId, image) => String(projectId) === '3' && image?.storage_path === 'projects/3/media/20261029/img_9690.jpg';
+export const isTozonAerial = (projectId, image) => (String(projectId) === '3' && image?.storage_path === 'projects/3/media/20261029/img_9690.jpg') || (String(projectId) === '4' && image?.storage_path === 'local/vg-schematic');
 
 // Outlines reviewed on the original 1280 × 1024 architectural visualization.
 export const aerialBlocks = [
-  { id: 4, name: 'Блок А', label: { x: 29, y: 18 }, points: '65,203 90,174 133,160 126,109 250,94 354,110 355,78 393,73 395,57 513,43 588,51 589,137 647,148 648,180 546,197 478,213 480,286 519,295 519,895 434,879 119,759 65,734' },
-  { id: 3, name: 'Блок Б', label: { x: 75, y: 25 }, points: '474,201 615,162 647,155 646,98 708,75 822,80 825,117 1111,111 1199,128 1203,188 1225,198 1234,222 1220,262 1200,786 1100,845 1020,906 846,1008 741,1021 637,1013 531,944 515,882 515,294 476,284' }
+  { id: 4, projectId: 3, name: 'Блок А', label: { x: 29, y: 18 }, points: '65,203 90,174 133,160 126,109 250,94 354,110 355,78 393,73 395,57 513,43 588,51 589,137 647,148 648,180 546,197 478,213 480,286 519,295 519,895 434,879 119,759 65,734' },
+  { id: 3, projectId: 3, name: 'Блок Б', label: { x: 75, y: 25 }, points: '474,201 615,162 647,155 646,98 708,75 822,80 825,117 1111,111 1199,128 1203,188 1225,198 1234,222 1220,262 1200,786 1100,845 1020,906 846,1008 741,1021 637,1013 531,944 515,882 515,294 476,284' }
+  , ...vgBlocks
 ];
 
 export function getAerialBuildingInfo(buildings, id) {
-  const building = buildings?.find(item => String(item.id) === String(id) && !item.archived_at && String(item.project_id) === '3');
+  const building = buildings?.find(item => String(item.id) === String(id) && !item.archived_at && String(item.project_id) === String(aerialBlocks.find(block => block.id === Number(id))?.projectId));
   if (!building) return null;
   const rooms = {};
   for (const section of building.sections || []) {
@@ -36,6 +38,8 @@ const facadeEdges = {
 };
 const pairs = edge => Array.from({ length: edge.length / 2 }, (_, i) => [edge[i * 2], edge[i * 2 + 1]]);
 export function getAerialFloorRegions(blockId) {
+  const schematic = vgBlocks.find(block => block.id === Number(blockId));
+  if (schematic) return schematic.floorRegions;
   const edges = facadeEdges[blockId] || [];
   return edges.slice(0, -1).map((edge, index) => ({
     floor: 10 - index,
@@ -43,7 +47,7 @@ export function getAerialFloorRegions(blockId) {
   }));
 }
 export function getAerialFloorInfo(buildings, blockId, floorNumber) {
-  const building = buildings?.find(item => String(item.id) === String(blockId) && String(item.project_id) === '3' && !item.archived_at);
+  const building = buildings?.find(item => String(item.id) === String(blockId) && String(item.project_id) === String(aerialBlocks.find(block => block.id === Number(blockId))?.projectId) && !item.archived_at);
   if (!building) return null;
   const sections = (building.sections || []).filter(section => !section.archived_at).map(section => ({
     ...section, floors: (section.floors || []).filter(floor => !floor.archived_at && Number(floor.floor_number) === Number(floorNumber))

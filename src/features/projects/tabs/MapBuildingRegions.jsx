@@ -10,7 +10,9 @@ const outlines = {
 };
 
 export function getBuildingMediaTarget(imagePath, projectId, hotspot) {
-  if (imagePath !== reviewedMap || String(projectId) !== '3') return null;
+  if (imagePath !== reviewedMap || !['3', '4'].includes(String(projectId))) return null;
+  if (['Блок В', 'Блок Г'].includes(hotspot?.label)) return 'vg-schematic';
+  if (String(projectId) !== '3') return null;
   if (!['Блок А', 'Блок Б'].includes(hotspot?.label) || ![3, 4].includes(Number(hotspot?.target_building_id))) return null;
   // Confirmed active project media: TOZON PLAZA с высоты (IMG_9690.JPG).
   return 37;
