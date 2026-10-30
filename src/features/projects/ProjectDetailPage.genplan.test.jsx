@@ -41,6 +41,11 @@ it.each(['Блок А', 'Блок Б'])('opens the requested aerial visualizatio
   expect(screen.getByRole('heading', { name, exact: true })).toBeTruthy();
   expect(screen.getAllByAltText('TOZON PLAZA с высоты')).toHaveLength(2);
   expect(screen.queryByAltText('Генплан')).toBeNull();
+  fireEvent.click(screen.getByRole('button', { name: `Показать информацию: ${name}` }));
+  expect(screen.getByAltText(`Типовая планировка ${name}, этажи 2–9`)).toBeTruthy();
+  fireEvent.keyDown(window, { key: 'Escape' });
+  expect(screen.queryByAltText(`Типовая планировка ${name}, этажи 2–9`)).toBeNull();
+  expect(screen.getByText('1 / 1')).toBeTruthy();
   fireEvent.click(screen.getByTitle('Закрыть (Esc)'));
   expect(screen.queryByText('1 / 1')).toBeNull();
 });
