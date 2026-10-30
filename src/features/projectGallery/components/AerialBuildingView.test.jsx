@@ -2,7 +2,7 @@ import React from 'react';
 import { afterEach, it, expect } from 'vitest';
 import { cleanup, fireEvent, render, screen, within } from '@testing-library/react';
 import { AerialBuildingView } from './AerialBuildingView';
-import { getAerialBuildingInfo, isTozonAerial } from './aerialBuildingInfo';
+import { getAerialBuildingInfo, getAerialFloorRegions, isTozonAerial } from './aerialBuildingInfo';
 afterEach(cleanup);
 const image = { id: 37, title: 'TOZON PLAZA с высоты', url: '/aerial.jpg', storage_path: 'projects/3/media/20261029/img_9690.jpg' };
 const unit = (rooms, status, kind = 'APARTMENT', area = 5000) => ({ rooms, status, unit_kind: kind, area_m2_x100: area });
@@ -81,6 +81,9 @@ it('highlights the hovered floor and derives its banner from that floor only', (
   expect(within(panel).getByText('1-комнатные')).toBeTruthy();
   expect(within(panel).queryByText('3-комнатные')).toBeNull();
   expect(floor.getAttribute('stroke')).toBe('#fb923c');
+  expect(screen.getByRole('button', { name: 'Показать информацию: Блок Б' }).getAttribute('stroke')).toBe('transparent');
+  const highlightedFloors = screen.getAllByRole('button').filter(element => element.tagName.toLowerCase() === 'polygon' && element.getAttribute('stroke') === '#fb923c');
+  expect(highlightedFloors).toHaveLength(1);
   fireEvent.click(floor);
   expect(screen.getByAltText('Типовая планировка Блок Б, 5 этаж').getAttribute('src')).toBe('/layouts/floors/block_b_typical_floor.webp');
   expect(screen.getByRole('heading', { name: 'Блок Б · 5 этаж' })).toBeTruthy();
@@ -95,4 +98,23 @@ it('opens the selected A floor by keyboard and never substitutes the typical dra
   fireEvent.click(screen.getByRole('button', { name: 'Открыть Блок А, 10 этаж' }));
   expect(screen.getByRole('status').textContent).toContain('Отдельный чертёж 10 этажа ещё не добавлен');
   expect(screen.queryByRole('img')).toBeNull();
+});
+
+// Samples lie between the visible slab edges on the receding facades.
+it('assigns each visible storey to exactly one floor, including the far side of the B facade', () => {
+  const contains = (points, x, y) => {
+    const polygon = points.split(' ').map(pair => pair.split(',').map(Number));
+    let inside = false;
+    for (let i = 0, j = polygon.length - 1; i < polygon.length; j = i++) {
+      const [xi, yi] = polygon[i], [xj, yj] = polygon[j];
+      if ((yi > y) !== (yj > y) && x < (xj - xi) * (y - yi) / (yj - yi) + xi) inside = !inside;
+    }
+    return inside;
+  };
+  for (const [block, x, samples] of [
+    [3, 1100, [[9,298],[8,361],[7,423],[6,485],[5,548],[4,610],[3,673],[2,736]]],
+    [4, 150, [[9,252],[8,310],[7,367],[6,424],[5,481],[4,538],[3,594],[2,651]]]
+  ]) for (const [floor, y] of samples) {
+    expect(getAerialFloorRegions(block).filter(region => contains(region.points, x, y)).map(region => region.floor)).toEqual([floor]);
+  }
 });
