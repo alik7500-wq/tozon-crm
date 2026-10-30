@@ -51,7 +51,7 @@ export const ProjectsPage = () => {
 
   const filteredProjects = projects.filter((p) =>
     matchSearchQuery(p, ['name', 'code', 'address', 'developer_name', 'description'], search)
-  );
+  ).sort((a, b) => Number(a.id) - Number(b.id));
 
   return (
     <div className="space-y-6 max-w-7xl mx-auto">
