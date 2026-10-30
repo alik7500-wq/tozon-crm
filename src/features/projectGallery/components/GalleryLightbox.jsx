@@ -1,5 +1,7 @@
 import React, { useEffect, useCallback } from 'react';
 import { X, ChevronLeft, ChevronRight, Star, Maximize2, Tag, Calendar } from 'lucide-react';
+import { AerialBuildingView } from './AerialBuildingView';
+import { isTozonAerial } from './aerialBuildingInfo';
 
 const CATEGORY_LABELS = {
   EXTERIOR: 'Фасады',
@@ -18,9 +20,13 @@ export const GalleryLightbox = ({
   currentIndex = 0,
   isOpen = false,
   onClose,
-  onNavigate
+  onNavigate,
+  projectId,
+  buildings = null,
+  initialBuildingId = null
 }) => {
   const currentImage = images[currentIndex];
+  const interactive = isTozonAerial(projectId, currentImage);
 
   const handleKeyDown = useCallback((e) => {
     if (!isOpen) return;
@@ -70,19 +76,19 @@ export const GalleryLightbox = ({
       </div>
 
       {/* Main Image Container */}
-      <div className="relative w-full h-full flex items-center justify-center p-4 sm:p-16">
-        <img
+      <div className={interactive ? 'relative w-full h-full overflow-y-auto px-4 pt-24 pb-16 sm:px-16' : 'relative w-full h-full flex items-center justify-center p-4 sm:p-16'}>
+        {interactive ? <AerialBuildingView key={`${currentImage.id}:${initialBuildingId}`} image={currentImage} buildings={buildings} initialBuildingId={initialBuildingId} /> : <img
           key={currentImage.id || currentImage.url}
           src={currentImage.url || currentImage.image_url}
           alt={currentImage.title}
           className="max-h-[85vh] max-w-[90vw] object-contain rounded-lg shadow-2xl transition-all duration-300 animate-in zoom-in-95"
-        />
+        />}
 
         {/* Previous Button */}
         {currentIndex > 0 && (
           <button
             onClick={() => onNavigate(currentIndex - 1)}
-            className="absolute left-4 sm:left-8 top-1/2 -translate-y-1/2 p-3 sm:p-4 rounded-full bg-black/50 hover:bg-black/80 text-white border border-white/10 transition shadow-2xl backdrop-blur-md cursor-pointer group"
+            className={`${interactive ? 'fixed left-4 bottom-3 z-50 p-2' : 'absolute left-4 sm:left-8 top-1/2 -translate-y-1/2 p-3 sm:p-4'} rounded-full bg-black/50 hover:bg-black/80 text-white border border-white/10 transition shadow-2xl backdrop-blur-md cursor-pointer group`}
             title="Предыдущее (←)"
           >
             <ChevronLeft className="w-6 h-6 sm:w-8 sm:h-8 group-hover:-translate-x-0.5 transition-transform" />
@@ -93,7 +99,7 @@ export const GalleryLightbox = ({
         {currentIndex < images.length - 1 && (
           <button
             onClick={() => onNavigate(currentIndex + 1)}
-            className="absolute right-4 sm:right-8 top-1/2 -translate-y-1/2 p-3 sm:p-4 rounded-full bg-black/50 hover:bg-black/80 text-white border border-white/10 transition shadow-2xl backdrop-blur-md cursor-pointer group"
+            className={`${interactive ? 'fixed right-4 bottom-3 z-50 p-2' : 'absolute right-4 sm:right-8 top-1/2 -translate-y-1/2 p-3 sm:p-4'} rounded-full bg-black/50 hover:bg-black/80 text-white border border-white/10 transition shadow-2xl backdrop-blur-md cursor-pointer group`}
             title="Следующее (→)"
           >
             <ChevronRight className="w-6 h-6 sm:w-8 sm:h-8 group-hover:translate-x-0.5 transition-transform" />
@@ -102,7 +108,7 @@ export const GalleryLightbox = ({
       </div>
 
       {/* Bottom Caption & Description Bar */}
-      <div className="absolute bottom-0 left-0 right-0 p-4 sm:p-6 bg-linear-to-t from-black/90 via-black/60 to-transparent z-50 text-center sm:text-left">
+      {!interactive && <div className="absolute bottom-0 left-0 right-0 p-4 sm:p-6 bg-linear-to-t from-black/90 via-black/60 to-transparent z-50 text-center sm:text-left">
         <div className="max-w-4xl mx-auto flex flex-col sm:flex-row sm:items-end justify-between gap-2">
           <div>
             <h3 className="text-lg sm:text-xl font-bold text-white tracking-wide drop-shadow-md">
@@ -121,7 +127,7 @@ export const GalleryLightbox = ({
             </div>
           )}
         </div>
-      </div>
+      </div>}
     </div>
   );
 };

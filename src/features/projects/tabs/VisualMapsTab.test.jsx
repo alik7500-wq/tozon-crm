@@ -90,7 +90,7 @@ it('opens the configured visual for A and Б from polygons, keyboard and sidebar
   fireEvent.mouseEnter(screen.getByRole('button', { name: 'Выделить Блок А' }));
   expect(onOpenMedia).not.toHaveBeenCalled();
   fireEvent.click(screen.getByRole('button', { name: 'Выделить Блок А' }));
-  expect(onOpenMedia).toHaveBeenLastCalledWith(37);
+  expect(onOpenMedia).toHaveBeenLastCalledWith(37, 4);
   fireEvent.keyDown(screen.getByRole('button', { name: 'Выделить Блок Б' }), { key: 'Enter' });
   expect(onOpenMedia).toHaveBeenCalledTimes(2);
   fireEvent.click(screen.getByRole('button', { name: 'Блок А', exact: true }));
