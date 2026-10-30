@@ -27,3 +27,27 @@ export function getAerialBuildingInfo(buildings, id) {
   }
   return { apartments: apartmentStats([building]), rooms, areas: projectAreaMetrics([building]).total };
 }
+
+// Facade slab edges in the original image, ordered from roof to ground.
+// Each edge follows the perspective around the visible corner, rather than a horizontal strip.
+const facadeEdges = {
+  4: [[90,174,355,224,478,213],[90,218,355,271,519,295],[94,265,355,324,519,365],[97,315,355,381,519,429],[100,365,355,438,519,493],[103,416,355,495,519,557],[106,467,355,552,519,621],[109,518,355,609,519,685],[112,570,355,666,519,749],[115,622,355,723,519,813],[119,759,355,853,519,895]],
+  3: [[478,213,740,260,800,259,1225,198],[480,286,740,337,800,333,1220,262],[519,365,740,406,800,402,1215,330],[519,429,740,477,800,473,1210,399],[519,493,740,548,800,544,1208,465],[519,557,740,619,800,615,1206,531],[519,621,740,690,800,686,1204,597],[519,685,740,761,800,757,1202,663],[519,749,740,832,800,828,1200,729],[519,813,740,903,800,899,1200,786],[531,944,637,1013,741,1021,846,1008,1020,906,1100,845,1200,786]]
+};
+const pairs = edge => Array.from({ length: edge.length / 2 }, (_, i) => [edge[i * 2], edge[i * 2 + 1]]);
+export function getAerialFloorRegions(blockId) {
+  const edges = facadeEdges[blockId] || [];
+  return edges.slice(0, -1).map((edge, index) => ({
+    floor: 10 - index,
+    points: [...pairs(edge), ...pairs(edges[index + 1]).reverse()].map(point => point.join(',')).join(' ')
+  }));
+}
+export function getAerialFloorInfo(buildings, blockId, floorNumber) {
+  const building = buildings?.find(item => String(item.id) === String(blockId) && String(item.project_id) === '3' && !item.archived_at);
+  if (!building) return null;
+  const sections = (building.sections || []).filter(section => !section.archived_at).map(section => ({
+    ...section, floors: (section.floors || []).filter(floor => !floor.archived_at && Number(floor.floor_number) === Number(floorNumber))
+  }));
+  if (!sections.some(section => section.floors.length)) return null;
+  return getAerialBuildingInfo([{ ...building, sections }], blockId);
+}
