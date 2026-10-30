@@ -39,7 +39,7 @@ const CATEGORY_COLORS = {
   OTHER: 'bg-slate-50 text-slate-700 border-slate-200/60'
 };
 
-export const ProjectGalleryTab = ({ projectId, onOpenAdminManager, initialMediaId = null, onInitialMediaHandled }) => {
+export const ProjectGalleryTab = ({ projectId, onOpenAdminManager, initialMediaId = null, onInitialMediaHandled, initialBuildingId = null, buildings = null }) => {
   const { user } = useAuth();
   const [mediaList, setMediaList] = useState([]);
   const [selectedCategory, setSelectedCategory] = useState('ALL');
@@ -229,6 +229,9 @@ export const ProjectGalleryTab = ({ projectId, onOpenAdminManager, initialMediaI
 
       {/* Lightbox Modal */}
       <GalleryLightbox
+        projectId={projectId}
+        buildings={buildings}
+        initialBuildingId={initialBuildingId}
         images={filteredList}
         currentIndex={lightboxIndex ?? 0}
         isOpen={lightboxIndex !== null}

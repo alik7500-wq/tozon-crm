@@ -44,6 +44,7 @@ export const ProjectDetailPage = () => {
   const [layouts, setLayouts] = useState([]);
   const [activeTab, setActiveTab] = useState('chessboard'); // 'overview', 'chessboard', 'layouts', 'maps'
   const [requestedMediaId, setRequestedMediaId] = useState(null);
+  const [requestedBuildingId, setRequestedBuildingId] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isGeneratorOpen, setIsGeneratorOpen] = useState(false);
 
@@ -246,6 +247,8 @@ export const ProjectDetailPage = () => {
               <ProjectGalleryTab
                 projectId={id}
                 initialMediaId={requestedMediaId}
+                initialBuildingId={requestedBuildingId}
+                buildings={inventory}
                 onInitialMediaHandled={() => setRequestedMediaId(null)}
                 onOpenAdminManager={() => setActiveTab('visual_admin')}
               />
@@ -336,7 +339,7 @@ export const ProjectDetailPage = () => {
         )}
 
         {activeTab === 'maps' && (
-          <VisualMapsTab projectId={id} onOpenMedia={mediaId => { setRequestedMediaId(mediaId); setActiveTab('gallery'); }} />
+          <VisualMapsTab projectId={id} onOpenMedia={(mediaId, buildingId) => { setRequestedMediaId(mediaId); setRequestedBuildingId(buildingId); setActiveTab('gallery'); }} />
         )}
 
         {activeTab === 'layouts' && (

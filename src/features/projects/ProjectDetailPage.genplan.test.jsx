@@ -18,7 +18,10 @@ afterEach(() => { cleanup(); vi.clearAllMocks(); });
 it.each(['Блок А', 'Блок Б'])('opens the requested aerial visualization from %s through the project page', async name => {
   api.get.mockImplementation(async path => {
     if (path === '/projects/3') return { data: { project: { id: 3, name: 'TOZON PLAZA', currency: 'USD' } } };
-    if (path === '/inventory/projects/3/chessboard') return { data: { chessboard: [] } };
+    if (path === '/inventory/projects/3/chessboard') return { data: { chessboard: [
+      { id: 4, project_id: 3, name: 'Блок А', sections: [{ floors: [{ units: [{ rooms: 1, area_m2_x100: 5000, status: 'AVAILABLE' }] }] }] },
+      { id: 3, project_id: 3, name: 'Блок Б', sections: [{ floors: [{ units: [{ rooms: 2, area_m2_x100: 7000, status: 'SOLD' }] }] }] }
+    ] } };
     if (path === '/inventory/projects/3/layouts') return { data: { layouts: [] } };
     if (path === '/visual-maps/projects/3') return { data: { maps: [{
       id: 3, title: 'Генплан', image_path: 'https://res.cloudinary.com/r3pnvm9s/image/upload/v1787392389/tozon-crm/euh4vu4ocbgschzszw3p.png',
@@ -26,7 +29,7 @@ it.each(['Блок А', 'Блок Б'])('opens the requested aerial visualizatio
     }] } };
     throw new Error(`Unexpected endpoint ${path}`);
   });
-  projectGalleryApi.getProjectMedia.mockResolvedValue([{ id: 37, title: 'TOZON PLAZA с высоты', url: '/aerial.jpg', category: 'MASTERPLAN', is_active: true }]);
+  projectGalleryApi.getProjectMedia.mockResolvedValue([{ id: 37, title: 'TOZON PLAZA с высоты', url: '/aerial.jpg', storage_path: 'projects/3/media/20261029/img_9690.jpg', category: 'MASTERPLAN', is_active: true }]);
   render(<MemoryRouter initialEntries={['/projects/3']}><Routes><Route path="/projects/:id" element={<ProjectDetailPage />} /></Routes></MemoryRouter>);
   fireEvent.click(await screen.findByRole('button', { name: 'Генплан и Фасады' }));
   const img = await screen.findByAltText('Генплан');
@@ -35,6 +38,7 @@ it.each(['Блок А', 'Блок Б'])('opens the requested aerial visualizatio
   fireEvent.load(img);
   fireEvent.click(screen.getByRole('button', { name: `Выделить ${name}` }));
   await screen.findByText('1 / 1');
+  expect(screen.getByRole('heading', { name, exact: true })).toBeTruthy();
   expect(screen.getAllByAltText('TOZON PLAZA с высоты')).toHaveLength(2);
   expect(screen.queryByAltText('Генплан')).toBeNull();
   fireEvent.click(screen.getByTitle('Закрыть (Esc)'));

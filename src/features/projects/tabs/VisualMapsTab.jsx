@@ -47,7 +47,7 @@ export const VisualMapsTab = ({ projectId, onSelectUnit, onOpenMedia }) => {
     setSelectedRegion(index);
     if (index === null || isEditMode) return;
     const mediaId = getBuildingMediaTarget(activeMap?.image_path, projectId, hotspots[index]);
-    if (mediaId !== null) onOpenMedia?.(mediaId);
+    if (mediaId !== null) onOpenMedia?.(mediaId, Number(hotspots[index].target_building_id));
   };
 
   const fetchMaps = async () => {
