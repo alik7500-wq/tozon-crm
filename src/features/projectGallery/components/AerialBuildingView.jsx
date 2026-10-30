@@ -36,7 +36,7 @@ export function AerialBuildingView({ image, buildings, initialBuildingId = null 
             onMouseEnter={() => setHovered(block.id)} onMouseLeave={() => setHovered(null)} onFocus={() => setHovered(block.id)} onBlur={() => setHovered(null)}
             onClick={() => openFloorPlan(block.id)} onKeyDown={event => {
               if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); openFloorPlan(block.id); }
-            }} fill="transparent" stroke={activeId === block.id ? '#fb923c' : 'transparent'} strokeWidth="3" vectorEffect="non-scaling-stroke"
+            }} fill="transparent" stroke={activeId === block.id && floorNumber === null ? '#fb923c' : 'transparent'} strokeWidth="3" vectorEffect="non-scaling-stroke"
             className="pointer-events-auto cursor-pointer transition-colors focus:outline-none" />)}
           {aerialBlocks.flatMap(block => getAerialFloorRegions(block.id).map(region => <polygon key={`${block.id}-${region.floor}`} points={region.points}
             role="button" tabIndex={0} aria-label={`${block.name}, ${region.floor} этаж`}
