@@ -81,7 +81,7 @@ it('pins a selected building with click or keyboard, changes it from the sidebar
   expect(screen.getByRole('status').textContent).toBe('Корпус не выбран');
 });
 
-it('opens the configured visual for A and Б from polygons, keyboard and sidebar; В and Г stay selectable', async () => {
+it('opens the configured visual for A and Б from polygons, keyboard and sidebar; В and Г open their linked schematic', async () => {
   const onOpenMedia = vi.fn();
   const linked = labels.map((h, i) => ({ ...h, target_building_id: i === 0 ? 4 : i === 1 ? 3 : null }));
   api.get.mockResolvedValue({ data: { maps: [{ id: 3, title: 'Генплан', image_path: realMap, hotspots: linked }] } });
@@ -95,6 +95,9 @@ it('opens the configured visual for A and Б from polygons, keyboard and sidebar
   expect(onOpenMedia).toHaveBeenCalledTimes(2);
   fireEvent.click(screen.getByRole('button', { name: 'Блок А', exact: true }));
   expect(onOpenMedia).toHaveBeenCalledTimes(3);
-  for (const name of ['Блок В', 'Блок Г']) fireEvent.click(screen.getByRole('button', { name, exact: true }));
-  expect(onOpenMedia).toHaveBeenCalledTimes(3);
+  fireEvent.click(screen.getByRole('button', { name: 'Блок В', exact: true }));
+  expect(onOpenMedia).toHaveBeenLastCalledWith('vg-schematic', 6);
+  fireEvent.click(screen.getByRole('button', { name: 'Блок Г', exact: true }));
+  expect(onOpenMedia).toHaveBeenLastCalledWith('vg-schematic', 7);
+  expect(onOpenMedia).toHaveBeenCalledTimes(5);
 });

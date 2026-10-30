@@ -1,3 +1,4 @@
+import { vgMedia } from './vgBuildingModel';
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../../auth/AuthContext';
 import { projectGalleryApi } from '../services/projectGalleryApi';
@@ -51,7 +52,7 @@ export const ProjectGalleryTab = ({ projectId, onOpenAdminManager, initialMediaI
     setIsLoading(true);
     try {
       const items = await projectGalleryApi.getProjectMedia(projectId, { is_active: true });
-      setMediaList((items || []).filter(item => item.is_active !== false));
+      setMediaList([...(String(projectId) === '4' ? [vgMedia] : []), ...(items || []).filter(item => item.is_active !== false)]);
     } catch (err) {
       console.error('Failed to fetch project media:', err);
     } finally {

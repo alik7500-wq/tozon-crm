@@ -118,3 +118,21 @@ it('assigns each visible storey to exactly one floor, including the far side of 
     expect(getAerialFloorRegions(block).filter(region => contains(region.points, x, y)).map(region => region.floor)).toEqual([floor]);
   }
 });
+
+it.each([[6, 'Блок В', 'v'], [7, 'Блок Г', 'g']])('uses project 4 inventory and original floor drawings for %s', (id, name, asset) => {
+  const inventory = [{ id, project_id: 4, sections: [{ floors: [{ floor_number: 5, units: [unit(2, 'AVAILABLE')] }] }] }];
+  render(<AerialBuildingView image={{ url: '/scheme.svg', title: 'ТОЗОН ПЛАЗА — 2' }} projectId={4} buildings={inventory} initialBuildingId={id} />);
+  expect(screen.queryByRole('button', { name: 'Блок А', exact: true })).toBeNull();
+  const floor = screen.getByRole('button', { name: `${name}, 5 этаж`, exact: true });
+  fireEvent.mouseEnter(floor);
+  expect(screen.getByRole('heading', { name: `${name} · 5 этаж` })).toBeTruthy();
+  expect(screen.getByText('2-комнатные')).toBeTruthy();
+  fireEvent.click(floor);
+  expect(screen.getByAltText(`Типовая планировка ${name}, 5 этаж`).getAttribute('src')).toBe(`/layouts/floors/block_${asset}_typical_floor.webp`);
+  for (const [level, kind] of [[10, 'penthouse'], [1, 'commercial'], [-1, 'parking']]) {
+    fireEvent.keyDown(window, { key: 'Escape' });
+    fireEvent.click(screen.getByRole('button', { name: `Открыть ${name}, ${level} этаж` }));
+    expect(screen.getByAltText(`Типовая планировка ${name}, ${level} этаж`).getAttribute('src')).toBe(`/layouts/floors/block_${asset}_${kind}_floor.webp`);
+  }
+  expect(getAerialBuildingInfo([{ ...inventory[0], project_id: 3 }], id)).toBeNull();
+});

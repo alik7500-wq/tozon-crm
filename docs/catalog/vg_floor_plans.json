@@ -1,0 +1,138 @@
+[
+  {
+    "block": "v",
+    "kind": "typical",
+    "source": "9 этАр В-Г  -1 ТО +9-Model.pdf-5.pdf",
+    "source_sha256": "c48cca956b2ed0cbac7a242b05964c8d63591d52696c4d7ed0eb0fe8e47ea129",
+    "clip": [
+      145,
+      90,
+      580,
+      735
+    ],
+    "path": "layouts/floors/block_v_typical_floor.webp",
+    "width": 740,
+    "height": 1097,
+    "bytes": 94506,
+    "sha256": "626876394b63d72841d4ab84a83a72fc48261d8007004ffc620ac019b9729231"
+  },
+  {
+    "block": "g",
+    "kind": "typical",
+    "source": "9 этАр В-Г  -1 ТО +9-Model.pdf-5.pdf",
+    "source_sha256": "c48cca956b2ed0cbac7a242b05964c8d63591d52696c4d7ed0eb0fe8e47ea129",
+    "clip": [
+      580,
+      335,
+      1090,
+      735
+    ],
+    "path": "layouts/floors/block_g_typical_floor.webp",
+    "width": 867,
+    "height": 681,
+    "bytes": 76602,
+    "sha256": "8c92127b0362eac8b157b61fe90ada62dd6a37910ef1847f1f9fade27fa44d06"
+  },
+  {
+    "block": "v",
+    "kind": "penthouse",
+    "source": "9 этАр В-Г  -1 ТО +9-Model.pdf-2.pdf",
+    "source_sha256": "8e196aa479fd394384dd7a144a88df64df721e4a52be3b6724eaa2ca8a61e6bc",
+    "clip": [
+      205,
+      100,
+      600,
+      735
+    ],
+    "path": "layouts/floors/block_v_penthouse_floor.webp",
+    "width": 672,
+    "height": 1080,
+    "bytes": 210322,
+    "sha256": "209e71c16b78fae9a2a535055d551abbfb07f5904ee8f74faa74697054a9f5ad"
+  },
+  {
+    "block": "g",
+    "kind": "penthouse",
+    "source": "9 этАр В-Г  -1 ТО +9-Model.pdf-2.pdf",
+    "source_sha256": "8e196aa479fd394384dd7a144a88df64df721e4a52be3b6724eaa2ca8a61e6bc",
+    "clip": [
+      595,
+      335,
+      1110,
+      735
+    ],
+    "path": "layouts/floors/block_g_penthouse_floor.webp",
+    "width": 876,
+    "height": 681,
+    "bytes": 185462,
+    "sha256": "93b154a4deb82df6d7f532fa437ce8420f3e1598b37b354e75bb03fdc6e470fc"
+  },
+  {
+    "block": "v",
+    "kind": "commercial",
+    "source": "9 этАр В-Г  -1 ТО +9-Model.pdf-3.pdf",
+    "source_sha256": "c9b025f49784767c053419ce0c6871af0f3f7e2d1efa3c8002104ec91be79649",
+    "clip": [
+      215,
+      105,
+      600,
+      715
+    ],
+    "path": "layouts/floors/block_v_commercial_floor.webp",
+    "width": 655,
+    "height": 1038,
+    "bytes": 22064,
+    "sha256": "7743d747fa205acd72483b17f6bce0ea59f2e4bac20a44bfca052b2664b51eb2"
+  },
+  {
+    "block": "g",
+    "kind": "commercial",
+    "source": "9 этАр В-Г  -1 ТО +9-Model.pdf-3.pdf",
+    "source_sha256": "c9b025f49784767c053419ce0c6871af0f3f7e2d1efa3c8002104ec91be79649",
+    "clip": [
+      595,
+      335,
+      1085,
+      715
+    ],
+    "path": "layouts/floors/block_g_commercial_floor.webp",
+    "width": 834,
+    "height": 647,
+    "bytes": 23210,
+    "sha256": "66bf3b8dc4d034fd96174f01ece31927350e6a1de63710f1e1d203fdc6b3cfbb"
+  },
+  {
+    "block": "v",
+    "kind": "parking",
+    "source": "9 этАр В-Г  -1 ТО +9-Model.pdf-4.pdf",
+    "source_sha256": "c03023704f677a79379162a4636a424d3735053359f40d9c1d564f81d4c59de9",
+    "clip": [
+      210,
+      105,
+      575,
+      715
+    ],
+    "path": "layouts/floors/block_v_parking_floor.webp",
+    "width": 621,
+    "height": 1038,
+    "bytes": 46582,
+    "sha256": "95a8fe8253f82d2368014c07d9b1b7fe21e98ac083fee49ac626b53a696e80c5"
+  },
+  {
+    "block": "g",
+    "kind": "parking",
+    "source": "9 этАр В-Г  -1 ТО +9-Model.pdf-4.pdf",
+    "source_sha256": "c03023704f677a79379162a4636a424d3735053359f40d9c1d564f81d4c59de9",
+    "clip": [
+      575,
+      335,
+      1125,
+      790
+    ],
+    "path": "layouts/floors/block_g_parking_floor.webp",
+    "width": 936,
+    "height": 774,
+    "bytes": 44348,
+    "sha256": "1ab8e765631215b6fef482976df9a6da4ce465487f757d21c3d1b410b95197d1"
+  }
+]
