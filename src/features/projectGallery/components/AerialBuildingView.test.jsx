@@ -66,3 +66,33 @@ it('does not show zero counts when inventory failed to load', () => {
   expect(screen.getByRole('status').textContent).toContain('Данные блока не загружены');
   expect(screen.queryByText('Всего квартир')).toBeNull();
 });
+
+it('highlights the hovered floor and derives its banner from that floor only', () => {
+  const inventory = [{ ...buildings[1], sections: [{ floors: [
+    { floor_number: 5, units: [unit(1, 'AVAILABLE'), unit(2, 'SOLD')] },
+    { floor_number: 6, units: [unit(3, 'AVAILABLE')] },
+    { floor_number: 5, archived_at: 'date', units: [unit(3, 'AVAILABLE')] }
+  ] }] }];
+  render(<AerialBuildingView image={image} buildings={inventory} initialBuildingId={3} />);
+  const floor = screen.getByRole('button', { name: 'Блок Б, 5 этаж', exact: true });
+  fireEvent.mouseEnter(floor);
+  const panel = screen.getByRole('complementary');
+  expect(within(panel).getByRole('heading', { name: 'Блок Б · 5 этаж' })).toBeTruthy();
+  expect(within(panel).getByText('1-комнатные')).toBeTruthy();
+  expect(within(panel).queryByText('3-комнатные')).toBeNull();
+  expect(floor.getAttribute('stroke')).toBe('#fb923c');
+  fireEvent.click(floor);
+  expect(screen.getByAltText('Типовая планировка Блок Б, 5 этаж').getAttribute('src')).toBe('/layouts/floors/block_b_typical_floor.webp');
+  expect(screen.getByRole('heading', { name: 'Блок Б · 5 этаж' })).toBeTruthy();
+  fireEvent.keyDown(window, { key: 'Escape' });
+  expect(screen.getByRole('button', { name: 'Блок Б', exact: true }).getAttribute('aria-pressed')).toBe('true');
+});
+it('opens the selected A floor by keyboard and never substitutes the typical drawing for a non-typical floor', () => {
+  render(<AerialBuildingView image={image} buildings={buildings} initialBuildingId={4} />);
+  fireEvent.keyDown(screen.getByRole('button', { name: 'Блок А, 8 этаж', exact: true }), { key: 'Enter' });
+  expect(screen.getByAltText('Типовая планировка Блок А, 8 этаж').getAttribute('src')).toBe('/layouts/floors/block_a_typical_floor.webp');
+  fireEvent.keyDown(window, { key: 'Escape' });
+  fireEvent.click(screen.getByRole('button', { name: 'Открыть Блок А, 10 этаж' }));
+  expect(screen.getByRole('status').textContent).toContain('Отдельный чертёж 10 этажа ещё не добавлен');
+  expect(screen.queryByRole('img')).toBeNull();
+});
