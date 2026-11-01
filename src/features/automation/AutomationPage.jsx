@@ -50,6 +50,7 @@ export const AutomationPage = () => {
   const [feedbackMsg, setFeedbackMsg] = useState('');
   const [copiedUrl, setCopiedUrl] = useState(false);
   const [selectedSocial, setSelectedSocial] = useState(null);
+  const [socialCapabilities, setSocialCapabilities] = useState(null);
 
   // Webhook Test Form state
   const [webhookTestForm, setWebhookTestForm] = useState({
@@ -84,6 +85,9 @@ export const AutomationPage = () => {
 
   useEffect(() => {
     fetchAutomationData();
+    api.get('/automation/social-connections/capabilities')
+      .then((res) => setSocialCapabilities(res.data?.data || res.data || null))
+      .catch(() => setSocialCapabilities(null));
   }, []);
 
   const handleToggleRule = async (ruleId) => {
@@ -280,7 +284,7 @@ export const AutomationPage = () => {
                   <div className={`rounded-xl p-3 ${color}`}><Icon className="h-5 w-5" /></div>
                   <div><h3 className="font-bold text-slate-900">{name}</h3><p className="text-xs text-slate-500">{subtitle}</p></div>
                 </div>
-                <span className="text-xs font-semibold text-amber-700">Подключение не настроено</span>
+                <span className="text-xs font-semibold text-amber-700">{socialCapabilities?.[id]?.configured ? 'API подготовлен · аккаунт не подключён' : 'Подключение не настроено'}</span>
                 <button type="button" onClick={() => setSelectedSocial(id)} className="rounded-xl bg-blue-600 hover:bg-blue-700 text-white px-4 py-2.5 text-sm font-bold">Как подключить</button>
               </div>
             ))}
