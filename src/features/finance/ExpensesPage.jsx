@@ -1,3 +1,4 @@
+import { VG_CASH_DESK_ID } from '../../utils/accountingScope';
 import { Link } from 'react-router-dom';
 import { formatFinanceNumber, formatFinanceText } from '../../utils/financeDisplay';
 import { ExpenseSettlementFields } from './ExpenseSettlementFields';
@@ -85,11 +86,6 @@ export const ExpensesPage = () => {
   const [showAddModal, setShowAddModal] = useState(false);
   const [costAllocation, setCostAllocation] = useState(emptyAllocation);
   const canAllocateCosts = canWriteSection(user, 'finance.costs');
-  const { data: costOptions, error: costOptionsError } = useQuery({
-    queryKey: ['block-cost-options', user?.id],
-    queryFn: async () => (await api.get('/costs/state')).data,
-    enabled: showAddModal && canAllocateCosts,
-  });
   const [editingItem, setEditingItem] = useState(null);
   const {data:settlementOptions,isLoading:settlementLoading,error:settlementError}=useQuery({
     queryKey:['expense-settlement-parties',user?.id],
@@ -147,6 +143,15 @@ export const ExpensesPage = () => {
     source_currency: 'USD',
     idempotency_key: `EXP-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`
   });
+
+  const expenseAccountingScope = formData.cash_desk_id === VG_CASH_DESK_ID ? 'VG' : 'AB';
+  const { data: costOptions, error: costOptionsError } = useQuery({
+    queryKey: ['block-cost-options', user?.id, expenseAccountingScope],
+    queryFn: async () => (await api.get('/costs/state', { params: { accounting_scope: expenseAccountingScope } })).data,
+    enabled: showAddModal && canAllocateCosts,
+  });
+
+  useEffect(() => { setCostAllocation(current => ({ ...current, building_ids: [] })); }, [expenseAccountingScope]);
 
   useEffect(() => {
     if (isManager && managerDeskId) {
@@ -1381,7 +1386,7 @@ export const ExpensesPage = () => {
                 <ExpenseSettlementFields value={formData} onChange={patch=>setFormData(f=>({...f,...patch}))} parties={settlementOptions?.parties||[]} loading={settlementLoading} error={settlementError} disabled={addMutation.isPending}/>
                 {canAllocateCosts && <>
                   {costOptionsError && <p role="alert" className="text-amber-800">Не удалось загрузить блоки. РКО можно сохранить нераспределённым и отнести на блок позднее.</p>}
-                  <CostAllocationFields value={costAllocation} onChange={setCostAllocation} disabled={addMutation.isPending} blocks={(costOptions?.blocks || []).map(b => ({ ...b, project_name: costOptions.projects.find(p => p.id === b.project_id)?.name || '' }))} />
+                  <CostAllocationFields accountingScope={expenseAccountingScope} value={costAllocation} onChange={setCostAllocation} disabled={addMutation.isPending} blocks={(costOptions?.blocks || []).map(b => ({ ...b, project_name: costOptions.projects.find(p => p.id === b.project_id)?.name || '' }))} />
                 </>}
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   {/* Recipient */}

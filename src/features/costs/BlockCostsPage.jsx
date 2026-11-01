@@ -16,6 +16,7 @@ const today = () => new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Dus
 export function BlockCostsPage() {
   const { user } = useAuth();
   const allowed = hasReadPermission(user, 'finance.costs');
+  const [accountingScope, setAccountingScope] = useState('AB');
   const [asOf, setAsOf] = useState(today);
   const [state, setState] = useState('UNASSIGNED');
   const [block, setBlock] = useState('ALL');
@@ -24,7 +25,7 @@ export function BlockCostsPage() {
   const [basis, setBasis] = useState(null);
   const [error, setError] = useState('');
   const client = useQueryClient();
-  const query = useQuery({ queryKey: ['block-costs', asOf, user?.id], queryFn: async () => (await api.get('/costs/state', { params: { as_of: asOf } })).data, enabled: allowed && Boolean(asOf) });
+  const query = useQuery({ queryKey: ['block-costs', asOf, user?.id, accountingScope], queryFn: async () => (await api.get('/costs/state', { params: { as_of: asOf, accounting_scope: accountingScope } })).data, enabled: allowed && Boolean(asOf) });
   const data = query.data;
   const blocks = (data?.blocks || []).map(b => ({ ...b, project_name: data.projects.find(p => p.id === b.project_id)?.name || '' }));
   const mutation = useMutation({
@@ -50,6 +51,11 @@ export function BlockCostsPage() {
     <p className="rounded-xl bg-blue-50 p-4 text-sm text-blue-950">Себестоимость = расходы по проведённым РКО + неоплаченная стоимость использованной арматуры и залитого бетона. Оплаты этих материалов связываются с их использованием и повторно в затраты не добавляются. Материалы на складе и авансы до использования не включаются. Показатель на 1 м² рассчитан по всей подтверждённой продаваемой площади блока.</p>
     <label className="flex gap-3 items-center text-sm">Затраты по дату включительно
       <input aria-label="Дата расчёта" type="date" value={asOf} onChange={e => setAsOf(e.target.value)} className="border rounded-lg p-2" />
+    </label>
+    <label className="block text-sm mb-3">Раздельный учёт
+      <select aria-label="Контур себестоимости" className="ml-2 rounded-lg border p-2 bg-white" value={accountingScope} onChange={e => { setAccountingScope(e.target.value); setBlock('ALL'); setEditor(null); setBasis(null); setError(''); }}>
+        <option value="AB">Блоки А и Б</option><option value="VG">Блоки В и Г — отдельно</option>
+      </select>
     </label>
     {query.isPending && <p>Загрузка расчёта…</p>}
     {query.isError && <div role="alert" className="bg-red-50 p-4 rounded-xl text-red-800">{query.error.message}<button className="underline ml-3" onClick={() => query.refetch()}>Повторить</button></div>}
@@ -92,7 +98,7 @@ export function BlockCostsPage() {
     </>}
     {(editor || basis) && <div className="fixed inset-0 z-50 bg-slate-900/50 flex justify-center items-center p-4"><section role="dialog" aria-modal="true" aria-label={editor ? 'Распределение РКО' : 'Подтверждение площади'} className="bg-white rounded-2xl p-5 w-full max-w-xl max-h-[90vh] overflow-y-auto space-y-4">
       <h2 className="text-xl font-bold">{editor ? `Распределение ${editor.row.reference || `РКО-${editor.row.id}`}` : `Площадь: ${basis.block.name}`}</h2>
-      {editor ? <CostAllocationFields value={editor.value} onChange={value => setEditor({ ...editor, value })} blocks={blocks} disabled={mutation.isPending} /> : <>
+      {editor ? <CostAllocationFields accountingScope={accountingScope} value={editor.value} onChange={value => setEditor({ ...editor, value })} blocks={blocks} disabled={mutation.isPending} /> : <>
         <p className="text-sm">Введите всю продаваемую площадь: квартиры + коммерция, включая проданные помещения. Лестницы, общие коридоры и другие непродаваемые площади не включайте.</p>
         <p className="text-sm text-amber-800">В реестре: {number(basis.block.registry_area_m2)} м². Проверьте, включена ли вся коммерция. Это подсказка, а не подтверждённый итог.</p>
         <label className="block">Общая продаваемая площадь, м²<input aria-label="Продаваемая площадь" className="block border rounded-lg p-2 w-full" inputMode="decimal" value={basis.area} onChange={e => setBasis({ ...basis, area: e.target.value })} /></label>
