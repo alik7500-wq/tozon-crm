@@ -94,6 +94,7 @@ export const navGroups = [
     },
     { type: 'link', label: 'Автоматизация', path: '/automation', icon: Zap, permission: 'automation.manage' },
     { type: 'link', label: 'Уведомления', path: '/notifications', icon: Bell },
+    { type: 'link', label: 'Активность сотрудников', path: '/activity', icon: UserCheck, adminOnly: true },
     { type: 'link', label: 'Пользователи', path: '/users', icon: Users, permission: 'users.manage' },
     { type: 'link', label: 'Настройки', path: '/settings', icon: Settings, permission: 'settings.manage' },
   ];

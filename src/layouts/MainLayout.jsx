@@ -1,3 +1,4 @@
+import { ActivityCounter, useActivityTracking } from '../features/activity/ActivityTracking';
 import React, { useState, useEffect } from 'react';
 import { NavLink, Outlet, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../features/auth/AuthContext';
@@ -47,6 +48,7 @@ export const MainLayout = () => {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
+  useActivityTracking(user?.id, location.pathname);
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
   const [unreadCount, setUnreadCount] = useState(0);
 
@@ -111,6 +113,7 @@ export const MainLayout = () => {
     .filter(item => user?.permissions?.includes('access.v2') || !user?.permissions?.includes('finance.restricted') || item.id === 'finance')
     .map((item) => {
       if (item.type === 'link') {
+        if (item.adminOnly && user?.role !== 'ADMIN') return null;
         if ((item.permission && !hasReadPermission(user, item.permission)) || !hasFeatureAccess(user, item.path)) {
           return null;
         }
@@ -279,6 +282,7 @@ export const MainLayout = () => {
 
           {/* Quick Actions & Notifications */}
           <div className="flex items-center gap-3">
+            {user?.role === 'ADMIN' && <ActivityCounter />}
             <NavLink
               to="/notifications"
               title="Уведомления"
