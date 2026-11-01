@@ -1,3 +1,4 @@
+import { ActivityPage } from './features/activity/ActivityPage';
 import { RkoBookPage } from './features/finance/RkoBookPage';
 import { ContractCongratulationsModal } from './components/sms/ContractCongratulationsModal';
 import React from 'react';
@@ -105,6 +106,7 @@ function App() {
                       </PermissionGuard>
                     }
                   />
+                  <Route path="/activity" element={<ActivityPage />} />
                   <Route path="/notifications" element={<NotificationsPage />} />
                   <Route
                     path="/users"
