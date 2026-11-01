@@ -1,7 +1,8 @@
 import React from 'react';
 import { COST_STATES } from './allocation';
 
-export function CostAllocationFields({ value, onChange, blocks, disabled = false }) {
+export function CostAllocationFields({ value, onChange, blocks, disabled = false, accountingScope = 'AB' }) {
+  blocks = blocks.filter(b => accountingScope === 'VG' ? Number(b.project_id) === 4 : Number(b.project_id) !== 4);
   const update = patch => onChange({ ...value, ...patch });
   const selected = value.building_ids.map(Number);
   return <fieldset disabled={disabled} className="space-y-3 rounded-xl border border-slate-200 p-3">
