@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, lazy, Suspense } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { api } from '../../api/client';
 import { useAuth } from '../auth/AuthContext';
@@ -27,6 +27,8 @@ import {
   CheckCircle2,
   Check
 } from 'lucide-react';
+
+const LeadIntakeModal = lazy(() => import('./LeadIntakeModal').then(module => ({ default: module.LeadIntakeModal })));
 
 export const LeadsPage = () => {
   const { user } = useAuth();
@@ -60,6 +62,7 @@ export const LeadsPage = () => {
 
   // Modals / Drawer
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
+  const [isIntakeOpen, setIsIntakeOpen] = useState(false);
   const [selectedLeadId, setSelectedLeadId] = useState(searchParams.get('leadId') ? Number(searchParams.get('leadId')) : null);
   const [leadToEdit, setLeadToEdit] = useState(null);
 
@@ -300,6 +303,7 @@ export const LeadsPage = () => {
             <Plus className="h-4 w-4" />
             <span>Добавить лида</span>
           </button>
+          {canAssign && <button onClick={() => setIsIntakeOpen(true)} className="rounded-xl border border-blue-200 bg-white px-4 py-2.5 font-semibold text-blue-700 shadow-sm">Импорт / Google Форма</button>}
         </div>
       </div>
 
@@ -564,6 +568,7 @@ export const LeadsPage = () => {
       )}
 
       {/* Modals */}
+      {isIntakeOpen && <Suspense fallback={<p role="status">Открывается импорт…</p>}><LeadIntakeModal onClose={() => setIsIntakeOpen(false)} onImported={() => { fetchLeads(); fetchStats(); }} /></Suspense>}
       <CreateLeadModal
         isOpen={isCreateModalOpen}
         onClose={() => setIsCreateModalOpen(false)}
