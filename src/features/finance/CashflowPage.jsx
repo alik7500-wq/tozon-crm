@@ -1,3 +1,4 @@
+import { cashDesksForScope } from '../../utils/accountingScope';
 import { formatFinanceText } from '../../utils/financeDisplay';
 import { InvestmentSummaryCard } from './InvestmentSummaryCard';
 import React, { useState, useEffect, useMemo } from 'react';
@@ -123,6 +124,7 @@ export const CashflowPage = () => {
   const isAdmin = user?.role === 'ADMIN';
   const isManager = user?.role === 'SALES_MANAGER';
 
+  const [accountingScope, setAccountingScope] = useState('AB');
   const [viewMode, setViewMode] = useState(() => localStorage.getItem('tozon_cashflow_view_mode') || 'compact');
   const [year, setYear] = useState(new Date().getFullYear());
   const [currency, setCurrency] = useState('ALL');
@@ -140,7 +142,7 @@ export const CashflowPage = () => {
   const [printableExpense, setPrintableExpense] = useState(null);
   const [isExporting, setIsExporting] = useState(false);
 
-  const activeFilters = useMemo(() => buildCashflowFilters({
+  const activeFilters = useMemo(() => ({ ...buildCashflowFilters({
     year,
     startDate,
     endDate,
@@ -149,7 +151,7 @@ export const CashflowPage = () => {
     typeFilter,
     categoryFilter,
     search
-  }), [year, startDate, endDate, selectedCashDeskId, currency, typeFilter, categoryFilter, search]);
+  }), accounting_scope: accountingScope }), [year, startDate, endDate, selectedCashDeskId, currency, typeFilter, categoryFilter, search, accountingScope]);
 
   const dateRangeError = activeFilters.invalidDateRange ? 'Дата "С" не может быть позже Даты "По"' : null;
 
@@ -166,7 +168,7 @@ export const CashflowPage = () => {
       const link = document.createElement('a');
       link.href = url;
       const todayStr = dayjs().format('YYYY-MM-DD');
-      link.setAttribute('download', `DDS_TOZON_PLAZA_${todayStr}.xlsx`);
+      link.setAttribute('download', `DDS_TOZON_PLAZA_${accountingScope}_${todayStr}.xlsx`);
       document.body.appendChild(link);
       link.click();
       link.parentNode.removeChild(link);
@@ -196,10 +198,12 @@ export const CashflowPage = () => {
 
   const queryClient = useQueryClient();
 
-  const { data: cashDesksDict = [] } = useQuery({
+  const { data: rawCashDesksDict = [] } = useQuery({
     queryKey: ['dictionaries', 'CASH_DESK'],
     queryFn: () => dictionariesApi.getItems('CASH_DESK')
   });
+
+  const cashDesksDict = useMemo(() => cashDesksForScope(rawCashDesksDict, accountingScope), [rawCashDesksDict, accountingScope]);
 
   const { data: usersList = [] } = useQuery({
     queryKey: ['users-for-cashflow-desks'],
@@ -209,7 +213,7 @@ export const CashflowPage = () => {
     }
   });
 
-  const allCashDesks = useMemo(() => buildCashDesksList(cashDesksDict, usersList), [cashDesksDict, usersList]);
+  const allCashDesks = useMemo(() => cashDesksForScope(buildCashDesksList(cashDesksDict, usersList), accountingScope), [cashDesksDict, usersList, accountingScope]);
 
   const { data: eskhataRateResponse } = useQuery({
     queryKey: ['eskhata-rate'],
@@ -805,6 +809,9 @@ export const CashflowPage = () => {
             <div className="flex items-center gap-2">
               <h1 className="text-sm font-black text-slate-900 tracking-tight">
                 ДДС (Движение денежных средств)
+                <select aria-label="Раздельный учёт ДДС" value={accountingScope} onChange={event => { setAccountingScope(event.target.value); setSelectedCashDeskId('ALL'); setConvertForm(current => ({ ...current, from_cash_desk_id: '', to_cash_desk_id: '' })); }} className="ml-3 rounded-lg border border-blue-200 bg-white px-2 py-1 text-xs">
+                  <option value="AB">Блоки А и Б</option><option value="VG">Блоки В и Г — отдельно</option>
+                </select>
               </h1>
               <span className="hidden sm:inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-blue-50 text-blue-700 border border-blue-100">
                 🖥️ Кокпит в 1 экран

@@ -64,4 +64,16 @@ describe('initial buyer receipt cash desk', () => {
   fireEvent.click(screen.getByText('Забронировать объект'));
   await waitFor(() => expect(api.post).toHaveBeenCalledWith('/deals', expect.objectContaining({ status: 'RESERVED', record_initial_payment: false, initial_payment_cash_desk_id: null })));
  });
+ it('offers only the separate VG desk and selects it for project 4 initial receipt', async () => {
+  const vg={id:'9dc0e06d-5e0b-4bad-8bb7-83161d7a70a2',code:'TOZON_PLAZA_2_CASH',name:'Касса В и Г',is_active:true};
+  dictionaryResponse=()=>Promise.resolve({data:[...desks,vg]});
+  render(<DealWizardModal isOpen unit={{...unit,project_id:4}} onClose={vi.fn()} />);
+  fireEvent.click(await screen.findByText('Тестовый покупатель'));
+  for(let i=0;i<3;i++)fireEvent.click(screen.getByText('Далее'));
+  fireEvent.click(screen.getByLabelText('Первоначальный взнос уже получен в кассу'));
+  await screen.findByRole('option',{name:vg.name});
+  expect(screen.queryByRole('option',{name:'Касса 1'})).toBeNull();
+  expect(screen.getByLabelText('Касса зачисления *').value).toBe(vg.id);
+ });
+
 });

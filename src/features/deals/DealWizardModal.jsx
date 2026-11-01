@@ -1,3 +1,4 @@
+import { cashDesksForScope } from '../../utils/accountingScope';
 import { getUnitTitle, getUnitKindLabel, getUnitDefaultPrice, isFixedParking, isNonResidentialUnit } from '../../utils/unitKind';
 import {formatMeasure} from '../../utils/numberDisplay';
 import React, { useState, useEffect } from 'react';
@@ -146,6 +147,8 @@ export const DealWizardModal = ({
     setFirstPaymentDate(`${nextYear}-${String(nextMonth).padStart(2, '0')}-${String(actualDay).padStart(2, '0')}`);
   }, [dealDate, downPaymentAmount]);
 
+  const unitProjectId = selectedUnit?.project_id || selectedUnit?.floors?.sections?.buildings?.projects?.id;
+
   // Initial Payment PKO controls
   const [initialPaymentReference, setInitialPaymentReference] = useState('');
   const [initialPaymentDate, setInitialPaymentDate] = useState('');
@@ -167,14 +170,16 @@ export const DealWizardModal = ({
       .then(items => {
         if (cancelled) return;
         if (!Array.isArray(items)) throw new Error('Некорректный список касс');
-        setIncomeCashDesks(items.filter(d => d.is_active !== false && d.id));
+        const allowed = cashDesksForScope(items.filter(d => d.is_active !== false && d.id), Number(unitProjectId) === 4 ? 'VG' : 'AB');
+        setIncomeCashDesks(allowed);
+        if (Number(unitProjectId) === 4 && allowed.length === 1) setInitialPaymentCashDeskId(allowed[0].id);
       })
       .catch(err => {
         if (!cancelled) setCashDesksError(err.message || 'Не удалось загрузить кассы');
       })
       .finally(() => { if (!cancelled) setCashDesksLoading(false); });
     return () => { cancelled = true; };
-  }, [isOpen, needsInitialPayment]);
+  }, [isOpen, needsInitialPayment, unitProjectId]);
 
   const [error, setError] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -204,7 +209,7 @@ export const DealWizardModal = ({
     : roundAmount(parseFloat(discountValue) || 0);
 
   const finalPrice = appliedDiscount ? Math.round((calculatedBasePrice-actualDiscountMinor)*100)/100 : roundAmount(Math.max(0, calculatedBasePrice - actualDiscountMinor));
-  const unitProjectId = selectedUnit?.project_id || selectedUnit?.floors?.sections?.buildings?.projects?.id;
+
   const discountBusinessDate = new Date(Date.now() + 5*60*60*1000).toISOString().slice(0,10);
   const availableSchemes = (fixedParking ? [] : discountSchemes).filter(s => s.is_active && String(s.project_id) === String(unitProjectId) && (!s.starts_on || s.starts_on <= discountBusinessDate) && (!s.ends_on || s.ends_on >= discountBusinessDate));
   const selectedScheme = availableSchemes.find(s => s.id === schemeId) || availableSchemes[0];
