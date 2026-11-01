@@ -165,6 +165,7 @@ describe('CashflowPage RTL Real Component Test Suite', () => {
 
     await waitFor(() => {
       expect(financeApi.exportCashflowExcel).toHaveBeenCalledWith({
+        accounting_scope: 'AB',
         year: 'ALL',
         date_from: '2026-06-01',
         date_to: '2026-06-30',
@@ -197,4 +198,17 @@ describe('CashflowPage RTL Real Component Test Suite', () => {
     expect(invalidFilters.invalidCashDeskId).toBe(true);
     expect(invalidFilters.cash_desk_id).toBeUndefined();
   });
+  it('keeps VG desks out of AB filters and exports the separate VG scope on selection', async () => {
+    const vg={id:'9dc0e06d-5e0b-4bad-8bb7-83161d7a70a2',code:'TOZON_PLAZA_2_CASH',name:'Касса В и Г'};
+    dictionariesApi.getItems.mockResolvedValue([...mockCashDesks,vg]);
+    renderComponent();
+    await waitFor(()=>expect(financeApi.getCashflow).toHaveBeenCalledWith(expect.objectContaining({accounting_scope:'AB'})));
+    expect(screen.queryByRole('option',{name:vg.name})).toBeNull();
+    fireEvent.change(screen.getAllByLabelText('Раздельный учёт ДДС').at(-1),{target:{value:'VG'}});
+    await waitFor(()=>expect(financeApi.getCashflow).toHaveBeenCalledWith(expect.objectContaining({accounting_scope:'VG'})));
+    expect(await screen.findByRole('option',{name:vg.name})).toBeTruthy();
+    fireEvent.click(screen.getAllByRole('button',{name:/Выгрузить в Excel/i}).at(-1));
+    await waitFor(()=>expect(financeApi.exportCashflowExcel).toHaveBeenCalledWith(expect.objectContaining({accounting_scope:'VG'})));
+  });
+
 });
