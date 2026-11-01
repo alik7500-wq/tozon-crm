@@ -23,7 +23,9 @@ import {
   Share2,
   ExternalLink,
   ShieldCheck,
-  Play
+  Play,
+  Instagram,
+  LockKeyhole
 } from 'lucide-react';
 
 const ConnectionActions = ({ links, onSettings, onCopy, copied }) => (
@@ -47,6 +49,7 @@ export const AutomationPage = () => {
   const [isSaving, setIsSaving] = useState(false);
   const [feedbackMsg, setFeedbackMsg] = useState('');
   const [copiedUrl, setCopiedUrl] = useState(false);
+  const [selectedSocial, setSelectedSocial] = useState(null);
 
   // Webhook Test Form state
   const [webhookTestForm, setWebhookTestForm] = useState({
@@ -258,6 +261,43 @@ export const AutomationPage = () => {
           </div>
         </div>
       </section>
+
+      {/* Social connection center: setup guidance only, never imply an account is connected. */}
+      {activeTab === 'CHANNELS' && (
+        <section aria-label="Социальные сети и мессенджеры" className="rounded-3xl border border-slate-200 bg-white p-5 sm:p-6 shadow-sm space-y-4">
+          <div>
+            <h2 className="text-lg font-extrabold text-slate-900">Социальные сети и мессенджеры</h2>
+            <p className="mt-1 text-sm text-slate-500">Подготовка подключения каналов. Авторизация и синхронизация станут доступны после настройки официальных API.</p>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+            {[
+              { id: 'instagram', name: 'Instagram', subtitle: 'Direct и рекламные заявки', Icon: Instagram, color: 'text-pink-600 bg-pink-50' },
+              { id: 'whatsapp', name: 'WhatsApp Business', subtitle: 'Сообщения и обращения', Icon: MessageSquare, color: 'text-emerald-600 bg-emerald-50' },
+              { id: 'telegram', name: 'Telegram', subtitle: 'Бот и уведомления', Icon: Send, color: 'text-sky-600 bg-sky-50' }
+            ].map(({ id, name, subtitle, Icon, color }) => (
+              <div key={id} className="rounded-2xl border border-slate-200 p-4 flex flex-col gap-3">
+                <div className="flex items-center gap-3">
+                  <div className={`rounded-xl p-3 ${color}`}><Icon className="h-5 w-5" /></div>
+                  <div><h3 className="font-bold text-slate-900">{name}</h3><p className="text-xs text-slate-500">{subtitle}</p></div>
+                </div>
+                <span className="text-xs font-semibold text-amber-700">Подключение не настроено</span>
+                <button type="button" onClick={() => setSelectedSocial(id)} className="rounded-xl bg-blue-600 hover:bg-blue-700 text-white px-4 py-2.5 text-sm font-bold">Как подключить</button>
+              </div>
+            ))}
+          </div>
+          <p className="text-xs text-slate-500 flex gap-2 items-start"><LockKeyhole className="h-4 w-4 shrink-0" />Никогда не вводите пароль Instagram или WhatsApp в CRM. Подключение должно проходить через официальный вход провайдера.</p>
+        </section>
+      )}
+      {selectedSocial && (
+        <div className="fixed inset-0 z-50 bg-slate-950/50 flex items-center justify-center p-4" role="presentation" onMouseDown={(e) => { if (e.target === e.currentTarget) setSelectedSocial(null); }}>
+          <div role="dialog" aria-modal="true" aria-label="Подключение канала" className="w-full max-w-lg rounded-2xl bg-white p-6 shadow-xl space-y-4">
+            <div className="flex items-start justify-between gap-3"><h2 className="text-lg font-extrabold text-slate-900">Подключение {selectedSocial === 'instagram' ? 'Instagram' : selectedSocial === 'whatsapp' ? 'WhatsApp Business' : 'Telegram'}</h2><button type="button" onClick={() => setSelectedSocial(null)} aria-label="Закрыть" className="text-slate-500 text-xl">×</button></div>
+            <p className="text-sm text-slate-600">Автоматическое подключение пока не реализовано. Необходимо настроить серверную авторизацию и обработку событий. Сейчас можно открыть официальный кабинет для подготовки.</p>
+            <a className="inline-flex rounded-xl bg-blue-600 px-4 py-2.5 text-white text-sm font-bold" target="_blank" rel="noopener noreferrer" href={selectedSocial === 'telegram' ? 'https://t.me/BotFather' : 'https://developers.facebook.com/apps/'}>Открыть официальный кабинет <ExternalLink className="h-4 w-4 ml-2" /></a>
+            <div className="text-xs text-slate-500">Статус подключения появится только после успешной проверки API. Данные клиентов и существующие настройки не изменяются.</div>
+          </div>
+        </div>
+      )}
 
       {/* Tab 1: Channels & Adapters */}
       {activeTab === 'CHANNELS' && settings && (
