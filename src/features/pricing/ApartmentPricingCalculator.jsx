@@ -9,6 +9,7 @@ export function ApartmentPricingCalculator({unit,currency='USD',initialQuote=nul
  const [schemeId,setSchemeId]=useState(initialQuote?.scheme_id||'');
  const [selection,setSelection]=useState(initialQuote?.selection||{mode:'percent',value:'0',months:''});
  const [showTable,setShowTable]=useState(true);
+ const [depositInput,setDepositInput]=useState(null);
  const [exchange,setExchange]=useState({loading:currency==='USD',rate:null,stale:false,updatedAt:null});
  useEffect(()=>{
   if(currency!=='USD')return;
@@ -28,8 +29,15 @@ export function ApartmentPricingCalculator({unit,currency='USD',initialQuote=nul
  const scheme=available.find(s=>s.id===schemeId)||available[0];
  const quote=useMemo(()=>loading||error?null:calculatePricing(unit,scheme,selection),[loading,error,unit,scheme,selection]);
  useEffect(()=>{onChange?.(quote&&!quote.error?quote:null)},[quote,onChange]);
- const chooseTier=rule=>setSelection({mode:'tier',value:String(rule.payment_percent),months:''});
- const changeValue=(mode,value)=>setSelection({mode,value,months:''});
+ const chooseTier=rule=>{setDepositInput(null);setSelection({mode:'tier',value:String(rule.payment_percent),months:''})};
+ const changeValue=(mode,value)=>{setDepositInput(null);setSelection({mode,value,months:''})};
+ const changeDeposit=value=>{
+  if(currency==='USD'&&exchange.rate==null)return;
+  setDepositInput(value);
+  const amount=Number(value);
+  setSelection({mode:'amount',value:value===''?'':String(Math.round(amount*100/(currency==='USD'?exchange.rate:1))/100),months:''});
+ };
+ const depositValue=depositInput??(selection.mode==='amount'?(currency==='USD'?(exchange.rate!=null?Math.round(Number(selection.value)*100*exchange.rate)/100:''):selection.value):(quote&&!quote.error?(currency==='USD'?(exchange.rate!=null?Math.round(quote.down_payment_minor*exchange.rate)/100:''):quote.down_payment_minor/100):''));
  const tiers=(scheme?.rules||[]).map(r=>tierPrice(unit,r)).filter(Boolean).sort((a,b)=>a.rule.payment_percent-b.rule.payment_percent);
  const active=quote?.rule_payment_percent;
  const termOptions=[...new Set(tiers.map(t=>Number(t.rule.months)).filter(n=>n>0))].sort((a,b)=>a-b);
@@ -39,7 +47,7 @@ export function ApartmentPricingCalculator({unit,currency='USD',initialQuote=nul
   {loading&&<p role="status" className="text-sm text-slate-500">Загрузка условий скидок…</p>}
   {error&&<div role="alert" className="rounded-xl bg-rose-50 p-3 text-sm text-rose-700">{error} <button type="button" className="font-bold underline" onClick={()=>setReload(n=>n+1)}>Повторить</button></div>}
   {!loading&&!error&&<>
-   {available.length>0?<label className="block text-sm font-semibold text-slate-700">Схема скидок<select aria-label="Схема скидок" className={`${field} mt-1`} value={scheme?.id||''} onChange={e=>{setSchemeId(e.target.value);setSelection({mode:'tier',value:String(available.find(s=>s.id===e.target.value)?.rules?.[0]?.payment_percent||0),months:''})}}>{available.map(s=><option key={s.id} value={s.id}>{s.name}</option>)}</select></label>:<p className="text-sm text-slate-500">Для этого ЖК нет действующей схемы. Расчёт по базовой цене, без скидки.</p>}
+   {available.length>0?<label className="block text-sm font-semibold text-slate-700">Схема скидок<select aria-label="Схема скидок" className={`${field} mt-1`} value={scheme?.id||''} onChange={e=>{setDepositInput(null);setSchemeId(e.target.value);setSelection({mode:'tier',value:String(available.find(s=>s.id===e.target.value)?.rules?.[0]?.payment_percent||0),months:''})}}>{available.map(s=><option key={s.id} value={s.id}>{s.name}</option>)}</select></label>:<p className="text-sm text-slate-500">Для этого ЖК нет действующей схемы. Расчёт по базовой цене, без скидки.</p>}
    <div className="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-6 gap-2">{tiers.map(t=><button type="button" key={t.rule.payment_percent} aria-pressed={active===t.rule.payment_percent} onClick={()=>chooseTier(t.rule)} className={`rounded-xl border px-3 py-3 text-left transition ${active===t.rule.payment_percent?'bg-indigo-600 border-indigo-600 text-white shadow-md':'bg-white border-slate-200 text-slate-700 hover:border-indigo-400'}`}><strong className="block">Взнос {number(t.rule.payment_percent)}%</strong><span className="block text-xs mt-1">{number(t.price_per_m2)} {currency}/м²</span><span className="block text-xs mt-1">{t.rule.months?`${t.rule.months} мес.`:'Полная оплата'}</span></button>)}</div>
    {quote&&!quote.error&&<div aria-live="polite" className="grid sm:grid-cols-3 gap-3">
     <Summary label="Стоимость после скидки" value={`${money(quote.total_minor)} ${currency}`} secondary={somoni(quote.total_minor)} detail={`${number(quote.price_per_m2)} ${currency}/м²${somoni(Math.round(quote.price_per_m2*100)) ? ` · ${somoni(Math.round(quote.price_per_m2*100))}/м²` : ''}`} color="rose"/>
@@ -52,7 +60,8 @@ export function ApartmentPricingCalculator({unit,currency='USD',initialQuote=nul
    <div className="grid lg:grid-cols-[280px_minmax(0,1fr)] gap-4 items-start">
     <div className="rounded-xl border border-slate-200 bg-white p-4 space-y-4">
      <h4 className="text-sm font-bold text-slate-800">Первоначальный взнос по желанию</h4>
-     <label className="block text-xs font-semibold text-slate-500">Сумма ({currency})<input aria-label="Желаемый первоначальный взнос" type="number" min="0" step="0.01" className={`${field} mt-1`} value={selection.mode==='amount'?selection.value:(quote&&!quote.error?quote.down_payment_minor/100:'')} onChange={e=>changeValue('amount',e.target.value)}/></label>
+     <label className="block text-xs font-semibold text-slate-500">Сумма ({currency==='USD'?'сомони':currency})<input aria-label="Желаемый первоначальный взнос" type="number" min="0" step="0.01" disabled={currency==='USD'&&exchange.rate==null} className={`${field} mt-1 disabled:bg-slate-100 disabled:text-slate-400`} value={depositValue} onChange={e=>changeDeposit(e.target.value)}/></label>
+     {currency==='USD'&&<p className="text-xs text-slate-500">{exchange.rate!=null?`Взнос в сомони пересчитывается в USD по ${exchange.stale?'последнему доступному курсу':'курсу'}: 1 USD = ${number(exchange.rate)} сомони.${selection.mode==='amount'?` Эквивалент введённой суммы: ${number(Number(selection.value))} USD.`:''}`:exchange.loading?'Ввод суммы будет доступен после загрузки курса.':'Для ввода суммы в сомони необходим курс. Обновите страницу или выберите взнос в процентах.'}</p>}
      <label className="block text-xs font-semibold text-slate-500">Доля от цены после скидки (%)<input aria-label="Желаемый первоначальный взнос в процентах" type="number" min="0" max="100" step="0.01" className={`${field} mt-1`} value={selection.mode==='percent'?selection.value:(quote&&!quote.error?Number(quote.actual_percent.toFixed(2)):'')} onChange={e=>changeValue('percent',e.target.value)}/></label>
      <label className="block text-xs font-semibold text-slate-500">Срок рассрочки (месяцев)<input aria-label="Срок калькулятора" type="number" min={quote?.payment_type==='FULL'?0:1} max={quote?.max_months||120} step="1" disabled={quote?.payment_type==='FULL'} className={`${field} mt-1`} value={selection.months!==''?selection.months:(quote&&!quote.error?quote.months:'')} onChange={e=>setSelection(s=>({...s,months:e.target.value}))}/></label>
      {termOptions.length>0&&<div className="flex gap-2 flex-wrap">{termOptions.map(n=><button type="button" key={n} disabled={quote?.payment_type==='FULL'||n>(quote?.max_months||120)} className="rounded-lg border border-indigo-200 px-3 py-1 text-xs text-indigo-700 disabled:opacity-40" onClick={()=>setSelection(s=>({...s,months:String(n)}))}>{n} мес.</button>)}</div>}
