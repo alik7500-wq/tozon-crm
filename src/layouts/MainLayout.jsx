@@ -88,7 +88,8 @@ export const MainLayout = () => {
       path.startsWith('/leads') ||
       path.startsWith('/deals') ||
       path.startsWith('/clients') ||
-      path.startsWith('/crm')
+      path.startsWith('/crm') ||
+      path.startsWith('/instagram')
     ) {
       setExpandedMenus((prev) => ({ ...prev, crm: true }));
     }
@@ -121,7 +122,7 @@ export const MainLayout = () => {
       }
       if (item.type === 'group') {
         const allowedChildren = item.children.filter(
-          (child) => hasFeatureAccess(user, child.path) && (child.permissionsAny ? child.permissionsAny.some(p=>hasReadPermission(user,p)) : !child.permission || hasReadPermission(user, child.permission))
+          (child) => (child.path !== '/instagram/inbox' || ['ADMIN', 'DIRECTOR'].includes(user?.role)) && hasFeatureAccess(user, child.path) && (child.permissionsAny ? child.permissionsAny.some(p=>hasReadPermission(user,p)) : !child.permission || hasReadPermission(user, child.permission))
         );
         if (allowedChildren.length === 0) {
           return null;
