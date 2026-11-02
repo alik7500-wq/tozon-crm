@@ -9,6 +9,20 @@ export function ApartmentPricingCalculator({unit,currency='USD',initialQuote=nul
  const [schemeId,setSchemeId]=useState(initialQuote?.scheme_id||'');
  const [selection,setSelection]=useState(initialQuote?.selection||{mode:'percent',value:'0',months:''});
  const [showTable,setShowTable]=useState(true);
+ const [exchange,setExchange]=useState({loading:currency==='USD',rate:null,stale:false,updatedAt:null});
+ useEffect(()=>{
+  if(currency!=='USD')return;
+  let active=true;
+  api.get('/finance/rates/eskhata').then(response=>{
+   if(!active)return;
+   const data=response.data || response;
+   const rate=Number(data.sellRate);
+   setExchange({loading:false,rate:data.available!==false&&Number.isFinite(rate)&&rate>0?rate:null,stale:!!data.isStale,updatedAt:data.updatedAt||null});
+  }).catch(()=>{if(active)setExchange({loading:false,rate:null,stale:false,updatedAt:null})});
+  return()=>{active=false};
+ },[currency]);
+ const somoni=minor=>currency==='USD'&&exchange.rate!=null?`≈ ${money(Math.round(minor*exchange.rate))} сомони`:null;
+ const rateDate=exchange.updatedAt&&Number.isFinite(Date.parse(exchange.updatedAt))?new Date(exchange.updatedAt).toLocaleString('ru-RU',{timeZone:'Asia/Dushanbe'}):null;
  useEffect(()=>{let alive=true;setLoading(true);setError('');api.get('/discount-schemes').then(r=>{if(alive)setSchemes(r.data?.schemes||[])}).catch(()=>{if(alive)setError('Не удалось загрузить схемы скидок. Повторите загрузку перед расчётом.')}).finally(()=>{if(alive)setLoading(false)});return()=>{alive=false}},[unit.id,reload]);
  const available=useMemo(()=>applicableSchemes(schemes,unit),[schemes,unit]);
  const scheme=available.find(s=>s.id===schemeId)||available[0];
@@ -28,10 +42,13 @@ export function ApartmentPricingCalculator({unit,currency='USD',initialQuote=nul
    {available.length>0?<label className="block text-sm font-semibold text-slate-700">Схема скидок<select aria-label="Схема скидок" className={`${field} mt-1`} value={scheme?.id||''} onChange={e=>{setSchemeId(e.target.value);setSelection({mode:'tier',value:String(available.find(s=>s.id===e.target.value)?.rules?.[0]?.payment_percent||0),months:''})}}>{available.map(s=><option key={s.id} value={s.id}>{s.name}</option>)}</select></label>:<p className="text-sm text-slate-500">Для этого ЖК нет действующей схемы. Расчёт по базовой цене, без скидки.</p>}
    <div className="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-6 gap-2">{tiers.map(t=><button type="button" key={t.rule.payment_percent} aria-pressed={active===t.rule.payment_percent} onClick={()=>chooseTier(t.rule)} className={`rounded-xl border px-3 py-3 text-left transition ${active===t.rule.payment_percent?'bg-indigo-600 border-indigo-600 text-white shadow-md':'bg-white border-slate-200 text-slate-700 hover:border-indigo-400'}`}><strong className="block">Взнос {number(t.rule.payment_percent)}%</strong><span className="block text-xs mt-1">{number(t.price_per_m2)} {currency}/м²</span><span className="block text-xs mt-1">{t.rule.months?`${t.rule.months} мес.`:'Полная оплата'}</span></button>)}</div>
    {quote&&!quote.error&&<div aria-live="polite" className="grid sm:grid-cols-3 gap-3">
-    <Summary label="Стоимость после скидки" value={`${money(quote.total_minor)} ${currency}`} detail={`${number(quote.price_per_m2)} ${currency}/м²`} color="rose"/>
-    <Summary label={`Первоначальный взнос (${number(quote.actual_percent)}%)`} value={`${money(quote.down_payment_minor)} ${currency}`} detail={`Остаток: ${money(quote.remaining_minor)} ${currency}`} color="emerald"/>
-    <Summary label={quote.months?`Ежемесячный платёж (${quote.months} мес.)`:'Полная оплата'} value={`${money(quote.monthly_minor)} ${currency}`} detail={quote.discount_minor?`Экономия: ${money(quote.discount_minor)} ${currency}`:'Без скидки'} color="indigo"/>
+    <Summary label="Стоимость после скидки" value={`${money(quote.total_minor)} ${currency}`} secondary={somoni(quote.total_minor)} detail={`${number(quote.price_per_m2)} ${currency}/м²${somoni(Math.round(quote.price_per_m2*100)) ? ` · ${somoni(Math.round(quote.price_per_m2*100))}/м²` : ''}`} color="rose"/>
+    <Summary label={`Первоначальный взнос (${number(quote.actual_percent)}%)`} value={`${money(quote.down_payment_minor)} ${currency}`} secondary={somoni(quote.down_payment_minor)} detail={`Остаток: ${money(quote.remaining_minor)} ${currency}${somoni(quote.remaining_minor)?` · ${somoni(quote.remaining_minor)}`:''}`} color="emerald"/>
+    <Summary label={quote.months?`Ежемесячный платёж (${quote.months} мес.)`:'Полная оплата'} value={`${money(quote.monthly_minor)} ${currency}`} secondary={somoni(quote.monthly_minor)} detail={quote.discount_minor?`Экономия: ${money(quote.discount_minor)} ${currency}${somoni(quote.discount_minor)?` · ${somoni(quote.discount_minor)}`:''}`:'Без скидки'} color="indigo"/>
    </div>}
+   {currency==='USD'&&<p role="status" className={`text-xs ${exchange.stale?'text-amber-700':'text-slate-500'}`}>
+    {exchange.loading?'Загрузка курса для эквивалента в сомони…':exchange.rate!=null?`${exchange.stale?'Последний доступный курс':'Курс продажи Банка Эсхата'}: 1 USD = ${number(exchange.rate)} сомони${rateDate?` · ${rateDate}`:''}. Эквивалент показан справочно.`:'Курс временно недоступен — эквивалент в сомони не рассчитан.'}
+   </p>}
    <div className="grid lg:grid-cols-[280px_minmax(0,1fr)] gap-4 items-start">
     <div className="rounded-xl border border-slate-200 bg-white p-4 space-y-4">
      <h4 className="text-sm font-bold text-slate-800">Первоначальный взнос по желанию</h4>
@@ -51,7 +68,7 @@ export function ApartmentPricingCalculator({unit,currency='USD',initialQuote=nul
   {(onReserve||onCreateDeal)&&<div className="flex flex-wrap justify-between gap-3 border-t border-indigo-100 pt-4">{onReserve&&<button type="button" onClick={onReserve} className="rounded-xl bg-amber-500 px-4 py-2.5 text-sm font-bold text-white">Забронировать</button>}{onCreateDeal&&<button type="button" disabled={!quote||!!quote.error} onClick={()=>onCreateDeal(quote)} className="rounded-xl bg-indigo-600 px-5 py-2.5 text-sm font-bold text-white disabled:opacity-40">Оформить по выбранным условиям</button>}</div>}
  </section>;
 }
-function Summary({label,value,detail,color}) {
+function Summary({label,value,secondary,detail,color}) {
  const colors={rose:'from-white to-rose-100',emerald:'from-white to-emerald-100',indigo:'from-white to-indigo-100'};
- return <div className={`rounded-xl border border-slate-200 bg-gradient-to-br ${colors[color]} p-4`}><p className="text-xs font-semibold text-slate-500">{label}</p><p className="text-xl font-extrabold text-slate-900 mt-3">{value}</p><p className="text-xs text-slate-600 mt-1">{detail}</p></div>;
+ return <div className={`rounded-xl border border-slate-200 bg-gradient-to-br ${colors[color]} p-4`}><p className="text-xs font-semibold text-slate-500">{label}</p><p className="text-xl font-extrabold text-slate-900 mt-3">{value}</p>{secondary&&<p className="text-sm font-bold text-slate-700 mt-1">{secondary}</p>}<p className="text-xs text-slate-600 mt-1 leading-relaxed">{detail}</p></div>;
 }

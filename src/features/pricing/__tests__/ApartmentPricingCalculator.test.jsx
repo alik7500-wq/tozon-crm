@@ -19,3 +19,24 @@ it('renders only configured tiers and updates all terms live from a typed deposi
 it('does not fabricate discounts when loading fails',async()=>{
  api.get.mockRejectedValue(new Error('offline'));const onChange=vi.fn();render(<ApartmentPricingCalculator unit={unit} onChange={onChange} onCreateDeal={()=>{}}/>);expect(await screen.findByRole('alert')).toHaveTextContent('Не удалось загрузить');expect(screen.getByText('Оформить по выбранным условиям')).toBeDisabled();expect(onChange).toHaveBeenLastCalledWith(null);
 });
+it('shows somoni equivalents for price, deposit, installment, balance and saving without changing the USD quote',async()=>{
+ const rate=9.26;
+ api.get.mockImplementation(path=>Promise.resolve({data:path==='/finance/rates/eskhata'?{available:true,sellRate:rate,isStale:false,updatedAt:'2026-11-02T10:00:00Z'}:{schemes:[scheme]}}));
+ const onChange=vi.fn();render(<ApartmentPricingCalculator unit={unit} onChange={onChange}/>);
+ fireEvent.click(await screen.findByRole('button',{name:/Взнос 15%/}));
+ await waitFor(()=>expect(onChange).toHaveBeenLastCalledWith(expect.objectContaining({total_minor:5151900,down_payment_minor:772785})));
+ const quote=onChange.mock.calls.at(-1)[0];
+ const tjs=minor=>'≈ '+(Math.round(minor*rate)/100).toLocaleString('ru-RU',{maximumFractionDigits:2})+' сомони';
+ for(const minor of [quote.total_minor,quote.down_payment_minor,quote.monthly_minor])expect(await screen.findByText((_,node)=>node.tagName==='P'&&node.textContent===tjs(minor))).toBeTruthy();
+ expect(screen.getByText((_,node)=>node.tagName==='P'&&node.textContent.startsWith('Остаток:')&&node.textContent.includes(tjs(quote.remaining_minor)))).toBeTruthy();
+ expect(screen.getByText((_,node)=>node.tagName==='P'&&node.textContent.startsWith('Экономия:')&&node.textContent.includes(tjs(quote.discount_minor)))).toBeTruthy();
+ expect(screen.getByText(/Курс продажи Банка Эсхата: 1 USD = 9,26/)).toBeTruthy();
+});
+it('marks a cached rate and does not fabricate somoni amounts when rates are unavailable',async()=>{
+ api.get.mockImplementation(path=>Promise.resolve({data:path==='/finance/rates/eskhata'?{available:false,sellRate:null}:{schemes:[scheme]}}));
+ render(<ApartmentPricingCalculator unit={unit}/>);
+ expect(await screen.findByText(/Курс временно недоступен/)).toBeTruthy();expect(screen.queryByText(/≈ .* сомони/)).toBeNull();
+ cleanup();
+ api.get.mockImplementation(path=>Promise.resolve({data:path==='/finance/rates/eskhata'?{available:true,sellRate:9.26,isStale:true}:{schemes:[scheme]}}));
+ render(<ApartmentPricingCalculator unit={unit}/>);expect(await screen.findByText(/Последний доступный курс/)).toBeTruthy();
+});
