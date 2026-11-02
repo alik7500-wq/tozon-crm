@@ -1,0 +1,21 @@
+name: Instagram inbox frontend checks
+on:
+  push:
+    branches: [feature/avj-instagram-inbox]
+  pull_request:
+    paths:
+      - 'src/features/instagram/**'
+      - 'src/App.jsx'
+      - 'src/config/navigationRegistry.js'
+      - 'src/layouts/MainLayout.jsx'
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci
+      - run: npm run build
