@@ -9,6 +9,8 @@ export function InstagramInboxPage() {
   const [messages, setMessages] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [connection, setConnection] = useState(null);
+  const [connecting, setConnecting] = useState(false);
   const allowed = ['ADMIN', 'DIRECTOR'].includes(user?.role);
 
   const refresh = useCallback(async () => {
@@ -24,7 +26,26 @@ export function InstagramInboxPage() {
     }
   }, []);
 
-  useEffect(() => { if (allowed) void refresh(); }, [allowed, refresh]);
+  useEffect(() => {
+    if (!allowed) return;
+    void refresh();
+    api.get('/integrations/instagram/connection')
+      .then(result => setConnection(result?.data || null))
+      .catch(() => setConnection(null));
+  }, [allowed, refresh]);
+  const connect = async () => {
+    setConnecting(true);
+    setError('');
+    try {
+      const result = await api.post('/integrations/instagram/connect');
+      const url = result?.data?.authorizationUrl;
+      if (!url || !/^https:\/\/www\.facebook\.com\//.test(url)) throw new Error('Invalid authorization URL');
+      window.location.assign(url);
+    } catch {
+      setError('Не удалось начать подключение Instagram. Проверьте настройки Meta.');
+      setConnecting(false);
+    }
+  };
   const openConversation = async (conversation) => {
     setSelected(conversation);
     setMessages([]);
@@ -44,6 +65,10 @@ export function InstagramInboxPage() {
     <div className="flex flex-wrap justify-between gap-3 items-center">
       <div><h1 className="text-2xl font-bold text-slate-900">Instagram Direct</h1><p className="text-sm text-slate-500">Просмотр входящих сообщений. Отправка ответов пока недоступна.</p></div>
       <button type="button" onClick={refresh} disabled={loading} className="rounded-lg bg-blue-600 px-4 py-2 text-white disabled:opacity-50">{loading ? 'Загрузка…' : 'Обновить'}</button>
+    </div>
+    <div className="rounded-xl border border-slate-200 bg-white p-4 flex flex-wrap gap-3 items-center justify-between">
+      <div><div className="font-medium">Аккаунт TOZON PLAZA</div><div className="text-sm text-slate-500">{connection?.connected ? 'Instagram подключён' : 'Подключение не подтверждено'}</div></div>
+      <button type="button" onClick={connect} disabled={connecting} className="rounded-lg border border-blue-600 px-4 py-2 text-blue-700 disabled:opacity-50">{connecting ? 'Подключение…' : 'Подключить Instagram'}</button>
     </div>
     {error && <p role="alert" className="text-red-700">{error}</p>}
     <div className="grid gap-4 md:grid-cols-[minmax(230px,1fr)_minmax(0,2fr)]">
