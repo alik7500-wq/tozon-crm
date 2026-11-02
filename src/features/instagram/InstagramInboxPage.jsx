@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import { api } from '../../api/client';
+import { InstagramReplyComposer } from './InstagramReplyComposer';
 import { useAuth } from '../auth/AuthContext';
 
 export function InstagramInboxPage() {
@@ -63,7 +64,7 @@ export function InstagramInboxPage() {
   if (!allowed) return <div className="p-6 text-slate-700">Доступ к перепискам Instagram ограничен.</div>;
   return <section className="p-6 space-y-5">
     <div className="flex flex-wrap justify-between gap-3 items-center">
-      <div><h1 className="text-2xl font-bold text-slate-900">Instagram Direct</h1><p className="text-sm text-slate-500">Просмотр входящих сообщений. Отправка ответов пока недоступна.</p></div>
+      <div><h1 className="text-2xl font-bold text-slate-900">Instagram Direct</h1><p className="text-sm text-slate-500">Просмотр сообщений и ответы клиентам после активации интеграции.</p></div>
       <button type="button" onClick={refresh} disabled={loading} className="rounded-lg bg-blue-600 px-4 py-2 text-white disabled:opacity-50">{loading ? 'Загрузка…' : 'Обновить'}</button>
     </div>
     <div className="rounded-xl border border-slate-200 bg-white p-4 flex flex-wrap gap-3 items-center justify-between">
@@ -88,6 +89,7 @@ export function InstagramInboxPage() {
             <div className="mt-1 text-xs text-slate-500">{m.is_echo ? 'Исходящее' : 'Входящее'}</div>
           </div>)}
         </div>
+        <InstagramReplyComposer conversation={selected} onSent={() => openConversation(selected)} />
       </div>
     </div>
   </section>;
