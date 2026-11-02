@@ -16,7 +16,7 @@ export function InstagramInboxPage() {
     setError('');
     try {
       const response = await api.get('/integrations/instagram/inbox/conversations');
-      setConversations(response.data?.data || []);
+      setConversations(response?.data || []);
     } catch {
       setError('Не удалось загрузить переписки Instagram.');
     } finally {
@@ -33,7 +33,7 @@ export function InstagramInboxPage() {
       const account = encodeURIComponent(conversation.instagramAccountId);
       const contact = encodeURIComponent(conversation.contactId);
       const response = await api.get(`/integrations/instagram/inbox/conversations/${account}/${contact}/messages`);
-      setMessages(response.data?.data || []);
+      setMessages(response?.data || []);
     } catch {
       setError('Не удалось загрузить историю переписки.');
     }
