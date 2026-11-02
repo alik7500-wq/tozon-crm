@@ -1,3 +1,5 @@
+import { ApartmentPricingCalculator } from '../pricing/ApartmentPricingCalculator';
+import { calculatePricing, verifyPricingQuote } from '../pricing/pricingCalculator';
 import { cashDesksForScope } from '../../utils/accountingScope';
 import { getUnitTitle, getUnitKindLabel, getUnitDefaultPrice, isFixedParking, isNonResidentialUnit } from '../../utils/unitKind';
 import {formatMeasure} from '../../utils/numberDisplay';
@@ -40,6 +42,7 @@ export const DealWizardModal = ({
   currency: initialCurrency = 'USD',
   initialDownPaymentPercent = 30,
   initialPricePerM2 = null,
+  initialPricingQuote = null,
   initialStatus = 'SIGNED',
   onDealCreated,
 }) => {
@@ -105,15 +108,22 @@ export const DealWizardModal = ({
   const [paymentType, setPaymentType] = useState('INSTALLMENT'); // 'INSTALLMENT', 'FULL', 'BARTER', 'PARTIAL_BARTER'
 
   const [discountSchemes, setDiscountSchemes] = useState([]);
-  const [schemeId, setSchemeId] = useState('');
   const [appliedDiscount, setAppliedDiscount] = useState(null);
   const [schemesError, setSchemesError] = useState('');
+  const [schemesLoading, setSchemesLoading] = useState(true);
+  const [isPricingEditorOpen, setIsPricingEditorOpen] = useState(false);
+  const [pricingDraft, setPricingDraft] = useState(null);
+  const [agreedQuote, setAgreedQuote] = useState(null);
+  const [pricingNeedsReview, setPricingNeedsReview] = useState(false);
+  const quoteInitialized = React.useRef(false);
   useEffect(() => {
-    setAppliedDiscount(null); setSchemeId(''); setDiscountSchemes([]); setSchemesError('');
+    setAppliedDiscount(null); setDiscountSchemes([]); setSchemesError('');
+    setSchemesLoading(true); setAgreedQuote(null); setPricingNeedsReview(false); quoteInitialized.current = false;
     if (!isOpen) return;
     let alive = true;
     api.get('/discount-schemes').then(r => { if (alive) setDiscountSchemes(r.data?.schemes || []); })
-      .catch(() => { if (alive) setSchemesError('Не удалось загрузить схемы скидок. Оформление по ручным условиям доступно.'); });
+      .catch(() => { if (alive) setSchemesError('Не удалось загрузить схемы скидок. Проверьте условия перед оформлением.'); })
+      .finally(() => { if (alive) setSchemesLoading(false); });
     return () => { alive = false; };
   }, [isOpen, selectedUnit?.id]);
 
@@ -195,7 +205,7 @@ export const DealWizardModal = ({
     ? getUnitDefaultPrice(selectedUnit)
     : 500;
 
-  const roundAmount = (value) => isNonResidentialUnit(selectedUnit) ? Math.round((value + Number.EPSILON) * 100) / 100 : Math.round(value);
+  const roundAmount = (value) => (agreedQuote || isNonResidentialUnit(selectedUnit)) ? Math.round((value + Number.EPSILON) * 100) / 100 : Math.round(value);
   const calculatedBasePrice = appliedDiscount
     ? Math.round(areaM2 * basePricePerM2 * 100) / 100
     : roundAmount(areaM2 * (parseFloat(pricePerM2) || basePricePerM2));
@@ -210,20 +220,33 @@ export const DealWizardModal = ({
 
   const finalPrice = appliedDiscount ? Math.round((calculatedBasePrice-actualDiscountMinor)*100)/100 : roundAmount(Math.max(0, calculatedBasePrice - actualDiscountMinor));
 
-  const discountBusinessDate = new Date(Date.now() + 5*60*60*1000).toISOString().slice(0,10);
-  const availableSchemes = (fixedParking ? [] : discountSchemes).filter(s => s.is_active && String(s.project_id) === String(unitProjectId) && (!s.starts_on || s.starts_on <= discountBusinessDate) && (!s.ends_on || s.ends_on >= discountBusinessDate));
-  const selectedScheme = availableSchemes.find(s => s.id === schemeId) || availableSchemes[0];
   const clearDiscountScheme = () => { setAppliedDiscount(null); setDiscountValue(0); setPricePerM2(basePricePerM2); setDownPaymentAmount(Math.round(areaM2*basePricePerM2*downPaymentPercent)/100); };
-  const applyDiscountRule = rule => {
-    const baseMinor = Math.round(areaM2*basePricePerM2*100);
-    const finalMinor = rule.price_per_m2 != null
-      ? Math.round(Number(selectedUnit.area_m2_x100)*Math.round(Number(rule.price_per_m2)*100)/100)
-      : baseMinor-Math.round(baseMinor*rule.discount_percent/100);
-    setAppliedDiscount({ scheme: selectedScheme, rule });
-    setPricePerM2(basePricePerM2); setDownPaymentPercent(rule.payment_percent);
-    setDownPaymentAmount(Math.round(finalMinor*rule.payment_percent/100)/100);
-    setInstallmentMonths(rule.months); setPaymentInterval(1);
-    setPaymentType(rule.payment_percent === 100 ? 'FULL' : 'INSTALLMENT');
+  const applyVerifiedPricing = React.useCallback(result => {
+    setAgreedQuote(result); setPricingNeedsReview(false);
+    setAppliedDiscount(result.scheme ? { scheme: result.scheme, rule: result.rule } : null);
+    setPricePerM2(Number(selectedUnit?.price_per_m2_minor) / 100);
+    setDiscountType('AMOUNT'); setDiscountValue(0);
+    setDownPaymentPercent(Number(result.actual_percent.toFixed(2)));
+    setDownPaymentAmount(result.down_payment_minor / 100);
+    setInstallmentMonths(result.months); setPaymentInterval(1);
+    setPaymentType(result.payment_type);
+  }, [selectedUnit?.price_per_m2_minor]);
+  useEffect(() => {
+    if (!isOpen || schemesLoading || !initialPricingQuote || !selectedUnit || quoteInitialized.current) return;
+    quoteInitialized.current = true;
+    try {
+      const verified = verifyPricingQuote(selectedUnit, discountSchemes, initialPricingQuote);
+      if (verified) applyVerifiedPricing(verified);
+    } catch (err) { setError(err.message); setPricingNeedsReview(true); }
+  }, [isOpen, schemesLoading, initialPricingQuote, selectedUnit, discountSchemes, applyVerifiedPricing]);
+  const applyPricingDraft = async () => {
+    if (!pricingDraft) return;
+    try {
+      const response = await api.get('/discount-schemes');
+      const schemes = response.data?.schemes || [];
+      const verified = verifyPricingQuote(selectedUnit, schemes, pricingDraft);
+      if (verified) { setDiscountSchemes(schemes); applyVerifiedPricing(verified); setIsPricingEditorOpen(false); setError(''); }
+    } catch (err) { setError(err.message || 'Не удалось проверить условия скидки'); }
   };
   const effectivePricePerM2 = areaM2 > 0 ? (finalPrice / areaM2).toFixed(2) : 0;
 
@@ -315,6 +338,12 @@ export const DealWizardModal = ({
   };
 
   const handleDownPaymentAmountChange = (val) => {
+    if (appliedDiscount) {
+      const result = calculatePricing(selectedUnit, appliedDiscount.scheme, { mode: 'amount', value: val, months: '' });
+      if (result.error) { setError(result.error); return; }
+      applyVerifiedPricing({ ...result, scheme: appliedDiscount.scheme }); setError(''); return;
+    }
+
     const amt = parseFloat(val) || 0;
     setDownPaymentAmount(amt);
     if (finalPrice > 0) {
@@ -330,7 +359,7 @@ export const DealWizardModal = ({
   useEffect(() => {
     if ((paymentType === 'INSTALLMENT' || paymentType === 'PARTIAL_BARTER') && installmentMonths > 0 && remainingBalance > 0) {
       const months = Math.min(240, Math.max(1, parseInt(installmentMonths, 10) || 0));
-      const amountScale = appliedDiscount || isNonResidentialUnit(selectedUnit) ? 100 : 1;
+      const amountScale = appliedDiscount || agreedQuote || isNonResidentialUnit(selectedUnit) ? 100 : 1;
       const amountUnits = Math.round(remainingBalance * amountScale);
       const base = Math.floor(amountUnits / months);
       const remainder = amountUnits % months;
@@ -379,7 +408,7 @@ export const DealWizardModal = ({
     } else {
       setSchedule([]);
     }
-  }, [finalPrice, downPaymentAmount, installmentMonths, paymentType, firstPaymentDate, paymentInterval, remainingBalance, barterAmount, selectedUnit?.unit_kind, appliedDiscount]);
+  }, [finalPrice, downPaymentAmount, installmentMonths, paymentType, firstPaymentDate, paymentInterval, remainingBalance, barterAmount, selectedUnit?.unit_kind, appliedDiscount, agreedQuote]);
 
   const isDirty = Boolean(selectedLead || (step > (initialUnit ? 1 : 0)) || Boolean(newLeadData?.full_name?.trim()));
 
@@ -389,6 +418,8 @@ export const DealWizardModal = ({
     isDirty,
     confirmMessage: 'Оформление сделки не завершено. Вы уверены, что хотите закрыть окно?'
   });
+
+  useModalDismiss({ isOpen: isOpen && isPricingEditorOpen, onClose: () => setIsPricingEditorOpen(false) });
 
   if (!isOpen) return null;
 
@@ -420,6 +451,7 @@ export const DealWizardModal = ({
       return;
     }
     if (step === 2) {
+      if (pricingNeedsReview) { setError('Проверьте обновлённые условия цены перед продолжением'); return; }
       if (!(Number(pricePerM2) > 0) || !(finalPrice > 0)) {
         setError('Укажите положительную цену и стоимость объекта');
         return;
@@ -427,6 +459,11 @@ export const DealWizardModal = ({
       if ((paymentType === 'BARTER' || paymentType === 'PARTIAL_BARTER') && !barterDescription.trim()) {
         setError('Пожалуйста, укажите описание предмета бартера (например, авто, недвижимость)');
         return;
+      }
+    }
+    if (step === 3 && paymentType === 'INSTALLMENT') {
+      if (!Number.isInteger(Number(installmentMonths)) || Number(installmentMonths) < 1 || Number(installmentMonths) > (appliedDiscount?.rule.months || 120)) {
+        setError('Укажите срок в пределах выбранного условия скидки'); return;
       }
     }
     setError('');
@@ -931,7 +968,7 @@ export const DealWizardModal = ({
                   <div>
                     <h4 className="text-xs font-black text-slate-900 uppercase tracking-wide flex items-center gap-1.5">
                       <Tag className="h-4 w-4 text-indigo-600" />
-                      <span>Параметры стоимости и согласованная цена сделки</span>
+                      <span>Согласованные условия сделки</span>
                     </h4>
                     <p className="text-[11px] text-slate-500 mt-0.5">
                       Стартовая цена: <strong className="text-slate-800 font-bold">{basePricePerM2} {currency}/{fixedParking ? 'место' : 'м²'}</strong> ({Math.round(areaM2 * basePricePerM2).toLocaleString()} {currency})
@@ -942,19 +979,20 @@ export const DealWizardModal = ({
                   </span>
                 </div>
 
-                {!isNonResidentialUnit(selectedUnit) && <div className="space-y-3">
-                  <h3 className="font-bold text-sm">Скидка по первоначальному взносу</h3>
+                {!isNonResidentialUnit(selectedUnit) && <div className="space-y-2">
                   {schemesError && <p className="text-xs text-amber-700">{schemesError}</p>}
-                  {availableSchemes.length > 0 ? <>
-                    <select aria-label="Схема скидок" value={selectedScheme?.id || ''} onChange={e => { setSchemeId(e.target.value); clearDiscountScheme(); }} className="w-full border rounded-xl p-2">
-                      {availableSchemes.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
-                    </select>
-                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">{selectedScheme?.rules.map(rule => <button type="button" key={rule.payment_percent} onClick={() => applyDiscountRule(rule)} className={`border p-3 rounded-xl text-left ${appliedDiscount?.scheme.id === selectedScheme.id && appliedDiscount?.rule.payment_percent === rule.payment_percent ? 'bg-blue-600 text-white' : 'bg-white'}`}>
-                      <strong>Взнос {rule.payment_percent}%</strong><span className="block text-xs">{rule.price_per_m2 != null ? `${Number(rule.price_per_m2).toLocaleString()} ${currency}/м²` : `Скидка ${rule.discount_percent}%`} · {rule.months ? `${rule.months} мес.` : 'Полная оплата'}</span>
-                    </button>)}</div>
-                  </> : <p className="text-xs text-slate-500">Для этого ЖК нет действующих схем. Их можно добавить в настройках.</p>}
-                  {appliedDiscount && <div className="p-3 bg-blue-50 rounded-xl text-xs">Применена схема «{appliedDiscount.scheme.name}»: {appliedDiscount.rule.price_per_m2 != null ? `цена ${Number(appliedDiscount.rule.price_per_m2).toLocaleString()} ${currency}/м²` : `скидка ${appliedDiscount.rule.discount_percent}% от базовой цены`}. <button type="button" onClick={clearDiscountScheme} className="underline font-bold">Перейти к ручным условиям</button></div>}
+                  {pricingNeedsReview && <p role="alert" className="text-xs text-rose-700">Цена или схема изменились. Откройте калькулятор и подтвердите обновлённые условия.</p>}
+                  <div className="grid sm:grid-cols-3 gap-3 text-sm">
+                    <div><span className="text-slate-500 block text-xs">Согласованная стоимость</span><strong>{finalPrice.toLocaleString('ru-RU')} {currency}</strong></div>
+                    <div><span className="text-slate-500 block text-xs">Первоначальный взнос</span><strong>{Number(downPaymentAmount).toLocaleString('ru-RU')} {currency}</strong></div>
+                    <div><span className="text-slate-500 block text-xs">Срок рассрочки</span><strong>{paymentType === 'FULL' ? 'Полная оплата' : `${installmentMonths} мес.`}</strong></div>
+                  </div>
+                  {appliedDiscount && <p className="text-xs text-indigo-700">Схема «{appliedDiscount.scheme.name}» · ступень от {appliedDiscount.rule.payment_percent}% · экономия {actualDiscountMinor.toLocaleString('ru-RU')} {currency}</p>}
+                  <button type="button" onClick={() => { setPricingDraft(null); setIsPricingEditorOpen(true); }} className="rounded-xl border border-indigo-300 bg-white px-4 py-2 text-sm font-bold text-indigo-700">Изменить условия цены</button>
+                  {appliedDiscount && <button type="button" onClick={() => { clearDiscountScheme(); setAgreedQuote(null); setPricingNeedsReview(false); }} className="ml-3 text-xs text-slate-500 underline">Индивидуальные условия / торг</button>}
                 </div>}
+                <details className="text-sm" open={isNonResidentialUnit(selectedUnit) ? true : undefined}>
+                  <summary className="cursor-pointer text-xs font-semibold text-slate-500">Индивидуальная цена и торг</summary>
                 {/* Bargained Final Price Inputs */}
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
                   <div>
@@ -1000,7 +1038,7 @@ export const DealWizardModal = ({
                       disabled={!!appliedDiscount}
                       aria-label={fixedParking ? 'Цена за машино-место' : 'Цена объекта за м²'}
                       step="0.01"
-                      value={pricePerM2}
+                      value={appliedDiscount ? Number(effectivePricePerM2) : pricePerM2}
                       onChange={(e) => {
                         const newP = parseFloat(e.target.value) || 0;
                         setPricePerM2(newP);
@@ -1022,6 +1060,7 @@ export const DealWizardModal = ({
                     )}
                   </div>
                 </div>
+                </details>
               </div>
 
               {/* Payment Type selection */}
@@ -1124,7 +1163,7 @@ export const DealWizardModal = ({
                       <div className="flex gap-1.5">
                         <input
                           type="number"
-                          disabled={!!appliedDiscount}
+                          aria-label="Первоначальный взнос по графику"
                           value={downPaymentAmount}
                           onChange={(e) => handleDownPaymentAmountChange(e.target.value)}
                           className="w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-xs font-bold outline-none focus:border-blue-500"
@@ -1139,10 +1178,10 @@ export const DealWizardModal = ({
                       <input
                         type="number"
                         min="1"
-                        max="120"
-                        disabled={!!appliedDiscount}
+                        max={appliedDiscount?.rule.months || 120}
+                        aria-label="Количество платежей по рассрочке"
                         value={installmentMonths}
-                        onChange={(e) => setInstallmentMonths(e.target.value)}
+                        onChange={(e) => { setInstallmentMonths(e.target.value); setAgreedQuote(q => q ? { ...q, months: Number(e.target.value), selection: { ...q.selection, months: e.target.value } } : q); }}
                         className="w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-xs font-bold outline-none focus:border-blue-500"
                       />
                     </div>
@@ -1445,6 +1484,14 @@ export const DealWizardModal = ({
           </div>
         </div>
       </div>
+
+      {isPricingEditorOpen && selectedUnit && <div className="fixed inset-0 z-[120] bg-slate-900/60 flex items-center justify-center p-3" role="dialog" aria-modal="true" aria-label="Изменение условий цены">
+        <div className="w-full max-w-6xl rounded-2xl bg-white max-h-[94vh] flex flex-col shadow-2xl">
+          <div className="flex items-center justify-between border-b p-4"><strong>Условия оплаты квартиры</strong><button type="button" aria-label="Закрыть калькулятор" onClick={() => setIsPricingEditorOpen(false)} className="rounded-xl border px-3 py-2">✕</button></div>
+          <div className="overflow-y-auto p-4"><ApartmentPricingCalculator unit={selectedUnit} currency={currency} initialQuote={agreedQuote || initialPricingQuote} onChange={setPricingDraft}/></div>
+          <div className="p-4 border-t flex justify-end"><button type="button" disabled={!pricingDraft} onClick={applyPricingDraft} className="bg-indigo-600 text-white rounded-xl px-5 py-2 font-bold disabled:opacity-40">Применить условия</button></div>
+        </div>
+      </div>}
 
       <PassportScannerModal
         isOpen={isScannerOpen}

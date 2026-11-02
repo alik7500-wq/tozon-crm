@@ -559,7 +559,7 @@ export const InteractiveApartmentView = ({
       {/* Action Footer Bar */}
       <div className="flex flex-wrap items-center justify-between gap-4 rounded-2xl bg-slate-900 p-5 text-white shadow-xl">
         <div>
-          <span className="text-xs text-slate-400">{t('totalPrice')}</span>
+          <span className="text-xs text-slate-400">{lang === 'TJ' ? 'Нархи асосӣ' : 'Базовая стоимость'}</span>
           <div className="flex items-baseline gap-2">
             <h3 className="text-2xl font-black text-amber-400">
               {totalPrice.toLocaleString()} {currency}
