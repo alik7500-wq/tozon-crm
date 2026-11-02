@@ -36,12 +36,12 @@ it('opens apartments at inventory price instead of the old calculator price',asy
 it('edits the calculator from the compact wizard summary and keeps exact client amount and shortened term',async()=>{
  const unit={id:300,project_id:3,unit_kind:'APARTMENT',unit_number:'24',area_m2_x100:7926,price_per_m2_minor:70000};
  const scheme={id:'scheme',project_id:3,name:'Плаза',updated_at:'v1',is_active:true,rules:[{payment_percent:0,discount_percent:0,price_per_m2:700,months:36},{payment_percent:30,discount_percent:10,price_per_m2:620,months:36}]};
- api.get.mockImplementation(path=>Promise.resolve({data:path==='/discount-schemes'?{schemes:[scheme]}:path==='/leads'?{leads:[{id:1,full_name:'Покупатель',phone:'000'}]}:{}}));api.post.mockResolvedValue({data:{deal:{id:1}}});
+ api.get.mockImplementation(path=>Promise.resolve({data:path==='/finance/rates/eskhata'?{available:true,sellRate:10}:path==='/discount-schemes'?{schemes:[scheme]}:path==='/leads'?{leads:[{id:1,full_name:'Покупатель',phone:'000'}]}:{}}));api.post.mockResolvedValue({data:{deal:{id:1}}});
  render(<DealWizardModal isOpen unit={unit} onClose={vi.fn()}/>);
  fireEvent.click(await screen.findByText('Покупатель'));fireEvent.click(screen.getByText('Далее'));
  expect(screen.queryByRole('button',{name:/Взнос 30%/})).toBeNull();
  fireEvent.click(screen.getByText('Изменить условия цены'));await screen.findByRole('button',{name:/Взнос 30%/});
- fireEvent.change(screen.getByLabelText('Желаемый первоначальный взнос'),{target:{value:'20000'}});fireEvent.click(screen.getByText('Применить условия'));
+ fireEvent.change(screen.getByLabelText('Желаемый первоначальный взнос'),{target:{value:'200000'}});fireEvent.click(screen.getByText('Применить условия'));
  await waitFor(()=>expect(screen.queryByLabelText('Изменение условий цены')).toBeNull());
  expect(screen.getByLabelText('Окончательная стоимость объекта')).toHaveValue(49141.2);
  fireEvent.click(screen.getByText('Далее'));expect(screen.getByLabelText('Первоначальный взнос по графику')).not.toBeDisabled();expect(screen.getByLabelText('Первоначальный взнос по графику')).toHaveValue(20000);
