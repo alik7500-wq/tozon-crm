@@ -16,13 +16,19 @@ export function InstagramReplyComposer({ conversation, onSent }) {
       const contact = encodeURIComponent(conversation.contactId);
       await api.post(`/integrations/instagram/send/${account}/${contact}`, { text: text.trim() });
       setText('');
-      await onSent?.();
     } catch (err) {
       setError(err?.response?.data?.code === 'SENT_NOT_SAVED'
         ? 'Instagram принял сообщение, но CRM не сохранила его. Проверьте диалог перед повтором.'
         : err?.response?.status === 409
           ? 'Окно ответа закрыто. Дождитесь нового сообщения клиента.'
           : 'Отправка не подтверждена. Проверьте Instagram перед повторной попыткой.');
+      setSending(false);
+      return;
+    }
+    try {
+      await onSent?.();
+    } catch {
+      setError('Сообщение отправлено, но обновить историю не удалось. Нажмите «Обновить» позже.');
     } finally {
       setSending(false);
     }
