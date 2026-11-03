@@ -89,7 +89,7 @@ export function InstagramInboxPage() {
             <div className="mt-1 text-xs text-slate-500">{m.is_echo ? 'Исходящее' : 'Входящее'}</div>
           </div>)}
         </div>
-        <InstagramReplyComposer conversation={selected} onSent={() => openConversation(selected)} />
+        <InstagramReplyComposer key={selected ? selected.instagramAccountId + ':' + selected.contactId : 'none'} conversation={selected} onSent={() => openConversation(selected)} />
       </div>
     </div>
   </section>;
