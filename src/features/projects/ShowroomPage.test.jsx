@@ -58,3 +58,17 @@ it.each(['Блок В','Блок Г'])('keeps the same floor-only navigation for
  fireEvent.click(screen.getByRole('button',{name:`${name}, 5 этаж`,exact:true}));
  expect(screen.getByTitle(`Планировка ${name}, 5 этаж`).getAttribute('src')).toContain(`/layouts/showroom/block-${{'Блок А':'a','Блок Б':'b','Блок В':'v','Блок Г':'g'}[name]}-typical.pdf`);
 });
+it('preloads the facade before selection and reuses it when returning to another block',async()=>{
+ setup();await measure('Генплан');
+ expect(projectGalleryApi.getProjectMedia).toHaveBeenCalledTimes(1);
+ expect(api.get).toHaveBeenCalledWith('/inventory/projects/3/chessboard');
+ expect(api.get).toHaveBeenCalledWith('/inventory/projects/4/chessboard');
+ fireEvent.click(screen.getByRole('button',{name:'Выделить Блок А'}));
+ await screen.findByText('1 / 1');
+ fireEvent.click(screen.getByTitle('Закрыть (Esc)'));
+ fireEvent.click(screen.getByRole('button',{name:'Выделить Блок Б'}));
+ expect(screen.getByRole('heading',{name:'Блок Б',exact:true})).toBeTruthy();
+ expect(screen.queryByText('Загрузка фасада…')).toBeNull();
+ expect(projectGalleryApi.getProjectMedia).toHaveBeenCalledTimes(1);
+ for(const id of [3,4])expect(api.get.mock.calls.filter(([path])=>path===`/inventory/projects/${id}/chessboard`)).toHaveLength(1);
+});
