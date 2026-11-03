@@ -47,6 +47,7 @@ export const navGroups = [
         { label: 'Лиды', path: '/leads', icon: UserPlus, permission: 'leads.view' },
         { label: 'Сделки', path: '/deals', icon: FileCheck, permission: 'deals.view' },
         { label: 'Клиенты', path: '/clients', icon: Users, permission: 'leads.view' },
+        { label: 'Instagram Direct', path: '/instagram/inbox', icon: MessageSquare, permission: 'automation.manage' },
         { label: 'SMS-оповещения', path: '/crm/sms-notifications', icon: Smartphone, permission: 'automation.manage' },
       ],
     },

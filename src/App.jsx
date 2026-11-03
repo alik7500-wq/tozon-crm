@@ -34,6 +34,7 @@ import { ReportsPage } from './features/reports/ReportsPage';
 import { NotificationsPage } from './features/notifications/NotificationsPage';
 import { UsersPage } from './features/users/UsersPage';
 import { AutomationPage } from './features/automation/AutomationPage';
+import { InstagramInboxPage } from './features/instagram/InstagramInboxPage';
 import { ClientsPage } from './features/crm/ClientsPage';
 import { SmsNotificationsPage } from './features/crm/SmsNotificationsPage';
 import { SmsTemplatesPage } from './features/crm/SmsTemplatesPage';
@@ -73,6 +74,7 @@ function App() {
                   <Route path="/projects/:id" element={<ProjectDetailPage />} />
                   <Route path="/apartments" element={<ApartmentsPage />} />
                   <Route path="/leads" element={<LeadsPage />} />
+                  <Route path="/instagram/inbox" element={<InstagramInboxPage />} />
                   <Route path="/pipeline" element={<Navigate to="/leads" replace />} />
                   <Route path="/clients" element={<ClientsPage />} />
                   <Route path="/settings/messages" element={<PermissionGuard requiredPermission="settings.manage"><MessageSettingsPage /></PermissionGuard>} />
