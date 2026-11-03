@@ -73,7 +73,7 @@ export const DealWizardModal = ({
     passport_number: '',
     passport_issued_by: 'МВД РТ',
     passport_issue_date: '2022-05-15',
-    birth_date: '1990-01-01',
+    birth_date: '',
     registration_address: 'г. Душанбе, ул. Рудаки 100',
     inn: '',
   });
@@ -822,6 +822,19 @@ export const DealWizardModal = ({
                         placeholder="+992 900 00 00 00"
                         value={newLeadData.phone}
                         onChange={(e) => setNewLeadData({ ...newLeadData, phone: e.target.value })}
+                        className="w-full rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-xs outline-none focus:border-blue-500"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <label htmlFor="deal-buyer-birth-date" className="block text-[11px] font-semibold text-slate-700 mb-1">Дата рождения</label>
+                      <input
+                        id="deal-buyer-birth-date"
+                        type="date"
+                        value={newLeadData.birth_date}
+                        onChange={(e) => setNewLeadData({ ...newLeadData, birth_date: e.target.value })}
                         className="w-full rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-xs outline-none focus:border-blue-500"
                       />
                     </div>
