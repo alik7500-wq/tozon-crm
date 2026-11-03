@@ -1,0 +1,332 @@
+[
+  {
+    "file": "block-a-parking.pdf",
+    "source": "ab-parking.pdf",
+    "block": "А",
+    "kind": "parking",
+    "regions_1100px": [
+      [
+        110,
+        140,
+        175,
+        990
+      ],
+      [
+        175,
+        140,
+        630,
+        966
+      ]
+    ],
+    "sha256": "be7304f8d27769b4a565e46207c3aa50949e10ef0a281dde52a0cb014cf93c1e"
+  },
+  {
+    "file": "block-b-parking.pdf",
+    "source": "ab-parking.pdf",
+    "block": "Б",
+    "kind": "parking",
+    "regions_1100px": [
+      [
+        110,
+        935,
+        175,
+        1490
+      ],
+      [
+        175,
+        967,
+        1020,
+        1490
+      ]
+    ],
+    "sha256": "bb02052484f2255a4cdd32d04409b58480f026d4084c7286ccc72ab8644cb557"
+  },
+  {
+    "file": "block-a-commercial.pdf",
+    "source": "ab-commercial.pdf",
+    "block": "А",
+    "kind": "commercial",
+    "regions_1100px": [
+      [
+        80,
+        200,
+        175,
+        945
+      ],
+      [
+        175,
+        200,
+        610,
+        917
+      ],
+      [
+        610,
+        500,
+        655,
+        690
+      ]
+    ],
+    "sha256": "ae7ab9c2091c9351f3509757dc4736ebc9b42ff76fe34942bde60d9f16e44088"
+  },
+  {
+    "file": "block-b-commercial.pdf",
+    "source": "ab-commercial.pdf",
+    "block": "Б",
+    "kind": "commercial",
+    "regions_1100px": [
+      [
+        80,
+        895,
+        175,
+        1440
+      ],
+      [
+        175,
+        917,
+        1030,
+        1440
+      ]
+    ],
+    "sha256": "7d5b0d5aa9158a4cc3b37574e1bf01fd9f6abd7d05a5ff79713ab1cb3cd532aa"
+  },
+  {
+    "file": "block-a-typical.pdf",
+    "source": "ab-typical.pdf",
+    "block": "А",
+    "kind": "typical",
+    "regions_1100px": [
+      [
+        70,
+        245,
+        580,
+        938
+      ],
+      [
+        580,
+        245,
+        640,
+        838
+      ]
+    ],
+    "sha256": "8795c9284724339ecfc08a0b5c4ded1bafbd381f0d77d6f34563937d3eba8d48"
+  },
+  {
+    "file": "block-b-typical.pdf",
+    "source": "ab-typical.pdf",
+    "block": "Б",
+    "kind": "typical",
+    "regions_1100px": [
+      [
+        580,
+        838,
+        1040,
+        938
+      ],
+      [
+        70,
+        938,
+        1040,
+        1390
+      ]
+    ],
+    "sha256": "984019a96280b45966d8c044a32656748a027cddb618aa5a9af72b99d4f695a7"
+  },
+  {
+    "file": "block-a-penthouse.pdf",
+    "source": "ab-penthouse.pdf",
+    "block": "А",
+    "kind": "penthouse",
+    "regions_1100px": [
+      [
+        55,
+        140,
+        150,
+        950
+      ],
+      [
+        150,
+        140,
+        635,
+        925
+      ],
+      [
+        635,
+        140,
+        705,
+        835
+      ]
+    ],
+    "sha256": "40d511a2c6c5b2963603c2f1c767366fa07b77f302bdb725579c16671b9f4541"
+  },
+  {
+    "file": "block-b-penthouse.pdf",
+    "source": "ab-penthouse.pdf",
+    "block": "Б",
+    "kind": "penthouse",
+    "regions_1100px": [
+      [
+        635,
+        840,
+        1085,
+        926
+      ],
+      [
+        55,
+        890,
+        150,
+        1470
+      ],
+      [
+        150,
+        926,
+        1085,
+        1470
+      ]
+    ],
+    "sha256": "1604ce67c4a8c73c6abdc87b24fb92b470dca38fa974a5f0efe42e3f1431976b"
+  },
+  {
+    "file": "block-v-parking.pdf",
+    "source": "vg-parking.pdf",
+    "block": "В",
+    "kind": "parking",
+    "regions_1100px": [
+      [
+        105,
+        85,
+        534,
+        700
+      ]
+    ],
+    "sha256": "65c81a4540182c5a64727ab4a368f983a92c2b8a896feadcb0679435ae30691c"
+  },
+  {
+    "file": "block-g-parking.pdf",
+    "source": "vg-parking.pdf",
+    "block": "Г",
+    "kind": "parking",
+    "regions_1100px": [
+      [
+        534,
+        305,
+        1055,
+        735
+      ]
+    ],
+    "sha256": "7fad28d0bd881930da8717553838834840ea7cac85470531a1eeefb5c7bd22f9"
+  },
+  {
+    "file": "block-v-commercial.pdf",
+    "source": "vg-commercial.pdf",
+    "block": "В",
+    "kind": "commercial",
+    "regions_1100px": [
+      [
+        120,
+        85,
+        557,
+        700
+      ]
+    ],
+    "sha256": "35c0362b486ec5cb841694318ffaef3f246de2becc1339079bd5e9ee543c857e"
+  },
+  {
+    "file": "block-g-commercial.pdf",
+    "source": "vg-commercial.pdf",
+    "block": "Г",
+    "kind": "commercial",
+    "regions_1100px": [
+      [
+        557,
+        290,
+        1010,
+        700
+      ]
+    ],
+    "sha256": "fb275b7a43106a923e6babef93d761cca256785b447441f3c4964cc74dde421e"
+  },
+  {
+    "file": "block-v-typical.pdf",
+    "source": "vg-typical.pdf",
+    "block": "В",
+    "kind": "typical",
+    "regions_1100px": [
+      [
+        75,
+        90,
+        499,
+        715
+      ],
+      [
+        499,
+        140,
+        545,
+        175
+      ],
+      [
+        499,
+        240,
+        545,
+        275
+      ],
+      [
+        499,
+        335,
+        520,
+        351
+      ]
+    ],
+    "sha256": "4e7716b680a389ada82cf3304a4be184978e0124ae42564729e7256c9973e1d8"
+  },
+  {
+    "file": "block-g-typical.pdf",
+    "source": "vg-typical.pdf",
+    "block": "Г",
+    "kind": "typical",
+    "regions_1100px": [
+      [
+        525,
+        285,
+        980,
+        352
+      ],
+      [
+        499,
+        352,
+        980,
+        715
+      ]
+    ],
+    "sha256": "06b6efb494c1fc504ca372b8a383d06d8bf14192cf53723fd6823994a82dd246"
+  },
+  {
+    "file": "block-v-penthouse.pdf",
+    "source": "vg-penthouse.pdf",
+    "block": "В",
+    "kind": "penthouse",
+    "regions_1100px": [
+      [
+        120,
+        65,
+        554,
+        715
+      ]
+    ],
+    "sha256": "dcdf3e7e3a7816f5e0505c988ecf61ba8ea79232aefc55aca2360cbae2064a1b"
+  },
+  {
+    "file": "block-g-penthouse.pdf",
+    "source": "vg-penthouse.pdf",
+    "block": "Г",
+    "kind": "penthouse",
+    "regions_1100px": [
+      [
+        554,
+        315,
+        1050,
+        715
+      ]
+    ],
+    "sha256": "08fd698d369978a12e66943771e9e86e00d29e94fe725749320d92536aff1a42"
+  }
+]
