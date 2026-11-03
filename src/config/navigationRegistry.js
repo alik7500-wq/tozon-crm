@@ -57,6 +57,7 @@ export const navGroups = [
       icon: Building2,
       children: [
         { label: 'Объекты ЖК', path: '/projects', icon: Building2, permission: 'inventory.view' },
+        { label: 'Шоурум', path: '/projects/showroom', icon: Home, permission: 'inventory.view' },
         { label: 'Квартиры', path: '/apartments', icon: Home, permission: 'inventory.view' },
       ],
     },
