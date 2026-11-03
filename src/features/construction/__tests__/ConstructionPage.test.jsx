@@ -83,3 +83,24 @@ describe('Construction page workflows',()=>{
  });
 
 });
+
+it('shows supplier and warehouse separately and searches receipt documents by supplier',async()=>{
+ const supplier={id:'supplier-1',name:'Поставщик Арматуры',kind:'SUPPLIER',active:true};
+ const other={id:'supplier-2',name:'Бетонзавод Сифат',kind:'SUPPLIER',active:true};
+ mocks.get.mockResolvedValue({data:{...initial,parties:[supplier,other],warehouses:[{id:'warehouse-1',name:'Стройматериалы'}],documents:[
+  {id:'receipt-1',number:12,kind:'RECEIPT',doc_date:'2026-10-31',status:'POSTED',currency:'USD',party_id:supplier.id,warehouse_id:'warehouse-1',lines:[]},
+  {id:'receipt-2',number:13,kind:'RECEIPT',doc_date:'2026-11-01',status:'POSTED',currency:'TJS',party_id:other.id,warehouse_id:'warehouse-1',lines:[]}
+ ]}});
+ renderPage();await screen.findByText('Строительный учёт');
+ const row=screen.getByText(supplier.name).closest('tr');
+ expect(within(row).getByText('Стройматериалы')).toBeTruthy();
+ expect(screen.getByRole('columnheader',{name:'Контрагент'})).toBeTruthy();
+ expect(screen.getByRole('columnheader',{name:'Склад'})).toBeTruthy();
+ const search=screen.getByLabelText('Поиск по контрагенту');
+ fireEvent.change(search,{target:{value:'  АРМАТУРЫ  '}});
+ expect(screen.getByText(supplier.name)).toBeTruthy();expect(screen.queryByText(other.name)).toBeNull();
+ fireEvent.change(search,{target:{value:'Неизвестный поставщик'}});
+ expect(screen.getByText('Документы по этому контрагенту не найдены.')).toBeTruthy();
+ fireEvent.change(search,{target:{value:''}});
+ expect(screen.getByText(other.name)).toBeTruthy();expect(mocks.post).not.toHaveBeenCalled();expect(mocks.patch).not.toHaveBeenCalled();
+});
