@@ -42,6 +42,8 @@ export const ProjectDetailPage = () => {
   const [project, setProject] = useState(null);
   const [stats, setStats] = useState(null);
   const [inventory, setInventory] = useState(null);
+  const [inventoryError, setInventoryError] = useState('');
+  const loadVersion = React.useRef(0);
   const [layouts, setLayouts] = useState([]);
   const [activeTab, setActiveTab] = useState('chessboard'); // 'overview', 'chessboard', 'layouts', 'maps'
   const [requestedMediaId, setRequestedMediaId] = useState(null);
@@ -50,42 +52,53 @@ export const ProjectDetailPage = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [isGeneratorOpen, setIsGeneratorOpen] = useState(false);
 
-  const fetchProjectData = async () => {
-    setIsLoading(true);
+  const refreshInventory = async () => {
+    const version = loadVersion.current;
     try {
-      // 1. Fetch Project details
-      const projRes = await api.get(`/projects/${id}`);
-      const projectData = projRes.data?.project || projRes.project || projRes;
-      setProject(projectData);
-
-      // 2. Fetch stats safely
-      try {
-        const statsRes = await api.get(`/inventory/projects/${id}/chessboard`);
-        const chessboard = statsRes.data?.chessboard || [];
-        setInventory(chessboard);
-        setStats(apartmentStats(chessboard));
-      } catch (err) {
-        console.warn('Failed to load project stats:', err);
-        setInventory(null);
-        setStats(null);
-      }
-
-      // 3. Fetch layouts safely
-      try {
-        const layoutsRes = await api.get(`/inventory/projects/${id}/layouts`);
-        setLayouts(layoutsRes.data?.layouts || layoutsRes.data?.layoutTypes || layoutsRes.layouts || []);
-      } catch (err) {
-        console.warn('Failed to load project layouts:', err);
-      }
+      const res = await api.get(`/inventory/projects/${id}/chessboard`);
+      if (loadVersion.current !== version) return;
+      const data = res.data?.chessboard || [];
+      setInventory(data);
+      setStats(apartmentStats(data));
+      setInventoryError('');
     } catch (err) {
-      console.error('Failed to load project:', err);
-    } finally {
-      setIsLoading(false);
+      if (loadVersion.current === version) setInventoryError(err.message || 'Ошибка обновления шахматки');
     }
+  };
+
+  const fetchProjectData = async () => {
+    const version = ++loadVersion.current;
+    const current = () => loadVersion.current === version;
+    setIsLoading(true);
+    setInventory(null);
+    setInventoryError('');
+    setStats(null);
+    setLayouts([]);
+    // Start independent requests together; the header does not wait for layouts.
+    await Promise.allSettled([
+      api.get(`/projects/${id}`).then(res => {
+        if (current()) setProject(res.data?.project || res.project || res);
+      }).catch(err => {
+        if (current()) setProject(null);
+        console.error('Failed to load project:', err);
+      }).finally(() => { if (current()) setIsLoading(false); }),
+      api.get(`/inventory/projects/${id}/chessboard`).then(res => {
+        if (!current()) return;
+        const data = res.data?.chessboard || [];
+        setInventory(data);
+        setStats(apartmentStats(data));
+      }).catch(err => {
+        if (current()) setInventoryError(err.message || 'Ошибка загрузки шахматки');
+      }),
+      api.get(`/inventory/projects/${id}/layouts`).then(res => {
+        if (current()) setLayouts(res.data?.layouts || res.data?.layoutTypes || res.layouts || []);
+      }).catch(err => console.warn('Failed to load project layouts:', err))
+    ]);
   };
 
   useEffect(() => {
     fetchProjectData();
+    return () => { loadVersion.current++; };
   }, [id]);
 
   if (isLoading) {
@@ -218,6 +231,10 @@ export const ProjectDetailPage = () => {
       <div className="pt-2">
         {activeTab === 'chessboard' && (
           <ChessboardTab
+            key={id}
+            inventory={inventory}
+            inventoryError={inventoryError}
+            onInventoryRefresh={refreshInventory}
             projectId={id}
             currency={project.currency}
             onOpenGenerator={() => setIsGeneratorOpen(true)}

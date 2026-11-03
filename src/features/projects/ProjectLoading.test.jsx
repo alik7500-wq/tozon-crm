@@ -1,0 +1,53 @@
+import React from 'react';
+import {it,expect,vi,afterEach} from 'vitest';
+import {render,screen,act,fireEvent,cleanup} from '@testing-library/react';
+import {MemoryRouter,Routes,Route} from 'react-router-dom';
+import {ProjectDetailPage} from './ProjectDetailPage';
+import {ApartmentDetailModal} from '../apartments/ApartmentDetailModal';
+import {I18nProvider} from '../../context/i18nContext';
+import {api} from '../../api/client';
+import '@testing-library/jest-dom/vitest';
+vi.mock('../../api/client',()=>({api:{get:vi.fn()}}));
+vi.mock('../auth/AuthContext',()=>({useAuth:()=>({user:{role:'SALES_MANAGER'}})}));
+afterEach(()=>{cleanup();vi.clearAllMocks()});
+const deferred=()=>{let resolve;const promise=new Promise(r=>{resolve=r});return {promise,resolve}};
+const unit={id:55,unit_number:'55',unit_kind:'APARTMENT',status:'AVAILABLE',rooms:2,project_id:3,area_m2_x100:7926,price_per_m2_minor:70000};
+const inventory=[{id:4,name:'Блок А',sections:[{id:1,name:'Подъезд 1',floors:[{id:1,floor_number:2,units:[unit]}]}]}];
+it('starts project requests together and renders one shared chessboard without waiting for layouts or refetching on filters',async()=>{
+ const project=deferred(),chessboard=deferred(),layouts=deferred();
+ api.get.mockImplementation(path=>path==='/projects/3'?project.promise:path.endsWith('/chessboard')?chessboard.promise:path.endsWith('/layouts')?layouts.promise:Promise.resolve({data:{}}));
+ render(<MemoryRouter initialEntries={['/projects/3']}><Routes><Route path="/projects/:id" element={<ProjectDetailPage/>}/></Routes></MemoryRouter>);
+ expect(api.get).toHaveBeenCalledWith('/projects/3');expect(api.get).toHaveBeenCalledWith('/inventory/projects/3/chessboard');expect(api.get).toHaveBeenCalledWith('/inventory/projects/3/layouts');
+ await act(async()=>project.resolve({data:{project:{id:3,name:'ЖК тест',currency:'USD'}}}));
+ expect(screen.getByRole('heading',{name:'ЖК тест'})).toBeTruthy();expect(screen.getByText('Загрузка шахматки...')).toBeTruthy();
+ await act(async()=>chessboard.resolve({data:{chessboard:inventory}}));
+ expect(screen.getByText('Блок А')).toBeTruthy();expect(screen.getByText('№55')).toBeTruthy();
+ fireEvent.change(screen.getAllByRole('combobox')[0],{target:{value:'SOLD'}});
+ expect(screen.queryByText('№55')).toBeNull();
+ fireEvent.change(screen.getAllByRole('combobox')[0],{target:{value:''}});
+ expect(screen.getByText('№55')).toBeTruthy();
+ expect(api.get.mock.calls.filter(([p])=>p.endsWith('/chessboard'))).toHaveLength(1);
+ await act(async()=>layouts.resolve({data:{layouts:[]}}));
+});
+it('starts apartment presentation before unit details finish and consumes it once',async()=>{
+ const details=deferred(),presentation=deferred();
+ api.get.mockImplementation(path=>path==='/inventory/units/55'?details.promise:path==='/inventory/units/55/presentation'?presentation.promise:Promise.resolve({data:{}}));
+ render(<I18nProvider><ApartmentDetailModal isOpen unitId={55} onClose={()=>{}}/></I18nProvider>);
+ expect(api.get).toHaveBeenCalledWith('/inventory/units/55');expect(api.get).toHaveBeenCalledWith('/inventory/units/55/presentation');
+ await act(async()=>presentation.resolve({data:{data:{unit,layout:{id:1,furnished_plan_path:'https://example.test/plan.jpg'},rooms:[],features:[]}}}));
+ await act(async()=>details.resolve({data:{unit}}));
+ expect(await screen.findByRole('button',{name:'Открыть изображение на весь экран'})).toHaveAttribute('src','https://example.test/plan.jpg');
+ expect(api.get.mock.calls.filter(([p])=>p==='/inventory/units/55/presentation')).toHaveLength(1);
+});
+
+it('ignores delayed responses from a previously selected apartment',async()=>{
+ const oldDetails=deferred(),oldPlan=deferred();
+ const nextUnit={...unit,id:56,unit_number:'56'};
+ api.get.mockImplementation(path=>path==='/inventory/units/55'?oldDetails.promise:path==='/inventory/units/55/presentation'?oldPlan.promise:path==='/inventory/units/56'?Promise.resolve({data:{unit:nextUnit}}):path==='/inventory/units/56/presentation'?Promise.resolve({data:{data:{unit:nextUnit,layout:{id:2,image_path:'https://example.test/56.jpg'},rooms:[],features:[]}}}):Promise.resolve({data:{}}));
+ const {rerender}=render(<I18nProvider><ApartmentDetailModal isOpen unitId={55} onClose={()=>{}}/></I18nProvider>);
+ rerender(<I18nProvider><ApartmentDetailModal isOpen unitId={56} onClose={()=>{}}/></I18nProvider>);
+ expect(await screen.findByRole('button',{name:'Открыть изображение на весь экран'})).toHaveAttribute('src','https://example.test/56.jpg');
+ await act(async()=>{oldDetails.resolve({data:{unit}});oldPlan.resolve({data:{data:{unit,layout:{id:1,image_path:'https://example.test/55.jpg'}}}})});
+ expect(screen.getByRole('button',{name:'Открыть изображение на весь экран'})).toHaveAttribute('src','https://example.test/56.jpg');
+ expect(screen.getByRole('heading',{name:'Квартира №56',exact:true})).toBeTruthy();
+});

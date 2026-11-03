@@ -30,6 +30,7 @@ import {
 
 export const InteractiveApartmentView = ({
   unitId,
+  presentationRequest = null,
   currency = 'USD',
   onReserve,
   onCreateDeal,
@@ -52,9 +53,11 @@ export const InteractiveApartmentView = ({
   const [hoveredRoomId, setHoveredRoomId] = useState(null);
 
   const roomListRef = useRef(null);
+  const loadVersion = useRef(0);
 
-  const fetchPresentation = async () => {
+  const fetchPresentation = async (request = null) => {
     if (!unitId) return;
+    const version = ++loadVersion.current;
     setIsLoading(true);
     setError('');
     setViewMode('plan');
@@ -62,7 +65,8 @@ export const InteractiveApartmentView = ({
     setSelectedRoomId(null);
     setHoveredRoomId(null);
     try {
-      const res = await api.get(`/inventory/units/${unitId}/presentation`);
+      const res = await (request || api.get(`/inventory/units/${unitId}/presentation`));
+      if (loadVersion.current !== version) return;
       const payload = res.data?.data || res.data;
       setData(payload);
       setImageIndex(0);
@@ -72,15 +76,16 @@ export const InteractiveApartmentView = ({
       }
     } catch (err) {
       console.error('Error loading presentation:', err);
-      setError(err.message || t('errorLoadingPresentation'));
+      if (loadVersion.current === version) setError(err.message || t('errorLoadingPresentation'));
     } finally {
-      setIsLoading(false);
+      if (loadVersion.current === version) setIsLoading(false);
     }
   };
 
   useEffect(() => {
-    fetchPresentation();
-  }, [unitId]);
+    fetchPresentation(presentationRequest);
+    return () => { loadVersion.current++; };
+  }, [unitId, presentationRequest]);
 
   if (isLoading) {
     return (
@@ -98,7 +103,7 @@ export const InteractiveApartmentView = ({
         <h4 className="text-base font-bold text-slate-900">{t('errorLoadingPresentation')}</h4>
         <p className="mt-1 text-xs text-slate-600">{error || 'Квартира не найдена'}</p>
         <button
-          onClick={fetchPresentation}
+          onClick={() => fetchPresentation()}
           className="mt-4 rounded-xl bg-rose-600 px-4 py-2 text-xs font-bold text-white shadow-xs hover:bg-rose-700 transition"
         >
           Повторить попытку
@@ -277,6 +282,8 @@ export const InteractiveApartmentView = ({
               {shownImage ? (
                 <img
                   src={shownImage.url}
+                  fetchPriority="high"
+                  decoding="async"
                   alt={shownImage.title || 'Планировка квартиры'}
                   role="button" tabIndex={0} aria-label={lang === 'tg' ? 'Кушодани тасвир дар тамоми экран' : 'Открыть изображение на весь экран'}
                   onClick={() => setViewerOpen(true)}
@@ -368,7 +375,7 @@ export const InteractiveApartmentView = ({
               })}
             </div>
 
-            {images.length>0 && <div className="flex gap-2 overflow-x-auto mt-3 pb-2">{images.map((img,i)=><button key={img.url} type="button" onClick={()=>setImageIndex(i)} className={`shrink-0 rounded-xl border-2 p-1 ${i===imageIndex?'border-blue-600':'border-slate-200'}`} aria-label={img.title || `Изображение ${i+1}`}><img src={img.url} alt={img.title || ''} className="w-20 h-16 object-contain bg-white" /></button>)}</div>}
+            {images.length>0 && <div className="flex gap-2 overflow-x-auto mt-3 pb-2">{images.map((img,i)=><button key={img.url} type="button" onClick={()=>setImageIndex(i)} className={`shrink-0 rounded-xl border-2 p-1 ${i===imageIndex?'border-blue-600':'border-slate-200'}`} aria-label={img.title || `Изображение ${i+1}`}><img loading="lazy" decoding="async" src={img.url} alt={img.title || ''} className="w-20 h-16 object-contain bg-white" /></button>)}</div>}
             {shownImage && <button type="button" onClick={()=>setViewerOpen(true)} className="mt-2 text-sm text-blue-700 flex gap-2 items-center"><Maximize2 className="w-4 h-4" />{lang === 'tg' ? 'Дар тамоми экран кушоед' : 'Открыть на весь экран'}</button>}
             <div className="mt-3 flex items-center justify-between text-xs text-slate-500 px-1">
               <span className="flex items-center gap-1.5">
