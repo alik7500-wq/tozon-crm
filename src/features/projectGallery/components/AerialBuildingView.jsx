@@ -22,7 +22,7 @@ export function AerialBuildingView({ image, buildings, initialBuildingId = null,
     if (!floorSelectionOnly) { openFloorPlan(blockId); return; }
     setSelected(blockId); setHovered(null); setHoveredFloor(null);
   };
-  if (floorBlockId !== null) return <TypicalFloorPlanView key={floorBlockId} floorNumber={openedFloor} block={blocks.find(block => block.id === floorBlockId)} onBack={() => setFloorBlockId(null)} />;
+  if (floorBlockId !== null) return <TypicalFloorPlanView sourcePlans={floorSelectionOnly} key={floorBlockId} floorNumber={openedFloor} block={blocks.find(block => block.id === floorBlockId)} onBack={() => setFloorBlockId(null)} />;
 
   return <div className="mx-auto grid w-full max-w-[1500px] items-center gap-5 lg:grid-cols-[minmax(0,1fr)_300px]">
     <div>
@@ -73,7 +73,7 @@ export function AerialBuildingView({ image, buildings, initialBuildingId = null,
           <dl className="mt-2 divide-y divide-slate-100 text-xs">{[['Квартиры', info.areas.apartments], ['Коммерция', info.areas.commercial], ['Машино-места', info.areas.parking]].map(([label, group]) => <div key={label} className="flex justify-between gap-2 py-2.5"><dt className="text-slate-500">{label}{label !== 'Квартиры' && ` · ${group.count} ед.`}</dt><dd className="font-bold tabular-nums">{areaText(group)}</dd></div>)}</dl>
           <p className="mt-4 text-[11px] leading-relaxed text-slate-400">Данные из CRM. Коммерческие помещения и парковки учитываются отдельно от квартир.</p>
         </> : <p role="status" className="mt-4 text-sm text-slate-500">{floorNumber === null ? 'Данные блока не загружены.' : 'Данные этажа не загружены.'} Обновите страницу, чтобы получить актуальную информацию.</p>}
-        <div className="mt-4 border-t border-slate-100 pt-4"><p className="mb-2 text-xs text-slate-500">Выберите этаж</p><div className="grid grid-cols-5 gap-2">{[...getAerialFloorRegions(active.id), ...(Number(projectId) === 4 ? [{ floor: -1 }] : [])].map(region => <button type="button" key={region.floor} aria-label={`Открыть ${active.name}, ${region.floor} этаж`} onClick={() => openFloorPlan(active.id, region.floor)} className="rounded-lg border border-slate-200 py-2 text-sm font-bold hover:border-orange-500 hover:bg-orange-50">{region.floor}</button>)}</div></div>
+        <div className="mt-4 border-t border-slate-100 pt-4"><p className="mb-2 text-xs text-slate-500">Выберите этаж</p><div className="grid grid-cols-5 gap-2">{[...getAerialFloorRegions(active.id), ...(floorSelectionOnly || Number(projectId) === 4 ? [{ floor: -1 }] : [])].map(region => <button type="button" key={region.floor} aria-label={`Открыть ${active.name}, ${region.floor} этаж`} onClick={() => openFloorPlan(active.id, region.floor)} className="rounded-lg border border-slate-200 py-2 text-sm font-bold hover:border-orange-500 hover:bg-orange-50">{region.floor}</button>)}</div></div>
         {selected !== null && <button type="button" onClick={() => { setSelected(null); setHovered(null); }} className="mt-4 text-xs font-semibold text-slate-500 hover:text-orange-600">Снять выбор блока</button>}
       </> : <div className="py-8 text-center"><h4 className="text-lg font-bold">Выберите блок</h4><p className="mt-3 text-sm leading-relaxed text-slate-500">Наведите курсор на здание или нажмите на нужный блок. Здесь появятся сведения о квартирах и площадях.</p></div>}
     </aside>
