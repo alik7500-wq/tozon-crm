@@ -1,3 +1,4 @@
+import { getShowroomFloorPlan } from './showroomFloorPlans';
 import React, { useEffect, useState } from 'react';
 
 const floorPlans = {
@@ -5,7 +6,7 @@ const floorPlans = {
   3: '/layouts/floors/block_b_typical_floor.webp'
 };
 
-export function TypicalFloorPlanView({ block, floorNumber = null, onBack }) {
+export function TypicalFloorPlanView({ block, floorNumber = null, onBack, sourcePlans = false }) {
   const vg = [6, 7].includes(block.id);
   const kind = floorNumber === 10 ? 'penthouse' : floorNumber === 1 ? 'commercial' : floorNumber === -1 ? 'parking' : 'typical';
   const hasPlan = vg || floorNumber === null || (floorNumber >= 2 && floorNumber <= 9);
@@ -20,6 +21,21 @@ export function TypicalFloorPlanView({ block, floorNumber = null, onBack }) {
     window.addEventListener('keydown', handleEscape, true);
     return () => window.removeEventListener('keydown', handleEscape, true);
   }, [onBack]);
+
+  if (sourcePlans) {
+    const source = getShowroomFloorPlan(block.id, floorNumber);
+    return <section className="mx-auto w-full max-w-[1500px]" aria-label={`Типовой этаж: ${block.name}`}>
+      <div className="mb-3 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-white/20 bg-slate-900 p-3 text-white">
+        <button type="button" onClick={onBack} className="rounded-lg bg-white/10 px-4 py-2 text-sm font-bold hover:bg-white/20">← К изображению здания</button>
+        <div><h3 className="text-base font-bold">{block.name} · {floorNumber} этаж</h3>
+          {source && <p className="mt-1 text-xs text-slate-400">{source.title} · общий чертёж блоков {source.blocks}</p>}
+        </div>
+        {source && <a href={source.url} target="_blank" rel="noopener noreferrer" className="rounded-lg bg-white/10 px-4 py-2 text-sm font-bold hover:bg-white/20">Открыть исходный PDF</a>}
+      </div>
+      {source ? <iframe key={source.url} src={`${source.url}#view=Fit&navpanes=0`} title={`Планировка ${block.name}, ${floorNumber} этаж`} className="block h-[calc(100dvh-260px)] min-h-80 w-full rounded-xl border border-slate-200 bg-white"/> : <p role="status" className="rounded-xl bg-white p-8 text-slate-700">Чертёж выбранного этажа не добавлен.</p>}
+      <p className="mt-3 text-center text-xs text-slate-400">Исходный проектный чертёж. Масштаб и печать — в панели PDF. Для возврата нажмите кнопку выше или Esc.</p>
+    </section>;
+  }
 
   return <section className="mx-auto w-full max-w-[1500px]" aria-label={`Типовой этаж: ${block.name}`}>
     <div className="mb-4 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-white/20 bg-slate-900 p-3 text-white">

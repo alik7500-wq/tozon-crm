@@ -1,0 +1,42 @@
+[
+  {
+    "file": "vg-typical.pdf",
+    "source": "9 этАр В-Г  -1 ТО +9-Model.pdf-1.pdf",
+    "sha256": "a90a175e13cbc0cc665e487367278cde666ede9ecf9ba6a020d4a6d5cf904d85"
+  },
+  {
+    "file": "vg-penthouse.pdf",
+    "source": "9 этАр В-Г  -1 ТО +9-Model.pdf-2.pdf",
+    "sha256": "8e196aa479fd394384dd7a144a88df64df721e4a52be3b6724eaa2ca8a61e6bc"
+  },
+  {
+    "file": "vg-commercial.pdf",
+    "source": "9 этАр В-Г  -1 ТО +9-Model.pdf-3.pdf",
+    "sha256": "c9b025f49784767c053419ce0c6871af0f3f7e2d1efa3c8002104ec91be79649"
+  },
+  {
+    "file": "vg-parking.pdf",
+    "source": "9 этАр В-Г  -1 ТО +9-Model.pdf-4.pdf",
+    "sha256": "c03023704f677a79379162a4636a424d3735053359f40d9c1d564f81d4c59de9"
+  },
+  {
+    "file": "ab-parking.pdf",
+    "source": "Пахтакор 9эт..2вар-Model.pdf-01(2).pdf",
+    "sha256": "9303b749f0c87b173536f0e7736134c933ae0430145769d6edb32ec821b1ca32"
+  },
+  {
+    "file": "ab-commercial.pdf",
+    "source": "Пахтакор 9эт..2вар-Model.pdf-02(2).pdf",
+    "sha256": "7b696d35f99a7ca82141461844dd079e871971db71fbaf6798fa898095911da7"
+  },
+  {
+    "file": "ab-typical.pdf",
+    "source": "Пахтакор 9эт..2вар-Model.pdf-03(3).pdf",
+    "sha256": "c94787d64592cb2265f5cfa11972af56de71999fcb63a6f61b9acbdc97055a17"
+  },
+  {
+    "file": "ab-penthouse.pdf",
+    "source": "Пахтакор 9эт..2вар-Model.pdf-04(3).pdf",
+    "sha256": "e341329eb109842017685bd83943cf20523e2fb5c9d472c8bc547985844f903c"
+  }
+]
