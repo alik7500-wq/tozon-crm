@@ -7,12 +7,15 @@ afterEach(cleanup);
 it.each(['TJ', 'RU'])('prints real receipt dates and omits zero advance (%s)', lang => {
   render(<ContractPrintView initialLang={lang} onClose={() => {}} deal={{
     id: 33, contract_number: '0023', passport_number: 'TEST', currency: 'USD',
-    final_price_minor: 4054800, down_payment_minor: 0,
+    final_price_minor: 4054800, down_payment_minor: 0, area_m2_x100: 5618, deal_price_per_m2_minor: 60500,
     schedules: [{ due_date: '2026-08-21', amount_minor: 169000, paid_amount_minor: 110000, updated_at: '2026-09-26', status: 'OVERDUE' }],
     payments: [{ id: 107, reference: 'ПКО-50', payment_date: '2026-08-21', amount_minor: 110000, status: 'ACTIVE' }],
   }} />);
   fireEvent.click(screen.getByText(lang === 'TJ' ? 'Ҷадвали пардохт' : 'График платежей'));
   const section = document.getElementById('print-section');
+  const priceRow = screen.getByText(lang === 'TJ' ? 'Нархи 1 м² (USD)' : 'Цена 1 м² (USD)').parentElement;
+  expect(priceRow.textContent).toContain('605 USD');
+  expect(priceRow.textContent).not.toContain('TJS');
   const rows = section.querySelectorAll('table')[0].querySelectorAll('tbody tr');
   expect(rows[0].cells[0].textContent).toBe('1');
   expect(rows[0].cells[1].textContent).toBe('21.08.2026');
