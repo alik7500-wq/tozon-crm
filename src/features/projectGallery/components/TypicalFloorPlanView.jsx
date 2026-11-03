@@ -28,9 +28,9 @@ export function TypicalFloorPlanView({ block, floorNumber = null, onBack, source
       <div className="mb-3 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-white/20 bg-slate-900 p-3 text-white">
         <button type="button" onClick={onBack} className="rounded-lg bg-white/10 px-4 py-2 text-sm font-bold hover:bg-white/20">← К изображению здания</button>
         <div><h3 className="text-base font-bold">{block.name} · {floorNumber} этаж</h3>
-          {source && <p className="mt-1 text-xs text-slate-400">{source.title} · общий чертёж блоков {source.blocks}</p>}
+          {source && <p className="mt-1 text-xs text-slate-400">{source.title} · планировка блока {source.block}</p>}
         </div>
-        {source && <a href={source.url} target="_blank" rel="noopener noreferrer" className="rounded-lg bg-white/10 px-4 py-2 text-sm font-bold hover:bg-white/20">Открыть исходный PDF</a>}
+        {source && <a href={source.url} target="_blank" rel="noopener noreferrer" className="rounded-lg bg-white/10 px-4 py-2 text-sm font-bold hover:bg-white/20">Открыть PDF блока</a>}
       </div>
       {source ? <iframe key={source.url} src={`${source.url}#view=Fit&navpanes=0`} title={`Планировка ${block.name}, ${floorNumber} этаж`} className="block h-[calc(100dvh-260px)] min-h-80 w-full rounded-xl border border-slate-200 bg-white"/> : <p role="status" className="rounded-xl bg-white p-8 text-slate-700">Чертёж выбранного этажа не добавлен.</p>}
       <p className="mt-3 text-center text-xs text-slate-400">Исходный проектный чертёж. Масштаб и печать — в панели PDF. Для возврата нажмите кнопку выше или Esc.</p>

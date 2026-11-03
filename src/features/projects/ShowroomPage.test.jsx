@@ -39,7 +39,7 @@ it.each([['Блок А',4],['Блок Б',3]])('opens fullscreen genplan then %s
  fireEvent.mouseEnter(floor);
  expect(screen.getByRole('heading',{name:`${name} · 5 этаж`})).toBeTruthy();
  fireEvent.click(floor);
- expect(screen.getByTitle(`Планировка ${name}, 5 этаж`).getAttribute('src')).toContain(name === 'Блок А' || name === 'Блок Б' ? '/layouts/showroom/ab-typical.pdf' : '/layouts/showroom/vg-typical.pdf');
+ expect(screen.getByTitle(`Планировка ${name}, 5 этаж`).getAttribute('src')).toContain(`/layouts/showroom/block-${{'Блок А':'a','Блок Б':'b','Блок В':'v','Блок Г':'g'}[name]}-typical.pdf`);
  fireEvent.keyDown(window,{key:'Escape'});
  expect(screen.queryByTitle(`Планировка ${name}, 5 этаж`)).toBeNull();
  fireEvent.click(screen.getByTitle('Закрыть (Esc)'));
@@ -56,5 +56,5 @@ it.each(['Блок В','Блок Г'])('keeps the same floor-only navigation for
  fireEvent.click(within(screen.getByLabelText('Блоки объекта')).getByRole('button',{name,exact:true}));
  expect(screen.queryByAltText(`Типовая планировка ${name}, этажи 2–9`)).toBeNull();
  fireEvent.click(screen.getByRole('button',{name:`${name}, 5 этаж`,exact:true}));
- expect(screen.getByTitle(`Планировка ${name}, 5 этаж`).getAttribute('src')).toContain(name === 'Блок А' || name === 'Блок Б' ? '/layouts/showroom/ab-typical.pdf' : '/layouts/showroom/vg-typical.pdf');
+ expect(screen.getByTitle(`Планировка ${name}, 5 этаж`).getAttribute('src')).toContain(`/layouts/showroom/block-${{'Блок А':'a','Блок Б':'b','Блок В':'v','Блок Г':'g'}[name]}-typical.pdf`);
 });
