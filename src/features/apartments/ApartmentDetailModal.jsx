@@ -49,6 +49,8 @@ export const ApartmentDetailModal = ({
   const { user } = useAuth();
   const [unit, setUnit] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [presentationRequest, setPresentationRequest] = useState(null);
+  const unitLoadVersion = React.useRef(0);
   const [isUpdatingStatus, setIsUpdatingStatus] = useState(false);
 
   // Price Configuration Modal state with Visual Chessboard Selection
@@ -78,15 +80,33 @@ export const ApartmentDetailModal = ({
 
   const fetchUnit = async () => {
     if (!unitId) return;
+    const version = ++unitLoadVersion.current;
     setIsLoading(true);
+    // The plan request starts at the same time as contract/unit details.
+    const presentation = api.get(`/inventory/units/${unitId}/presentation`).then(res => {
+      if (unitLoadVersion.current === version) {
+        const payload = res.data?.data || res.data;
+        const layout = payload?.layout || payload?.unit?.layout_types;
+        const src = layout?.furnished_plan_path || layout?.image_path || layout?.technical_plan_path;
+        if (src && typeof Image !== 'undefined') {
+          const image = new Image();
+          image.fetchPriority = 'high';
+          image.src = src;
+        }
+      }
+      return res;
+    });
+    presentation.catch(() => {}); // The presentation component shows its own retry state.
+    setPresentationRequest(() => presentation);
     try {
       const res = await api.get(`/inventory/units/${unitId}`);
       const data = res.data?.unit || res.unit || res.data || res;
-      setUnit(data);
+      if (unitLoadVersion.current === version) setUnit(data);
     } catch (err) {
+      if (unitLoadVersion.current === version) setUnit(null);
       console.error('Error fetching unit:', err);
     } finally {
-      setIsLoading(false);
+      if (unitLoadVersion.current === version) setIsLoading(false);
     }
   };
 
@@ -97,6 +117,7 @@ export const ApartmentDetailModal = ({
         contentScrollRef.current.scrollTop = 0;
       }
     }
+    return () => { unitLoadVersion.current++; };
   }, [isOpen, unitId]);
 
   useEffect(() => {
@@ -409,6 +430,8 @@ export const ApartmentDetailModal = ({
           <div ref={contentScrollRef} className="space-y-4 flex-1 overflow-y-auto pt-1 pr-1">
             {/* Interactive Presentation View */}
             <InteractiveApartmentView
+              key={unit.id}
+              presentationRequest={presentationRequest}
               unitId={unit.id}
               currency={projectCurrency}
               onReserve={() => setIsReserveModalOpen(true)}

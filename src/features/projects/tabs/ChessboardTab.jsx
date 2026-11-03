@@ -25,11 +25,14 @@ import {
   Image as ImageIcon
 } from 'lucide-react';
 
-export const ChessboardTab = ({ projectId, currency = 'USD', onOpenGenerator }) => {
+export const ChessboardTab = ({ projectId, currency = 'USD', onOpenGenerator, inventory, inventoryError = '', onInventoryRefresh }) => {
   const { user } = useAuth();
-  const [chessboardData, setChessboardData] = useState([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState('');
+  const [localData, setChessboardData] = useState([]);
+  const [localLoading, setIsLoading] = useState(true);
+  const [localError, setError] = useState('');
+  const managed = inventory !== undefined;
+  const isLoading = managed ? inventory === null && !inventoryError : localLoading;
+  const error = managed ? inventoryError : localError;
 
   // Filters
   const [statusFilter, setStatusFilter] = useState('');
@@ -40,14 +43,11 @@ export const ChessboardTab = ({ projectId, currency = 'USD', onOpenGenerator }) 
   const [selectedNonResidential, setSelectedNonResidential] = useState(null);
 
   const fetchChessboard = async () => {
+    if (managed) return onInventoryRefresh?.();
     setIsLoading(true);
     setError('');
     try {
-      const params = {};
-      if (statusFilter) params.status = statusFilter;
-      if (roomsFilter !== '') params.rooms = roomsFilter;
-
-      const res = await api.get(`/inventory/projects/${projectId}/chessboard`, { params });
+      const res = await api.get(`/inventory/projects/${projectId}/chessboard`);
       setChessboardData(res.data.chessboard || []);
     } catch (err) {
       setError(err.message || 'Ошибка загрузки шахматки');
@@ -57,8 +57,21 @@ export const ChessboardTab = ({ projectId, currency = 'USD', onOpenGenerator }) 
   };
 
   useEffect(() => {
-    fetchChessboard();
-  }, [projectId, statusFilter, roomsFilter]);
+    if (!managed) fetchChessboard();
+  }, [projectId, managed]);
+
+  // Filter the already loaded inventory instead of requesting it again.
+  const chessboardData = (managed ? inventory || [] : localData).map(building => ({
+    ...building,
+    sections: (building.sections || []).map(section => ({
+      ...section,
+      floors: (section.floors || []).map(floor => ({
+        ...floor,
+        units: (floor.units || []).filter(unit => (!statusFilter || unit.status === statusFilter)
+          && (roomsFilter === '' || Number(unit.rooms) === Number(roomsFilter)))
+      }))
+    }))
+  }));
 
   const handleUnitClick = (unit, floor, building) => {
     if (isNonResidentialUnit(unit)) {
@@ -175,7 +188,7 @@ export const ChessboardTab = ({ projectId, currency = 'USD', onOpenGenerator }) 
       {error && (
         <div className="flex items-center gap-2 rounded-xl border border-rose-200 bg-rose-50 p-4 text-sm text-rose-700">
           <AlertCircle className="h-5 w-5 text-rose-500 shrink-0" />
-          <span>{error}</span>
+          <span>{error}</span><button type="button" onClick={fetchChessboard} className="font-bold underline">Повторить</button>
         </div>
       )}
 
@@ -192,9 +205,9 @@ export const ChessboardTab = ({ projectId, currency = 'USD', onOpenGenerator }) 
           <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-blue-50 text-blue-600 mb-3 border border-blue-100">
             <Layers className="h-7 w-7" />
           </div>
-          <h3 className="text-base font-bold text-slate-900">В этом ЖК пока нет квартир</h3>
+          <h3 className="text-base font-bold text-slate-900">{statusFilter || roomsFilter !== '' ? 'Квартиры по выбранным фильтрам не найдены' : 'В этом ЖК пока нет квартир'}</h3>
           <p className="mt-1 text-xs text-slate-500 max-w-sm">
-            Воспользуйтесь конфигуратором этажей для пакетной генерации 1к, 2к и 3к квартир за 5 секунд.
+            {statusFilter || roomsFilter !== '' ? 'Измените или сбросьте фильтры.' : 'Воспользуйтесь конфигуратором этажей для пакетной генерации квартир.'}
           </p>
           {user?.role === 'ADMIN' && (
             <Link
