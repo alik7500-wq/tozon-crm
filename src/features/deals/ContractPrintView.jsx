@@ -914,8 +914,8 @@ export const ContractPrintView = ({ deal: initialDeal, onClose, initialLang = de
               </div>
 
               <div className="flex justify-between items-baseline border-b border-dotted border-slate-300 pb-0.5">
-                <span>{fixedParking ? (isTJ ? 'Нархи як ҷой' : 'Цена за место') : nonResidential ? (isTJ ? `Нархи 1 м² (${currency})` : `Цена 1 м² (${currency})`) : (isTJ ? 'Нархи 1 метри мураббаъ бо сомонӣ' : 'Цена 1 кв.м в сомони')}</span>
-                <span className="font-bold underline text-slate-900">{fixedParking ? `${finalPrice} ${currency}` : nonResidential ? `${rawPricePerM2.toLocaleString('ru-RU', { maximumFractionDigits: 2 })} ${currency}` : `${tjsPrice.toLocaleString('ru-RU')} TJS`}</span>
+                <span>{fixedParking ? (isTJ ? 'Нархи як ҷой' : 'Цена за место') : (isTJ ? `Нархи 1 м² (${currency})` : `Цена 1 м² (${currency})`)}</span>
+                <span className="font-bold underline text-slate-900">{fixedParking ? `${finalPrice} ${currency}` : `${rawPricePerM2.toLocaleString('ru-RU', { maximumFractionDigits: 2 })} ${currency}`}</span>
               </div>
 
               <div className="flex justify-between items-baseline border-b border-dotted border-slate-300 pb-0.5">
