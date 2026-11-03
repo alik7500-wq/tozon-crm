@@ -3,7 +3,7 @@ import { aerialBlocks, getAerialBuildingInfo, getAerialFloorInfo, getAerialFloor
 import { formatMetricArea } from '../../projects/projectAreaMetrics';
 import { TypicalFloorPlanView } from './TypicalFloorPlanView';
 
-export function AerialBuildingView({ image, buildings, initialBuildingId = null, projectId = 3 }) {
+export function AerialBuildingView({ image, buildings, initialBuildingId = null, projectId = 3, floorSelectionOnly = false }) {
   const blocks = aerialBlocks.filter(block => block.projectId === Number(projectId));
   const [selected, setSelected] = useState(() => blocks.some(block => block.id === Number(initialBuildingId)) ? Number(initialBuildingId) : null);
   const [hovered, setHovered] = useState(null);
@@ -18,6 +18,10 @@ export function AerialBuildingView({ image, buildings, initialBuildingId = null,
   const src = image.url || image.image_url;
   const areaText = group => group.missing ? 'Уточняется' : formatMetricArea(group.area);
   const openFloorPlan = (blockId, floor = null) => { setSelected(blockId); setHovered(null); setHoveredFloor(null); setOpenedFloor(floor); setFloorBlockId(blockId); };
+  const selectBlock = blockId => {
+    if (!floorSelectionOnly) { openFloorPlan(blockId); return; }
+    setSelected(blockId); setHovered(null); setHoveredFloor(null);
+  };
   if (floorBlockId !== null) return <TypicalFloorPlanView key={floorBlockId} floorNumber={openedFloor} block={blocks.find(block => block.id === floorBlockId)} onBack={() => setFloorBlockId(null)} />;
 
   return <div className="mx-auto grid w-full max-w-[1500px] items-center gap-5 lg:grid-cols-[minmax(0,1fr)_300px]">
@@ -25,7 +29,7 @@ export function AerialBuildingView({ image, buildings, initialBuildingId = null,
       <div className="mb-3 flex items-center justify-center gap-2" aria-label="Блоки объекта">
         {blocks.map(block => <button key={block.id} type="button" aria-pressed={selected === block.id}
           onMouseEnter={() => setHovered(block.id)} onMouseLeave={() => setHovered(null)} onFocus={() => setHovered(block.id)} onBlur={() => setHovered(null)}
-          onClick={() => openFloorPlan(block.id)} className={`rounded-xl border px-4 py-2 text-sm font-bold transition ${activeId === block.id ? 'border-orange-400 bg-orange-500 text-slate-950' : 'border-white/30 bg-white/10 text-white hover:bg-white/20'}`}>{block.name}</button>)}
+          onClick={() => selectBlock(block.id)} className={`rounded-xl border px-4 py-2 text-sm font-bold transition ${activeId === block.id ? 'border-orange-400 bg-orange-500 text-slate-950' : 'border-white/30 bg-white/10 text-white hover:bg-white/20'}`}>{block.name}</button>)}
       </div>
       <div className="relative mx-auto w-full overflow-hidden rounded-xl shadow-2xl" style={{ maxWidth: 'calc((100dvh - 260px) * 1.25)' }}>
         <img src={src} alt={image.title} className={`block h-auto w-full transition-[filter] duration-200 ${active ? 'brightness-60' : ''}`} />
@@ -35,8 +39,8 @@ export function AerialBuildingView({ image, buildings, initialBuildingId = null,
           {blocks.map(block => <polygon key={block.id} points={block.points} role="button" tabIndex={0}
             aria-label={`Показать информацию: ${block.name}`} aria-pressed={selected === block.id}
             onMouseEnter={() => setHovered(block.id)} onMouseLeave={() => setHovered(null)} onFocus={() => setHovered(block.id)} onBlur={() => setHovered(null)}
-            onClick={() => openFloorPlan(block.id)} onKeyDown={event => {
-              if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); openFloorPlan(block.id); }
+            onClick={() => selectBlock(block.id)} onKeyDown={event => {
+              if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); selectBlock(block.id); }
             }} fill="transparent" stroke={activeId === block.id && floorNumber === null ? '#fb923c' : 'transparent'} strokeWidth="3" vectorEffect="non-scaling-stroke"
             className="pointer-events-auto cursor-pointer transition-colors focus:outline-none" />)}
           {blocks.flatMap(block => getAerialFloorRegions(block.id).map(region => <polygon key={`${block.id}-${region.floor}`} points={region.points}
@@ -59,7 +63,7 @@ export function AerialBuildingView({ image, buildings, initialBuildingId = null,
     <aside aria-label="Информация о выбранном блоке" aria-live="polite" className="lg:max-h-[calc(100dvh-150px)] lg:overflow-y-auto rounded-2xl border border-white/20 bg-white p-5 text-slate-900 shadow-2xl">
       {active ? <>
         <div className="flex items-center justify-between gap-2 border-b border-slate-100 pb-4"><h4 className="text-xl font-bold">{active.name}{floorNumber !== null && ` · ${floorNumber} этаж`}</h4><span className="rounded-full bg-orange-50 px-2.5 py-1 text-[10px] font-bold text-orange-700">TOZON PLAZA{Number(projectId) === 4 ? ' — 2' : ''}</span></div>
-        <button type="button" onClick={() => openFloorPlan(active.id, floorNumber)} className="mt-4 w-full rounded-xl bg-orange-500 px-4 py-3 text-sm font-bold text-slate-950 hover:bg-orange-400">Открыть типовую планировку</button>
+        {!floorSelectionOnly && <button type="button" onClick={() => openFloorPlan(active.id, floorNumber)} className="mt-4 w-full rounded-xl bg-orange-500 px-4 py-3 text-sm font-bold text-slate-950 hover:bg-orange-400">Открыть типовую планировку</button>}
         {info ? <>
           <dl className="mt-4 grid grid-cols-2 gap-3"><div className="rounded-xl bg-slate-50 p-3"><dt className="text-xs text-slate-500">Всего квартир</dt><dd className="mt-1 text-2xl font-bold">{info.apartments.total_units}</dd></div><div className="rounded-xl bg-emerald-50 p-3"><dt className="text-xs text-emerald-700">Свободно квартир</dt><dd className="mt-1 text-2xl font-bold text-emerald-800">{info.apartments.available_units}</dd></div></dl>
           <h5 className="mt-5 text-xs font-bold uppercase tracking-wide text-slate-400">По комнатности</h5>

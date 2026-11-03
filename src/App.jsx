@@ -12,6 +12,7 @@ import { ProtectedRoute, PermissionGuard } from './features/auth/ProtectedRoute'
 import { LoginPage } from './features/auth/LoginPage';
 import { MainLayout } from './layouts/MainLayout';
 import { DashboardPage } from './features/dashboard/DashboardPage';
+import { ShowroomPage } from './features/projects/ShowroomPage';
 import { ProjectsPage } from './features/projects/ProjectsPage';
 import { ProjectDetailPage } from './features/projects/ProjectDetailPage';
 import { LeadsPage } from './features/leads/LeadsPage';
@@ -65,6 +66,7 @@ function App() {
 
               {/* Protected CRM routes */}
               <Route element={<ProtectedRoute />}>
+                <Route path="/projects/showroom" element={<PermissionGuard requiredPermission="inventory.view"><ShowroomPage /></PermissionGuard>} />
                 <Route element={<MainLayout />}>
                   <Route path="/" element={<DashboardPage />} />
                   <Route path="/projects" element={<ProjectsPage />} />

@@ -18,11 +18,12 @@ import {
 import ImageUpload from '../../../components/ImageUpload';
 import { MapBuildingRegions, getBuildingOutline, getBuildingMediaTarget } from './MapBuildingRegions';
 
-export const VisualMapsTab = ({ projectId, onSelectUnit, onOpenMedia }) => {
+export const VisualMapsTab = ({ projectId, onSelectUnit, onOpenMedia, presentationMode = false }) => {
   const { user } = useAuth();
   const [maps, setMaps] = useState([]);
   const [activeMap, setActiveMap] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [loadError, setLoadError] = useState('');
   const [imageSize, setImageSize] = useState(null);
   const [hoveredRegion, setHoveredRegion] = useState(null);
   const [selectedRegion, setSelectedRegion] = useState(null);
@@ -52,6 +53,7 @@ export const VisualMapsTab = ({ projectId, onSelectUnit, onOpenMedia }) => {
 
   const fetchMaps = async () => {
     setIsLoading(true);
+    setLoadError('');
     try {
       const res = await api.get(`/visual-maps/projects/${projectId}`);
       const mapList = res.data.maps || [];
@@ -65,7 +67,7 @@ export const VisualMapsTab = ({ projectId, onSelectUnit, onOpenMedia }) => {
         setHotspots(mapList[0].hotspots || []);
       }
     } catch (err) {
-      console.error(err);
+      setLoadError(err.message || 'Не удалось загрузить генплан');
     } finally {
       setIsLoading(false);
     }
@@ -161,6 +163,8 @@ export const VisualMapsTab = ({ projectId, onSelectUnit, onOpenMedia }) => {
     }
   };
 
+  if (isLoading) return <p role="status" className="p-8 text-center text-slate-500">Загрузка генплана и фасадов…</p>;
+  if (loadError) return <div role="alert" className="p-8 text-center text-rose-700">{loadError} <button type="button" onClick={fetchMaps} className="underline">Повторить</button></div>;
   return (
     <div className="space-y-6">
       {/* Top Map Selector & Actions */}
@@ -180,7 +184,7 @@ export const VisualMapsTab = ({ projectId, onSelectUnit, onOpenMedia }) => {
             </button>
           ))}
 
-          {user?.role === 'ADMIN' && (
+          {!presentationMode && user?.role === 'ADMIN' && (
             <button
               onClick={() => setIsUploadModalOpen(true)}
               className="flex items-center gap-1.5 rounded-xl border border-dashed border-slate-300 bg-slate-50 px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-100 transition cursor-pointer"
@@ -191,7 +195,7 @@ export const VisualMapsTab = ({ projectId, onSelectUnit, onOpenMedia }) => {
           )}
         </div>
 
-        {activeMap && user?.role === 'ADMIN' && !activeMap?.readOnly && (
+        {activeMap && !presentationMode && user?.role === 'ADMIN' && !activeMap?.readOnly && (
           <div className="flex items-center gap-2">
             <button
               onClick={() => setIsEditMode(!isEditMode)}
@@ -247,7 +251,7 @@ export const VisualMapsTab = ({ projectId, onSelectUnit, onOpenMedia }) => {
           <p className="mt-1 text-xs text-slate-500 max-w-sm">
             Загрузите визуальный генеральный план объекта для разметки корпусов и наглядного выбора квартир.
           </p>
-          {user?.role === 'ADMIN' && !activeMap?.readOnly && (
+          {!presentationMode && user?.role === 'ADMIN' && !activeMap?.readOnly && (
             <button
               onClick={() => setIsUploadModalOpen(true)}
               className="mt-4 flex items-center gap-2 rounded-xl bg-blue-600 px-4 py-2 text-xs font-bold text-white shadow-md hover:bg-blue-700 transition cursor-pointer"
@@ -265,13 +269,13 @@ export const VisualMapsTab = ({ projectId, onSelectUnit, onOpenMedia }) => {
             <div
               ref={imageContainerRef}
               className="relative w-full"
-              style={measuredImage ? { maxWidth: `${600 * measuredImage.width / measuredImage.height}px` } : undefined}
+              style={measuredImage ? { maxWidth: presentationMode ? `calc((100dvh - 210px) * ${measuredImage.width / measuredImage.height})` : `${600 * measuredImage.width / measuredImage.height}px` } : undefined}
             >
               <img
                 key={activeMap.image_path}
                 src={activeMap.image_path}
                 alt={activeMap.title}
-                className="w-full h-auto max-h-[600px] object-contain mx-auto block"
+                className={`w-full h-auto object-contain mx-auto block ${presentationMode ? 'max-h-[calc(100dvh-210px)]' : 'max-h-[600px]'}`}
                 onLoad={event => {
                   const { naturalWidth, naturalHeight } = event.currentTarget;
                   if (naturalWidth > 0 && naturalHeight > 0) setImageSize({ src: activeMap.image_path, width: naturalWidth, height: naturalHeight });
