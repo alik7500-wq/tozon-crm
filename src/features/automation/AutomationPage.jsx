@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { api } from '../../api/client';
+import { MetaSourceSettings } from './MetaSourceSettings';
 import {
   Zap,
   Send,
@@ -260,6 +261,7 @@ export const AutomationPage = () => {
       </section>
 
       {/* Tab 1: Channels & Adapters */}
+      {activeTab === 'CHANNELS' && <MetaSourceSettings />}
       {activeTab === 'CHANNELS' && settings && (
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           {/* Telegram Channel Card */}
