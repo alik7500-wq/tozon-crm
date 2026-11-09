@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { api } from '../../api/client';
+import { notifyDiscountSchemesChanged } from './discountSchemeUpdates';
 export const EXAMPLE_DISCOUNT_RULES = [
   {payment_percent:0,discount_percent:0,months:30},
   {payment_percent:5,discount_percent:2.86,months:30},
@@ -16,9 +17,9 @@ export function DiscountSchemesTab({ projects }) {
   const field=(key,value)=>setForm(f=>({...f,[key]:value}));
   const save=async()=>{setBusy(true);setMessage('');try{
     const r=form.id?await api.put(`/discount-schemes/${form.id}`,form):await api.post('/discount-schemes',form);
-    setForm(r.data.scheme);await load();setMessage('Схема сохранена');
+    setForm(r.data.scheme);notifyDiscountSchemesChanged();await load();setMessage('Схема сохранена');
   }catch(e){setMessage(e.response?.data?.message||e.message)}finally{setBusy(false)}};
-  const remove=async()=>{if(!window.confirm(`Удалить схему «${form.name}»? Условия ранее оформленных сделок сохранятся.`))return;setBusy(true);try{await api.delete(`/discount-schemes/${form.id}`);setForm(null);await load()}catch(e){setMessage(e.response?.data?.message||e.message)}finally{setBusy(false)}};
+  const remove=async()=>{if(!window.confirm(`Удалить схему «${form.name}»? Условия ранее оформленных сделок сохранятся.`))return;setBusy(true);try{await api.delete(`/discount-schemes/${form.id}`);setForm(null);notifyDiscountSchemesChanged();await load()}catch(e){setMessage(e.response?.data?.message||e.message)}finally{setBusy(false)}};
   return <div className="space-y-4 mt-5">
     <h2 className="text-xl font-bold">Схемы скидок</h2>
     <p className="text-sm text-slate-600">Условия для новых продаж квартир. Процент взноса считается от цены после скидки. Срок — количество ежемесячных платежей; 0 — полная оплата. Скидки разных схем не суммируются.</p>

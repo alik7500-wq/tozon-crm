@@ -1,13 +1,15 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { api } from '../../api/client';
 import { applicableSchemes, calculatePricing, tierPrice } from './pricingCalculator';
+import { useDiscountSchemes } from './useDiscountSchemes';
 const number=v=>Number(v).toLocaleString('ru-RU',{maximumFractionDigits:2});
 const money=minor=>number(minor/100);
 const field='w-full rounded-xl border border-slate-300 bg-white px-3 py-2.5 text-sm font-semibold outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100';
 export function ApartmentPricingCalculator({unit,currency='USD',initialQuote=null,onChange,onCreateDeal,onReserve,onEditBasePrice}) {
- const [schemes,setSchemes]=useState([]),[loading,setLoading]=useState(true),[error,setError]=useState(''),[reload,setReload]=useState(0);
+ const [reload,setReload]=useState(0);
+ const {schemes,loading,error}=useDiscountSchemes(unit.id,reload);
  const [schemeId,setSchemeId]=useState(initialQuote?.scheme_id||'');
- const [selection,setSelection]=useState(initialQuote?.selection||{mode:'percent',value:'0',months:''});
+ const [selection,setSelection]=useState(initialQuote?.selection||{mode:'tier',value:'0',months:''});
  const [showTable,setShowTable]=useState(true);
  const [depositInput,setDepositInput]=useState(null);
  const [exchange,setExchange]=useState({loading:currency==='USD',rate:null,stale:false,updatedAt:null});
@@ -24,10 +26,13 @@ export function ApartmentPricingCalculator({unit,currency='USD',initialQuote=nul
  },[currency]);
  const somoni=minor=>currency==='USD'&&exchange.rate!=null?`≈ ${money(Math.round(minor*exchange.rate))} сомони`:null;
  const rateDate=exchange.updatedAt&&Number.isFinite(Date.parse(exchange.updatedAt))?new Date(exchange.updatedAt).toLocaleString('ru-RU',{timeZone:'Asia/Dushanbe'}):null;
- useEffect(()=>{let alive=true;setLoading(true);setError('');api.get('/discount-schemes').then(r=>{if(alive)setSchemes(r.data?.schemes||[])}).catch(()=>{if(alive)setError('Не удалось загрузить схемы скидок. Повторите загрузку перед расчётом.')}).finally(()=>{if(alive)setLoading(false)});return()=>{alive=false}},[unit.id,reload]);
  const available=useMemo(()=>applicableSchemes(schemes,unit),[schemes,unit]);
  const scheme=available.find(s=>s.id===schemeId)||available[0];
- const quote=useMemo(()=>loading||error?null:calculatePricing(unit,scheme,selection),[loading,error,unit,scheme,selection]);
+ useEffect(()=>{if(scheme&&scheme.id!==schemeId)setSchemeId(scheme.id)},[scheme,schemeId]);
+ const tiers=useMemo(()=>(scheme?.rules||[]).map(r=>tierPrice(unit,r)).filter(Boolean).sort((a,b)=>Number(a.rule.payment_percent)-Number(b.rule.payment_percent)),[scheme,unit]);
+ const resolvedSelection=useMemo(()=>selection.mode==='tier'&&tiers.length&&!tiers.some(t=>Number(t.rule.payment_percent)===Number(selection.value))?{mode:'tier',value:String(tiers[0].rule.payment_percent),months:''}:selection,[selection,tiers]);
+ useEffect(()=>{if(resolvedSelection!==selection){setSelection(resolvedSelection);setDepositInput(null)}},[resolvedSelection,selection]);
+ const quote=useMemo(()=>loading||error?null:calculatePricing(unit,scheme,resolvedSelection),[loading,error,unit,scheme,resolvedSelection]);
  useEffect(()=>{onChange?.(quote&&!quote.error?quote:null)},[quote,onChange]);
  const chooseTier=rule=>{setDepositInput(null);setSelection({mode:'tier',value:String(rule.payment_percent),months:''})};
  const changeValue=(mode,value)=>{setDepositInput(null);setSelection({mode,value,months:''})};
@@ -38,7 +43,6 @@ export function ApartmentPricingCalculator({unit,currency='USD',initialQuote=nul
   setSelection({mode:'amount',value:value===''?'':String(Math.round(amount*100/(currency==='USD'?exchange.rate:1))/100),months:''});
  };
  const depositValue=depositInput??(selection.mode==='amount'?(currency==='USD'?(exchange.rate!=null?Math.round(Number(selection.value)*100*exchange.rate)/100:''):selection.value):(quote&&!quote.error?(currency==='USD'?(exchange.rate!=null?Math.round(quote.down_payment_minor*exchange.rate)/100:''):quote.down_payment_minor/100):''));
- const tiers=(scheme?.rules||[]).map(r=>tierPrice(unit,r)).filter(Boolean).sort((a,b)=>a.rule.payment_percent-b.rule.payment_percent);
  const active=quote?.rule_payment_percent;
  const termOptions=[...new Set(tiers.map(t=>Number(t.rule.months)).filter(n=>n>0))].sort((a,b)=>a-b);
  const base=Math.round(Number(unit.area_m2_x100)*Number(unit.price_per_m2_minor)/100);
@@ -48,7 +52,7 @@ export function ApartmentPricingCalculator({unit,currency='USD',initialQuote=nul
   {error&&<div role="alert" className="rounded-xl bg-rose-50 p-3 text-sm text-rose-700">{error} <button type="button" className="font-bold underline" onClick={()=>setReload(n=>n+1)}>Повторить</button></div>}
   {!loading&&!error&&<>
    {available.length>0?<label className="block text-sm font-semibold text-slate-700">Схема скидок<select aria-label="Схема скидок" className={`${field} mt-1`} value={scheme?.id||''} onChange={e=>{setDepositInput(null);setSchemeId(e.target.value);setSelection({mode:'tier',value:String(available.find(s=>s.id===e.target.value)?.rules?.[0]?.payment_percent||0),months:''})}}>{available.map(s=><option key={s.id} value={s.id}>{s.name}</option>)}</select></label>:<p className="text-sm text-slate-500">Для этого ЖК нет действующей схемы. Расчёт по базовой цене, без скидки.</p>}
-   <div className="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-6 gap-2">{tiers.map(t=><button type="button" key={t.rule.payment_percent} aria-pressed={active===t.rule.payment_percent} onClick={()=>chooseTier(t.rule)} className={`rounded-xl border px-3 py-3 text-left transition ${active===t.rule.payment_percent?'bg-indigo-600 border-indigo-600 text-white shadow-md':'bg-white border-slate-200 text-slate-700 hover:border-indigo-400'}`}><strong className="block">Взнос {number(t.rule.payment_percent)}%</strong><span className="block text-xs mt-1">{number(t.price_per_m2)} {currency}/м²</span><span className="block text-xs mt-1">{t.rule.months?`${t.rule.months} мес.`:'Полная оплата'}</span></button>)}</div>
+   <div aria-label="Условия первоначального взноса" className="grid gap-2" style={{gridTemplateColumns:'repeat(auto-fit, minmax(min(140px, 100%), 1fr))'}}>{tiers.map(t=><button type="button" key={t.rule.payment_percent} aria-pressed={active===t.rule.payment_percent} onClick={()=>chooseTier(t.rule)} className={`rounded-xl border px-3 py-3 text-left transition ${active===t.rule.payment_percent?'bg-indigo-600 border-indigo-600 text-white shadow-md':'bg-white border-slate-200 text-slate-700 hover:border-indigo-400'}`}><strong className="block">Взнос {number(t.rule.payment_percent)}%</strong><span className="block text-xs mt-1">{number(t.price_per_m2)} {currency}/м²</span><span className="block text-xs mt-1">{t.rule.months?`${t.rule.months} мес.`:'Полная оплата'}</span></button>)}</div>
    {quote&&!quote.error&&<div aria-live="polite" className="grid sm:grid-cols-3 gap-3">
     <Summary label="Стоимость после скидки" value={`${money(quote.total_minor)} ${currency}`} secondary={somoni(quote.total_minor)} detail={`${number(quote.price_per_m2)} ${currency}/м²${somoni(Math.round(quote.price_per_m2*100)) ? ` · ${somoni(Math.round(quote.price_per_m2*100))}/м²` : ''}`} color="rose"/>
     <Summary label={`Первоначальный взнос (${number(quote.actual_percent)}%)`} value={`${money(quote.down_payment_minor)} ${currency}`} secondary={somoni(quote.down_payment_minor)} detail={`Остаток: ${money(quote.remaining_minor)} ${currency}${somoni(quote.remaining_minor)?` · ${somoni(quote.remaining_minor)}`:''}`} color="emerald"/>
