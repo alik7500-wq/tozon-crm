@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { api } from '../../api/client';
-import { applicableSchemes, calculatePricing, tierPrice } from './pricingCalculator';
+import { applicableSchemes, calculatePricing, tierPrice, discountRuleKey } from './pricingCalculator';
 import { useDiscountSchemes } from './useDiscountSchemes';
 const number=v=>Number(v).toLocaleString('ru-RU',{maximumFractionDigits:2});
 const money=minor=>number(minor/100);
@@ -30,20 +30,20 @@ export function ApartmentPricingCalculator({unit,currency='USD',initialQuote=nul
  const scheme=available.find(s=>s.id===schemeId)||available[0];
  useEffect(()=>{if(scheme&&scheme.id!==schemeId)setSchemeId(scheme.id)},[scheme,schemeId]);
  const tiers=useMemo(()=>(scheme?.rules||[]).map(r=>tierPrice(unit,r)).filter(Boolean).sort((a,b)=>Number(a.rule.payment_percent)-Number(b.rule.payment_percent)),[scheme,unit]);
- const resolvedSelection=useMemo(()=>selection.mode==='tier'&&tiers.length&&!tiers.some(t=>Number(t.rule.payment_percent)===Number(selection.value))?{mode:'tier',value:String(tiers[0].rule.payment_percent),months:''}:selection,[selection,tiers]);
+ const resolvedSelection=useMemo(()=>selection.mode==='tier'&&tiers.length&&!tiers.some(t=>Number(t.rule.payment_percent)===Number(selection.value)&&(!selection.rule_key||selection.rule_key===t.rule_key))?{mode:'tier',value:String(tiers[0].rule.payment_percent),rule_key:tiers[0].rule_key,months:''}:selection,[selection,tiers]);
  useEffect(()=>{if(resolvedSelection!==selection){setSelection(resolvedSelection);setDepositInput(null)}},[resolvedSelection,selection]);
  const quote=useMemo(()=>loading||error?null:calculatePricing(unit,scheme,resolvedSelection),[loading,error,unit,scheme,resolvedSelection]);
  useEffect(()=>{onChange?.(quote&&!quote.error?quote:null)},[quote,onChange]);
- const chooseTier=rule=>{setDepositInput(null);setSelection({mode:'tier',value:String(rule.payment_percent),months:''})};
- const changeValue=(mode,value)=>{setDepositInput(null);setSelection({mode,value,months:''})};
+ const chooseTier=rule=>{setDepositInput(null);setSelection({mode:'tier',value:String(rule.payment_percent),rule_key:discountRuleKey(rule),months:''})};
+ const changeValue=(mode,value)=>{setDepositInput(null);setSelection({mode,value,rule_key:quote?.rule_key,months:''})};
  const changeDeposit=value=>{
   if(currency==='USD'&&exchange.rate==null)return;
   setDepositInput(value);
   const amount=Number(value);
-  setSelection({mode:'amount',value:value===''?'':String(Math.round(amount*100/(currency==='USD'?exchange.rate:1))/100),months:''});
+  setSelection({mode:'amount',rule_key:quote?.rule_key,value:value===''?'':String(Math.round(amount*100/(currency==='USD'?exchange.rate:1))/100),months:''});
  };
  const depositValue=depositInput??(selection.mode==='amount'?(currency==='USD'?(exchange.rate!=null?Math.round(Number(selection.value)*100*exchange.rate)/100:''):selection.value):(quote&&!quote.error?(currency==='USD'?(exchange.rate!=null?Math.round(quote.down_payment_minor*exchange.rate)/100:''):quote.down_payment_minor/100):''));
- const active=quote?.rule_payment_percent;
+ const active=quote?.rule_key;
  const termOptions=[...new Set(tiers.map(t=>Number(t.rule.months)).filter(n=>n>0))].sort((a,b)=>a-b);
  const base=Math.round(Number(unit.area_m2_x100)*Number(unit.price_per_m2_minor)/100);
  return <section aria-label="Калькулятор условий оплаты" className="rounded-2xl border border-indigo-200 bg-gradient-to-b from-indigo-50/70 to-white p-4 sm:p-5 space-y-4">
@@ -52,7 +52,7 @@ export function ApartmentPricingCalculator({unit,currency='USD',initialQuote=nul
   {error&&<div role="alert" className="rounded-xl bg-rose-50 p-3 text-sm text-rose-700">{error} <button type="button" className="font-bold underline" onClick={()=>setReload(n=>n+1)}>Повторить</button></div>}
   {!loading&&!error&&<>
    {available.length>0?<label className="block text-sm font-semibold text-slate-700">Схема скидок<select aria-label="Схема скидок" className={`${field} mt-1`} value={scheme?.id||''} onChange={e=>{setDepositInput(null);setSchemeId(e.target.value);setSelection({mode:'tier',value:String(available.find(s=>s.id===e.target.value)?.rules?.[0]?.payment_percent||0),months:''})}}>{available.map(s=><option key={s.id} value={s.id}>{s.name}</option>)}</select></label>:<p className="text-sm text-slate-500">Для этого ЖК нет действующей схемы. Расчёт по базовой цене, без скидки.</p>}
-   <div aria-label="Условия первоначального взноса" className="grid gap-2" style={{gridTemplateColumns:'repeat(auto-fit, minmax(min(140px, 100%), 1fr))'}}>{tiers.map(t=><button type="button" key={t.rule.payment_percent} aria-pressed={active===t.rule.payment_percent} onClick={()=>chooseTier(t.rule)} className={`rounded-xl border px-3 py-3 text-left transition ${active===t.rule.payment_percent?'bg-indigo-600 border-indigo-600 text-white shadow-md':'bg-white border-slate-200 text-slate-700 hover:border-indigo-400'}`}><strong className="block">Взнос {number(t.rule.payment_percent)}%</strong><span className="block text-xs mt-1">{number(t.price_per_m2)} {currency}/м²</span><span className="block text-xs mt-1">{t.rule.months?`${t.rule.months} мес.`:'Полная оплата'}</span></button>)}</div>
+   <div aria-label="Условия первоначального взноса" className="grid gap-2" style={{gridTemplateColumns:'repeat(auto-fit, minmax(min(140px, 100%), 1fr))'}}>{tiers.map(t=><button type="button" key={t.rule_key} aria-pressed={active===t.rule_key} onClick={()=>chooseTier(t.rule)} className={`rounded-xl border px-3 py-3 text-left transition ${active===t.rule_key?'bg-indigo-600 border-indigo-600 text-white shadow-md':'bg-white border-slate-200 text-slate-700 hover:border-indigo-400'}`}><strong className="block">Взнос {number(t.rule.payment_percent)}%</strong><span className="block text-xs mt-1">{number(t.price_per_m2)} {currency}/м²</span><span className="block text-xs mt-1">{t.rule.months?`${t.rule.months} мес.`:'Полная оплата'}</span></button>)}</div>
    {quote&&!quote.error&&<div aria-live="polite" className="grid sm:grid-cols-3 gap-3">
     <Summary label="Стоимость после скидки" value={`${money(quote.total_minor)} ${currency}`} secondary={somoni(quote.total_minor)} detail={`${number(quote.price_per_m2)} ${currency}/м²${somoni(Math.round(quote.price_per_m2*100)) ? ` · ${somoni(Math.round(quote.price_per_m2*100))}/м²` : ''}`} color="rose"/>
     <Summary label={`Первоначальный взнос (${number(quote.actual_percent)}%)`} value={`${money(quote.down_payment_minor)} ${currency}`} secondary={somoni(quote.down_payment_minor)} detail={`Остаток: ${money(quote.remaining_minor)} ${currency}${somoni(quote.remaining_minor)?` · ${somoni(quote.remaining_minor)}`:''}`} color="emerald"/>
@@ -74,7 +74,7 @@ export function ApartmentPricingCalculator({unit,currency='USD',initialQuote=nul
      {quote?.error&&<p role="alert" className="text-sm text-rose-700">{quote.error}</p>}
     </div>
     <div className="min-w-0 space-y-2"><button type="button" aria-expanded={showTable} className="text-xs font-bold text-indigo-700" onClick={()=>setShowTable(v=>!v)}>{showTable?'Скрыть':'Показать'} сравнительную таблицу</button>
-     {showTable&&<div className="overflow-x-auto rounded-xl border border-slate-200 bg-white"><table className="w-full min-w-[620px] text-left text-xs"><thead className="bg-slate-50 text-slate-500"><tr>{['Первоначальный взнос','Скидка','Стоимость','Срок','Ежемесячно'].map(h=><th key={h} className="p-3 font-semibold">{h}</th>)}</tr></thead><tbody>{tiers.map(t=>{const remaining=t.total_minor-t.minimum_minor;return <tr key={t.rule.payment_percent} className={active===t.rule.payment_percent?'bg-emerald-600 text-white':'border-t border-slate-100 hover:bg-indigo-50'}><td className="p-3"><button type="button" className="font-bold underline decoration-dotted underline-offset-4" onClick={()=>chooseTier(t.rule)}>{money(t.minimum_minor)} ({number(t.rule.payment_percent)}%)</button></td><td className="p-3">{money(t.discount_minor)} ({number(t.discount_minor/base*100)}%)</td><td className="p-3 font-bold">{money(t.total_minor)}</td><td className="p-3">{t.rule.months}</td><td className="p-3 font-semibold">{money(t.rule.months?Math.ceil(remaining/t.rule.months):0)}</td></tr>})}</tbody></table></div>}
+     {showTable&&<div className="overflow-x-auto rounded-xl border border-slate-200 bg-white"><table className="w-full min-w-[620px] text-left text-xs"><thead className="bg-slate-50 text-slate-500"><tr>{['Первоначальный взнос','Скидка','Стоимость','Срок','Ежемесячно'].map(h=><th key={h} className="p-3 font-semibold">{h}</th>)}</tr></thead><tbody>{tiers.map(t=>{const remaining=t.total_minor-t.minimum_minor;return <tr key={t.rule_key} className={active===t.rule_key?'bg-emerald-600 text-white':'border-t border-slate-100 hover:bg-indigo-50'}><td className="p-3"><button type="button" className="font-bold underline decoration-dotted underline-offset-4" onClick={()=>chooseTier(t.rule)}>{money(t.minimum_minor)} ({number(t.rule.payment_percent)}%)</button></td><td className="p-3">{money(t.discount_minor)} ({number(t.discount_minor/base*100)}%)</td><td className="p-3 font-bold">{money(t.total_minor)}</td><td className="p-3">{t.rule.months}</td><td className="p-3 font-semibold">{money(t.rule.months?Math.ceil(remaining/t.rule.months):0)}</td></tr>})}</tbody></table></div>}
     </div>
    </div>
   </>}

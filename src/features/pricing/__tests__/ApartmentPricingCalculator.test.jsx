@@ -113,3 +113,18 @@ it('refreshes settings from another tab and falls back when the selected scheme 
  expect(within(screen.getByRole('table')).getAllByRole('row')).toHaveLength(1);
  expect(onChange).toHaveBeenLastCalledWith(expect.objectContaining({scheme_id:null,total_minor:5548200}));
 });
+
+it('selects duplicate deposit offers independently in cards and comparison rows',async()=>{
+ const offers=[{payment_percent:0,discount_percent:0,price_per_m2:700,months:40},{payment_percent:0,discount_percent:8.57,price_per_m2:640,months:36}];
+ api.get.mockImplementation(path=>Promise.resolve({data:path==='/finance/rates/eskhata'?{available:true,sellRate:10}:{schemes:[{...scheme,rules:offers}]}}));
+ const onChange=vi.fn();render(<ApartmentPricingCalculator unit={unit} onChange={onChange}/>);
+ const cards=await screen.findAllByRole('button',{name:/Взнос 0%/});
+ expect(cards).toHaveLength(2);
+ fireEvent.click(cards[1]);
+ expect(cards[0]).toHaveAttribute('aria-pressed','false');expect(cards[1]).toHaveAttribute('aria-pressed','true');
+ expect(onChange).toHaveBeenLastCalledWith(expect.objectContaining({price_per_m2:640,months:36,down_payment_minor:0}));
+ const rows=within(screen.getByRole('table')).getAllByRole('row');expect(rows).toHaveLength(3);
+ fireEvent.click(within(rows[1]).getByRole('button'));
+ expect(cards[0]).toHaveAttribute('aria-pressed','true');expect(cards[1]).toHaveAttribute('aria-pressed','false');
+ expect(onChange).toHaveBeenLastCalledWith(expect.objectContaining({price_per_m2:700,months:40}));
+});

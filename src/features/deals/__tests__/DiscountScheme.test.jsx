@@ -4,7 +4,7 @@ import {render,screen,fireEvent,waitFor,cleanup} from '@testing-library/react';
 import '@testing-library/jest-dom/vitest';
 import {DealWizardModal} from '../DealWizardModal';
 import {api} from '../../../api/client';
-import {calculatePricing} from '../../pricing/pricingCalculator';
+import {calculatePricing,discountRuleKey} from '../../pricing/pricingCalculator';
 vi.mock('../../../api/client',()=>({api:{get:vi.fn(),post:vi.fn()}}));
 vi.mock('../../documents/PassportScannerModal',()=>({PassportScannerModal:()=>null}));
 afterEach(cleanup);
@@ -48,4 +48,20 @@ it('edits the calculator from the compact wizard summary and keeps exact client 
  fireEvent.change(screen.getByLabelText('Количество платежей по рассрочке'),{target:{value:'24'}});fireEvent.click(screen.getByText('Далее'));fireEvent.click(screen.getByText('Подписать договор'));
  await waitFor(()=>expect(api.post).toHaveBeenLastCalledWith('/deals',expect.objectContaining({discount_scheme_id:'scheme',discount_rule_payment_percent:30,final_price_minor:4914120,down_payment_minor:2000000,installment_months:24})));
  const data=api.post.mock.calls.at(-1)[1];expect(data.schedules.reduce((sum,row)=>sum+row.amount_minor,0)).toBe(2914120);
+});
+
+it.each([[700,40],[640,36]])('submits the exact zero-deposit offer at %s for %s months',async(price,months)=>{
+ const unit={id:300,project_id:3,unit_kind:'APARTMENT',unit_number:'24',area_m2_x100:4322,price_per_m2_minor:70000,project_currency:'USD'};
+ const rules=[{payment_percent:0,discount_percent:0,price_per_m2:700,months:40},{payment_percent:0,discount_percent:8.57,price_per_m2:640,months:36}];
+ const scheme={id:'scheme',project_id:3,name:'Офферы',updated_at:'v1',is_active:true,rules};
+ const key=discountRuleKey(rules.find(r=>r.price_per_m2===price));
+ api.get.mockImplementation(path=>Promise.resolve({data:path==='/discount-schemes'?{schemes:[scheme]}:path==='/leads'?{leads:[{id:1,full_name:'Покупатель',phone:'000'}]}:{}}));
+ api.post.mockClear();api.post.mockResolvedValue({data:{deal:{id:1}}});
+ const quote=calculatePricing(unit,scheme,{mode:'tier',value:0,rule_key:key,months:''});
+ render(<DealWizardModal isOpen unit={unit} initialPricingQuote={quote} onClose={vi.fn()}/>);
+ fireEvent.click(await screen.findByText('Покупатель'));fireEvent.click(screen.getByText('Далее'));
+ await screen.findByText(/ступень от/);
+ expect(screen.getByLabelText('Окончательная стоимость объекта')).toHaveValue(4322*price/100);
+ fireEvent.click(screen.getByText('Далее'));fireEvent.click(screen.getByText('Далее'));fireEvent.click(screen.getByText('Подписать договор'));
+ await waitFor(()=>expect(api.post).toHaveBeenLastCalledWith('/deals',expect.objectContaining({discount_rule_key:key,discount_rule_payment_percent:0,final_price_minor:4322*price,down_payment_minor:0,installment_months:months})));
 });

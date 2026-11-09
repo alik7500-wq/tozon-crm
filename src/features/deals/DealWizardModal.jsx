@@ -223,7 +223,7 @@ export const DealWizardModal = ({
   const clearDiscountScheme = () => { setAppliedDiscount(null); setDiscountValue(0); setPricePerM2(basePricePerM2); setDownPaymentAmount(Math.round(areaM2*basePricePerM2*downPaymentPercent)/100); };
   const applyVerifiedPricing = React.useCallback(result => {
     setAgreedQuote(result); setPricingNeedsReview(false);
-    setAppliedDiscount(result.scheme ? { scheme: result.scheme, rule: result.rule } : null);
+    setAppliedDiscount(result.scheme ? { scheme: result.scheme, rule: result.rule, rule_key: result.rule_key } : null);
     setPricePerM2(Number(selectedUnit?.price_per_m2_minor) / 100);
     setDiscountType('AMOUNT'); setDiscountValue(0);
     setDownPaymentPercent(Number(result.actual_percent.toFixed(2)));
@@ -339,7 +339,7 @@ export const DealWizardModal = ({
 
   const handleDownPaymentAmountChange = (val) => {
     if (appliedDiscount) {
-      const result = calculatePricing(selectedUnit, appliedDiscount.scheme, { mode: 'amount', value: val, months: '' });
+      const result = calculatePricing(selectedUnit, appliedDiscount.scheme, { mode: 'amount', value: val, rule_key: appliedDiscount.rule_key, months: '' });
       if (result.error) { setError(result.error); return; }
       applyVerifiedPricing({ ...result, scheme: appliedDiscount.scheme }); setError(''); return;
     }
@@ -507,7 +507,7 @@ export const DealWizardModal = ({
       }
 
       const res = await api.post('/deals', {
-        ...(appliedDiscount ? { discount_scheme_id: appliedDiscount.scheme.id, discount_scheme_updated_at: appliedDiscount.scheme.updated_at, discount_rule_payment_percent: appliedDiscount.rule.payment_percent } : {}),
+        ...(appliedDiscount ? { discount_scheme_id: appliedDiscount.scheme.id, discount_scheme_updated_at: appliedDiscount.scheme.updated_at, discount_rule_payment_percent: appliedDiscount.rule.payment_percent, discount_rule_key: appliedDiscount.rule_key } : {}),
         lead_id: selectedLead.id,
         unit_id: selectedUnit.id,
         deal_date: dealDate,

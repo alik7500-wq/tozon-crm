@@ -22,8 +22,8 @@ export function DiscountSchemesTab({ projects }) {
   const remove=async()=>{if(!window.confirm(`Удалить схему «${form.name}»? Условия ранее оформленных сделок сохранятся.`))return;setBusy(true);try{await api.delete(`/discount-schemes/${form.id}`);setForm(null);notifyDiscountSchemesChanged();await load()}catch(e){setMessage(e.response?.data?.message||e.message)}finally{setBusy(false)}};
   return <div className="space-y-4 mt-5">
     <h2 className="text-xl font-bold">Схемы скидок</h2>
-    <p className="text-sm text-slate-600">Условия для новых продаж квартир. Процент взноса считается от цены после скидки. Срок — количество ежемесячных платежей; 0 — полная оплата. Скидки разных схем не суммируются.</p>
-    {message&&<p role="status" className="rounded-xl bg-blue-50 p-3">{message}</p>}
+    <p className="text-sm text-slate-600">Условия для новых продаж квартир. Процент взноса считается от цены после скидки. Срок — количество ежемесячных платежей; 0 — полная оплата. Можно добавить несколько офферов с одинаковым взносом и разными ценами или сроками. Скидки разных схем не суммируются.</p>
+    {message&&!form&&<p role="status" className="rounded-xl bg-blue-50 p-3">{message}</p>}
     <div className="grid md:grid-cols-[240px_1fr] gap-5">
       <aside className="rounded-2xl border bg-white p-3 space-y-2">
         {schemes.map(s=><button key={s.id} disabled={busy} onClick={()=>{setForm({...s,rules:s.rules.map(r=>({...r}))});setMessage('')}} className={`w-full text-left p-3 rounded-xl ${form?.id===s.id?'bg-blue-600 text-white':'bg-slate-50'}`}><strong>{s.name}</strong><span className="block text-xs">{projects.find(p=>Number(p.id)===Number(s.project_id))?.name}{!s.is_active?' · Выключена':''}</span></button>)}
@@ -46,6 +46,7 @@ export function DiscountSchemesTab({ projects }) {
           <button aria-label={`Удалить условие ${i+1}`} onClick={()=>field('rules',form.rules.filter((_,j)=>j!==i))} className="p-2 text-red-600">✕</button>
         </div>)}
         <button onClick={()=>field('rules',[...form.rules,{payment_percent:'',discount_percent:'',months:30}])} className="border border-dashed rounded-xl p-3 w-full">+ Добавить условие</button>
+        {message&&<p role={message==='Схема сохранена'?'status':'alert'} className="rounded-xl bg-blue-50 p-3">{message}</p>}
         <div className="flex gap-3"><button disabled={busy} onClick={save} className="bg-blue-600 text-white px-5 py-3 rounded-xl">{busy?'Сохранение…':'Сохранить'}</button>{form.id&&<button disabled={busy} onClick={remove} className="text-red-600">Удалить схему</button>}</div>
       </section>:<p className="p-5 text-slate-500">Выберите схему или создайте новую.</p>}
     </div>
