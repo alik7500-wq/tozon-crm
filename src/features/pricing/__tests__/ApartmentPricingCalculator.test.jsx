@@ -120,11 +120,11 @@ it('selects duplicate deposit offers independently in cards and comparison rows'
  const onChange=vi.fn();render(<ApartmentPricingCalculator unit={unit} onChange={onChange}/>);
  const cards=await screen.findAllByRole('button',{name:/Взнос 0%/});
  expect(cards).toHaveLength(2);
- fireEvent.click(cards[1]);
- expect(cards[0]).toHaveAttribute('aria-pressed','false');expect(cards[1]).toHaveAttribute('aria-pressed','true');
+ fireEvent.click(cards[0]);
+ expect(cards[0]).toHaveAttribute('aria-pressed','true');expect(cards[1]).toHaveAttribute('aria-pressed','false');
  expect(onChange).toHaveBeenLastCalledWith(expect.objectContaining({price_per_m2:640,months:36,down_payment_minor:0}));
  const rows=within(screen.getByRole('table')).getAllByRole('row');expect(rows).toHaveLength(3);
  fireEvent.click(within(rows[1]).getByRole('button'));
- expect(cards[0]).toHaveAttribute('aria-pressed','true');expect(cards[1]).toHaveAttribute('aria-pressed','false');
+ expect(cards[0]).toHaveAttribute('aria-pressed','false');expect(cards[1]).toHaveAttribute('aria-pressed','true');
  expect(onChange).toHaveBeenLastCalledWith(expect.objectContaining({price_per_m2:700,months:40}));
 });
