@@ -2,17 +2,20 @@ import React, { useEffect, useRef, useState } from 'react';
 import { Camera, MessageSquare, Settings, X } from 'lucide-react';
 import { api } from '../../api/client';
 import { useAuth } from '../auth/AuthContext';
+import { MetaEventJournal } from './MetaEventJournal';
 
 const sections = {
   INSTAGRAM: [['INSTAGRAM_MESSAGES', 'Сообщения и истории'], ['INSTAGRAM_COMMENTS', 'Комментарии']],
   FACEBOOK: [['FACEBOOK_MESSAGES', 'Сообщения'], ['FACEBOOK_COMMENTS', 'Комментарии'], ['FACEBOOK_FORM', 'Формы Facebook']]
 };
 
-function SourceRow({ source, projects, disabled, onSaved }) {
+function SourceRow({ source, projects, disabled, onSaved, ingestEnabled }) {
   const [projectId, setProjectId] = useState(source.project_id ? String(source.project_id) : '');
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
   const [saved, setSaved] = useState(false);
+  const [subscribing, setSubscribing] = useState(false);
+  const [subscribed, setSubscribed] = useState(false);
   const current = source.project_id ? String(source.project_id) : '';
   async function save() {
     setSaving(true); setError(''); setSaved(false);
@@ -22,6 +25,15 @@ function SourceRow({ source, projects, disabled, onSaved }) {
       setSaved(true);
     } catch { setError('Не удалось сохранить привязку. Обновите список и повторите.'); }
     finally { setSaving(false); }
+  }
+  async function subscribe() {
+    setSubscribing(true); setSubscribed(false); setError('');
+    try {
+      const result = await api.post(`/integrations/meta/sources/${encodeURIComponent(source.id)}/subscribe`);
+      if (result.data?.subscribed !== true) throw new Error('Subscription not verified');
+      setSubscribed(true);
+    } catch { setError('Подписка не подтверждена. Проверьте настройку Webhooks и права страницы в Meta.'); }
+    finally { setSubscribing(false); }
   }
   return <div className="space-y-2 border-b border-slate-100 py-3">
     <div className="grid items-center gap-2 sm:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_auto]">
@@ -39,6 +51,9 @@ function SourceRow({ source, projects, disabled, onSaved }) {
         className="rounded-lg bg-blue-600 px-3 py-2 text-sm text-white disabled:opacity-40">{saving ? 'Сохранение…' : 'Сохранить'}</button>
     </div>
     {saved && <p role="status" className="text-xs text-emerald-700">Привязка сохранена</p>}
+    {source.channel === 'FACEBOOK_FORM' && ingestEnabled && source.available && <button type="button" disabled={disabled || subscribing} onClick={subscribe}
+      className="rounded-lg border border-blue-200 px-3 py-2 text-sm text-blue-700 disabled:opacity-50">{subscribing ? 'Проверка подписки…' : 'Подключить доставку заявок'}</button>}
+    {subscribed && <p role="status" className="text-xs text-emerald-700">Подписка страницы на заявки подтверждена. Проверьте доставку тестовой заявкой.</p>}
     {error && <p role="alert" className="text-sm text-red-700">{error}</p>}
   </div>;
 }
@@ -51,6 +66,8 @@ export function MetaSourceDialog({ provider, onClose }) {
   const [error, setError] = useState('');
   const [confirmDisconnect, setConfirmDisconnect] = useState(false);
   const [version, setVersion] = useState(0);
+  const [checking, setChecking] = useState(false);
+  const [diagnostic, setDiagnostic] = useState(null);
   const title = provider === 'INSTAGRAM' ? 'Instagram' : 'Facebook';
   useEffect(() => { dialog.current?.showModal(); }, []);
   useEffect(() => {
@@ -63,6 +80,12 @@ export function MetaSourceDialog({ provider, onClose }) {
   }, [version]);
   function reload() {
     setLoading(true); setError(''); setData(null); setVersion(value => value + 1);
+  }
+  async function preflight() {
+    setChecking(true); setDiagnostic(null);
+    try { const result = await api.post('/integrations/meta/preflight'); setDiagnostic(result.data); }
+    catch { setDiagnostic({ accepted: false, diagnostic: 'CHECK_UNAVAILABLE' }); }
+    finally { setChecking(false); }
   }
   async function connect() {
     setBusy(true); setError('');
@@ -92,6 +115,11 @@ export function MetaSourceDialog({ provider, onClose }) {
       <button type="button" aria-label="Закрыть настройки" onClick={onClose} className="rounded-lg p-2 hover:bg-slate-100"><X className="h-5 w-5" /></button>
     </header>
     <div className="space-y-5 p-5">
+      <div className="space-y-2 rounded-xl border border-slate-200 p-3">
+        <button type="button" disabled={checking} onClick={preflight} className="rounded-lg border px-3 py-2 text-sm disabled:opacity-50">{checking ? 'Проверка Meta…' : 'Проверить реквизиты приложения'}</button>
+        <p className="text-xs text-slate-500">Проверка выполняется сервером. Секрет и токен не показываются.</p>
+        {diagnostic && <p role="status" className={`text-sm ${diagnostic.accepted ? 'text-emerald-700' : 'text-amber-800'}`}>{diagnostic.accepted ? 'Meta приняла реквизиты приложения. Это ещё не подтверждает подключение Instagram.' : diagnostic.diagnostic === 'META_CANNOT_VALIDATE_CLIENT_SECRET' ? 'Meta не смогла подтвердить секрет приложения. Подключение не подтверждено.' : 'Проверка не пройдена. Проверьте настройки приложения или доступность Meta.'}</p>}
+      </div>
       {loading && <p role="status">Загрузка настроек…</p>}
       {error && <p role="alert" className="rounded-lg bg-red-50 p-3 text-sm text-red-700">{error}</p>}
       {!loading && !data && <button type="button" onClick={reload} className="rounded-lg border px-3 py-2">Повторить загрузку</button>}
@@ -110,14 +138,16 @@ export function MetaSourceDialog({ provider, onClose }) {
           </div>}
         </div>
         <p className="text-sm text-slate-600">Один источник можно связать с одним ЖК. «Не распределён» снимает привязку. Приём обращений проверяется отдельно после подключения.</p>
+        {!data.ingestEnabled && <p className="rounded-lg bg-amber-50 p-3 text-sm text-amber-900">Приём новых обращений ещё не включён.</p>}
         {sections[provider].map(([channel, label]) => {
           const sources = (data.sources || []).filter(source => source.channel === channel);
           return <section key={channel} aria-label={label} className="space-y-1">
             <h3 className="font-bold">{label}</h3>
             {!sources.length && <p className="py-2 text-sm text-slate-500">Доступных источников нет. Предоставьте доступ при подключении Meta.</p>}
-            {sources.map(source => <SourceRow key={source.id} source={source} projects={data.projects || []} disabled={busy || !connection?.connected} onSaved={onSaved} />)}
+            {sources.map(source => <SourceRow key={source.id} source={source} projects={data.projects || []} disabled={busy || !connection?.connected} onSaved={onSaved} ingestEnabled={data.ingestEnabled} />)}
           </section>;
         })}
+        <MetaEventJournal provider={provider} sources={data.sources || []} projects={data.projects || []} formLeadsEnabled={data.formLeadsEnabled} />
       </>}
     </div>
   </dialog>;

@@ -65,4 +65,10 @@ describe('Meta source settings', () => {
     expect(screen.queryByRole('button', { name: 'Настроить Instagram' })).not.toBeInTheDocument();
     expect(api.get).not.toHaveBeenCalled();
   });
+  it('distinguishes accepted app credentials from a connected Instagram account', async () => {
+    api.get.mockResolvedValue(catalogue()); api.post.mockResolvedValue({ data: { accepted: true, diagnostic: 'APP_CREDENTIALS_ACCEPTED' } });
+    await open(); fireEvent.click(screen.getByRole('button', { name: 'Проверить реквизиты приложения' }));
+    await screen.findByText('Meta приняла реквизиты приложения. Это ещё не подтверждает подключение Instagram.');
+    expect(api.post).toHaveBeenCalledWith('/integrations/meta/preflight');
+  });
 });
