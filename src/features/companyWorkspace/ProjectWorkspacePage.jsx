@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import WorkspaceDocuments from './WorkspaceDocuments';
 import WorkspaceOperationForm from './WorkspaceOperationForm';
 import { operationLabels } from './workspaceOperations';
 import { api } from '../../api/client';
@@ -31,7 +32,7 @@ function useWorkspaceRead(path, params, nonce) {
   return result?.key === requestKey ? { ...result, loading: false } : { data: null, error: '', loading: !!path };
 }
 
-function WorkspaceRecords({ project, resource }) {
+function WorkspaceRecords({ project, resource, canDocuments, onDocument }) {
   const [after, setAfter] = useState('');
   const [reload, setReload] = useState(0);
   const { data, loading, error } = useWorkspaceRead(`/project-workspace/${project}/${resource}`, { after, limit: 50 }, reload);
@@ -39,7 +40,7 @@ function WorkspaceRecords({ project, resource }) {
   const config = resources[resource];
   return <div className="rounded-2xl border border-slate-200 bg-white p-5 space-y-4">
     <div className="flex justify-between items-center"><h2 className="font-bold text-lg">{config.label}</h2><button type="button" disabled={loading} onClick={() => setReload(n => n + 1)} className="text-sm font-bold text-blue-600 disabled:opacity-50">Обновить данные</button></div>
-    {loading ? <p role="status">Загрузка данных выбранного проекта…</p> : error ? <p role="alert" className="rounded-xl bg-rose-50 p-4 text-rose-700">{error}</p> : !page.records.length ? <p className="text-slate-500">Нет записей в этом разделе выбранного проекта.</p> : <div className="overflow-x-auto"><table className="w-full text-left text-sm"><thead><tr>{config.columns.map(([key,label]) => <th key={key} className="border-b p-3 text-slate-500">{label}</th>)}</tr></thead><tbody>{page.records.map(row => <tr key={row.id}>{config.columns.map(([key]) => <td key={key} className="border-b border-slate-100 p-3">{format(key,row[key])}</td>)}</tr>)}</tbody></table></div>}
+    {loading ? <p role="status">Загрузка данных выбранного проекта…</p> : error ? <p role="alert" className="rounded-xl bg-rose-50 p-4 text-rose-700">{error}</p> : !page.records.length ? <p className="text-slate-500">Нет записей в этом разделе выбранного проекта.</p> : <div className="overflow-x-auto"><table className="w-full text-left text-sm"><thead><tr>{config.columns.map(([key,label]) => <th key={key} className="border-b p-3 text-slate-500">{label}</th>)}{canDocuments&&<th className="border-b p-3">Документы</th>}</tr></thead><tbody>{page.records.map(row => <tr key={row.id}>{config.columns.map(([key]) => <td key={key} className="border-b border-slate-100 p-3">{format(key,row[key])}</td>)}{canDocuments&&<td className="border-b p-3"><button type="button" className="font-bold text-blue-600" onClick={()=>onDocument(row.id)}>Документы № {row.contract_number||row.id}</button></td>}</tr>)}</tbody></table></div>}
     <div className="flex gap-4 text-sm"><button type="button" disabled={loading || !after} onClick={() => setAfter('')} className="font-bold text-blue-600 disabled:text-slate-400">В начало</button><button type="button" disabled={loading || !page.has_more || !page.records.length} onClick={() => setAfter(String(page.records.at(-1).id))} className="font-bold text-blue-600 disabled:text-slate-400">Следующая страница</button></div>
   </div>;
 }
@@ -74,14 +75,15 @@ export default function ProjectWorkspacePage() {
   return <main className="min-h-screen bg-slate-50 p-4 sm:p-8 text-slate-900"><div className="max-w-7xl mx-auto space-y-5">
     <div className="space-y-5" inert={!!operation}>
     <header className="flex justify-between items-start gap-4"><div><p className="text-blue-700 font-extrabold">TOZON CRM</p><h1 className="text-2xl font-extrabold mt-1">Рабочее пространство проекта</h1><p className="text-sm text-slate-500 mt-1">{user.name}</p></div><button type="button" disabled={!!operation} onClick={logout} className="rounded-xl border bg-white px-4 py-2 font-bold">Выйти</button></header>
-    <p className="rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900">Тестовое пространство проекта. Доступные операции определяются Вашими правами. Общие разделы CRM, выгрузки и файлы пока закрыты.</p>
+    <p className="rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900">Тестовое пространство проекта. Доступные операции определяются Вашими правами. Доступ к документам выдаётся отдельно. Общие разделы CRM пока закрыты.</p>
     {loading ? <p role="status">Проверка доступа к проектам…</p> : error ? <div role="alert" className="rounded-xl bg-rose-50 p-4 text-rose-700">{error}<button type="button" className="block mt-3 font-bold underline" onClick={() => setVersion(n => n + 1)}>Повторить проверку доступа</button></div> : !project ? <p role="status" className="rounded-xl border bg-white p-5">Вам не назначен доступ ни к одному проекту. Обратитесь к администратору компании.</p> : <>
       <label className="block font-semibold">Проект<select aria-label="Рабочий проект" disabled={!!operation} className="block mt-2 w-full sm:max-w-lg rounded-xl border border-slate-300 bg-white p-3" value={project.id} onChange={e => { setProjectId(e.target.value); setResource(''); }}>{context.projects.map(p => <option key={p.id} value={p.id}>{p.name} · {p.location}</option>)}</select></label>
       <WorkspaceOperations key={`${project.id}:${version}`} project={project.id} version={version} onOpen={setOperation} disabled={!!operation}/>
       <nav aria-label="Разделы проекта" className="flex flex-wrap gap-2">{available.map(([key,r]) => <button key={key} type="button" disabled={!!operation} aria-pressed={currentResource===key} onClick={() => setResource(key)} className={`rounded-xl px-4 py-2 text-sm font-bold ${currentResource===key ? 'bg-blue-600 text-white' : 'border bg-white text-slate-600'}`}>{r.label}</button>)}</nav>
-      {currentResource ? <WorkspaceRecords key={`${version}:${project.id}:${currentResource}`} project={project.id} resource={currentResource}/> : <p className="rounded-xl border bg-white p-5">Для проекта не назначены разрешённые разделы.</p>}
+      {currentResource ? <WorkspaceRecords key={`${version}:${project.id}:${currentResource}`} project={project.id} resource={currentResource} canDocuments={currentResource==='deals'&&project.sections.includes('documents.print')} onDocument={dealId=>setOperation({kind:'DOCUMENTS',dealId})}/> : <p className="rounded-xl border bg-white p-5">Для проекта не назначены разрешённые разделы.</p>}
     </>}
     </div>
-    {operation && project && <WorkspaceOperationForm key={`${user.id}:${project.id}:${operation.kind}`} project={project.id} {...operation} onClose={() => setOperation(null)} onComplete={() => { setOperation(null); setVersion(n => n + 1); }}/>}
+    {operation && project && operation.kind==='DOCUMENTS' && <WorkspaceDocuments key={`${user.id}:${project.id}:${operation.dealId}`} project={project.id} dealId={operation.dealId} onClose={()=>setOperation(null)}/>}
+    {operation && project && operation.kind!=='DOCUMENTS' && <WorkspaceOperationForm key={`${user.id}:${project.id}:${operation.kind}`} project={project.id} {...operation} onClose={() => setOperation(null)} onComplete={() => { setOperation(null); setVersion(n => n + 1); }}/>}
   </div></main>;
 }
