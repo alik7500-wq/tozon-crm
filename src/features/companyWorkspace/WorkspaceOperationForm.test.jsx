@@ -33,3 +33,10 @@ it('allows correction after a definitive validation rejection',async()=>{
  api.post.mockRejectedValue(Object.assign(new Error('Недостаточно средств'),{status:409}));render(<WorkspaceOperationForm project="plaza" kind="EXPENSE" onComplete={vi.fn()} onClose={vi.fn()}/>);await fill();fireEvent.click(screen.getByRole('button',{name:'Подтвердить операцию'}));
  expect(await screen.findByRole('alert')).toHaveTextContent('Недостаточно средств');expect(screen.getByLabelText('Сумма')).toBeEnabled();expect(screen.getByLabelText('Закрыть операцию')).toBeEnabled();
 });
+
+it('requires separate confirmation for draft cancellation and keeps a financial rejection editable',async()=>{
+ api.get.mockResolvedValue({data:{records:[{id:1,name:'Own draft',status:'DRAFT',updated_at:'version'}],has_more:false}});api.post.mockRejectedValue(Object.assign(new Error('Нужна отдельная процедура расчёта'),{status:409}));
+ render(<WorkspaceOperationForm project="plaza" kind="CANCEL_DRAFT" onComplete={vi.fn()} onClose={vi.fn()}/>);
+ fireEvent.change(await screen.findByLabelText('Черновик для отмены'),{target:{value:'1'}});fireEvent.change(screen.getByLabelText('Причина закрытия'),{target:{value:'Клиент отказался'}});fireEvent.click(screen.getByRole('checkbox'));
+ fireEvent.click(screen.getByRole('button',{name:'Отменить черновик'}));expect(await screen.findByRole('alert')).toHaveTextContent('отдельная процедура');expect(api.post.mock.calls[0][1]).toMatchObject({kind:'CANCEL_DRAFT',payload:{deal_id:1,expected_updated_at:'version',reason:'Клиент отказался'}});expect(screen.getByLabelText('Причина закрытия')).toBeEnabled();
+});

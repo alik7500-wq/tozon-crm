@@ -32,3 +32,8 @@ it('clears printing on revoked access and never falls back to legacy endpoints',
  render(<WorkspaceDocuments project="plaza" dealId={1} onClose={vi.fn()}/>);const button=await screen.findByRole('button',{name:'Печатная карточка'});api.get.mockRejectedValue(Object.assign(new Error('Доступ отозван'),{status:403}));fireEvent.click(button);expect(await screen.findByRole('alert')).toHaveTextContent('Доступ отозван');expect(screen.queryByTitle('Печатная карточка договора')).not.toBeInTheDocument();
  expect(api.get.mock.calls.every(([path])=>!path.startsWith('/deals')&&!path.startsWith('/document-settings'))).toBe(true);
 });
+
+it('labels a terminated contract as closed and displays its reason and agreement',async()=>{
+ api.get.mockImplementation(path=>Promise.resolve(path.endsWith('/files')?{data:{records:[],has_more:false}}:{data:{...data,deal:{...data.deal,status:'CANCELLED'},closure:{kind:'TERMINATE_UNPAID',reason:'Стороны согласовали',basis:'Соглашение № 8',basis_date:'2026-11-10'}}}));render(<WorkspaceDocuments project="plaza" dealId={1} onClose={vi.fn()}/>);
+ expect(await screen.findByText('Договор расторгнут')).toBeVisible();expect(screen.getByText('Причина: Стороны согласовали')).toBeVisible();expect(screen.getByRole('button',{name:'Договор Word'})).toBeDisabled();
+});

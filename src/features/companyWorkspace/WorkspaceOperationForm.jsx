@@ -38,7 +38,14 @@ export default function WorkspaceOperationForm({project,kind,signerConfigured,si
   {!lookups?<div className="p-6">{loadError?<div><p role="alert">{loadError}</p><button type="button" className="mt-3 font-bold text-blue-600" onClick={()=>setReload(n=>n+1)}>Повторить загрузку</button></div>:<p role="status">Загрузка справочников проекта…</p>}</div>:<form onSubmit={submit} className="overflow-y-auto p-5 space-y-5">
    <p className="text-sm text-slate-500">Все списки относятся к выбранному проекту. Проверьте данные перед подтверждением.</p>
    <fieldset disabled={busy||uncertain} className="space-y-4 disabled:opacity-60">
-    {kind!=='SIGN_DEAL'&&field('Дата документа','date',{type:'date',required:true})}
+    {!['SIGN_DEAL','CANCEL_DRAFT','TERMINATE_UNPAID'].includes(kind)&&field('Дата документа','date',{type:'date',required:true})}
+    {['CANCEL_DRAFT','TERMINATE_UNPAID'].includes(kind)&&<>
+     {select(kind==='CANCEL_DRAFT'?'Черновик для отмены':'Подписанный договор без оплат','deal_id',lookups[kind==='CANCEL_DRAFT'?'cancel_drafts':'terminate_deals'],{required:true,onChange:e=>change({deal_id:e.target.value,closure_confirmed:false})})}
+     {field('Причина закрытия','reason',{required:true,minLength:5,maxLength:1000})}
+     {kind==='TERMINATE_UNPAID'&&<>{field('Основание расторжения (номер соглашения / документа)','termination_basis',{required:true,minLength:3,maxLength:500})}{field('Дата основания расторжения','basis_date',{type:'date',required:true,min:lookups.terminate_deals.find(d=>String(d.id)===form.deal_id)?.deal_date,max:initialOperation().date})}</>}
+     <p className="rounded-xl bg-amber-50 p-3 text-sm text-amber-900">Помещение вернётся в продажу. Договор и история сохранятся; график получит статус «Отменён». При любых денежных движениях, в том числе аннулированных, или бартере эта операция запрещена — требуется отдельный расчёт.</p>
+     <label className="flex items-start gap-3 text-sm font-semibold"><input type="checkbox" checked={form.closure_confirmed} onChange={e=>change({closure_confirmed:e.target.checked})} required/>Подтверждаю основание закрытия и возврат помещения в продажу</label>
+    </>}
     {kind==='DEAL_DRAFT'&&<>{select('Квартира / помещение','unit_id',lookups.units,{required:true,onChange:e=>{const u=lookups.units.find(x=>String(x.id)===e.target.value);change({unit_id:e.target.value,final_price:String(((u?.unit_kind!=='APARTMENT'?u?.manual_total_price_minor:null)??tierPrice(u,null)?.total_minor??0)/100)});}})}{select('Клиент','lead_id',lookups.leads,{required:true})}{field('Предварительная стоимость, USD','final_price',{type:'number',min:'0.01',step:'0.01',required:true})}<p className="text-xs text-slate-500">Черновик закрепляет помещение. Цена и график будут проверены при подписании.</p></>}
     {kind==='SIGN_DEAL'&&<>
      {select('Черновик договора','deal_id',lookups.deals.filter(d=>d.status==='DRAFT'),{required:true,onChange:e=>chooseDraft(e.target.value)})}
@@ -75,7 +82,7 @@ export default function WorkspaceOperationForm({project,kind,signerConfigured,si
     </>}
    </fieldset>
    {error&&<p role="alert" className="rounded-xl bg-rose-50 p-3 text-sm text-rose-700">{error}</p>}
-   <div className="flex flex-wrap justify-between gap-3 border-t pt-4"><button type="button" disabled={busy||uncertain} className="text-sm text-blue-600" onClick={()=>setReload(n=>n+1)}>Обновить списки</button><button type="submit" disabled={busy||(kind==='SIGN_DEAL'&&!signerConfigured)} className="rounded-xl bg-blue-600 px-5 py-3 font-bold text-white disabled:opacity-40">{busy?'Сохранение…':uncertain?'Повторить тот же запрос':kind==='SIGN_DEAL'?'Подписать и создать график':'Подтвердить операцию'}</button></div>
+   <div className="flex flex-wrap justify-between gap-3 border-t pt-4"><button type="button" disabled={busy||uncertain} className="text-sm text-blue-600" onClick={()=>setReload(n=>n+1)}>Обновить списки</button><button type="submit" disabled={busy||(kind==='SIGN_DEAL'&&!signerConfigured)} className="rounded-xl bg-blue-600 px-5 py-3 font-bold text-white disabled:opacity-40">{busy?'Сохранение…':uncertain?'Повторить тот же запрос':kind==='SIGN_DEAL'?'Подписать и создать график':kind==='CANCEL_DRAFT'?'Отменить черновик':kind==='TERMINATE_UNPAID'?'Расторгнуть договор':'Подтвердить операцию'}</button></div>
   </form>}
  </div></div>;
 }

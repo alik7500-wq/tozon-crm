@@ -37,3 +37,15 @@ describe('scoped operation requests',()=>{
   expect(()=>prepareOperation('STOCK_POST',{...f,destination_id:'own'},options,'x')).toThrow('другой склад');
  });
 });
+
+describe('closure requests',()=>{
+ it('requires an explicit confirmation, own target and immutable version for a draft cancellation',()=>{
+  const form={...initialOperation(),deal_id:'1',reason:'Клиент отказался',closure_confirmed:true};const options={cancel_drafts:[{id:1,status:'DRAFT',updated_at:'version'}]};
+  expect(prepareOperation('CANCEL_DRAFT',form,options,'request')).toEqual({request_id:'request',kind:'CANCEL_DRAFT',payload:{deal_id:1,expected_updated_at:'version',reason:'Клиент отказался'}});
+  expect(()=>prepareOperation('CANCEL_DRAFT',{...form,closure_confirmed:false},options,'x')).toThrow('Подтвердите');expect(()=>prepareOperation('CANCEL_DRAFT',{...form,deal_id:'2'},options,'x')).toThrow('договор');
+ });
+ it('requires the termination basis and sends it separately from the cancellation reason',()=>{
+  const form={...initialOperation(),deal_id:'1',reason:'Отказ по соглашению',closure_confirmed:true,termination_basis:'Соглашение № 8',basis_date:'2026-11-10'};const options={terminate_deals:[{id:1,status:'SIGNED',updated_at:'signed-version'}]};
+  expect(prepareOperation('TERMINATE_UNPAID',form,options,'request').payload).toEqual({deal_id:1,expected_updated_at:'signed-version',reason:'Отказ по соглашению',basis:'Соглашение № 8',basis_date:'2026-11-10'});expect(()=>prepareOperation('TERMINATE_UNPAID',{...form,termination_basis:''},options,'x')).toThrow('основание');
+ });
+});
