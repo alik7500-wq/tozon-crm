@@ -6,7 +6,7 @@ import ProjectWorkspacePage from './ProjectWorkspacePage';
 import { api } from '../../api/client';
 const state=vi.hoisted(()=>({user:{id:10,name:'Тестовый партнёр',permissions:['company.project-only']},logout:vi.fn()}));
 vi.mock('../auth/AuthContext',()=>({useAuth:()=>state}));
-vi.mock('../../api/client',()=>({api:{get:vi.fn()}}));
+vi.mock('../../api/client',()=>({api:{get:vi.fn(),post:vi.fn()}}));
 const a='9e186c51-79b3-4bf8-8f69-c52a97acf834',b='9e186c51-79b3-4bf8-8f69-c52a97acf835';
 const projects=[{id:a,name:'Plaza',location:'Худжанд',sections:['inventory.view','leads.view']},{id:b,name:'Tower',location:'Худжанд',sections:['inventory.view']}];
 beforeEach(()=>{
@@ -20,7 +20,7 @@ describe('project workspace privacy in UI',()=>{
   expect(screen.getByRole('button',{name:'Клиенты и лиды'})).toBeVisible();
   expect(screen.queryByRole('button',{name:'Расходы'})).not.toBeInTheDocument();
   expect(screen.queryByRole('button',{name:/Создать|Сохранить|Экспорт/})).not.toBeInTheDocument();
-  expect(screen.getByText(/Тестовый режим/)).toBeVisible();
+  expect(screen.getByText(/Тестовое пространство/)).toBeVisible();
  });
  it('clears old rows immediately on project switch and ignores a late old-project response',async()=>{
   let finishOld;
@@ -44,4 +44,12 @@ describe('project workspace privacy in UI',()=>{
   state.user={id:30,name:'Admin',permissions:[]};render(<ProjectWorkspacePage/>);
   expect(screen.getByRole('alert')).toHaveTextContent('проектной учётной записи');expect(api.get).not.toHaveBeenCalled();
  });
+ it('keeps the selected project and pending form stable across focus refreshes',async()=>{
+  api.get.mockImplementation(path=>Promise.resolve({data:path.endsWith('/projects')?{projects}:path.endsWith('/options')?{commands:['EXPENSE']}:path.endsWith('/options/cash_desks')?{records:[{id:'cash',name:'Own cash'}]}:{records:[],has_more:false}}));
+  render(<ProjectWorkspacePage/>);fireEvent.click(await screen.findByRole('button',{name:'Оформить РКО'}));
+  expect(await screen.findByRole('dialog')).toBeVisible();expect(screen.getByLabelText('Рабочий проект')).toBeDisabled();expect(screen.getByRole('button',{name:'Выйти'})).toBeDisabled();
+  const calls=api.get.mock.calls.length;fireEvent(window,new Event('focus'));
+  await act(async()=>Promise.resolve());expect(api.get.mock.calls).toHaveLength(calls);expect(screen.getByRole('dialog')).toBeVisible();
+ });
+
 });

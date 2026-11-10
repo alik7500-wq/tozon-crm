@@ -1,4 +1,6 @@
 import React, { useEffect, useState } from 'react';
+import WorkspaceOperationForm from './WorkspaceOperationForm';
+import { operationLabels } from './workspaceOperations';
 import { api } from '../../api/client';
 import { useAuth } from '../auth/AuthContext';
 
@@ -42,30 +44,44 @@ function WorkspaceRecords({ project, resource }) {
   </div>;
 }
 
+function WorkspaceOperations({ project, version, onOpen, disabled }) {
+  const { data, loading, error } = useWorkspaceRead(`/project-workspace/${project}/options`, {}, version);
+  const commands = (data?.commands || []).filter(kind => operationLabels[kind]);
+  return <section aria-label="Операции проекта" className="rounded-xl border bg-white p-4">
+    {loading ? <p role="status">Проверка разрешённых операций…</p> : error ? <p role="alert">{error}</p> : commands.length ? <div className="flex flex-wrap gap-2">{commands.map(kind => <button key={kind} type="button" disabled={disabled} onClick={() => onOpen({ kind, signerConfigured: data.signer_configured, signerName: data.signer_name })} className="rounded-xl bg-blue-600 px-4 py-2 text-sm font-bold text-white">{operationLabels[kind]}</button>)}</div> : <p className="text-sm text-slate-500">Для этой учётной записи доступен только просмотр.</p>}
+  </section>;
+}
+
 export default function ProjectWorkspacePage() {
   const { user, logout } = useAuth();
   const [projectId, setProjectId] = useState('');
   const [resource, setResource] = useState('');
   const [version, setVersion] = useState(0);
+  const [operation, setOperation] = useState(null);
   const projectOnly = user?.permissions?.includes('company.project-only');
   const { data: context, loading, error } = useWorkspaceRead(projectOnly ? '/project-workspace/projects' : null, {}, `${user?.id}:${version}`);
   useEffect(() => {
+    if (operation) return;
     const refresh = () => { if (document.visibilityState === 'visible') setVersion(n => n + 1); };
     window.addEventListener('focus', refresh); document.addEventListener('visibilitychange', refresh);
     const timer = window.setInterval(refresh, 30000);
     return () => { window.removeEventListener('focus', refresh); document.removeEventListener('visibilitychange', refresh); window.clearInterval(timer); };
-  }, []);
+  }, [operation]);
   if (!projectOnly) return <p role="alert" className="p-8">Рабочее пространство доступно только назначенной проектной учётной записи.</p>;
   const project = context?.projects.find(p => p.id === projectId) || context?.projects[0];
   const available = Object.entries(resources).filter(([,r]) => project?.sections.includes(r.permission));
   const currentResource = available.some(([key]) => key === resource) ? resource : available[0]?.[0];
   return <main className="min-h-screen bg-slate-50 p-4 sm:p-8 text-slate-900"><div className="max-w-7xl mx-auto space-y-5">
-    <header className="flex justify-between items-start gap-4"><div><p className="text-blue-700 font-extrabold">TOZON CRM</p><h1 className="text-2xl font-extrabold mt-1">Рабочее пространство проекта</h1><p className="text-sm text-slate-500 mt-1">{user.name}</p></div><button type="button" onClick={logout} className="rounded-xl border bg-white px-4 py-2 font-bold">Выйти</button></header>
-    <p className="rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900">Тестовый режим: только просмотр разрешённых данных. Создание и изменение документов, выгрузки, файлы и общие разделы CRM пока закрыты.</p>
+    <div className="space-y-5" inert={!!operation}>
+    <header className="flex justify-between items-start gap-4"><div><p className="text-blue-700 font-extrabold">TOZON CRM</p><h1 className="text-2xl font-extrabold mt-1">Рабочее пространство проекта</h1><p className="text-sm text-slate-500 mt-1">{user.name}</p></div><button type="button" disabled={!!operation} onClick={logout} className="rounded-xl border bg-white px-4 py-2 font-bold">Выйти</button></header>
+    <p className="rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900">Тестовое пространство проекта. Доступные операции определяются Вашими правами. Общие разделы CRM, выгрузки и файлы пока закрыты.</p>
     {loading ? <p role="status">Проверка доступа к проектам…</p> : error ? <div role="alert" className="rounded-xl bg-rose-50 p-4 text-rose-700">{error}<button type="button" className="block mt-3 font-bold underline" onClick={() => setVersion(n => n + 1)}>Повторить проверку доступа</button></div> : !project ? <p role="status" className="rounded-xl border bg-white p-5">Вам не назначен доступ ни к одному проекту. Обратитесь к администратору компании.</p> : <>
-      <label className="block font-semibold">Проект<select aria-label="Рабочий проект" className="block mt-2 w-full sm:max-w-lg rounded-xl border border-slate-300 bg-white p-3" value={project.id} onChange={e => { setProjectId(e.target.value); setResource(''); }}>{context.projects.map(p => <option key={p.id} value={p.id}>{p.name} · {p.location}</option>)}</select></label>
-      <nav aria-label="Разделы проекта" className="flex flex-wrap gap-2">{available.map(([key,r]) => <button key={key} type="button" aria-pressed={currentResource===key} onClick={() => setResource(key)} className={`rounded-xl px-4 py-2 text-sm font-bold ${currentResource===key ? 'bg-blue-600 text-white' : 'border bg-white text-slate-600'}`}>{r.label}</button>)}</nav>
+      <label className="block font-semibold">Проект<select aria-label="Рабочий проект" disabled={!!operation} className="block mt-2 w-full sm:max-w-lg rounded-xl border border-slate-300 bg-white p-3" value={project.id} onChange={e => { setProjectId(e.target.value); setResource(''); }}>{context.projects.map(p => <option key={p.id} value={p.id}>{p.name} · {p.location}</option>)}</select></label>
+      <WorkspaceOperations key={`${project.id}:${version}`} project={project.id} version={version} onOpen={setOperation} disabled={!!operation}/>
+      <nav aria-label="Разделы проекта" className="flex flex-wrap gap-2">{available.map(([key,r]) => <button key={key} type="button" disabled={!!operation} aria-pressed={currentResource===key} onClick={() => setResource(key)} className={`rounded-xl px-4 py-2 text-sm font-bold ${currentResource===key ? 'bg-blue-600 text-white' : 'border bg-white text-slate-600'}`}>{r.label}</button>)}</nav>
       {currentResource ? <WorkspaceRecords key={`${version}:${project.id}:${currentResource}`} project={project.id} resource={currentResource}/> : <p className="rounded-xl border bg-white p-5">Для проекта не назначены разрешённые разделы.</p>}
     </>}
+    </div>
+    {operation && project && <WorkspaceOperationForm key={`${user.id}:${project.id}:${operation.kind}`} project={project.id} {...operation} onClose={() => setOperation(null)} onComplete={() => { setOperation(null); setVersion(n => n + 1); }}/>}
   </div></main>;
 }
