@@ -6,7 +6,7 @@ import { ConstructionPage } from './features/construction/ConstructionPage';
 import { BlockCostsPage } from './features/costs/BlockCostsPage';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { AuthProvider } from './features/auth/AuthContext';
+import { AuthProvider, useAuth } from './features/auth/AuthContext';
 import { I18nProvider } from './context/i18nContext';
 import { ProtectedRoute, PermissionGuard } from './features/auth/ProtectedRoute';
 import { LoginPage } from './features/auth/LoginPage';
@@ -53,6 +53,12 @@ const queryClient = new QueryClient({
   },
 });
 
+const ProjectWorkspacePage = React.lazy(() => import('./features/companyWorkspace/ProjectWorkspacePage'));
+function LegacyContractMessages() {
+  const { user } = useAuth();
+  return user?.permissions?.includes('company.project-only') ? null : <ContractCongratulationsModal/>;
+}
+
 function App() {
   return (
     <ErrorBoundary>
@@ -60,13 +66,14 @@ function App() {
         <I18nProvider>
           <AuthProvider>
             <BrowserRouter>
-              <ContractCongratulationsModal />
+              <LegacyContractMessages />
               <Routes>
               {/* Public routes */}
               <Route path="/login" element={<LoginPage />} />
 
               {/* Protected CRM routes */}
               <Route element={<ProtectedRoute />}>
+                <Route path="/project-workspace" element={<React.Suspense fallback={<p className="p-8">Загрузка рабочего пространства…</p>}><ProjectWorkspacePage/></React.Suspense>} />
                 <Route path="/projects/showroom" element={<PermissionGuard requiredPermission="inventory.view"><ShowroomPage /></PermissionGuard>} />
                 <Route element={<MainLayout />}>
                   <Route path="/" element={<DashboardPage />} />
