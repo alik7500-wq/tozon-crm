@@ -6,6 +6,7 @@ import { api } from '../../api/client';
 import { useAuth } from '../auth/AuthContext';
 
 const resources = {
+  reminders:{label:'Напоминания',permission:'finance.payments',also:'deals.view',columns:[['contract_number','Договор'],['client_name','Клиент'],['unit_number','Помещение'],['due_date','Срок платежа'],['remaining_minor','Остаток'],['currency','Валюта'],['reminder_kind','Событие'],['is_read','Прочитано']]},
   complexes: { label: 'Жилые комплексы', permission: 'inventory.view', columns: [['name','ЖК'],['code','Код'],['address','Адрес']] },
   units: { label: 'Помещения', permission: 'inventory.view', columns: [['unit_number','Номер'],['complex_name','ЖК'],['area_m2_x100','Площадь, м²'],['status','Статус']] },
   leads: { label: 'Клиенты и лиды', permission: 'leads.view', columns: [['full_name','ФИО'],['phone','Телефон'],['status','Статус']] },
@@ -15,7 +16,7 @@ const resources = {
   expenses: { label: 'Расходы', permission: 'finance.expenses', columns: [['id','№ записи'],['expense_date','Дата'],['category','Статья'],['amount_minor','Сумма'],['currency','Валюта'],['status','Статус']] },
   warehouses: { label: 'Склады', permission: 'construction.stock', columns: [['name','Склад'],['active','Действующий']] },
 };
-const format = (key, value) => value == null ? '—' : typeof value === 'boolean' ? (value ? 'Да' : 'Нет') : key.endsWith('_minor') || key === 'area_m2_x100' ? (Number(value) / 100).toLocaleString('ru-RU', { maximumFractionDigits: 2 }) : String(value);
+const format = (key, value) => value == null ? '—' : key==='reminder_kind' ? (value==='OVERDUE'?'Просрочен':'Скоро платёж') : typeof value === 'boolean' ? (value ? 'Да' : 'Нет') : key.endsWith('_minor') || key === 'area_m2_x100' ? (Number(value) / 100).toLocaleString('ru-RU', { maximumFractionDigits: 2 }) : String(value);
 
 function useWorkspaceRead(path, params, nonce) {
   const requestKey = JSON.stringify({ path, params, nonce });
@@ -33,6 +34,8 @@ function useWorkspaceRead(path, params, nonce) {
 }
 
 function WorkspaceRecords({ project, resource, canDocuments, onDocument }) {
+  const [ackError,setAckError]=useState(''),[ackBusy,setAckBusy]=useState(false);
+  async function acknowledge(id){if(ackBusy)return;setAckBusy(true);setAckError('');try{await api.post(`/project-workspace/${project}/reminders/${id}/read`,{});setReload(n=>n+1);}catch(e){setAckError(e.message);}finally{setAckBusy(false);}}
   const [after, setAfter] = useState('');
   const [reload, setReload] = useState(0);
   const { data, loading, error } = useWorkspaceRead(`/project-workspace/${project}/${resource}`, { after, limit: 50 }, reload);
@@ -40,7 +43,8 @@ function WorkspaceRecords({ project, resource, canDocuments, onDocument }) {
   const config = resources[resource];
   return <div className="rounded-2xl border border-slate-200 bg-white p-5 space-y-4">
     <div className="flex justify-between items-center"><h2 className="font-bold text-lg">{config.label}</h2><button type="button" disabled={loading} onClick={() => setReload(n => n + 1)} className="text-sm font-bold text-blue-600 disabled:opacity-50">Обновить данные</button></div>
-    {loading ? <p role="status">Загрузка данных выбранного проекта…</p> : error ? <p role="alert" className="rounded-xl bg-rose-50 p-4 text-rose-700">{error}</p> : !page.records.length ? <p className="text-slate-500">Нет записей в этом разделе выбранного проекта.</p> : <div className="overflow-x-auto"><table className="w-full text-left text-sm"><thead><tr>{config.columns.map(([key,label]) => <th key={key} className="border-b p-3 text-slate-500">{label}</th>)}{canDocuments&&<th className="border-b p-3">Документы</th>}</tr></thead><tbody>{page.records.map(row => <tr key={row.id}>{config.columns.map(([key]) => <td key={key} className="border-b border-slate-100 p-3">{format(key,row[key])}</td>)}{canDocuments&&<td className="border-b p-3"><button type="button" className="font-bold text-blue-600" onClick={()=>onDocument(row.id)}>Документы № {row.contract_number||row.id}</button></td>}</tr>)}</tbody></table></div>}
+    {loading ? <p role="status">Загрузка данных выбранного проекта…</p> : error ? <p role="alert" className="rounded-xl bg-rose-50 p-4 text-rose-700">{error}</p> : !page.records.length ? <p className="text-slate-500">Нет записей в этом разделе выбранного проекта.</p> : <div className="overflow-x-auto"><table className="w-full text-left text-sm"><thead><tr>{config.columns.map(([key,label]) => <th key={key} className="border-b p-3 text-slate-500">{label}</th>)}{canDocuments&&<th className="border-b p-3">Документы</th>}{resource==='reminders'&&<th className="border-b p-3">Отметка</th>}</tr></thead><tbody>{page.records.map(row => <tr key={row.id}>{config.columns.map(([key]) => <td key={key} className="border-b border-slate-100 p-3">{format(key,row[key])}</td>)}{canDocuments&&<td className="border-b p-3"><button type="button" className="font-bold text-blue-600" onClick={()=>onDocument(row.id)}>Документы № {row.contract_number||row.id}</button></td>}{resource==='reminders'&&<td className="border-b p-3">{row.is_read?'Прочитано':<button type="button" disabled={ackBusy} onClick={()=>acknowledge(row.id)} className="text-blue-600">Отметить прочитанным</button>}</td>}</tr>)}</tbody></table></div>}
+    {ackError&&<p role="alert" className="text-rose-700">{ackError}</p>}
     <div className="flex gap-4 text-sm"><button type="button" disabled={loading || !after} onClick={() => setAfter('')} className="font-bold text-blue-600 disabled:text-slate-400">В начало</button><button type="button" disabled={loading || !page.has_more || !page.records.length} onClick={() => setAfter(String(page.records.at(-1).id))} className="font-bold text-blue-600 disabled:text-slate-400">Следующая страница</button></div>
   </div>;
 }
@@ -70,7 +74,7 @@ export default function ProjectWorkspacePage() {
   }, [operation]);
   if (!projectOnly) return <p role="alert" className="p-8">Рабочее пространство доступно только назначенной проектной учётной записи.</p>;
   const project = context?.projects.find(p => p.id === projectId) || context?.projects[0];
-  const available = Object.entries(resources).filter(([,r]) => project?.sections.includes(r.permission));
+  const available = Object.entries(resources).filter(([,r]) => project?.sections.includes(r.permission)&&(!r.also||project.sections.includes(r.also))&&(r.label!=='Напоминания'||import.meta.env.VITE_PROJECT_INTERNAL_REMINDERS_ENABLED==='true'));
   const currentResource = available.some(([key]) => key === resource) ? resource : available[0]?.[0];
   return <main className="min-h-screen bg-slate-50 p-4 sm:p-8 text-slate-900"><div className="max-w-7xl mx-auto space-y-5">
     <div className="space-y-5" inert={!!operation}>

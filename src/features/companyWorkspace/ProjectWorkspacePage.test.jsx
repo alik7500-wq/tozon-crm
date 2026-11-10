@@ -13,7 +13,7 @@ beforeEach(()=>{
  vi.clearAllMocks();state.user={id:10,name:'Тестовый партнёр',permissions:['company.project-only']};
  api.get.mockImplementation(path=>Promise.resolve({data:path.endsWith('/projects')?{projects}:{records:[{id:1,name:'Plaza ЖК',code:'A'}],has_more:false}}));
 });
-afterEach(cleanup);
+afterEach(()=>{cleanup();vi.unstubAllEnvs();});
 describe('project workspace privacy in UI',()=>{
  it('shows only server-granted sections and has no mutation/export controls',async()=>{
   render(<ProjectWorkspacePage/>);expect(await screen.findByText('Plaza ЖК')).toBeVisible();
@@ -52,4 +52,17 @@ describe('project workspace privacy in UI',()=>{
   await act(async()=>Promise.resolve());expect(api.get.mock.calls).toHaveLength(calls);expect(screen.getByRole('dialog')).toBeVisible();
  });
 
+});
+
+it('shows personal reminders only with both permissions and acknowledges through the scoped route',async()=>{
+ vi.stubEnv('VITE_PROJECT_INTERNAL_REMINDERS_ENABLED','true');
+ const reminderId='00000000-0000-4000-8000-000000000010';let read=false;
+ api.get.mockImplementation(path=>Promise.resolve({data:path.endsWith('/projects')?{projects:[{...projects[0],sections:['deals.view','finance.payments']},projects[1]]}:{records:[{id:reminderId,contract_number:'OWN-REMINDER',remaining_minor:12000,currency:'USD',reminder_kind:'DUE',is_read:read}],has_more:false}}));
+ api.post.mockImplementation(async()=>{read=true;return {data:{is_read:true}};});
+ render(<ProjectWorkspacePage/>);expect(await screen.findByText('OWN-REMINDER')).toBeVisible();
+ fireEvent.click(screen.getByRole('button',{name:'Отметить прочитанным'}));
+ await waitFor(()=>expect(api.post).toHaveBeenCalledWith(`/project-workspace/${a}/reminders/${reminderId}/read`,{}));
+ expect(await screen.findByText('Прочитано',{selector:'td'})).toBeVisible();
+ fireEvent.change(screen.getByRole('combobox',{name:'Рабочий проект'}),{target:{value:b}});
+ expect(screen.queryByRole('button',{name:'Напоминания'})).not.toBeInTheDocument();
 });
