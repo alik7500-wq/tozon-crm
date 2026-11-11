@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import ProjectReadiness from './ProjectReadiness';
 import ProjectReminderSettings from './ProjectReminderSettings';
 import { api } from '../../api/client';
 
@@ -76,6 +77,7 @@ export function CompanyProjectsTab() {
         {error && <p role="alert" className="rounded-lg bg-rose-50 p-3 text-sm text-rose-700">{error}</p>}{message && <p role="status" className="rounded-lg bg-emerald-50 p-3 text-sm text-emerald-700">{message}</p>}
         <button disabled={saving || !dirty} className="rounded-xl bg-blue-600 px-5 py-3 font-bold text-white disabled:opacity-40">{saving ? 'Сохранение…' : 'Сохранить проект'}</button>
       </form>}
+      {draft?.id&&<ProjectReadiness key={`${draft.id}:${draft.revision}`} projectId={draft.id} revision={draft.revision} dirty={dirty}/>}
       {draft?.id&&import.meta.env.VITE_PROJECT_INTERNAL_REMINDERS_ENABLED==='true'&&<ProjectReminderSettings key={draft.id} projectId={draft.id}/>}
     </div>
   </section>;
