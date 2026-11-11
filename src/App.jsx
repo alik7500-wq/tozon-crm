@@ -1,3 +1,4 @@
+import ProjectPilotApp from './features/companyWorkspace/ProjectPilotApp';
 import { ActivityPage } from './features/activity/ActivityPage';
 import { RkoBookPage } from './features/finance/RkoBookPage';
 import { ContractCongratulationsModal } from './components/sms/ContractCongratulationsModal';
@@ -60,6 +61,7 @@ function LegacyContractMessages() {
 }
 
 function App() {
+  if (import.meta.env.VITE_PROJECT_WORKSPACE_PILOT === 'true') return <ErrorBoundary><ProjectPilotApp/></ErrorBoundary>;
   return (
     <ErrorBoundary>
       <QueryClientProvider client={queryClient}>
