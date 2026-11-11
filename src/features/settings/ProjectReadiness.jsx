@@ -21,7 +21,7 @@ export default function ProjectReadiness({projectId,revision,dirty}){
   {dirty&&<p className="text-sm text-amber-800">Сначала сохраните изменения проекта.</p>}
   {error&&<p role="alert" className="text-sm text-rose-700">{error}</p>}
   {data&&<><p role="status" className="text-sm font-semibold">{data.configuration_ready?'Основные настройки заполнены. Нужна ручная проверка перед запуском.':'Есть незавершённые настройки проекта.'}</p>
-   <ul className="divide-y">{data.checks.map(c=><li key={c.code} className="py-3 text-sm"><div className="flex flex-wrap justify-between gap-2"><strong>{c.label}</strong><span className={c.status==='PASS'?'text-emerald-700':c.status==='BLOCKED'?'text-rose-700':'text-amber-800'}>{c.status==='PASS'?'Проверено':c.status==='BLOCKED'?'Нужно заполнить':'Проверить вручную'}</span></div>{c.action&&<p className="mt-1 text-slate-600">{c.action}</p>}</li>)}</ul>
+   <ul className="divide-y">{data.checks.map(c=><li key={c.code} className="py-3 text-sm"><div className="flex flex-wrap justify-between gap-2"><strong>{c.label}</strong><span className={c.status==='PASS'?'text-emerald-700':c.status==='BLOCKED'?'text-rose-700':c.status==='NOT_CHECKED'?'text-slate-500':'text-amber-800'}>{c.status==='PASS'?'Проверено':c.status==='BLOCKED'?'Нужно заполнить':c.status==='NOT_CHECKED'?'Ещё не проверено':'Проверить вручную'}</span></div>{c.action&&<p className="mt-1 text-slate-600">{c.action}</p>}</li>)}</ul>
    <p className="text-xs text-slate-500">Состояние на момент запроса. Эта проверка не включает проект в рабочей CRM.</p></>}
  </section>;
 }

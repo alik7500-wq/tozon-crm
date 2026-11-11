@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import ProjectSetup from './ProjectSetup';
 import ProjectReadiness from './ProjectReadiness';
 import ProjectReminderSettings from './ProjectReminderSettings';
 import { api } from '../../api/client';
@@ -13,6 +14,8 @@ export function CompanyProjectsTab() {
   const [draft, setDraft] = useState(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [adminBusy,setAdminBusy]=useState(false),[adminEpoch,setAdminEpoch]=useState(0);
+  async function configured(id){const r=await load();setDraft(d=>d?.id===id?editable(r.projects.find(p=>p.id===id)):d);setAdminEpoch(n=>n+1);}
   const [error, setError] = useState('');
   const [message, setMessage] = useState('');
   const [dirty, setDirty] = useState(false);
@@ -57,9 +60,9 @@ export function CompanyProjectsTab() {
     <div><h2 className="text-xl font-extrabold text-slate-900">Проекты компании</h2><p className="mt-1 text-sm text-slate-600">{registry.company.name} · Отдельный проект для каждого состава партнёров и самостоятельного учёта.</p></div>
     <div role="status" className="rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900"><strong>Подготовка разделения данных.</strong> Здесь сохраняется структура проектов. Назначения сотрудников пока не предоставляют и не ограничивают доступ к рабочим данным. Подключение новых объектов к общей CRM — после проверки изоляции.</div>
     <div className="grid gap-5 lg:grid-cols-[270px_minmax(0,1fr)]">
-      <nav aria-label="Проекты компании" className="space-y-2">{registry.projects.map(p => <button type="button" disabled={saving} key={p.id} onClick={() => select(p)} className={`w-full rounded-xl border p-4 text-left ${draft?.id === p.id ? 'border-blue-600 bg-blue-50' : 'bg-white hover:border-blue-300'}`}><span className="block font-bold">{p.name}</span><span className="block text-xs text-slate-500 mt-1">{p.location || 'Адрес не указан'} · {p.complex_ids.length} ЖК</span><span className="mt-2 block text-xs text-amber-700">Подготовка</span></button>)}<button type="button" disabled={saving} className="w-full rounded-xl bg-blue-600 p-3 font-bold text-white" onClick={() => select(null)}>+ Добавить проект</button></nav>
+      <nav aria-label="Проекты компании" className="space-y-2">{registry.projects.map(p => <button type="button" disabled={saving||adminBusy} key={p.id} onClick={() => select(p)} className={`w-full rounded-xl border p-4 text-left ${draft?.id === p.id ? 'border-blue-600 bg-blue-50' : 'bg-white hover:border-blue-300'}`}><span className="block font-bold">{p.name}</span><span className="block text-xs text-slate-500 mt-1">{p.location || 'Адрес не указан'} · {p.complex_ids.length} ЖК</span><span className="mt-2 block text-xs text-amber-700">Подготовка</span></button>)}<button type="button" disabled={saving||adminBusy} className="w-full rounded-xl bg-blue-600 p-3 font-bold text-white" onClick={() => select(null)}>+ Добавить проект</button></nav>
       {!draft ? <div className="rounded-2xl border border-dashed p-8 text-slate-500">Выберите проект слева, чтобы настроить директора, партнёров, ЖК и сотрудников.</div> : <form onSubmit={save} className="rounded-2xl border bg-white p-5 space-y-6">
-        <fieldset disabled={saving} className="space-y-6 disabled:opacity-60">
+        <fieldset disabled={saving||adminBusy} className="space-y-6 disabled:opacity-60">
           <div className="grid sm:grid-cols-2 gap-4">{field('Название проекта', 'name', { required: true, maxLength: 200 })}{field('Код проекта', 'code', { required: true, maxLength: 40, pattern: '[A-Z][A-Z0-9_-]*', title: 'Латинские заглавные буквы, цифры, дефис' })}{field('Город / район / адрес', 'location', { maxLength: 300 })}{field('ФИО директора объекта', 'director_name', { maxLength: 200 })}</div>
           {field('Основание полномочий директора', 'director_authority', { maxLength: 1000, placeholder: 'Документ, номер и дата' })}
           <p className="text-xs text-slate-500">Договоры оформляются от ООО «ТОЗОН». Подстановка директора проекта в договоры будет подключена при запуске разделения; существующие документы не изменяются.</p>
@@ -75,9 +78,10 @@ export function CompanyProjectsTab() {
           <div className="space-y-3"><h3 className="font-bold">Планируемый состав сотрудников</h3><p className="text-xs text-slate-500">Назначения не меняют текущие роли и доступ сотрудников. Для одного сотрудника можно подготовить участие в нескольких проектах.</p>{draft.members.map((m, i) => <div key={i} className="grid sm:grid-cols-[1fr_1fr_auto] gap-2"><select aria-label={`Сотрудник ${i + 1}`} required className={fieldClass} value={m.user_id} onChange={e => change({ members: draft.members.map((x, j) => i === j ? { ...x, user_id: Number(e.target.value) } : x) })}><option value="">Выберите сотрудника</option>{registry.users.filter(u => u.id === m.user_id || !draft.members.some(x => x.user_id === u.id)).map(u => <option key={u.id} value={u.id}>{u.name}</option>)}</select><select aria-label={`Роль в проекте ${i + 1}`} className={fieldClass} value={m.project_role} onChange={e => change({ members: draft.members.map((x, j) => i === j ? { ...x, project_role: e.target.value } : x) })}>{Object.entries(ROLE_LABELS).map(([key, label]) => <option key={key} value={key}>{label}</option>)}</select><button type="button" className="p-2 text-rose-600" aria-label={`Убрать сотрудника ${i + 1}`} onClick={() => change({ members: draft.members.filter((_, j) => i !== j) })}>Убрать</button></div>)}<button type="button" className="text-sm font-bold text-blue-600" onClick={() => change({ members: [...draft.members, { user_id: '', project_role: 'MANAGER' }] })}>+ Назначить сотрудника</button></div>
         </fieldset>
         {error && <p role="alert" className="rounded-lg bg-rose-50 p-3 text-sm text-rose-700">{error}</p>}{message && <p role="status" className="rounded-lg bg-emerald-50 p-3 text-sm text-emerald-700">{message}</p>}
-        <button disabled={saving || !dirty} className="rounded-xl bg-blue-600 px-5 py-3 font-bold text-white disabled:opacity-40">{saving ? 'Сохранение…' : 'Сохранить проект'}</button>
+        <button disabled={saving || adminBusy || !dirty} className="rounded-xl bg-blue-600 px-5 py-3 font-bold text-white disabled:opacity-40">{saving ? 'Сохранение…' : 'Сохранить проект'}</button>
       </form>}
-      {draft?.id&&<ProjectReadiness key={`${draft.id}:${draft.revision}`} projectId={draft.id} revision={draft.revision} dirty={dirty}/>}
+      {draft?.id&&<ProjectSetup key={`${draft.id}:${draft.revision}`} projectId={draft.id} dirty={dirty||saving} onConfigured={configured} onBusy={setAdminBusy}/>}
+      {draft?.id&&<ProjectReadiness key={`${draft.id}:${draft.revision}:${adminEpoch}`}  projectId={draft.id} revision={draft.revision} dirty={dirty}/>}
       {draft?.id&&import.meta.env.VITE_PROJECT_INTERNAL_REMINDERS_ENABLED==='true'&&<ProjectReminderSettings key={draft.id} projectId={draft.id}/>}
     </div>
   </section>;

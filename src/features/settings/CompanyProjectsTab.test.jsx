@@ -7,7 +7,7 @@ import { api } from '../../api/client';
 vi.mock('../../api/client', () => ({ api: { get: vi.fn(), put: vi.fn(), post: vi.fn() } }));
 const first = { id:'ddac6e43-39b6-4f31-a872-aaf77e77d416',name:'Tozon Plaza',code:'TOZON_PLAZA',location:'Худжанд',director_name:'',director_authority:'',revision:1,partners:[],members:[],complex_ids:[3,4] };
 const data = { company:{name:'ООО «ТОЗОН»'},isolation_ready:false,projects:[first,{...first,id:'ddac6e43-39b6-4f31-a872-aaf77e77d417',name:'Tozon Tower',code:'TOZON_TOWER',complex_ids:[5]}],complexes:[{id:3,name:'ЖК TOZON PLAZA'},{id:4,name:'ЖК TOZON PLAZA-2'},{id:5,name:'ЖК Tower'}],users:[{id:1,name:'Тестовый сотрудник'}] };
-beforeEach(() => { vi.clearAllMocks(); api.get.mockResolvedValue({data}); });
+beforeEach(() => { vi.clearAllMocks(); api.get.mockImplementation(path=>Promise.resolve({data:path.endsWith('/setup')?{revision:1,members:[],cash_desks:[],warehouses:[]}:path.endsWith('/unbound-deals')?{records:[],has_more:false}:data})); });
 afterEach(cleanup);
 async function open() { render(<CompanyProjectsTab/>); fireEvent.click(await screen.findByRole('button',{name:/Tozon Plaza/})); }
 describe('company project preparation settings', () => {
