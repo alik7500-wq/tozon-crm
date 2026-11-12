@@ -69,7 +69,8 @@ export function SendSmsModal({ isOpen, onClose, client, context = 'lead', onSucc
   useEffect(() => {
     if (isOpen) {
       setText('');
-      setLanguage(client?.sms_language === 'ru' ? 'ru' : 'tj');
+      // Tajik is the priority for EVERY new manual SMS, including recipients of earlier Russian messages.
+      setLanguage('tj');
       setError(null);
       setSuccessResult(null);
       setSelectedTemplateCode('');
@@ -294,7 +295,7 @@ export function SendSmsModal({ isOpen, onClose, client, context = 'lead', onSucc
         {/* Form Body */}
         <form onSubmit={handleSend} className="p-6 space-y-4">
           <fieldset disabled={isSending || isPreviewLoading} className="space-y-1">
-            <legend className="text-xs font-medium text-slate-400 mb-1.5">Язык SMS</legend>
+            <legend className="text-xs font-medium text-slate-400 mb-1.5">Выберите язык SMS (по умолчанию — Тоҷикӣ)</legend>
             <div className="grid grid-cols-2 gap-2" role="group" aria-label="Язык сообщения">
               {[{ value: 'tj', label: 'Тоҷикӣ' }, { value: 'ru', label: 'Русский' }].map((item) => (
                 <button key={item.value} type="button" aria-pressed={language === item.value}
