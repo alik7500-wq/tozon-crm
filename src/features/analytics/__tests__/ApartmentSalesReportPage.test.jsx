@@ -52,18 +52,31 @@ const MOCK_REPORT = {
   summary: {
     totalAvailableStartCount: 149,
     totalSoldCount: 4,
+    directSoldCount: 2,
+    marketerSoldCount: 1,
+    unspecifiedSoldCount: 1,
     totalAvailableEndCount: 145,
     totalAreaM2: 204.26,
     averageAreaM2: 51.07,
     totalSalesAmountUsd: 112000,
+    directSalesAmountUsd: 52000,
+    marketerSalesAmountUsd: 40000,
+    unspecifiedSalesAmountUsd: 20000,
     totalPaidCashUsd: 52000,
     totalPaidBarterUsd: 15000,
     totalSettledUsd: 67000,
     totalRemainingDebtUsd: 45000,
     totalOverpaidUsd: 0,
     totalPaidPercent: 59.82,
-    totalDebtPercent: 40.18
+    totalDebtPercent: 40.18,
+    calculatedCommissionUsd: 1200,
+    approvedCommissionUsd: 1200,
+    paidCommissionUsd: 400,
+    remainingCommissionUsd: 800
   },
+  marketingPartners: [
+    { id: 701, name: 'Somon Agency', commissionType: 'PERCENT', commissionRatePercent: 3, isActive: true }
+  ],
   blocks: [
     {
       key: 'TOZON PLAZA::А',
@@ -105,7 +118,18 @@ const MOCK_REPORT = {
           paidPercent: 100,
           debtPercent: 0,
           status: 'SIGNED',
-          statusLabel: 'Действующий'
+          statusLabel: 'Действующий',
+          salesSource: 'MARKETER',
+          salesSourceLabel: 'Продажа через маркетологов',
+          marketingPartnerId: 701,
+          marketingPartnerName: 'Somon Agency',
+          managerName: 'Азизов Т.',
+          commissionRatePercent: 3,
+          calculatedCommissionUsd: 1200,
+          approvedCommissionUsd: 1200,
+          paidCommissionUsd: 400,
+          remainingCommissionUsd: 800,
+          commissionStatusLabel: 'Частично выплачена'
         }
       ]
     },
@@ -298,13 +322,48 @@ describe('ApartmentSalesReportPage Expanded UI & Financial Columns Tests', () =>
     expect(screen.getByText('Получено деньгами, USD')).toBeTruthy();
     expect(screen.getByText('Зачтено бартером, USD')).toBeTruthy();
     expect(screen.getByText('Всего погашено, USD')).toBeTruthy();
-    expect(screen.getByText('Остаток задолженности, USD')).toBeTruthy();
+    expect(screen.getAllByText('Остаток долга, USD').length).toBeGreaterThanOrEqual(2);
+    expect(screen.getByText('Продажа через маркетологов')).toBeTruthy();
+    expect(screen.getAllByText(/Somon Agency/).length).toBeGreaterThanOrEqual(2);
+    expect(screen.getByText('Азизов Т.')).toBeTruthy();
 
     const openCardBtn = screen.getByRole('button', { name: /Карточка/i });
     fireEvent.click(openCardBtn);
 
     expect(screen.getByTestId('mock-deal-drawer')).toBeTruthy();
     expect(screen.getByText('Карточка договора #101')).toBeTruthy();
+  });
+
+  it('filters by salesSource and partnerId and switches between table view tabs (INVENTORY, FINANCE, COMMISSIONS)', async () => {
+    renderPage();
+
+    await waitFor(() => {
+      expect(screen.getByTestId('kpi-direct-sold-count').textContent).toContain('2 шт.');
+    });
+
+    expect(screen.getByTestId('kpi-marketer-sold-count').textContent).toContain('1 шт.');
+    expect(screen.getByTestId('kpi-unspecified-sold-count').textContent).toContain('1 шт.');
+    expect(screen.getByTestId('kpi-commissions-summary').textContent).toContain('800');
+
+    // Switch to "Источники и комиссии" tab
+    fireEvent.click(screen.getByTestId('report-tab-COMMISSIONS'));
+    expect(screen.getByText('Начисленная комиссия, USD')).toBeTruthy();
+    expect(screen.getByText('Утверждённая комиссия, USD')).toBeTruthy();
+    expect(screen.getByText('Выплаченная комиссия, USD')).toBeTruthy();
+    expect(screen.getByText('Остаток комиссии к выплате, USD')).toBeTruthy();
+
+    // Filter by sales source = DIRECT
+    const sourceSelect = screen.getByLabelText('Источник продажи');
+    fireEvent.change(sourceSelect, { target: { value: 'DIRECT' } });
+
+    await waitFor(() => {
+      expect(api.get).toHaveBeenLastCalledWith('/reports/apartment-sales', {
+        params: expect.objectContaining({
+          salesSource: 'DIRECT',
+          partnerId: 'ALL'
+        })
+      });
+    });
   });
 
   it('dynamically restricts block options when complex filter changes and automatically refetches', async () => {
