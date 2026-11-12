@@ -1,0 +1,19 @@
+name: SMS bilingual frontend build
+on:
+  push:
+    branches: [feature/sms-bilingual-tj-ru]
+  pull_request:
+    paths:
+      - 'src/components/sms/**'
+      - '.github/workflows/sms-bilingual-build.yml'
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci
+      - run: npm run build
