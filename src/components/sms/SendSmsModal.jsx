@@ -246,6 +246,11 @@ export function SendSmsModal({ isOpen, onClose, client, context = 'lead', onSucc
       });
 
       if (res.success) {
+        // Save preference after a successful dispatch. Do not resend on preference failure.
+        if (clientId) {
+          api.patch(`/leads/${clientId}`, { sms_language: language })
+            .catch((err) => console.warn('Не удалось сохранить предпочтительный язык SMS:', err));
+        }
         setSuccessResult(res.data);
         if (onSuccess) onSuccess(res.data);
         setTimeout(() => {
