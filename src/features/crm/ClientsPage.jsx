@@ -5,6 +5,7 @@ import { ClientDetailModal } from './ClientDetailModal';
 import { EditClientModal } from './EditClientModal';
 import { SendSmsModal } from '../../components/sms/SendSmsModal';
 import { matchSearchQuery } from '../../utils/searchUtils';
+import { isSignedBuyerDeal } from '../../utils/buyerEligibility';
 import {
   Users,
   Plus,
@@ -73,7 +74,7 @@ export const ClientsPage = () => {
       setError('');
       const dealsRes = await api.get('/deals', { params: { status: 'SIGNED' } });
       // A reservation, draft or lead alone never establishes a buyer.
-      const deals = (dealsRes.data?.deals || dealsRes.deals || []).filter(d => d.status === 'SIGNED');
+      const deals = (dealsRes.data?.deals || dealsRes.deals || []).filter(isSignedBuyerDeal);
 
       // Prefer stable lead identity; names alone must never merge buyers.
       const map = new Map();

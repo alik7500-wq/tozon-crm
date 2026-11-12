@@ -12,7 +12,7 @@ let dictionaryResponse;
 beforeEach(() => {
  vi.clearAllMocks();
  dictionaryResponse = () => Promise.resolve({ data: desks });
- api.get.mockImplementation(path => path === '/dictionaries' ? dictionaryResponse() : Promise.resolve({ data: path === '/projects' ? { projects: [] } : path === '/leads' ? { leads: [{ id: 1, full_name: 'Тестовый покупатель', phone: '000000000' }] } : path === '/deals/available-units' ? { units: [unit] } : { settings: { data: { reservation_days: 3 } } } }));
+ api.get.mockImplementation(path => path === '/dictionaries' ? dictionaryResponse() : Promise.resolve({ data: path === '/deals' ? { deals: [{ id: 99, lead_id: 1, status: 'SIGNED' }] } : path === '/projects' ? { projects: [] } : path === '/leads' ? { leads: [{ id: 1, full_name: 'Тестовый покупатель', phone: '000000000' }] } : path === '/deals/available-units' ? { units: [unit] } : { settings: { data: { reservation_days: 3 } } } }));
  api.post.mockResolvedValue({ data: { deal: { id: 1 } } });
 });
 afterEach(cleanup);

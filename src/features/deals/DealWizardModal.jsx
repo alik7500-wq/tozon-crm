@@ -34,6 +34,7 @@ import {
 } from 'lucide-react';
 import { VehicleDetailsFields } from './VehicleDetailsFields';
 import { PassportScannerModal } from '../documents/PassportScannerModal';
+import { signedBuyerLeads } from '../../utils/buyerEligibility';
 
 export const DealWizardModal = ({
   isOpen,
@@ -61,6 +62,7 @@ export const DealWizardModal = ({
 
   // Leads
   const [leads, setLeads] = useState([]);
+  const [loadingBuyers, setLoadingBuyers] = useState(false);
   const [searchLead, setSearchLead] = useState('');
   const [selectedLead, setSelectedLead] = useState(null);
   const [isCreatingNewLead, setIsCreatingNewLead] = useState(false);
@@ -280,6 +282,9 @@ export const DealWizardModal = ({
   useEffect(() => {
     if (isOpen) {
       setSelectedUnit(initialUnit);
+      setSelectedLead(null);
+      setIsCreatingNewLead(false);
+      setSearchLead('');
       setDealStatus(initialStatus);
       setStep(initialUnit ? 1 : 0);
       setError('');
@@ -317,12 +322,16 @@ export const DealWizardModal = ({
   };
 
   const fetchLeads = async () => {
+    setLoadingBuyers(true);
     try {
-      const res = await api.get('/leads');
-      setLeads(res.data?.leads || res.leads || []);
+      const [res, dealsRes] = await Promise.all([
+        api.get('/leads'), api.get('/deals', { params: { status: 'SIGNED' } })
+      ]);
+      setLeads(signedBuyerLeads(res.data?.leads || res.leads || [], dealsRes.data?.deals || dealsRes.deals || []));
     } catch (err) {
-      console.error(err);
-    }
+      setLeads([]);
+      setError('Не удалось загрузить существующих покупателей. Повторите открытие окна.');
+    } finally { setLoadingBuyers(false); }
   };
 
   const handleProjectFilterChange = (projId) => {
@@ -725,7 +734,7 @@ export const DealWizardModal = ({
               {!isCreatingNewLead ? (
                 <>
                   <div className="flex items-center justify-between">
-                    <span className="text-xs font-bold text-slate-700">Выберите клиента из базы:</span>
+                    <span className="text-xs font-bold text-slate-700">Выберите существующего покупателя:</span>
                     <button
                       type="button"
                       onClick={() => setIsCreatingNewLead(true)}
@@ -735,6 +744,14 @@ export const DealWizardModal = ({
                       <span>+ Создать вручную</span>
                     </button>
                   </div>
+
+                  <p className="text-xs text-slate-500">В списке только покупатели с подписанным договором. Для первой покупки используйте «+ Создать вручную».</p>
+                  {selectedLead && !leads.some(lead => String(lead.id) === String(selectedLead.id)) && (
+                    <div className="rounded-xl border border-blue-200 bg-blue-50 p-3 text-xs">
+                      <div className="font-bold">Новый покупатель для этого договора: {selectedLead.full_name}</div>
+                      <div>{selectedLead.phone}</div>
+                    </div>
+                  )}
 
                   <div className="relative">
                     <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
@@ -748,7 +765,7 @@ export const DealWizardModal = ({
                   </div>
 
                   <div className="max-h-60 overflow-y-auto space-y-2 pr-1">
-                    {filteredLeads.length === 0 ? (
+                    {loadingBuyers ? <p role="status" className="p-4 text-xs text-slate-500">Загрузка покупателей…</p> : filteredLeads.length === 0 ? (
                       <div className="p-6 text-center text-xs text-slate-400 bg-slate-50 rounded-xl">
                         Клиенты не найдены. Нажмите «+ Создать вручную».
                       </div>
