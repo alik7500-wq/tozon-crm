@@ -1,8 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { useSearchParams } from 'react-router-dom';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { api } from '../../api/client';
 import { ClientDetailModal } from './ClientDetailModal';
-import { ClientModal } from './ClientModal';
 import { EditClientModal } from './EditClientModal';
 import { SendSmsModal } from '../../components/sms/SendSmsModal';
 import { matchSearchQuery } from '../../utils/searchUtils';
@@ -28,6 +27,7 @@ import {
 } from 'lucide-react';
 
 export const ClientsPage = () => {
+  const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
   const initialSearch = searchParams.get('search') || '';
   const [clients, setClients] = useState([]);
@@ -36,7 +36,7 @@ export const ClientsPage = () => {
   const [selectedClient, setSelectedClient] = useState(null);
   const [clientToEdit, setClientToEdit] = useState(null);
   const [smsClient, setSmsClient] = useState(null);
-  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [error, setError] = useState('');
 
   // Sync search state or clientId deep link if URL searchParams change
   useEffect(() => {
@@ -45,13 +45,18 @@ export const ClientsPage = () => {
       setSearch(query);
     }
     const clientIdParam = searchParams.get('clientId') || searchParams.get('leadId');
-    if (clientIdParam && clients.length > 0) {
-      const match = clients.find(c => String(c.id) === String(clientIdParam));
+    if (clientIdParam && !isLoading && !error) {
+      const leadId = String(clientIdParam).replace(/^lead-/, '');
+      const match = clients.find(c => String(c.id) === String(clientIdParam) || String(c.lead_id) === leadId);
       if (match) {
         setSelectedClient(match);
+      } else if (/^\d+$/.test(leadId)) {
+        // Existing notification links may target /clients with a lead ID. Keep
+        // those contacts in the correct section instead of inventing a buyer row.
+        navigate(`/leads?leadId=${leadId}`, { replace: true });
       }
     }
-  }, [searchParams, clients]);
+  }, [searchParams, clients, isLoading, error, navigate]);
 
   const handleSearchChange = (val) => {
     setSearch(val);
@@ -65,20 +70,18 @@ export const ClientsPage = () => {
   const fetchClients = async () => {
     try {
       setIsLoading(true);
-      const [dealsRes, leadsRes] = await Promise.all([
-        api.get('/deals').catch(() => ({ data: { deals: [] } })),
-        api.get('/leads').catch(() => ({ data: { leads: [] } })),
-      ]);
+      setError('');
+      const dealsRes = await api.get('/deals', { params: { status: 'SIGNED' } });
+      // A reservation, draft or lead alone never establishes a buyer.
+      const deals = (dealsRes.data?.deals || dealsRes.deals || []).filter(d => d.status === 'SIGNED');
 
-      const deals = dealsRes.data?.deals || dealsRes.deals || [];
-      const leads = leadsRes.data?.leads || leadsRes.leads || [];
-
-      // Group unique clients using normalized phone and name
+      // Prefer stable lead identity; names alone must never merge buyers.
       const map = new Map();
 
-      // 1. Process from deals (Buyers with contracts/reservations)
+      // Buyers appear automatically when a contract becomes SIGNED.
       deals.forEach((d) => {
-        const clientKey = (d.lead_phone || d.lead_name || `deal-${d.id}`).trim().toLowerCase();
+        const phone = String(d.lead_phone || '').replace(/\D/g, '');
+        const clientKey = d.lead_id != null ? `lead-${d.lead_id}` : phone ? `phone-${phone}` : `deal-${d.id}`;
         if (!map.has(clientKey)) {
           map.set(clientKey, {
             id: `deal-${d.id}`,
@@ -122,47 +125,9 @@ export const ClientsPage = () => {
         }
       });
 
-      // 2. Process leads that might not have a deal yet
-      leads.forEach((l) => {
-        const clientKey = (l.phone || l.full_name || `lead-${l.id}`).trim().toLowerCase();
-        if (!map.has(clientKey)) {
-          map.set(clientKey, {
-            id: `lead-${l.id}`,
-            lead_id: l.id,
-            name: l.full_name || 'Лид',
-            phone: l.phone || '',
-            passport: l.passport_series && l.passport_number ? `${l.passport_series} ${l.passport_number}` : 'Уточняется',
-            passport_series: l.passport_series,
-            passport_number: l.passport_number,
-            inn: l.inn || '',
-            address: l.registration_address || 'г. Худжанд',
-            dealsCount: 0,
-            totalPurchasesMinor: 0,
-            totalPaidMinor: 0,
-            projectName: l.interested_project_name || '—',
-            unitNumber: '—',
-            contract_number: '',
-            contractsList: [],
-            unitsList: [],
-            manager_name: l.responsible_user_name || 'Admin',
-            source: l.source || 'DIRECT',
-            status: l.status || 'NEW',
-            created_at: l.created_at || new Date().toISOString(),
-          });
-        } else {
-          // Enrich existing deal client with lead id if missing
-          const existing = map.get(clientKey);
-          if (!existing.lead_id) existing.lead_id = l.id;
-          if (!existing.inn && l.inn) existing.inn = l.inn;
-          if (!existing.passport_series && l.passport_series) existing.passport_series = l.passport_series;
-          if (!existing.passport_number && l.passport_number) existing.passport_number = l.passport_number;
-          if (!existing.address && l.registration_address) existing.address = l.registration_address;
-        }
-      });
-
       setClients(Array.from(map.values()));
     } catch (err) {
-      console.error('Error fetching clients:', err);
+      setError('Не удалось загрузить покупателей. Повторите попытку.');
     } finally {
       setIsLoading(false);
     }
@@ -170,41 +135,11 @@ export const ClientsPage = () => {
 
   useEffect(() => {
     fetchClients();
+    const refresh = () => { void fetchClients(); };
+    window.addEventListener('tozon:contract-signed', refresh);
+    window.addEventListener('focus', refresh);
+    return () => { window.removeEventListener('tozon:contract-signed', refresh); window.removeEventListener('focus', refresh); };
   }, []);
-
-  const handleCreateClient = async (e) => {
-    e.preventDefault();
-    if (!newClient.full_name || !newClient.phone) return;
-
-    setIsSaving(true);
-    try {
-      await api.post('/leads', {
-        full_name: newClient.full_name.trim(),
-        phone: newClient.phone.trim(),
-        passport_series: newClient.passport_series.trim() || null,
-        passport_number: newClient.passport_number.trim() || null,
-        inn: newClient.inn.trim() || null,
-        registration_address: newClient.registration_address.trim() || null,
-        source: 'DIRECT',
-        status: 'NEW',
-      });
-
-      setIsModalOpen(false);
-      setNewClient({
-        full_name: '',
-        phone: '',
-        passport_series: '',
-        passport_number: '',
-        inn: '',
-        registration_address: '',
-      });
-      await fetchClients();
-    } catch (err) {
-      alert(err.message || 'Ошибка создания клиента');
-    } finally {
-      setIsSaving(false);
-    }
-  };
 
   const filtered = clients.filter((c) =>
     matchSearchQuery(
@@ -230,17 +165,17 @@ export const ClientsPage = () => {
             <span>База покупателей и клиентов</span>
           </h1>
           <p className="mt-1 text-xs sm:text-sm text-slate-500 font-medium">
-            Реестр покупателей недвижимости, паспортные данные, история покупок и договоров
+            Только покупатели с подписанным договором. До заключения договора обращения остаются в разделе «Лиды».
           </p>
         </div>
 
-        <button
-          onClick={() => setIsModalOpen(true)}
+        <Link
+          to="/leads"
           className="flex items-center gap-2 rounded-xl bg-tozon-red hover:bg-tozon-red-hover text-white px-4 py-2.5 text-xs font-black transition shadow-md shadow-tozon-red/20 cursor-pointer"
         >
           <Plus className="h-4 w-4" />
-          <span>Добавить клиента</span>
-        </button>
+          <span>Перейти к лидам</span>
+        </Link>
       </div>
 
       {/* Filter toolbar */}
@@ -264,6 +199,8 @@ export const ClientsPage = () => {
         </div>
       </div>
 
+      {error && <div role="alert" className="rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-700">{error} <button type="button" onClick={fetchClients} className="underline">Повторить</button></div>}
+
       {/* Clients Table */}
       {isLoading ? (
         <div className="h-72 rounded-3xl bg-white border border-slate-200 flex items-center justify-center">
@@ -272,12 +209,12 @@ export const ClientsPage = () => {
             <span className="text-xs text-slate-500">Загрузка базы клиентов...</span>
           </div>
         </div>
-      ) : filtered.length === 0 ? (
+      ) : error ? null : filtered.length === 0 ? (
         <div className="flex flex-col items-center justify-center rounded-3xl border border-dashed border-slate-200 bg-white p-12 text-center shadow-xs">
           <Users className="h-12 w-12 text-slate-300 mb-2" />
           <h3 className="text-base font-bold text-slate-900">Клиенты пока не найдены</h3>
           <p className="text-xs text-slate-500 mt-1 max-w-sm">
-            База клиентов формируется автоматически при оформлении броней, сделок и добавлении лидов.
+            Покупатель появится здесь автоматически после подписания договора. Брони и лиды отображаются в своих разделах.
           </p>
         </div>
       ) : (
@@ -457,13 +394,6 @@ export const ClientsPage = () => {
         />
       )}
 
-      {/* Add Client Modal */}
-      <ClientModal
-        isOpen={isModalOpen}
-        mode="create"
-        onClose={() => setIsModalOpen(false)}
-        onClientSaved={fetchClients}
-      />
     </div>
   );
 };
