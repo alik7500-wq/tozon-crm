@@ -1,10 +1,11 @@
 import React from 'react';
 import { NavLink } from 'react-router-dom';
-import { BarChart3, PieChart, TrendingUp, Target } from 'lucide-react';
+import { BarChart3, PieChart, TrendingUp, Target, Home } from 'lucide-react';
 
 export const AnalyticsTabs = () => {
   const tabs = [
     { label: 'Сводные отчеты', path: '/reports', icon: BarChart3 },
+    { label: 'Отчёт о продажах квартир', path: '/analytics/apartment-sales', icon: Home },
     { label: 'Продажи и Спрос 3.5', path: '/analytics/sales', icon: TrendingUp },
     { label: 'Аналитика 1.0 (ЖК и Шахматка)', path: '/analytics/1', icon: PieChart },
     { label: 'Аналитика 2.0 (Продажи и Финансы)', path: '/analytics/2', icon: TrendingUp },

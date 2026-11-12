@@ -42,6 +42,7 @@ import { AnalyticsOnePage } from './features/analytics/AnalyticsOnePage';
 import { AnalyticsTwoPage } from './features/analytics/AnalyticsTwoPage';
 import { AnalyticsThreePage } from './features/analytics/AnalyticsThreePage';
 import { SalesAnalyticsPage } from './features/analytics/SalesAnalyticsPage';
+import { ApartmentSalesReportPage } from './features/analytics/ApartmentSalesReportPage';
 import { ErrorBoundary } from './components/ErrorBoundary';
 
 const queryClient = new QueryClient({
@@ -98,6 +99,7 @@ function App() {
                   <Route path="/finance/expenses" element={<ExpensesPage />} />
                   <Route path="/finance/cashflow" element={<CashflowPage />} />
                   <Route path="/reports" element={<ReportsPage />} />
+                  <Route path="/analytics/apartment-sales" element={<ApartmentSalesReportPage />} />
                   <Route path="/analytics/1" element={<AnalyticsOnePage />} />
                   <Route path="/analytics/2" element={<AnalyticsTwoPage />} />
                   <Route path="/analytics/3" element={<AnalyticsThreePage />} />

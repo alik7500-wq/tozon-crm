@@ -69,6 +69,7 @@ export const navGroups = [
       icon: BarChart3,
       children: [
         { label: 'Сводные отчеты', path: '/reports', icon: BarChart3, permission: 'analytics.reports' },
+        { label: 'Отчёт о продажах квартир', path: '/analytics/apartment-sales', icon: Home, permission: 'analytics.view', permissionsAny: ['analytics.view', 'analytics.reports'] },
         { label: 'Продажи и Спрос 3.5', path: '/analytics/sales', icon: TrendingUp, permission: 'analytics.view' },
         { label: 'Аналитика 1.0', path: '/analytics/1', icon: PieChart, permission: 'analytics.view' },
         { label: 'Аналитика 2.0', path: '/analytics/2', icon: TrendingUp, permission: 'analytics.view' },
