@@ -19,8 +19,10 @@ export function InstagramReplyComposer({ conversation, onSent }) {
     } catch (err) {
       setError(err?.response?.data?.code === 'SENT_NOT_SAVED'
         ? 'Instagram принял сообщение, но CRM не сохранила его. Проверьте диалог перед повтором.'
-        : err?.response?.status === 409
+        : err?.code === 'INSTAGRAM_REPLY_WINDOW_CLOSED'
           ? 'Окно ответа закрыто. Дождитесь нового сообщения клиента.'
+          : ['INSTAGRAM_PERMISSION_REQUIRED', 'INSTAGRAM_RECONNECT_REQUIRED', 'INSTAGRAM_ACCOUNT_MISMATCH', 'INSTAGRAM_RATE_LIMIT'].includes(err?.code)
+            ? err.message
           : 'Отправка не подтверждена. Проверьте Instagram перед повторной попыткой.');
       setSending(false);
       return;

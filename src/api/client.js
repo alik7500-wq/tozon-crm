@@ -34,6 +34,21 @@ api.interceptors.response.use(
     return response.data;
   },
   (error) => {
+    if (error.config?.url?.startsWith('/integrations/instagram/')) {
+      const explanations = {
+        INSTAGRAM_PERMISSION_REQUIRED: 'Meta не разрешила доступ к перепискам. Проверьте разрешения приложения.',
+        INSTAGRAM_RECONNECT_REQUIRED: 'Необходимо переподключить Instagram.',
+        INSTAGRAM_ACCOUNT_MISMATCH: 'Токен Instagram не соответствует подключённому аккаунту. Переподключите Instagram.',
+        INSTAGRAM_REPLY_WINDOW_CLOSED: 'Окно ответа закрыто. Дождитесь нового сообщения клиента.',
+        INSTAGRAM_RATE_LIMIT: 'Слишком много запросов. Повторите позже.',
+        INSTAGRAM_CONVERSATION_NOT_FOUND: 'Переписка недоступна. Обновите список диалогов.'
+      };
+      const code = error.response?.data?.code;
+      const normalized = new Error(explanations[code] || 'Не удалось выполнить запрос Instagram.');
+      normalized.code = code;
+      normalized.response = { status: error.response?.status, data: { code } };
+      return Promise.reject(normalized);
+    }
     const message = error.response?.data?.message || error.message || 'Произошла ошибка при выполнении запроса';
     return Promise.reject(new Error(message));
   }
