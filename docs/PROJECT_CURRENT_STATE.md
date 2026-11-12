@@ -80,3 +80,4 @@
 6. **Схемы скидок, бартер и автотранспорт (`discounts.router.js`, `barterRealization.js`, `VehicleDetailsFields.jsx`)**.
 7. **Активность сотрудников (`/activity`, `ActivityPage.jsx`) и импорт лидов (`lead-intake`)**.
 8. **Печать договоров, доп. соглашений и Приложения № 2 (`ContractPrintView.jsx`, `ApartmentLayoutAppendix.jsx`)**.
+

@@ -20,6 +20,10 @@ import {
   CheckCircle2,
   Maximize2,
   Calculator,
+  DollarSign,
+  Wallet,
+  AlertTriangle,
+  Info,
   Eye,
   X,
   AlertCircle
@@ -63,6 +67,24 @@ export function formatArea(value) {
     minimumFractionDigits: 2,
     maximumFractionDigits: 2
   });
+}
+
+export function formatMoneyUsd(value) {
+  const num = Number(value);
+  if (!Number.isFinite(num)) return '0,00';
+  return num.toLocaleString('ru-RU', {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2
+  });
+}
+
+export function formatPercent(value) {
+  const num = Number(value);
+  if (!Number.isFinite(num)) return '0,00%';
+  return `${num.toLocaleString('ru-RU', {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2
+  })}%`;
 }
 
 export function formatDateRu(isoDate) {
@@ -144,7 +166,6 @@ export const ApartmentSalesReportPage = () => {
         const payload = res.data || res;
         setReport(payload);
 
-        // Keep drilldown selection valid if already open
         setSelectedBlockKey((prevKey) => {
           if (!prevKey || prevKey === 'ALL') return prevKey;
           const stillExists = (payload?.blocks || []).some((b) => b.key === prevKey);
@@ -160,7 +181,6 @@ export const ApartmentSalesReportPage = () => {
     [startDate, endDate, complex, block]
   );
 
-  // Automatically recalculate when filters change
   useEffect(() => {
     fetchReport();
   }, [fetchReport]);
@@ -208,14 +228,34 @@ export const ApartmentSalesReportPage = () => {
   };
 
   const summary = report?.summary || {
+    totalAvailableStartCount: 0,
     totalSoldCount: 0,
+    totalAvailableEndCount: 0,
     totalAreaM2: 0,
-    averageAreaM2: 0
+    averageAreaM2: 0,
+    totalSalesAmountUsd: 0,
+    totalPaidCashUsd: 0,
+    totalPaidBarterUsd: 0,
+    totalSettledUsd: 0,
+    totalRemainingDebtUsd: 0,
+    totalOverpaidUsd: 0,
+    totalPaidPercent: 0,
+    totalDebtPercent: 0
   };
   const blocks = report?.blocks || [];
   const totals = report?.totals || {
+    availableStartCount: 0,
     soldCount: 0,
-    soldAreaM2: 0
+    availableEndCount: 0,
+    soldAreaM2: 0,
+    salesAmountUsd: 0,
+    paidCashUsd: 0,
+    paidBarterUsd: 0,
+    totalSettledUsd: 0,
+    remainingDebtUsd: 0,
+    overpaidUsd: 0,
+    paidPercent: 0,
+    debtPercent: 0
   };
 
   const selectedDrilldown = useMemo(() => {
@@ -224,8 +264,15 @@ export const ApartmentSalesReportPage = () => {
       return {
         title: 'Все выбранные блоки (ИТОГО)',
         subtitle: `Полный список проданных квартир за период ${formatDateRu(startDate)} — ${formatDateRu(endDate)}`,
-        soldCount: totals.soldCount,
-        soldAreaM2: totals.soldAreaM2,
+        soldCount: totals.soldCount ?? 0,
+        soldAreaM2: totals.soldAreaM2 ?? 0,
+        salesAmountUsd: totals.salesAmountUsd ?? 0,
+        paidCashUsd: totals.paidCashUsd ?? 0,
+        paidBarterUsd: totals.paidBarterUsd ?? 0,
+        totalSettledUsd: totals.totalSettledUsd ?? 0,
+        remainingDebtUsd: totals.remainingDebtUsd ?? 0,
+        paidPercent: totals.paidPercent ?? 0,
+        debtPercent: totals.debtPercent ?? 0,
         apartments: report.apartments || []
       };
     }
@@ -234,25 +281,30 @@ export const ApartmentSalesReportPage = () => {
     return {
       title: `${found.projectName} — Блок ${found.blockCode}`,
       subtitle: `Детализация проданных квартир за период ${formatDateRu(startDate)} — ${formatDateRu(endDate)}`,
-      soldCount: found.soldCount,
-      soldAreaM2: found.soldAreaM2,
+      soldCount: found.soldCount ?? 0,
+      soldAreaM2: found.soldAreaM2 ?? 0,
+      salesAmountUsd: found.salesAmountUsd ?? 0,
+      paidCashUsd: found.paidCashUsd ?? 0,
+      paidBarterUsd: found.paidBarterUsd ?? 0,
+      totalSettledUsd: found.totalSettledUsd ?? 0,
+      remainingDebtUsd: found.remainingDebtUsd ?? 0,
+      paidPercent: found.paidPercent ?? 0,
+      debtPercent: found.debtPercent ?? 0,
       apartments: found.apartments || []
     };
   }, [selectedBlockKey, report, blocks, totals, startDate, endDate]);
 
-  const complexFilterLabel =
-    complex === 'ALL' ? 'Все комплексы' : complex;
-  const blockFilterLabel =
-    block === 'ALL' ? 'Все блоки' : `Блок ${block}`;
+  const complexFilterLabel = complex === 'ALL' ? 'Все комплексы' : complex;
+  const blockFilterLabel = block === 'ALL' ? 'Все блоки' : `Блок ${block}`;
 
   return (
     <div className="max-w-7xl mx-auto pb-12">
-      {/* A4 Print Styles */}
+      {/* A4 Landscape Print Styles */}
       <style>{`
         @media print {
           @page {
-            size: A4 portrait;
-            margin: 12mm;
+            size: A4 landscape;
+            margin: 10mm;
           }
           body {
             background: #ffffff !important;
@@ -271,11 +323,16 @@ export const ApartmentSalesReportPage = () => {
             border: 1px solid #cbd5e1 !important;
             break-inside: avoid;
           }
+          .print-table {
+            width: 100% !important;
+            border-collapse: collapse !important;
+          }
           .print-table th,
           .print-table td {
             border: 1px solid #cbd5e1 !important;
-            padding: 6px 8px !important;
-            font-size: 10pt !important;
+            padding: 4px 6px !important;
+            font-size: 8.5pt !important;
+            position: static !important;
           }
         }
       `}</style>
@@ -294,7 +351,7 @@ export const ApartmentSalesReportPage = () => {
               <span>Отчёт о продажах квартир</span>
             </h1>
             <p className="mt-1 text-xs sm:text-sm text-slate-500">
-              Количество и площадь проданных квартир по жилым комплексам и блокам по дате заключения действующих договоров (часовой пояс Asia/Dushanbe)
+              Динамика свободного фонда, объём продаж, фактические оплаты и задолженность покупателей по ЖК и блокам (часовой пояс Asia/Dushanbe)
             </p>
           </div>
 
@@ -332,21 +389,21 @@ export const ApartmentSalesReportPage = () => {
         </div>
 
         {/* Print-only A4 Header */}
-        <div className="hidden print-only border-b-2 border-slate-800 pb-4 mb-4">
+        <div className="hidden print-only border-b-2 border-slate-800 pb-3 mb-3">
           <div className="flex items-start justify-between">
             <div>
-              <h1 className="text-xl font-extrabold text-slate-900 uppercase tracking-wide">
+              <h1 className="text-lg font-extrabold text-slate-900 uppercase tracking-wide">
                 Отчёт о продажах квартир
               </h1>
-              <p className="text-xs text-slate-600 mt-1">
-                Период отчёта: <strong>{formatDateRu(startDate)} — {formatDateRu(endDate)}</strong>
+              <p className="text-xs text-slate-600 mt-0.5">
+                Период отчёта: <strong>{formatDateRu(startDate)} — {formatDateRu(endDate)}</strong> | Оплаты зачтены на дату: <strong>{formatDateRu(endDate)}</strong>
               </p>
               <p className="text-xs text-slate-600">
                 Фильтры: ЖК — <strong>{complexFilterLabel}</strong>, Блок — <strong>{blockFilterLabel}</strong>
               </p>
             </div>
             <div className="text-right text-xs text-slate-600">
-              <div>TOZON CRM</div>
+              <div className="font-bold text-slate-800">TOZON CRM</div>
               <div>
                 Дата формирования: <strong>{report?.generatedAtLabel || formatDateRu(endDate)}</strong>
               </div>
@@ -462,7 +519,7 @@ export const ApartmentSalesReportPage = () => {
           </div>
         )}
 
-        {/* Summary KPI Cards (Section 2.2) */}
+        {/* Summary KPI Cards (2 rows of 3 cards) */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <div className="print-card rounded-2xl bg-white p-5 border border-slate-200 shadow-2xs flex items-center justify-between">
             <div>
@@ -473,13 +530,14 @@ export const ApartmentSalesReportPage = () => {
                 data-testid="kpi-total-sold-count"
                 className="mt-2 text-3xl font-extrabold text-slate-900 tracking-tight"
               >
-                {summary.totalSoldCount.toLocaleString('ru-RU')}
+                {(summary.totalSoldCount ?? 0).toLocaleString('ru-RU')}
               </div>
-              <span className="mt-1 inline-block text-[11px] text-slate-400">
-                Действующие договоры за выбранный период
+              <span className="mt-1 inline-block text-[11px] text-slate-500">
+                Свободно: <strong>{summary.totalAvailableStartCount ?? 0}</strong> на начало →{' '}
+                <strong>{summary.totalAvailableEndCount ?? 0}</strong> на конец
               </span>
             </div>
-            <div className="no-print h-12 w-12 rounded-2xl bg-blue-50 border border-blue-100 flex items-center justify-center text-blue-600">
+            <div className="no-print h-12 w-12 rounded-2xl bg-blue-50 border border-blue-100 flex items-center justify-center text-blue-600 shrink-0">
               <Home className="h-6 w-6" />
             </div>
           </div>
@@ -499,7 +557,7 @@ export const ApartmentSalesReportPage = () => {
                 Суммарная площадь реализованных квартир
               </span>
             </div>
-            <div className="no-print h-12 w-12 rounded-2xl bg-emerald-50 border border-emerald-100 flex items-center justify-center text-emerald-600">
+            <div className="no-print h-12 w-12 rounded-2xl bg-emerald-50 border border-emerald-100 flex items-center justify-center text-emerald-600 shrink-0">
               <Maximize2 className="h-6 w-6" />
             </div>
           </div>
@@ -519,13 +577,84 @@ export const ApartmentSalesReportPage = () => {
                 Отношение проданной площади к числу квартир
               </span>
             </div>
-            <div className="no-print h-12 w-12 rounded-2xl bg-indigo-50 border border-indigo-100 flex items-center justify-center text-indigo-600">
+            <div className="no-print h-12 w-12 rounded-2xl bg-indigo-50 border border-indigo-100 flex items-center justify-center text-indigo-600 shrink-0">
               <Calculator className="h-6 w-6" />
+            </div>
+          </div>
+
+          <div className="print-card rounded-2xl bg-white p-5 border border-slate-200 shadow-2xs flex items-center justify-between">
+            <div>
+              <span className="text-xs font-bold text-slate-500">
+                Сумма продаж за период, USD
+              </span>
+              <div
+                data-testid="kpi-total-sales-usd"
+                className="mt-2 text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight"
+              >
+                ${formatMoneyUsd(summary.totalSalesAmountUsd)}
+              </div>
+              <span className="mt-1 inline-block text-[11px] text-slate-400">
+                Итоговая договорная стоимость с учётом скидок
+              </span>
+            </div>
+            <div className="no-print h-12 w-12 rounded-2xl bg-slate-100 border border-slate-200 flex items-center justify-center text-slate-700 shrink-0">
+              <DollarSign className="h-6 w-6" />
+            </div>
+          </div>
+
+          <div className="print-card rounded-2xl bg-white p-5 border border-slate-200 shadow-2xs flex items-center justify-between">
+            <div>
+              <div className="flex items-center gap-2">
+                <span className="text-xs font-bold text-slate-500">
+                  Получено (на конец периода), USD
+                </span>
+                <span className="rounded-md bg-emerald-50 border border-emerald-200 px-1.5 py-0.5 text-[10px] font-extrabold text-emerald-700">
+                  {formatPercent(summary.totalPaidPercent)}
+                </span>
+              </div>
+              <div
+                data-testid="kpi-total-settled-usd"
+                className="mt-2 text-2xl sm:text-3xl font-extrabold text-emerald-700 tracking-tight"
+              >
+                ${formatMoneyUsd(summary.totalSettledUsd)}
+              </div>
+              <span className="mt-1 inline-block text-[11px] text-slate-500">
+                Деньгами: <strong>${formatMoneyUsd(summary.totalPaidCashUsd)}</strong> | Бартер:{' '}
+                <strong>${formatMoneyUsd(summary.totalPaidBarterUsd)}</strong>
+              </span>
+            </div>
+            <div className="no-print h-12 w-12 rounded-2xl bg-emerald-50 border border-emerald-100 flex items-center justify-center text-emerald-600 shrink-0">
+              <Wallet className="h-6 w-6" />
+            </div>
+          </div>
+
+          <div className="print-card rounded-2xl bg-white p-5 border border-slate-200 shadow-2xs flex items-center justify-between">
+            <div>
+              <div className="flex items-center gap-2">
+                <span className="text-xs font-bold text-slate-500">
+                  Остаток долга (на конец периода), USD
+                </span>
+                <span className="rounded-md bg-amber-50 border border-amber-200 px-1.5 py-0.5 text-[10px] font-extrabold text-amber-800">
+                  {formatPercent(summary.totalDebtPercent)}
+                </span>
+              </div>
+              <div
+                data-testid="kpi-total-debt-usd"
+                className="mt-2 text-2xl sm:text-3xl font-extrabold text-amber-700 tracking-tight"
+              >
+                ${formatMoneyUsd(summary.totalRemainingDebtUsd)}
+              </div>
+              <span className="mt-1 inline-block text-[11px] text-slate-400">
+                Непогашенный остаток по договорам периода на {formatDateRu(endDate)}
+              </span>
+            </div>
+            <div className="no-print h-12 w-12 rounded-2xl bg-amber-50 border border-amber-100 flex items-center justify-center text-amber-600 shrink-0">
+              <AlertTriangle className="h-6 w-6" />
             </div>
           </div>
         </div>
 
-        {/* Main Table by Blocks (Section 2.3) */}
+        {/* Main Table by Blocks */}
         <div className="print-card rounded-2xl bg-white border border-slate-200 shadow-2xs overflow-hidden">
           <div className="px-5 py-4 border-b border-slate-200 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
             <div>
@@ -533,7 +662,7 @@ export const ApartmentSalesReportPage = () => {
                 Продажи квартир по жилым комплексам и блокам
               </h2>
               <p className="no-print text-xs text-slate-500 mt-0.5">
-                Нажмите на строку блока, чтобы открыть подробный список проданных квартир (детализацию)
+                Нажмите на строку блока, чтобы открыть подробный список проданных квартир с расшифровкой оплат (деньгами и бартером)
               </p>
             </div>
             <div className="text-xs font-semibold text-slate-500">
@@ -542,18 +671,77 @@ export const ApartmentSalesReportPage = () => {
           </div>
 
           <div className="overflow-x-auto">
-            <table className="print-table w-full text-left border-collapse">
+            <table className="print-table w-full min-w-[1100px] text-left border-collapse">
               <thead>
                 <tr className="bg-slate-50 border-b border-slate-200 text-[11px] font-bold uppercase tracking-wider text-slate-500">
-                  <th className="py-3.5 px-5">Жилой комплекс</th>
-                  <th className="py-3.5 px-5 text-center">Блок</th>
-                  <th className="py-3.5 px-5 text-right">Продано квартир, шт.</th>
-                  <th className="py-3.5 px-5 text-right">Проданная площадь, м²</th>
+                  <th className="sticky left-0 z-20 bg-slate-50 py-3.5 px-4 min-w-[170px] border-r border-slate-200/70">
+                    Жилой комплекс
+                  </th>
+                  <th className="sticky left-[170px] z-20 bg-slate-50 py-3.5 px-3 text-center min-w-[72px] border-r border-slate-200">
+                    Блок
+                  </th>
+                  <th
+                    title="Количество квартир, доступных для продажи на начало выбранного периода (без проданных, активных броней и заблокированных квартир)"
+                    className="py-3.5 px-3.5 text-right cursor-help"
+                  >
+                    Свободно на начало периода, шт.
+                  </th>
+                  <th
+                    title="Количество квартир с действующими договорами (SIGNED), заключёнными в выбранном периоде"
+                    className="py-3.5 px-3.5 text-right cursor-help"
+                  >
+                    Продано за период, шт.
+                  </th>
+                  <th
+                    title="Количество квартир, доступных для продажи на конец выбранного периода"
+                    className="py-3.5 px-3.5 text-right cursor-help"
+                  >
+                    Осталось свободных на конец периода, шт.
+                  </th>
+                  <th
+                    title="Общая площадь квартир, проданных за выбранный период"
+                    className="py-3.5 px-3.5 text-right cursor-help"
+                  >
+                    Проданная площадь, м²
+                  </th>
+                  <th
+                    title="Общая договорная стоимость квартир, проданных за выбранный период (с учётом согласованной скидки)"
+                    className="py-3.5 px-3.5 text-right cursor-help"
+                  >
+                    Сумма продаж, USD
+                  </th>
+                  <th
+                    title="Сумма фактически зачтённых оплат (денежные поступления + подтверждённый бартер) по договорам периода на дату окончания периода"
+                    className="py-3.5 px-3.5 text-right cursor-help"
+                  >
+                    Получено, USD
+                  </th>
+                  <th
+                    title="Отношение полученных оплат к сумме продаж (Получено / Сумма продаж × 100)"
+                    className="py-3.5 px-3 text-right cursor-help"
+                  >
+                    Оплачено, %
+                  </th>
+                  <th
+                    title="Непогашенный остаток задолженности по договорам периода по состоянию на конец выбранного периода"
+                    className="py-3.5 px-3.5 text-right cursor-help"
+                  >
+                    Остаток долга, USD
+                  </th>
+                  <th
+                    title="Отношение остатка долга к сумме продаж (Остаток долга / Сумма продаж × 100)"
+                    className="py-3.5 px-3.5 text-right cursor-help"
+                  >
+                    Долг, %
+                  </th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-200 text-sm">
+              <tbody className="divide-y divide-slate-200 text-xs sm:text-sm">
                 {blocks.map((row) => {
                   const isSelected = selectedBlockKey === row.key;
+                  const stickyBg = isSelected
+                    ? 'bg-blue-50 group-hover:bg-blue-50'
+                    : 'bg-white group-hover:bg-slate-50';
                   return (
                     <tr
                       key={row.key}
@@ -561,13 +749,15 @@ export const ApartmentSalesReportPage = () => {
                       onClick={() =>
                         setSelectedBlockKey((prev) => (prev === row.key ? null : row.key))
                       }
-                      className={`transition cursor-pointer ${
+                      className={`group transition cursor-pointer ${
                         isSelected
                           ? 'bg-blue-50/80 hover:bg-blue-50'
                           : 'hover:bg-slate-50'
                       }`}
                     >
-                      <td className="py-3.5 px-5 font-bold text-slate-900">
+                      <td
+                        className={`sticky left-0 z-10 py-3.5 px-4 font-bold text-slate-900 border-r border-slate-200/70 transition ${stickyBg}`}
+                      >
                         <div className="flex items-center gap-2">
                           <span className="no-print text-slate-400">
                             {isSelected ? (
@@ -579,16 +769,58 @@ export const ApartmentSalesReportPage = () => {
                           <span>{row.projectName}</span>
                         </div>
                       </td>
-                      <td className="py-3.5 px-5 text-center">
+                      <td
+                        className={`sticky left-[170px] z-10 py-3.5 px-3 text-center border-r border-slate-200 transition ${stickyBg}`}
+                      >
                         <span className="inline-flex items-center justify-center min-w-[2rem] rounded-lg bg-slate-100 px-2.5 py-1 text-xs font-extrabold text-slate-800">
                           {row.blockCode}
                         </span>
                       </td>
-                      <td className="py-3.5 px-5 text-right font-bold text-slate-900">
-                        {row.soldCount.toLocaleString('ru-RU')}
+                      <td
+                        title={`Всего квартир в блоке: ${row.totalApartments ?? 0} шт. (продаваемый фонд: ${row.sellableApartments ?? 0}, заблокировано: ${row.blockedCount ?? 0}, в брони на начало: ${row.reservedStartCount ?? 0})`}
+                        className="py-3.5 px-3.5 text-right font-semibold text-slate-700 whitespace-nowrap"
+                      >
+                        {(row.availableStartCount ?? 0).toLocaleString('ru-RU')}
                       </td>
-                      <td className="py-3.5 px-5 text-right font-bold text-slate-900">
+                      <td className="py-3.5 px-3.5 text-right font-extrabold text-slate-900 whitespace-nowrap">
+                        {(row.soldCount ?? 0).toLocaleString('ru-RU')}
+                      </td>
+                      <td
+                        title={`На конец периода — свободно: ${row.availableEndCount ?? 0} шт., в активной брони: ${row.reservedEndCount ?? 0} шт., заблокировано: ${row.blockedCount ?? 0} шт.`}
+                        className="py-3.5 px-3.5 text-right font-semibold text-slate-700 whitespace-nowrap"
+                      >
+                        {(row.availableEndCount ?? 0).toLocaleString('ru-RU')}
+                        {(row.reservedEndCount ?? 0) > 0 && (
+                          <div className="no-print text-[10px] font-medium text-slate-400">
+                            в брони: {row.reservedEndCount}
+                          </div>
+                        )}
+                      </td>
+                      <td className="py-3.5 px-3.5 text-right font-bold text-slate-900 whitespace-nowrap">
                         {formatArea(row.soldAreaM2)}
+                      </td>
+                      <td className="py-3.5 px-3.5 text-right font-bold text-slate-900 whitespace-nowrap">
+                        {formatMoneyUsd(row.salesAmountUsd)}
+                      </td>
+                      <td
+                        title={`Денежными средствами: $${formatMoneyUsd(row.paidCashUsd)} | Бартером: $${formatMoneyUsd(row.paidBarterUsd)}`}
+                        className="py-3.5 px-3.5 text-right font-bold text-emerald-700 whitespace-nowrap"
+                      >
+                        <div>{formatMoneyUsd(row.totalSettledUsd)}</div>
+                        {Number(row.paidBarterUsd) > 0 && (
+                          <div className="no-print text-[10px] font-medium text-slate-500">
+                            бартер: {formatMoneyUsd(row.paidBarterUsd)}
+                          </div>
+                        )}
+                      </td>
+                      <td className="py-3.5 px-3 text-right font-semibold text-emerald-700 whitespace-nowrap">
+                        {formatPercent(row.paidPercent)}
+                      </td>
+                      <td className="py-3.5 px-3.5 text-right font-bold text-amber-800 whitespace-nowrap">
+                        {formatMoneyUsd(row.remainingDebtUsd)}
+                      </td>
+                      <td className="py-3.5 px-3.5 text-right font-semibold text-amber-800 whitespace-nowrap">
+                        {formatPercent(row.debtPercent)}
                       </td>
                     </tr>
                   );
@@ -596,7 +828,7 @@ export const ApartmentSalesReportPage = () => {
 
                 {blocks.length === 0 && !isLoading && (
                   <tr>
-                    <td colSpan={4} className="py-8 text-center text-xs text-slate-500">
+                    <td colSpan={11} className="py-8 text-center text-xs text-slate-500">
                       Нет блоков, соответствующих выбранным фильтрам
                     </td>
                   </tr>
@@ -608,36 +840,88 @@ export const ApartmentSalesReportPage = () => {
                   onClick={() =>
                     setSelectedBlockKey((prev) => (prev === 'ALL' ? null : 'ALL'))
                   }
-                  className="bg-slate-100/90 border-t-2 border-slate-300 font-extrabold text-slate-900 cursor-pointer hover:bg-slate-200/70 transition"
+                  className="bg-slate-100 border-t-2 border-slate-300 font-extrabold text-slate-900 cursor-pointer hover:bg-slate-200/80 transition text-xs sm:text-sm"
                 >
-                  <td className="py-3.5 px-5 text-sm">
+                  <td className="sticky left-0 z-10 bg-slate-100 py-3.5 px-4 border-r border-slate-300/70">
                     <div className="flex items-center gap-2">
                       <span>ИТОГО</span>
                       <span className="no-print text-[11px] font-semibold text-blue-600">
-                        (показать все квартиры)
+                        (все квартиры)
                       </span>
                     </div>
                   </td>
-                  <td className="py-3.5 px-5 text-center text-xs text-slate-500">—</td>
+                  <td className="sticky left-[170px] z-10 bg-slate-100 py-3.5 px-3 text-center text-xs text-slate-500 border-r border-slate-300">
+                    —
+                  </td>
+                  <td
+                    data-testid="table-total-available-start"
+                    className="py-3.5 px-3.5 text-right whitespace-nowrap"
+                  >
+                    {(totals.availableStartCount ?? 0).toLocaleString('ru-RU')}
+                  </td>
                   <td
                     data-testid="table-total-sold-count"
-                    className="py-3.5 px-5 text-right text-sm"
+                    className="py-3.5 px-3.5 text-right whitespace-nowrap"
                   >
-                    {totals.soldCount.toLocaleString('ru-RU')}
+                    {(totals.soldCount ?? 0).toLocaleString('ru-RU')}
+                  </td>
+                  <td
+                    data-testid="table-total-available-end"
+                    className="py-3.5 px-3.5 text-right whitespace-nowrap"
+                  >
+                    {(totals.availableEndCount ?? 0).toLocaleString('ru-RU')}
                   </td>
                   <td
                     data-testid="table-total-sold-area"
-                    className="py-3.5 px-5 text-right text-sm"
+                    className="py-3.5 px-3.5 text-right whitespace-nowrap"
                   >
                     {formatArea(totals.soldAreaM2)}
+                  </td>
+                  <td
+                    data-testid="table-total-sales-usd"
+                    className="py-3.5 px-3.5 text-right whitespace-nowrap"
+                  >
+                    {formatMoneyUsd(totals.salesAmountUsd)}
+                  </td>
+                  <td
+                    data-testid="table-total-settled-usd"
+                    className="py-3.5 px-3.5 text-right text-emerald-800 whitespace-nowrap"
+                  >
+                    {formatMoneyUsd(totals.totalSettledUsd)}
+                  </td>
+                  <td
+                    data-testid="table-total-paid-percent"
+                    className="py-3.5 px-3 text-right text-emerald-800 whitespace-nowrap"
+                  >
+                    {formatPercent(totals.paidPercent)}
+                  </td>
+                  <td
+                    data-testid="table-total-debt-usd"
+                    className="py-3.5 px-3.5 text-right text-amber-900 whitespace-nowrap"
+                  >
+                    {formatMoneyUsd(totals.remainingDebtUsd)}
+                  </td>
+                  <td
+                    data-testid="table-total-debt-percent"
+                    className="py-3.5 px-3.5 text-right text-amber-900 whitespace-nowrap"
+                  >
+                    {formatPercent(totals.debtPercent)}
                   </td>
                 </tr>
               </tfoot>
             </table>
           </div>
+
+          {/* Methodology & Historical Inventory Note */}
+          <div className="no-print px-5 py-3 bg-slate-50 border-t border-slate-200 text-[11px] text-slate-500 flex items-start gap-2">
+            <Info className="h-4 w-4 text-slate-400 shrink-0 mt-0.5" />
+            <div>
+              <strong>Методика расчёта:</strong> Сумма продаж, оплаты (деньгами и бартером) и остаток долга рассчитываются по договорам квартир, проданных в выбранном периоде (<strong>{formatDateRu(startDate)} — {formatDateRu(endDate)}</strong>), по состоянию на конец периода (<strong>{formatDateRu(endDate)}</strong>). Платежи с датой позже {formatDateRu(endDate)} в срез периода не включаются. Свободный остаток квартир учитывает продаваемый фонд блока (без заблокированных застройщиком квартир <code>BLOCKED</code>), действующие договоры (<code>SIGNED</code>), активные брони (<code>RESERVED</code>) и исторические расторжения (<code>CANCELLED</code>).
+            </div>
+          </div>
         </div>
 
-        {/* Drilldown Section (Section 2.5) */}
+        {/* Drilldown Section (Section 6) */}
         {selectedDrilldown && (
           <div
             data-testid="drilldown-section"
@@ -654,7 +938,10 @@ export const ApartmentSalesReportPage = () => {
                 <p className="text-xs text-slate-600 mt-0.5">
                   {selectedDrilldown.subtitle} — квартир:{' '}
                   <strong>{selectedDrilldown.soldCount} шт.</strong>, площадь:{' '}
-                  <strong>{formatArea(selectedDrilldown.soldAreaM2)} м²</strong>
+                  <strong>{formatArea(selectedDrilldown.soldAreaM2)} м²</strong>, сумма продаж:{' '}
+                  <strong>${formatMoneyUsd(selectedDrilldown.salesAmountUsd)}</strong>, погашено:{' '}
+                  <strong>${formatMoneyUsd(selectedDrilldown.totalSettledUsd)}</strong> ({formatPercent(selectedDrilldown.paidPercent)}), долг:{' '}
+                  <strong>${formatMoneyUsd(selectedDrilldown.remainingDebtUsd)}</strong> ({formatPercent(selectedDrilldown.debtPercent)})
                 </p>
               </div>
 
@@ -685,19 +972,21 @@ export const ApartmentSalesReportPage = () => {
               </div>
             ) : (
               <div className="overflow-x-auto">
-                <table className="print-table w-full text-left border-collapse">
+                <table className="print-table w-full min-w-[1150px] text-left border-collapse">
                   <thead>
                     <tr className="bg-slate-50 border-b border-slate-200 text-[11px] font-bold uppercase tracking-wider text-slate-500">
-                      <th className="py-3 px-4">Дата договора</th>
-                      <th className="py-3 px-4">Номер договора</th>
-                      <th className="py-3 px-4">Жилой комплекс</th>
-                      <th className="py-3 px-4 text-center">Блок</th>
-                      <th className="py-3 px-4 text-center">Номер квартиры</th>
-                      <th className="py-3 px-4 text-center">Этаж</th>
-                      <th className="py-3 px-4 text-right">Площадь квартиры, м²</th>
-                      <th className="py-3 px-4">Статус договора</th>
+                      <th className="py-3 px-3.5">Дата и номер договора</th>
+                      <th className="py-3 px-3 text-center">Блок / Кв.</th>
+                      <th className="py-3 px-3 text-right">Площадь, м²</th>
+                      <th className="py-3 px-3.5 text-right">Договорная стоимость, USD</th>
+                      <th className="py-3 px-3.5 text-right">Получено деньгами, USD</th>
+                      <th className="py-3 px-3.5 text-right">Зачтено бартером, USD</th>
+                      <th className="py-3 px-3.5 text-right">Всего погашено, USD</th>
+                      <th className="py-3 px-3.5 text-right">Остаток задолженности, USD</th>
+                      <th className="py-3 px-3 text-right">Оплачено, %</th>
+                      <th className="py-3 px-3 text-right">Долг, %</th>
                       {canOpenContractCard && (
-                        <th className="no-print py-3 px-4 text-right">Договор</th>
+                        <th className="no-print py-3 px-3.5 text-right">Договор</th>
                       )}
                     </tr>
                   </thead>
@@ -705,37 +994,52 @@ export const ApartmentSalesReportPage = () => {
                     {selectedDrilldown.apartments.map((apt) => (
                       <tr
                         key={`${apt.dealId}-${apt.unitId}`}
+                        data-testid={`drilldown-row-${apt.unitNumber}`}
                         className="hover:bg-slate-50 transition"
                       >
-                        <td className="py-3 px-4 font-semibold text-slate-800 whitespace-nowrap">
-                          {formatDateRu(apt.contractDate)}
+                        <td className="py-3 px-3.5 whitespace-nowrap">
+                          <div className="font-bold text-slate-900">
+                            {formatContractNumber(apt.contractNumber) || apt.contractNumber}
+                          </div>
+                          <div className="text-[11px] font-semibold text-slate-500">
+                            от {formatDateRu(apt.contractDate)} ({apt.projectName})
+                          </div>
                         </td>
-                        <td className="py-3 px-4 font-bold text-slate-900 whitespace-nowrap">
-                          {formatContractNumber(apt.contractNumber) || apt.contractNumber}
+                        <td className="py-3 px-3 text-center whitespace-nowrap">
+                          <span className="font-extrabold text-slate-900">
+                            № {apt.unitNumber}
+                          </span>
+                          <div className="text-[11px] text-slate-500">
+                            Блок {apt.blockCode}
+                            {apt.floorNumber ? `, эт. ${apt.floorNumber}` : ''}
+                          </div>
                         </td>
-                        <td className="py-3 px-4 text-slate-700 font-medium">
-                          {apt.projectName}
-                        </td>
-                        <td className="py-3 px-4 text-center font-bold text-slate-800">
-                          {apt.blockCode}
-                        </td>
-                        <td className="py-3 px-4 text-center font-extrabold text-slate-900">
-                          № {apt.unitNumber}
-                        </td>
-                        <td className="py-3 px-4 text-center text-slate-700">
-                          {apt.floorNumber ?? '—'}
-                        </td>
-                        <td className="py-3 px-4 text-right font-bold text-slate-900">
+                        <td className="py-3 px-3 text-right font-bold text-slate-900 whitespace-nowrap">
                           {formatArea(apt.areaM2)}
                         </td>
-                        <td className="py-3 px-4">
-                          <span className="inline-flex items-center gap-1 rounded-full bg-emerald-50 border border-emerald-200 px-2.5 py-0.5 text-[11px] font-bold text-emerald-700">
-                            <CheckCircle2 className="h-3 w-3 text-emerald-600" />
-                            <span>{apt.statusLabel || 'Действующий'}</span>
-                          </span>
+                        <td className="py-3 px-3.5 text-right font-bold text-slate-900 whitespace-nowrap">
+                          {formatMoneyUsd(apt.contractPriceUsd)}
+                        </td>
+                        <td className="py-3 px-3.5 text-right font-semibold text-emerald-700 whitespace-nowrap">
+                          {formatMoneyUsd(apt.paidCashUsd)}
+                        </td>
+                        <td className="py-3 px-3.5 text-right font-semibold text-indigo-700 whitespace-nowrap">
+                          {formatMoneyUsd(apt.paidBarterUsd)}
+                        </td>
+                        <td className="py-3 px-3.5 text-right font-bold text-emerald-800 whitespace-nowrap">
+                          {formatMoneyUsd(apt.totalSettledUsd)}
+                        </td>
+                        <td className="py-3 px-3.5 text-right font-bold text-amber-800 whitespace-nowrap">
+                          {formatMoneyUsd(apt.remainingDebtUsd)}
+                        </td>
+                        <td className="py-3 px-3 text-right font-semibold text-emerald-700 whitespace-nowrap">
+                          {formatPercent(apt.paidPercent)}
+                        </td>
+                        <td className="py-3 px-3 text-right font-semibold text-amber-800 whitespace-nowrap">
+                          {formatPercent(apt.debtPercent)}
                         </td>
                         {canOpenContractCard && (
-                          <td className="no-print py-3 px-4 text-right">
+                          <td className="no-print py-3 px-3.5 text-right whitespace-nowrap">
                             <button
                               type="button"
                               onClick={() => setSelectedDealIdForDrawer(apt.dealId)}
@@ -750,14 +1054,38 @@ export const ApartmentSalesReportPage = () => {
                     ))}
                   </tbody>
                   <tfoot>
-                    <tr className="bg-slate-50 border-t border-slate-200 font-extrabold text-slate-900 text-xs sm:text-sm">
-                      <td colSpan={6} className="py-3 px-4">
+                    <tr
+                      data-testid="drilldown-row-total"
+                      className="bg-slate-100 border-t-2 border-slate-300 font-extrabold text-slate-900 text-xs sm:text-sm"
+                    >
+                      <td colSpan={2} className="py-3 px-3.5">
                         ИТОГО по списку ({selectedDrilldown.soldCount} шт.)
                       </td>
-                      <td className="py-3 px-4 text-right">
+                      <td className="py-3 px-3 text-right whitespace-nowrap">
                         {formatArea(selectedDrilldown.soldAreaM2)}
                       </td>
-                      <td colSpan={canOpenContractCard ? 2 : 1} className="py-3 px-4" />
+                      <td className="py-3 px-3.5 text-right whitespace-nowrap">
+                        {formatMoneyUsd(selectedDrilldown.salesAmountUsd)}
+                      </td>
+                      <td className="py-3 px-3.5 text-right text-emerald-700 whitespace-nowrap">
+                        {formatMoneyUsd(selectedDrilldown.paidCashUsd)}
+                      </td>
+                      <td className="py-3 px-3.5 text-right text-indigo-700 whitespace-nowrap">
+                        {formatMoneyUsd(selectedDrilldown.paidBarterUsd)}
+                      </td>
+                      <td className="py-3 px-3.5 text-right text-emerald-800 whitespace-nowrap">
+                        {formatMoneyUsd(selectedDrilldown.totalSettledUsd)}
+                      </td>
+                      <td className="py-3 px-3.5 text-right text-amber-900 whitespace-nowrap">
+                        {formatMoneyUsd(selectedDrilldown.remainingDebtUsd)}
+                      </td>
+                      <td className="py-3 px-3 text-right text-emerald-800 whitespace-nowrap">
+                        {formatPercent(selectedDrilldown.paidPercent)}
+                      </td>
+                      <td className="py-3 px-3 text-right text-amber-900 whitespace-nowrap">
+                        {formatPercent(selectedDrilldown.debtPercent)}
+                      </td>
+                      {canOpenContractCard && <td className="no-print py-3 px-3.5" />}
                     </tr>
                   </tfoot>
                 </table>
@@ -786,4 +1114,3 @@ export const ApartmentSalesReportPage = () => {
     </div>
   );
 };
-
