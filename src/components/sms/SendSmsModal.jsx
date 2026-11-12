@@ -44,6 +44,7 @@ const CONTEXT_MAPPING = {
 
 export function SendSmsModal({ isOpen, onClose, client, context = 'lead', onSuccess }) {
   const [text, setText] = useState('');
+  const [language, setLanguage] = useState('tj');
   const [templates, setTemplates] = useState([]);
   const [availability, setAvailability] = useState({});
   const [isAvailabilityLoading, setIsAvailabilityLoading] = useState(false);
@@ -68,6 +69,7 @@ export function SendSmsModal({ isOpen, onClose, client, context = 'lead', onSucc
   useEffect(() => {
     if (isOpen) {
       setText('');
+      setLanguage(client?.sms_language === 'ru' ? 'ru' : 'tj');
       setError(null);
       setSuccessResult(null);
       setSelectedTemplateCode('');
@@ -135,7 +137,7 @@ export function SendSmsModal({ isOpen, onClose, client, context = 'lead', onSucc
     }
   };
 
-  const handleTemplateSelect = async (code) => {
+  const handleTemplateSelect = async (code, selectedLanguage = language) => {
     const currentPreviewSeq = ++previewSeqRef.current;
     setSelectedTemplateCode(code);
     setError(null);
@@ -157,6 +159,7 @@ export function SendSmsModal({ isOpen, onClose, client, context = 'lead', onSucc
     try {
       const res = await api.post('/sms/preview', {
         templateCode: code,
+        language: selectedLanguage,
         clientId,
         dealId,
         taskId
@@ -179,6 +182,13 @@ export function SendSmsModal({ isOpen, onClose, client, context = 'lead', onSucc
         setIsPreviewLoading(false);
       }
     }
+  };
+
+  const handleLanguageChange = (nextLanguage) => {
+    if (isSending || isPreviewLoading) return;
+    setLanguage(nextLanguage);
+    ++previewSeqRef.current;
+    if (selectedTemplateCode) handleTemplateSelect(selectedTemplateCode, nextLanguage);
   };
 
   if (!isOpen || !client) return null;
@@ -231,7 +241,8 @@ export function SendSmsModal({ isOpen, onClose, client, context = 'lead', onSucc
         clientId: client.id || client.clientId || client.lead_id || null,
         phone: displayPhone,
         text: text.trim(),
-        dealId: client.deal_id || client.dealId || null
+        dealId: client.deal_id || client.dealId || null,
+        language
       });
 
       if (res.success) {
@@ -277,6 +288,18 @@ export function SendSmsModal({ isOpen, onClose, client, context = 'lead', onSucc
 
         {/* Form Body */}
         <form onSubmit={handleSend} className="p-6 space-y-4">
+          <fieldset disabled={isSending || isPreviewLoading} className="space-y-1">
+            <legend className="text-xs font-medium text-slate-400 mb-1.5">Язык SMS</legend>
+            <div className="grid grid-cols-2 gap-2" role="group" aria-label="Язык сообщения">
+              {[{ value: 'tj', label: 'Тоҷикӣ' }, { value: 'ru', label: 'Русский' }].map((item) => (
+                <button key={item.value} type="button" aria-pressed={language === item.value}
+                  onClick={() => handleLanguageChange(item.value)}
+                  className={`rounded-xl px-3 py-2 text-sm border transition ${language === item.value ? 'border-blue-500 bg-blue-500/20 text-white' : 'border-slate-700 text-slate-300 hover:bg-slate-800'}`}>
+                  {item.label}
+                </button>
+              ))}
+            </div>
+          </fieldset>
           
           {/* Recipient Details */}
           <div className="grid grid-cols-2 gap-4 bg-slate-950/60 p-3.5 rounded-xl border border-slate-800/80 text-sm">
