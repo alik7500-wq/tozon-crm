@@ -56,6 +56,7 @@ case 'DEBTOR_REMINDER': return 'Задолженность';
 
 export function SmsOutboxEventDetailModal({ eventId, isOpen, onClose, onRefreshQueue }) {
   const [previewData, setPreviewData] = useState(null);
+  const [language, setLanguage] = useState('tj');
   const [isLoading, setIsLoading] = useState(true);
   const [isSending, setIsSending] = useState(false);
   const [isCancelling, setIsCancelling] = useState(false);
@@ -64,12 +65,12 @@ export function SmsOutboxEventDetailModal({ eventId, isOpen, onClose, onRefreshQ
   const [errorMessage, setErrorMessage] = useState(null);
   const [successMessage, setSuccessMessage] = useState(null);
 
-  const fetchPreview = async () => {
+  const fetchPreview = async (selectedLanguage = language) => {
     if (!eventId) return;
     setIsLoading(true);
     setErrorMessage(null);
     try {
-      const res = await api.post(`/sms/events/${eventId}/preview`);
+      const res = await api.post(`/sms/events/${eventId}/preview`, { language: selectedLanguage });
       if (res.success && res.data) {
         setPreviewData(res.data);
       } else {
@@ -86,11 +87,12 @@ export function SmsOutboxEventDetailModal({ eventId, isOpen, onClose, onRefreshQ
   useEffect(() => {
     if (isOpen && eventId) {
       setPreviewData(null);
+      setLanguage('tj');
       setSuccessMessage(null);
       setErrorMessage(null);
       setShowCancelConfirm(false);
       setCancelReason('');
-      fetchPreview();
+      fetchPreview('tj');
     }
   }, [isOpen, eventId]);
 
@@ -124,7 +126,8 @@ export function SmsOutboxEventDetailModal({ eventId, isOpen, onClose, onRefreshQ
     setErrorMessage(null);
     try {
       const res = await api.post(`/sms/events/${eventId}/confirm`, {
-        previewHash: previewData?.previewHash
+        previewHash: previewData?.previewHash,
+        language
       });
 
       if (res.success) {
@@ -324,6 +327,18 @@ export function SmsOutboxEventDetailModal({ eventId, isOpen, onClose, onRefreshQ
                 </div>
               )}
 
+              <fieldset disabled={isSending || isLoading} className="space-y-2">
+                <legend className="text-xs text-slate-400">Язык SMS</legend>
+                <div className="grid grid-cols-2 gap-2">
+                  {[{value:'tj',label:'Тоҷикӣ'},{value:'ru',label:'Русский'}].map(item => (
+                    <button key={item.value} type="button" aria-pressed={language === item.value}
+                      className={`rounded-lg border px-3 py-2 text-sm ${language === item.value ? 'border-blue-500 bg-blue-500/20 text-white' : 'border-slate-700 text-slate-300'}`}
+                      onClick={() => { setLanguage(item.value); setPreviewData(null); fetchPreview(item.value); }}>
+                      {item.label}
+                    </button>
+                  ))}
+                </div>
+              </fieldset>
               {/* Success Banner */}
               {successMessage && (
                 <div className="p-3 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-xs font-semibold flex items-center gap-2">
