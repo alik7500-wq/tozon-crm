@@ -1,11 +1,11 @@
 import React from 'react';
 import { describe,it,expect,vi,beforeEach,afterEach } from 'vitest';
-import { render,screen,fireEvent,waitFor,cleanup } from '@testing-library/react';
+import { render,screen,fireEvent,waitFor,cleanup,act } from '@testing-library/react';
 const api=vi.hoisted(()=>({get:vi.fn(),post:vi.fn()}));
 vi.mock('../../../api/client',()=>({api}));
 vi.mock('../../auth/AuthContext',()=>({useAuth:()=>({user:{role:'ADMIN'}})}));
 import {InstagramInboxPage} from '../InstagramInboxPage';
-afterEach(() => { cleanup(); vi.restoreAllMocks(); });
+afterEach(() => { cleanup(); vi.useRealTimers(); vi.restoreAllMocks(); });
 beforeEach(()=>vi.resetAllMocks());
 const list=[{instagramAccountId:'1',contactId:'10',name:'Alice'},{instagramAccountId:'1',contactId:'20',name:'Bob'}];
 function setup(history){api.get.mockImplementation(url=>url.endsWith('/connection')?Promise.resolve({data:{connected:true}}):url.endsWith('/conversations')?Promise.resolve({data:list}):history(url));render(<InstagramInboxPage/>);}
@@ -67,6 +67,26 @@ describe('Instagram history loading performance',()=>{
   let aliceCalls=0;setup(()=>Promise.resolve({data:[{message_id:'a',text_content:'Alice '+ ++aliceCalls}]}));
   fireEvent.click(await screen.findByText('Alice'));await screen.findByText('Alice 1');
   fireEvent.click(screen.getByRole('button',{name:'Обновить',exact:true}));await screen.findByText('Alice 2');expect(aliceCalls).toBe(2);
+ });
+});
+
+describe('automatic Instagram updates',()=>{
+ it('receives new dialogs and selected messages without clearing the draft',async()=>{
+  vi.useFakeTimers({toFake:['setInterval','clearInterval']});
+  let updated=false;
+  api.get.mockImplementation(url=>Promise.resolve(url.endsWith('/connection')?{data:{connected:true}}:url.endsWith('/conversations')?{data:updated?[...list,{instagramAccountId:'1',contactId:'30',name:'New customer'}]:list}:{data:[{message_id:updated?'new':'old',text_content:updated?'New message':'Old message'}]}));
+  render(<InstagramInboxPage/>);fireEvent.click(await screen.findByText('Alice'));await screen.findByText('Old message');
+  fireEvent.change(screen.getByLabelText('Ответ клиенту'),{target:{value:'Draft 😊'}});
+  updated=true;await act(async()=>{await vi.advanceTimersByTimeAsync(3000);});
+  expect(await screen.findByText('New customer')).toBeTruthy();expect(await screen.findByText('New message')).toBeTruthy();
+  expect(screen.getByLabelText('Ответ клиенту').value).toBe('Draft 😊');
+ });
+ it('does not overlap automatic history requests or update an unmounted inbox',async()=>{
+  vi.useFakeTimers({toFake:['setInterval','clearInterval']});let finish;
+  setup(()=>new Promise(resolve=>{finish=resolve;}));fireEvent.click(await screen.findByText('Alice'));
+  const before=api.get.mock.calls.length;await act(async()=>{await vi.advanceTimersByTimeAsync(9000);});expect(api.get).toHaveBeenCalledTimes(before);
+  finish({data:[]});await act(async()=>{});cleanup();const calls=api.get.mock.calls.length;
+  await act(async()=>{await vi.advanceTimersByTimeAsync(9000);});expect(api.get).toHaveBeenCalledTimes(calls);
  });
 });
 

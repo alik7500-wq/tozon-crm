@@ -14,26 +14,21 @@ export function InstagramReplyComposer({ conversation, onSent }) {
     try {
       const account = encodeURIComponent(conversation.instagramAccountId);
       const contact = encodeURIComponent(conversation.contactId);
-      await api.post(`/integrations/instagram/send/${account}/${contact}`, { text: text.trim() });
+      const result = await api.post(`/integrations/instagram/send/${account}/${contact}`, { text: text.trim() }, { timeout: 25000 });
       setText('');
+      onSent?.(result?.data);
     } catch (err) {
       setError(err?.response?.data?.code === 'SENT_NOT_SAVED'
         ? 'Instagram принял сообщение, но CRM не сохранила его. Проверьте диалог перед повтором.'
         : err?.code === 'INSTAGRAM_REPLY_WINDOW_CLOSED'
           ? 'Окно ответа закрыто. Дождитесь нового сообщения клиента.'
-          : ['INSTAGRAM_PERMISSION_REQUIRED', 'INSTAGRAM_RECONNECT_REQUIRED', 'INSTAGRAM_ACCOUNT_MISMATCH', 'INSTAGRAM_RATE_LIMIT'].includes(err?.code)
+          : ['INSTAGRAM_PERMISSION_REQUIRED', 'INSTAGRAM_RECONNECT_REQUIRED', 'INSTAGRAM_ACCOUNT_MISMATCH', 'INSTAGRAM_RATE_LIMIT', 'INSTAGRAM_THREAD_OWNER_REQUIRED'].includes(err?.code)
             ? err.message
           : 'Отправка не подтверждена. Проверьте Instagram перед повторной попыткой.');
       setSending(false);
       return;
     }
-    try {
-      await onSent?.();
-    } catch {
-      setError('Сообщение отправлено, но обновить историю не удалось. Нажмите «Обновить» позже.');
-    } finally {
-      setSending(false);
-    }
+    setSending(false);
   };
   if (!conversation) return null;
   return <form onSubmit={submit} className="border-t p-4 space-y-2">

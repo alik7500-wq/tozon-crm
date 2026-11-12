@@ -31,6 +31,8 @@ export function InstagramInboxPage() {
   const historyCache = useRef(new Map());
   const pendingHistory = useRef(new Map());
   const historyVersions = useRef(new Map());
+  const selectedRef = useRef(null);
+  const refreshBusy = useRef(false);
   const [showingCached, setShowingCached] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -38,18 +40,23 @@ export function InstagramInboxPage() {
   const [connecting, setConnecting] = useState(false);
   const allowed = ['ADMIN', 'DIRECTOR'].includes(user?.role);
 
-  const refresh = useCallback(async (after) => {
+  const refresh = useCallback(async (after, quiet = false) => {
     const cursor = typeof after === 'string' ? after : null;
-    setLoading(true);
-    setError('');
+    if (!quiet) { setLoading(true); setError(''); }
     try {
       const response = await api.get(cursor ? '/integrations/instagram/inbox/conversations/page' : '/integrations/instagram/inbox/conversations', { params: cursor ? { after: cursor } : {} });
       setConversations(previous => cursor ? [...new Map([...previous, ...(response?.data || [])].map(c => [c.contactId, c])).values()] : (response?.data || []));
       setNextCursor(response?.nextCursor || null);
+      return true;
     } catch (err) {
+      if ([401, 403, 409].includes(err.response?.status)) {
+        historyCache.current.clear(); selectedRef.current = null; ++historyRequest.current;
+        setConversations([]); setSelected(null); setMessages([]); setMessagesCursor(null);
+      }
       setError(err.message || 'Не удалось загрузить переписки Instagram.');
+      return false;
     } finally {
-      setLoading(false);
+      if (!quiet) setLoading(false);
     }
   }, []);
 
@@ -73,18 +80,20 @@ export function InstagramInboxPage() {
       setConnecting(false);
     }
   };
-  const openConversation = async (conversation, after = null, force = false) => {
+  const openConversation = useCallback(async (conversation, after = null, force = false, quiet = false) => {
     const requestId = ++historyRequest.current;
     const key = conversation.instagramAccountId + ':' + conversation.contactId;
     const cached = historyCache.current.get(key);
-    setHistoryLoading(true);
-    setSelected(conversation);
-    setShowingCached(Boolean(cached));
-    if (!after) {
+    if (!quiet) {
+      setHistoryLoading(true);
+      setSelected(conversation); selectedRef.current = conversation;
+      setShowingCached(Boolean(cached));
+    }
+    if (!after && !quiet) {
       setMessages(cached?.messages || []);
       setMessagesCursor(cached?.nextCursor || null);
     }
-    setError('');
+    if (!quiet) setError('');
     // Very recent successful histories need no repeated request on rapid switching.
     if (!after && !force && cached && Date.now() - cached.loadedAt < 10000) {
       setHistoryLoading(false);
@@ -115,6 +124,7 @@ export function InstagramInboxPage() {
       setMessages(loaded);
       setMessagesCursor(response?.nextCursor || null);
       setShowingCached(false);
+      if (!quiet) setError('');
     } catch (err) {
       if (requestId === historyRequest.current) {
         if ([401, 403, 404, 409].includes(err.response?.status)) {
@@ -125,12 +135,46 @@ export function InstagramInboxPage() {
     } finally {
       if (requestId === historyRequest.current) setHistoryLoading(false);
     }
+  }, []);
+
+  useEffect(() => {
+    if (!allowed) return;
+    let alive = true;
+    const tick = async () => {
+      if (!alive || document.hidden || refreshBusy.current || pendingHistory.current.size) return;
+      refreshBusy.current = true;
+      const current = selectedRef.current;
+      try {
+        const ok = await refresh(null, true);
+        if (alive && ok && current && selectedRef.current === current && !pendingHistory.current.size) {
+          await openConversation(current, null, true, true);
+        }
+      } finally { refreshBusy.current = false; }
+    };
+    const timer = setInterval(tick, 3000);
+    document.addEventListener('visibilitychange', tick);
+    window.addEventListener('focus', tick);
+    return () => { alive = false; clearInterval(timer); document.removeEventListener('visibilitychange', tick); window.removeEventListener('focus', tick); };
+  }, [allowed, refresh, openConversation]);
+
+  const sent = (result) => {
+    if (!selected) return;
+    const message = result?.message;
+    const key = selected.instagramAccountId + ':' + selected.contactId;
+    if (message) {
+      const cached = historyCache.current.get(key);
+      const updated = [...new Map([...(cached?.messages || []), message].map(m => [m.message_id, m])).values()];
+      historyCache.current.set(key, { ...cached, messages: updated, loadedAt: Date.now() });
+      setMessages(updated);
+      setConversations(items => items.map(c => c.contactId === selected.contactId ? { ...c, lastMessage: message.text_content, updatedAt: message.created_at } : c));
+      if (result.saved === false) setError('Сообщение отправлено. Обновление сохранённой истории будет повторено автоматически.');
+    } else void openConversation(selected, null, true, true);
   };
 
   if (!allowed) return <div className="p-6 text-slate-700">Доступ к перепискам Instagram ограничен.</div>;
   return <section className="p-6 space-y-5">
     <div className="flex flex-wrap justify-between gap-3 items-center">
-      <div><h1 className="text-2xl font-bold text-slate-900">Instagram Direct</h1><p className="text-sm text-slate-500">Просмотр сообщений и ответы клиентам после активации интеграции.</p></div>
+      <div><h1 className="text-2xl font-bold text-slate-900">Instagram Direct</h1><p className="text-sm text-slate-500">Автообновление включено · Новые сообщения проверяются каждые 3 секунды.</p></div>
       <button type="button" onClick={() => { void refresh(); if (selected) void openConversation(selected, null, true); }} disabled={loading || historyLoading} className="rounded-lg bg-blue-600 px-4 py-2 text-white disabled:opacity-50">{loading ? 'Загрузка…' : 'Обновить'}</button>
     </div>
     <div className="rounded-xl border border-slate-200 bg-white p-4 flex flex-wrap gap-3 items-center justify-between">
@@ -153,7 +197,7 @@ export function InstagramInboxPage() {
         <h2 className="border-b p-4 font-semibold">{selected ? 'Переписка: ' + (selected.name || selected.contactId) : 'Выберите диалог'}</h2>
         <div className="space-y-3 p-4">
           {historyLoading && <p role="status">{showingCached ? 'Обновление сообщений…' : 'Загрузка сообщений…'}</p>}
-          {showingCached && !historyLoading && <p className="text-xs text-slate-500">Показана ранее загруженная история. Нажмите «Обновить» для проверки новых сообщений.</p>}
+          {showingCached && !historyLoading && <p className="text-xs text-slate-500">Показана ранее загруженная история. Новые сообщения появятся автоматически.</p>}
           {messagesCursor && <button type="button" disabled={historyLoading} onClick={() => openConversation(selected, messagesCursor)} className="text-blue-700">Более ранние сообщения</button>}
           {messages.map(m => <div key={m.message_id} className={'max-w-[85%] rounded-xl p-3 text-sm ' + (m.is_echo ? 'ml-auto bg-blue-100' : 'bg-slate-100')}>
             <InstagramMessageContent message={m} />
@@ -163,7 +207,7 @@ export function InstagramInboxPage() {
             </div>
           </div>)}
         </div>
-        <InstagramReplyComposer key={selected ? selected.instagramAccountId + ':' + selected.contactId : 'none'} conversation={selected} onSent={() => openConversation(selected, null, true)} />
+        <InstagramReplyComposer key={selected ? selected.instagramAccountId + ':' + selected.contactId : 'none'} conversation={selected} onSent={sent} />
       </div>
     </div>
   </section>;
