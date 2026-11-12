@@ -3,6 +3,20 @@ import { api } from '../../api/client';
 import { InstagramReplyComposer } from './InstagramReplyComposer';
 import { useAuth } from '../auth/AuthContext';
 
+const dateTimeFormat = new Intl.DateTimeFormat('ru-RU', {
+  day: '2-digit', month: '2-digit', year: 'numeric',
+  hour: '2-digit', minute: '2-digit', hourCycle: 'h23'
+});
+
+function InstagramTime({ value }) {
+  if (!value) return null;
+  const date = new Date(value);
+  if (!Number.isFinite(date.getTime())) return null;
+  return <time dateTime={date.toISOString()} title={date.toLocaleString('ru-RU', { timeZoneName: 'short' })}>
+    {dateTimeFormat.format(date)}
+  </time>;
+}
+
 export function InstagramInboxPage() {
   const { user } = useAuth();
   const [conversations, setConversations] = useState([]);
@@ -91,6 +105,7 @@ export function InstagramInboxPage() {
         {conversations.map(c => <button type="button" key={c.instagramAccountId + ':' + c.contactId} onClick={() => openConversation(c)} className={'w-full border-b p-4 text-left hover:bg-blue-50 ' + (selected?.contactId === c.contactId ? 'bg-blue-50' : '')}>
           <div className="font-medium text-slate-900">{c.name || ('Instagram ID: ' + c.contactId)}</div>
           <div className="truncate text-sm text-slate-500">{c.lastMessage || 'Вложение или сообщение без текста'}</div>
+          <div className="mt-1 text-xs text-slate-500"><InstagramTime value={c.updatedAt} /></div>
         </button>)}
         {nextCursor && <button type="button" disabled={loading} onClick={() => refresh(nextCursor)} className="p-4 text-blue-700">Загрузить ещё диалоги</button>}
       </div>
@@ -101,7 +116,10 @@ export function InstagramInboxPage() {
           {messagesCursor && <button type="button" disabled={historyLoading} onClick={() => openConversation(selected, messagesCursor)} className="text-blue-700">Более ранние сообщения</button>}
           {messages.map(m => <div key={m.message_id} className={'max-w-[85%] rounded-xl p-3 text-sm ' + (m.is_echo ? 'ml-auto bg-blue-100' : 'bg-slate-100')}>
             <div className="whitespace-pre-wrap break-words">{m.text_content || (m.has_attachments ? 'Вложение' : 'Сообщение без текста')}</div>
-            <div className="mt-1 text-xs text-slate-500">{m.is_echo ? 'Исходящее' : 'Входящее'}</div>
+            <div className="mt-1 flex flex-wrap items-center gap-x-2 text-xs text-slate-500">
+              <span>{m.is_echo ? 'Исходящее' : 'Входящее'}</span>
+              <InstagramTime value={m.created_at} />
+            </div>
           </div>)}
         </div>
         <InstagramReplyComposer key={selected ? selected.instagramAccountId + ':' + selected.contactId : 'none'} conversation={selected} onSent={() => openConversation(selected)} />
