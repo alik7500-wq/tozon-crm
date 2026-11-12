@@ -16,7 +16,7 @@ beforeEach(()=>{
 afterEach(()=>{cleanup();vi.unstubAllEnvs();});
 describe('project workspace privacy in UI',()=>{
  it('shows only server-granted sections and has no mutation/export controls',async()=>{
-  render(<ProjectWorkspacePage/>);expect(await screen.findByText('Plaza ЖК')).toBeVisible();
+  render(<ProjectWorkspacePage/>);fireEvent.click(await screen.findByRole('button',{name:'Жилые комплексы',exact:true}));expect(await screen.findByText('Plaza ЖК')).toBeVisible();
   expect(screen.getByRole('button',{name:'Клиенты и лиды'})).toBeVisible();
   expect(screen.queryByRole('button',{name:'Расходы'})).not.toBeInTheDocument();
   expect(screen.queryByRole('button',{name:/Создать|Сохранить|Экспорт/})).not.toBeInTheDocument();
@@ -25,16 +25,16 @@ describe('project workspace privacy in UI',()=>{
  it('clears old rows immediately on project switch and ignores a late old-project response',async()=>{
   let finishOld;
   api.get.mockImplementation(path=>path.endsWith('/projects')?Promise.resolve({data:{projects}}):path.includes(a)?new Promise(resolve=>{finishOld=resolve;}):Promise.resolve({data:{records:[{id:2,name:'Tower ЖК'}],has_more:false}}));
-  render(<ProjectWorkspacePage/>);const select=await screen.findByRole('combobox',{name:'Рабочий проект'});
+  render(<ProjectWorkspacePage/>);const select=await screen.findByRole('combobox',{name:'Рабочий проект'});fireEvent.click(screen.getByRole('button',{name:'Жилые комплексы',exact:true}));
   await waitFor(()=>expect(finishOld).toBeTypeOf('function'));
-  fireEvent.change(select,{target:{value:b}});
+  fireEvent.change(select,{target:{value:b}});fireEvent.click(await screen.findByRole('button',{name:'Жилые комплексы',exact:true}));
   expect(await screen.findByText('Tower ЖК')).toBeVisible();
   await act(async()=>finishOld({data:{records:[{id:1,name:'OLD SECRET'}],has_more:false}}));
   expect(screen.queryByText('OLD SECRET')).not.toBeInTheDocument();
   expect(screen.queryByRole('button',{name:'Клиенты и лиды'})).not.toBeInTheDocument();
  });
  it('removes previously displayed rows when access refresh fails',async()=>{
-  render(<ProjectWorkspacePage/>);expect(await screen.findByText('Plaza ЖК')).toBeVisible();
+  render(<ProjectWorkspacePage/>);fireEvent.click(await screen.findByRole('button',{name:'Жилые комплексы',exact:true}));expect(await screen.findByText('Plaza ЖК')).toBeVisible();
   api.get.mockRejectedValue(new Error('Доступ отозван'));
   fireEvent(window,new Event('focus'));
   expect(await screen.findByRole('alert')).toHaveTextContent('Доступ отозван');
@@ -59,10 +59,16 @@ it('shows personal reminders only with both permissions and acknowledges through
  const reminderId='00000000-0000-4000-8000-000000000010';let read=false;
  api.get.mockImplementation(path=>Promise.resolve({data:path.endsWith('/projects')?{projects:[{...projects[0],sections:['deals.view','finance.payments']},projects[1]]}:{records:[{id:reminderId,contract_number:'OWN-REMINDER',remaining_minor:12000,currency:'USD',reminder_kind:'DUE',is_read:read}],has_more:false}}));
  api.post.mockImplementation(async()=>{read=true;return {data:{is_read:true}};});
- render(<ProjectWorkspacePage/>);expect(await screen.findByText('OWN-REMINDER')).toBeVisible();
+ render(<ProjectWorkspacePage/>);fireEvent.click(await screen.findByRole('button',{name:'Напоминания',exact:true}));expect(await screen.findByText('OWN-REMINDER')).toBeVisible();
  fireEvent.click(screen.getByRole('button',{name:'Отметить прочитанным'}));
  await waitFor(()=>expect(api.post).toHaveBeenCalledWith(`/project-workspace/${a}/reminders/${reminderId}/read`,{}));
  expect(await screen.findByText('Прочитано',{selector:'td'})).toBeVisible();
  fireEvent.change(screen.getByRole('combobox',{name:'Рабочий проект'}),{target:{value:b}});
  expect(screen.queryByRole('button',{name:'Напоминания'})).not.toBeInTheDocument();
+});
+
+it('opens a scoped overview with full server counts and no legacy dashboard request',async()=>{
+ api.get.mockImplementation(path=>Promise.resolve({data:path.endsWith('/projects')?{projects}:path.endsWith('/overview')?{inventory:{available:147,reserved:9,sold:72,apartments:272},active_leads:17,upcoming_payments:null}:path.endsWith('/options')?{commands:[]}:{records:[],has_more:false}}));
+ render(<ProjectWorkspacePage/>);expect(await screen.findByText('147')).toBeVisible();expect(screen.getByRole('heading',{name:/Добро пожаловать/})).toBeVisible();expect(api.get).toHaveBeenCalledWith(`/project-workspace/${a}/overview`,expect.any(Object));expect(api.get.mock.calls.every(([path])=>path.startsWith('/project-workspace/'))).toBe(true);
+ fireEvent.click(screen.getByRole('button',{name:/Свободные квартиры/}));await waitFor(()=>expect(api.get.mock.calls.some(([path])=>path.endsWith('/units'))).toBe(true));
 });

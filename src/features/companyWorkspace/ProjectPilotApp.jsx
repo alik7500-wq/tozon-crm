@@ -1,4 +1,6 @@
 import React from 'react';
+import {Settings2} from 'lucide-react';
+import ProjectShell from './ProjectShell';
 import {BrowserRouter,Routes,Route,Navigate} from 'react-router-dom';
 import {AuthProvider,useAuth} from '../auth/AuthContext';
 import {LoginPage} from '../auth/LoginPage';
@@ -13,7 +15,7 @@ export function PilotHome(){
  if(user.permissions?.includes('company.project-only'))return <React.Suspense fallback={<p role="status">Загрузка рабочего пространства…</p>}><ProjectWorkspacePage/></React.Suspense>;
  const p=user.permissions||[];
  if(user.role!=='ADMIN'||(p.includes('access.v2')&&!['settings.view','settings.manage','users.view','users.manage'].every(r=>p.includes(r))))return <p role="alert" className="p-8">Для настройки тестовых проектов нужен администратор компании.</p>;
- return <main className="min-h-screen bg-slate-50 p-4 sm:p-8"><div className="mx-auto max-w-7xl space-y-6"><header className="flex items-center justify-between gap-4"><div><h1 className="text-xl font-bold">TOZON CRM · пилот проектов</h1><p className="text-sm text-slate-600">Отдельная тестовая база. Внешние рассылки не подключены.</p></div><button type="button" className="rounded-lg border bg-white px-4 py-2" onClick={logout}>Выйти</button></header><CompanyProjectsTab/></div></main>;
+ return <ProjectShell user={user} logout={logout} groups={[{label:'Управление компанией',items:[{id:'settings',label:'Проекты и доступы',icon:Settings2}]}]} current="settings"><div><h1 className="text-2xl font-extrabold">Настройки компании</h1><p className="mt-2 text-sm text-slate-500">Проекты, директора, партнёры и доступы сотрудников в тестовой среде.</p></div><CompanyProjectsTab/></ProjectShell>;
 }
 export default function ProjectPilotApp(){
  // A test build must never fall back to the production API or run on its domain.
