@@ -13,7 +13,7 @@ const unit = { id: 30, unit_kind: 'APARTMENT', unit_number: '24', area_m2_x100: 
 const deal = { id: 10, unit_id: 30, unit_number: '24', currency: 'USD', contract_number: 'TEST', payment_type: 'PARTIAL_BARTER', passport_number: 'TEST', vehicle_details: vehicle, barter_amount_minor: 1400000, final_price_minor: 2500000, down_payment_minor: 1500000, schedules: [{ due_date: '2026-11-22', amount_minor: 1000000, paid_amount_minor: 0 }] };
 beforeEach(() => {
  vi.clearAllMocks();
- api.get.mockImplementation(path => Promise.resolve({ data: path === '/leads' ? { leads: [{ id: 1, full_name: 'Тестовый покупатель', phone: '000000000' }] } : path.startsWith('/deals/') && path !== '/deals/available-units' ? { deal } : path === '/projects' ? { projects: [] } : path === '/deals/available-units' ? { units: [unit] } : { settings: { data: { reservation_days: 3 } } } }));
+ api.get.mockImplementation(path => Promise.resolve({ data: path === '/deals' ? { deals: [{ id: 99, lead_id: 1, status: 'SIGNED' }] } : path === '/leads' ? { leads: [{ id: 1, full_name: 'Тестовый покупатель', phone: '000000000' }] } : path.startsWith('/deals/') && path !== '/deals/available-units' ? { deal } : path === '/projects' ? { projects: [] } : path === '/deals/available-units' ? { units: [unit] } : { settings: { data: { reservation_days: 3 } } } }));
  api.post.mockResolvedValue({ data: { deal } });
 });
 afterEach(cleanup);
