@@ -40,6 +40,8 @@ api.interceptors.response.use(
         INSTAGRAM_RECONNECT_REQUIRED: 'Необходимо переподключить Instagram.',
         INSTAGRAM_ACCOUNT_MISMATCH: 'Токен Instagram не соответствует подключённому аккаунту. Переподключите Instagram.',
         INSTAGRAM_REPLY_WINDOW_CLOSED: 'Окно ответа закрыто. Дождитесь нового сообщения клиента.',
+        INSTAGRAM_THREAD_OWNER_REQUIRED: 'Meta передала управление перепиской другому приложению. Проверьте маршрутизацию сообщений в Meta Business Suite.',
+        INSTAGRAM_STORAGE_UNAVAILABLE: 'Сохранённая история временно недоступна. Повторите позже.',
         INSTAGRAM_RATE_LIMIT: 'Слишком много запросов. Повторите позже.',
         INSTAGRAM_CONVERSATION_NOT_FOUND: 'Переписка недоступна. Обновите список диалогов.'
       };

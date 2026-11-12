@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, lazy, Suspense } from 'react';
+import React, { useState, useEffect, useCallback, useRef, lazy, Suspense } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { api } from '../../api/client';
 import { useAuth } from '../auth/AuthContext';
@@ -103,7 +103,9 @@ export const LeadsPage = () => {
     }
   };
 
-  const fetchStats = async () => {
+  const leadRefreshBusy = useRef(false);
+  const leadRequest = useRef(0);
+  const fetchStats = useCallback(async () => {
     try {
       const res = await api.get('/leads/stats');
       if (res.data?.stats) {
@@ -112,10 +114,11 @@ export const LeadsPage = () => {
     } catch (err) {
       console.warn('Failed to fetch lead stats:', err);
     }
-  };
+  }, []);
 
-  const fetchLeads = useCallback(async () => {
-    setIsLoading(true);
+  const fetchLeads = useCallback(async (quiet = false) => {
+    const requestId = ++leadRequest.current;
+    if (!quiet) setIsLoading(true);
     try {
       const params = {};
       if (search) params.search = search;
@@ -124,11 +127,11 @@ export const LeadsPage = () => {
       if (quickFilter) params.quickFilter = quickFilter;
 
       const res = await api.get('/leads', { params });
-      setLeads(res.data.leads || []);
+      if (requestId === leadRequest.current) setLeads(res.data.leads || []);
     } catch (err) {
       console.error(err);
     } finally {
-      setIsLoading(false);
+      if (requestId === leadRequest.current) setIsLoading(false);
     }
   }, [search, statusFilter, projectFilter, quickFilter]);
 
@@ -153,6 +156,18 @@ export const LeadsPage = () => {
     }, 200);
     return () => clearTimeout(timer);
   }, [fetchLeads]);
+
+  useEffect(() => {
+    const tick = async () => {
+      if (document.hidden || leadRefreshBusy.current) return;
+      leadRefreshBusy.current = true;
+      try { await Promise.all([fetchLeads(true), fetchStats()]); }
+      finally { leadRefreshBusy.current = false; }
+    };
+    const timer = setInterval(tick, 5000);
+    window.addEventListener('focus', tick);
+    return () => { clearInterval(timer); window.removeEventListener('focus', tick); };
+  }, [fetchLeads, fetchStats]);
 
   const handleSelectLead = (lead) => {
     setSelectedLeadId(lead.id);
