@@ -18,9 +18,9 @@ export class TourCanvasErrorBoundary extends React.Component {
     if (this.state.error) {
       return (
         <div role="alert" className="absolute inset-0 z-10 flex flex-col items-center justify-center gap-3 bg-slate-950 p-6 text-center text-white">
-          <h3 className="text-lg font-semibold">Не удалось открыть панораму 360°</h3>
-          <p className="max-w-md text-sm text-slate-300">Проверьте ссылку на изображение, доступ к файлу и поддержку WebGL в браузере.</p>
-          <button type="button" onClick={() => this.setState({ error: null })} className="rounded-lg bg-purple-600 px-4 py-2 text-sm font-semibold hover:bg-purple-500">Повторить загрузку</button>
+          <h3 className="text-lg font-semibold">{this.props.errorTitle||'Не удалось открыть панораму 360°'}</h3>
+          <p className="max-w-md text-sm text-slate-300">{this.props.errorMessage||'Проверьте ссылку на изображение, доступ к файлу и поддержку WebGL в браузере.'}</p>
+          <button type="button" onClick={() => this.setState({ error: null })} className="rounded-lg bg-purple-600 px-4 py-2 text-sm font-semibold hover:bg-purple-500">{this.props.retryLabel||'Повторить загрузку'}</button>
         </div>
       );
     }

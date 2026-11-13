@@ -14,7 +14,7 @@ const deal={id:1,status:'SIGNED',responsible_user_id:7,lead_name:'Покупат
 beforeEach(()=>{
   vi.stubEnv('VITE_BUYER_PORTAL_ENABLED','true');vi.clearAllMocks();state.user={id:7,is_active:true,role:'SALES_MANAGER'};
   api.post.mockResolvedValue({data:{url:'https://t.me/ActualBot?start=buyer_opaque',expiresAt:'2026-11-14T01:00:00Z'}});
-  api.get.mockResolvedValue({data:{connected:false,contractAccess:false}});
+  api.get.mockImplementation(async path=>({data:path.endsWith('/buyer-documents')?[]:{connected:false,contractAccess:false}}));
 });
 afterEach(()=>{cleanup();vi.unstubAllEnvs();});
 it('opens buyer QR with the correct contract and locally rendered image',async()=>{
