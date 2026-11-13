@@ -31,3 +31,9 @@ it('updates added/removed scheme rules in cards and comparison and excludes anot
  r.rerender(<WorkspacePricing {...props} schemes={[next,{...scheme,id:'foreign',project_id:4,name:'Чужая схема'}]}/>);
  expect(screen.getByRole('button',{name:/Взнос 20%/})).toBeVisible();expect(screen.queryByRole('button',{name:/Взнос 30%/})).not.toBeInTheDocument();expect(within(screen.getByRole('table')).getAllByRole('row')).toHaveLength(4);expect(screen.queryByRole('option',{name:'Чужая схема'})).not.toBeInTheDocument();
 });
+it('passes the current chosen offer as a bounded preview request and disables invalid input',()=>{
+ const opened=vi.fn();render(<WorkspacePricing {...props} canOffer onOffer={opened}/>);
+ fireEvent.click(screen.getAllByRole('button',{name:/Взнос 0%/})[1]);fireEvent.click(screen.getByRole('button',{name:'Сформировать предложение'}));
+ expect(opened).toHaveBeenCalledWith(expect.objectContaining({complex_id:3,unit_id:1,scheme_id:'own',rule_key:'[0,700,0,40]',installment_months:40,expected_total_minor:4200000,reference_rate:10}));
+ fireEvent.change(screen.getByLabelText('Желаемый первоначальный взнос в процентах'),{target:{value:'101'}});expect(screen.getByRole('button',{name:'Сформировать предложение'})).toBeDisabled();
+});

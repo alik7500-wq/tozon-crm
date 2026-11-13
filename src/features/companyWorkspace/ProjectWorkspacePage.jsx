@@ -6,6 +6,7 @@ import {LayoutDashboard,Users,FileText,Building2,House,Wallet,CalendarDays,Packa
 import ProjectShell from './ProjectShell';
 import WorkspaceOverview from './WorkspaceOverview';
 import WorkspaceInventory from './WorkspaceInventory';
+import WorkspaceOffer from './WorkspaceOffer';
 import useWorkspaceRead from './useWorkspaceRead';
 import { api } from '../../api/client';
 import { useAuth } from '../auth/AuthContext';
@@ -92,10 +93,11 @@ export default function ProjectWorkspacePage() {
    {loading&&!context?<p role="status" className="rounded-2xl border bg-white p-6">Проверка доступа к проектам…</p>:error?<div role="alert" className="rounded-2xl border border-rose-200 bg-rose-50 p-5 text-rose-700">{error}<button type="button" className="ml-3 font-bold underline" onClick={()=>setVersion(n=>n+1)}>Повторить проверку доступа</button></div>:!project?<p role="status" className="rounded-2xl border bg-white p-6">Вам не назначен доступ ни к одному проекту. Обратитесь к администратору компании.</p>:<>
     {currentResource==='overview'?<WorkspaceOverview key={project.id} project={project} user={user} {...overview} onNavigate={setResource} onDocument={openDocument} canDocuments={canDocuments} onRefresh={()=>setVersion(n=>n+1)}/>:<div><p className="mb-1 text-sm text-slate-400">{project.name}</p><h1 className="text-2xl font-extrabold">{resources[currentResource].label}</h1></div>}
     <WorkspaceOperations key={`${project.id}:${version}`} project={project.id} version={version} onOpen={setOperation} disabled={!!operation}/>
-    {currentResource==='units'?<WorkspaceInventory key={project.id} project={project.id} version={version} draft={inventoryDraft?.actor===user?.id?inventoryDraft:null} onDraftChange={saveInventoryDraft}/>:currentResource!=='overview'&&<WorkspaceRecords key={`${version}:${project.id}:${currentResource}`} project={project.id} resource={currentResource} canDocuments={currentResource==='deals'&&canDocuments} onDocument={openDocument}/>}
+    {currentResource==='units'?<WorkspaceInventory key={project.id} project={project.id} version={version} draft={inventoryDraft?.actor===user?.id?inventoryDraft:null} onDraftChange={saveInventoryDraft} canOffer={project.sections.includes('documents.print')} onOffer={request=>setOperation({kind:'OFFER',request})}/>:currentResource!=='overview'&&<WorkspaceRecords key={`${version}:${project.id}:${currentResource}`} project={project.id} resource={currentResource} canDocuments={currentResource==='deals'&&canDocuments} onDocument={openDocument}/>}
    </>}
   </ProjectShell>
   {operation&&project&&operation.kind==='DOCUMENTS'&&<WorkspaceDocuments key={`${user.id}:${project.id}:${operation.dealId}`} project={project.id} dealId={operation.dealId} onClose={()=>setOperation(null)}/>}
-  {operation&&project&&operation.kind!=='DOCUMENTS'&&<WorkspaceOperationForm key={`${user.id}:${project.id}:${operation.kind}`} project={project.id} {...operation} onClose={()=>setOperation(null)} onComplete={()=>{setOperation(null);setVersion(n=>n+1);}}/>}
+  {operation&&project&&operation.kind==='OFFER'&&<WorkspaceOffer project={project.id} request={operation.request} onClose={()=>setOperation(null)}/>}
+  {operation&&project&&!['DOCUMENTS','OFFER'].includes(operation.kind)&&<WorkspaceOperationForm key={`${user.id}:${project.id}:${operation.kind}`} project={project.id} {...operation} onClose={()=>setOperation(null)} onComplete={()=>{setOperation(null);setVersion(n=>n+1);}}/>}
  </>;
 }
