@@ -606,27 +606,50 @@ export const DealSalesSourceBlock = ({
             </span>
           </div>
 
-          <div className="grid grid-cols-2 sm:grid-cols-5 gap-2 text-xs">
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-xs">
+            <div className="rounded-md bg-white p-2 border border-slate-200/80">
+              <div className="text-[11px] text-slate-500">Полная стоимость</div>
+              <div className="font-bold text-slate-900 mt-0.5">
+                ${formatUsd(commission.contractPriceUsd ?? (deal?.final_price_minor || 0) / 100)}
+              </div>
+            </div>
+            <div className="rounded-md bg-white p-2 border border-slate-200/80">
+              <div className="text-[11px] text-slate-500">Фактически получено</div>
+              <div className="font-bold text-slate-900 mt-0.5">
+                ${formatUsd(commission.settledUsd ?? (deal?.paid_amount_minor || 0) / 100)}
+              </div>
+            </div>
+            <div className="rounded-md bg-white p-2 border border-slate-200/80">
+              <div className="text-[11px] text-slate-500">Процент оплаты</div>
+              <div className="font-bold text-slate-900 mt-0.5">
+                {Number(commission.paymentPercent ?? 0).toFixed(2)}%
+              </div>
+            </div>
             <div className="rounded-md bg-white p-2 border border-slate-200/80">
               <div className="text-[11px] text-slate-500">Ставка комиссии</div>
               <div className="font-bold text-slate-900 mt-0.5">
-                {commission.commissionRatePercent > 0 ? `${commission.commissionRatePercent}%` : 'Не задана (0%)'}
+                {commission.commissionRatePercent > 0 ? `${commission.commissionRatePercent}%` : '0% (< 5% оплаты)'}
               </div>
             </div>
             <div className="rounded-md bg-white p-2 border border-slate-200/80">
-              <div className="text-[11px] text-slate-500">Начислено</div>
+              <div className="text-[11px] text-slate-500">Расчётная комиссия</div>
               <div className="font-bold text-slate-900 mt-0.5">
                 ${formatUsd(commission.calculatedCommissionUsd)}
               </div>
+              {(commission.additionalAccrualUsd || 0) > 0 && (commission.approvedCommissionUsd || 0) > 0 && (
+                <div className="text-[10px] font-semibold text-amber-700 mt-0.5">
+                  +${formatUsd(commission.additionalAccrualUsd)} к доутверждению
+                </div>
+              )}
             </div>
             <div className="rounded-md bg-white p-2 border border-slate-200/80">
-              <div className="text-[11px] text-slate-500">Утверждено</div>
+              <div className="text-[11px] text-slate-500">Утверждённая комиссия</div>
               <div className="font-bold text-emerald-700 mt-0.5">
                 ${formatUsd(commission.approvedCommissionUsd)}
               </div>
             </div>
             <div className="rounded-md bg-white p-2 border border-slate-200/80">
-              <div className="text-[11px] text-slate-500">Выплачено</div>
+              <div className="text-[11px] text-slate-500">Выплаченная комиссия</div>
               <div className="font-bold text-indigo-700 mt-0.5">
                 ${formatUsd(commission.paidCommissionUsd)}
               </div>
@@ -638,6 +661,15 @@ export const DealSalesSourceBlock = ({
               </div>
             </div>
           </div>
+
+          {(commission.overpaidCommissionUsd || 0) > 0 && (
+            <div className="rounded-md border border-rose-200 bg-rose-50 px-3 py-2 text-xs text-rose-800 flex items-start gap-2">
+              <AlertCircle className="w-4 h-4 text-rose-600 shrink-0 mt-0.5" />
+              <span>
+                <strong>Переплата комиссии: ${formatUsd(commission.overpaidCommissionUsd)}</strong> — расчётная комиссия снизилась ниже выплаченной суммы. Требуется отдельное урегулирование.
+              </span>
+            </div>
+          )}
 
           {/* Commission Action Buttons based on Role (Stage 8) */}
           {!isSalesManager && !isCancelled && currentSource === 'MARKETER' && (
@@ -672,7 +704,8 @@ export const DealSalesSourceBlock = ({
 
               {isAdmin &&
                 commission.calculatedCommissionUsd > 0 &&
-                ['CALCULATED', 'PENDING_APPROVAL'].includes(commission.status) && (
+                (['CALCULATED', 'PENDING_APPROVAL'].includes(commission.status) ||
+                  (commission.additionalAccrualUsd || 0) > 0) && (
                   <button
                     type="button"
                     onClick={() => setCommissionActionModal('APPROVE')}
