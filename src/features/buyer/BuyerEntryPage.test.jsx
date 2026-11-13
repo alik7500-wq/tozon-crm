@@ -4,6 +4,7 @@ import {beforeEach,afterEach,it,expect,vi} from 'vitest';
 import {render,screen,fireEvent,waitFor,cleanup} from '@testing-library/react';
 import '@testing-library/jest-dom/vitest';
 vi.mock('./buyer-api',()=>({buyerRequest:vi.fn(),loadTelegram:vi.fn()}));
+vi.mock('./BuyerDashboard',()=>({default:()=> <div>Личный кабинет</div>}));
 import {buyerRequest,loadTelegram} from './buyer-api';
 import BuyerEntryPage from './BuyerEntryPage';
 const token='a'.repeat(43);

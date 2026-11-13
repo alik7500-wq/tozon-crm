@@ -1,5 +1,6 @@
 import React,{useEffect,useRef,useState} from 'react';
 import {buyerRequest,loadTelegram} from './buyer-api';
+const BuyerDashboard=React.lazy(()=>import('./BuyerDashboard'));
 
 const text={
   tj:{title:'Кабинети харидор',welcome:'Хуш омадед ба TOZON',intro:'Барои пайваст кардани шартнома рақами телефони дар шартнома бударо бо SMS тасдиқ кунед.',send:'Гирифтани рамз бо SMS',code:'Рамзи 6-рақама аз SMS',verify:'Тасдиқ кардан',sent:'Рамз фиристода шуд ба',retry:'Аз нав фиристодан',wait:'Лутфан интизор шавед…',connected:'Пайвастшавӣ тасдиқ шуд',contracts:'Шартномаҳои пайвастшуда',next:'Рақами телефон тасдиқ шуд. Шартномаҳо ба кабинети шумо пайваст шуданд.',noInvite:'Барои пайваст кардани шартнома аз менеҷер QR-коди нав гиред.',back:'Рамзро танҳо дар ҳамин равзана ворид кунед. Онро ба касе надиҳед.'},
@@ -77,7 +78,7 @@ export default function BuyerEntryPage(){
         {ready&&token?<><h2 className="text-lg font-bold">{t.welcome}</h2><p className="text-sm leading-6 text-slate-600">{t.intro}</p>
           {challenge?<form onSubmit={verify} className="space-y-4"><p className="text-sm">{t.sent} <strong>{challenge.maskedPhone}</strong></p><label className="block text-sm font-semibold">{t.code}<input autoFocus inputMode="numeric" autoComplete="one-time-code" type="text" pattern="[0-9]{6}" maxLength={6} value={code} onChange={e=>setCode(e.target.value.replace(/\D/g,''))} className="mt-2 w-full rounded-xl border border-slate-300 p-3 text-center text-2xl tracking-widest" required/></label><button disabled={busy||code.length!==6} className="w-full rounded-xl bg-blue-600 p-3 font-bold text-white disabled:opacity-50">{busy?t.wait:t.verify}</button></form>:null}
           <button type="button" disabled={busy||now<resendAt} onClick={sendCode} className={`w-full rounded-xl p-3 font-bold disabled:opacity-50 ${challenge?'bg-slate-100 text-blue-700':'bg-blue-600 text-white'}`}>{busy?t.wait:challenge?`${t.retry}${now<resendAt?` (${Math.ceil((resendAt-now)/1000)})`:''}`:t.send}</button><p className="text-xs leading-5 text-slate-500">{t.back}</p></>:null}
-        {connected?<><h2 className="text-xl font-bold text-emerald-700">{t.connected}</h2><p>{t.contracts}: <strong>{access.length}</strong></p><p className="text-sm leading-6 text-slate-600">{t.next}</p></>:null}
+        {connected?<><h2 className="text-xl font-bold text-emerald-700">{t.connected}</h2><p>{t.contracts}: <strong>{access.length}</strong></p><React.Suspense fallback={<p role="status">{t.wait}</p>}><BuyerDashboard initData={initData} language={language}/></React.Suspense></>:null}
         {ready&&!token&&!access.length?<p>{t.noInvite}</p>:null}
       </section>
     </div>
