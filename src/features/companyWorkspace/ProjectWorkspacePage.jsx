@@ -63,7 +63,7 @@ export default function ProjectWorkspacePage() {
  const {user,logout}=useAuth();
  const [projectId,setProjectId]=useState(''),[resource,setResource]=useState('overview'),[version,setVersion]=useState(0),[operation,setOperation]=useState(null);
  const projectOnly=user?.permissions?.includes('company.project-only');
- const {data:context,loading,error}=useWorkspaceRead(projectOnly?'/project-workspace/projects':null,{},`${user?.id}:${version}`);
+ const {data:context,loading,error}=useWorkspaceRead(projectOnly?'/project-workspace/projects':null,{},version,user?.id);
  useEffect(()=>{
   if(operation)return;
   const refresh=()=>{if(document.visibilityState==='visible')setVersion(n=>n+1);};
@@ -82,7 +82,7 @@ export default function ProjectWorkspacePage() {
  return <>
   <ProjectShell user={user} logout={logout} groups={groups} current={currentResource} onNavigate={setResource} project={project} projects={context?.projects||[]} onProjectChange={id=>{setProjectId(id);setResource('overview');}} disabled={!!operation}>
    <p className="text-xs text-slate-500">Тестовое пространство проекта. Разделы и операции доступны в соответствии с Вашими правами.</p>
-   {loading?<p role="status" className="rounded-2xl border bg-white p-6">Проверка доступа к проектам…</p>:error?<div role="alert" className="rounded-2xl border border-rose-200 bg-rose-50 p-5 text-rose-700">{error}<button type="button" className="ml-3 font-bold underline" onClick={()=>setVersion(n=>n+1)}>Повторить проверку доступа</button></div>:!project?<p role="status" className="rounded-2xl border bg-white p-6">Вам не назначен доступ ни к одному проекту. Обратитесь к администратору компании.</p>:<>
+   {loading&&!context?<p role="status" className="rounded-2xl border bg-white p-6">Проверка доступа к проектам…</p>:error?<div role="alert" className="rounded-2xl border border-rose-200 bg-rose-50 p-5 text-rose-700">{error}<button type="button" className="ml-3 font-bold underline" onClick={()=>setVersion(n=>n+1)}>Повторить проверку доступа</button></div>:!project?<p role="status" className="rounded-2xl border bg-white p-6">Вам не назначен доступ ни к одному проекту. Обратитесь к администратору компании.</p>:<>
     {currentResource==='overview'?<WorkspaceOverview key={project.id} project={project} user={user} {...overview} onNavigate={setResource} onDocument={openDocument} canDocuments={canDocuments} onRefresh={()=>setVersion(n=>n+1)}/>:<div><p className="mb-1 text-sm text-slate-400">{project.name}</p><h1 className="text-2xl font-extrabold">{resources[currentResource].label}</h1></div>}
     <WorkspaceOperations key={`${project.id}:${version}`} project={project.id} version={version} onOpen={setOperation} disabled={!!operation}/>
     {currentResource==='units'?<WorkspaceInventory key={project.id} project={project.id} version={version}/>:currentResource!=='overview'&&<WorkspaceRecords key={`${version}:${project.id}:${currentResource}`} project={project.id} resource={currentResource} canDocuments={currentResource==='deals'&&canDocuments} onDocument={openDocument}/>}

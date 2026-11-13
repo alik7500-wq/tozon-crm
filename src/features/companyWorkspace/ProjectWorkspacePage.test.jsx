@@ -74,9 +74,10 @@ it('opens a scoped overview with full server counts and no legacy dashboard requ
 });
 
 it('opens the isolated chessboard only with inventory permission and removes it on project change',async()=>{
- api.get.mockImplementation(path=>Promise.resolve({data:path.endsWith('/projects')?{projects}:path.endsWith('/inventory')?{complexes:[{id:1,name:'Plaza complex',currency:'USD'}],selected_complex_id:1,records:[{id:1,unit_number:'101',unit_kind:'APARTMENT',status:'AVAILABLE',building_id:1,section_id:1,floor_id:1,floor_number:1}]}:{records:[],has_more:false}}));
+ api.get.mockImplementation(path=>Promise.resolve({data:path.endsWith('/projects')?{projects}:path.endsWith('/inventory')?{complexes:[{id:1,name:'Plaza complex',currency:'USD'}],selected_complex_id:1,records:[{id:1,unit_number:'101',unit_kind:'APARTMENT',rooms:2,status:'AVAILABLE',building_id:1,section_id:1,floor_id:1,floor_number:1}]}:{records:[],has_more:false}}));
  render(<ProjectWorkspacePage/>);fireEvent.click(await screen.findByRole('button',{name:'Помещения',exact:true}));expect(await screen.findByRole('button',{name:'Квартира №101, 1 этаж, Свободна'})).toBeVisible();
  expect(api.get.mock.calls.some(([path])=>path===`/project-workspace/${a}/inventory`)).toBe(true);
+ fireEvent.change(screen.getByLabelText('Комнаты'),{target:{value:'2'}});fireEvent(window,new Event('focus'));await screen.findByRole('button',{name:'Квартира №101, 1 этаж, Свободна'});expect(screen.getByLabelText('Комнаты')).toHaveValue('2');
  fireEvent.change(screen.getByRole('combobox',{name:'Рабочий проект'}),{target:{value:b}});expect(screen.queryByRole('button',{name:'Квартира №101, 1 этаж, Свободна'})).not.toBeInTheDocument();
  expect(api.get.mock.calls.every(([path])=>path.startsWith('/project-workspace/'))).toBe(true);
 });
