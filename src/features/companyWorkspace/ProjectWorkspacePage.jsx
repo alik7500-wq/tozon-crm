@@ -5,6 +5,8 @@ import { operationLabels } from './workspaceOperations';
 import {LayoutDashboard,Users,FileText,Building2,House,Wallet,CalendarDays,Package,Bell,ArrowDownLeft} from 'lucide-react';
 import ProjectShell from './ProjectShell';
 import WorkspaceOverview from './WorkspaceOverview';
+import WorkspaceInventory from './WorkspaceInventory';
+import useWorkspaceRead from './useWorkspaceRead';
 import { api } from '../../api/client';
 import { useAuth } from '../auth/AuthContext';
 
@@ -22,20 +24,6 @@ const resources = {
 const statusNames={AVAILABLE:'Свободна',RESERVED:'Забронирована',SOLD:'Продана',BLOCKED:'Недоступна',SIGNED:'Подписан',DRAFT:'Черновик',CANCELLED:'Отменён',TERMINATED:'Расторгнут',ACTIVE:'Действует',POSTED:'Проведён',VOIDED:'Аннулирован',UPCOMING:'Предстоит',PAID:'Оплачен',PARTIAL:'Частично',NEW:'Новый',WON:'Клиент',LOST:'Закрыт'};
 const format = (key, value) => value == null ? '—' : key==='status' ? (statusNames[value]||String(value)) : key.endsWith('_date') ? String(value).slice(0,10).replace(/^(\d{4})-(\d{2})-(\d{2})$/,'$3.$2.$1') : key==='reminder_kind' ? (value==='OVERDUE'?'Просрочен':'Скоро платёж') : typeof value === 'boolean' ? (value ? 'Да' : 'Нет') : key.endsWith('_minor') || key === 'area_m2_x100' ? (Number(value) / 100).toLocaleString('ru-RU', { maximumFractionDigits: 2 }) : String(value);
 
-function useWorkspaceRead(path, params, nonce) {
-  const requestKey = JSON.stringify({ path, params, nonce });
-  const [result, setResult] = useState(null);
-  useEffect(() => {
-    const request = JSON.parse(requestKey);
-    if (!request.path) return;
-    const controller = new AbortController(); let current = true;
-    api.get(request.path, { params: request.params, signal: controller.signal })
-      .then(r => { if (current) setResult({ key: requestKey, data: r.data, error: '' }); })
-      .catch(e => { if (current) setResult({ key: requestKey, data: null, error: e.message }); });
-    return () => { current = false; controller.abort(); };
-  }, [requestKey]);
-  return result?.key === requestKey ? { ...result, loading: false } : { data: null, error: '', loading: !!path };
-}
 
 function WorkspaceRecords({ project, resource, canDocuments, onDocument }) {
   const [search,setSearch]=useState('');
@@ -97,7 +85,7 @@ export default function ProjectWorkspacePage() {
    {loading?<p role="status" className="rounded-2xl border bg-white p-6">Проверка доступа к проектам…</p>:error?<div role="alert" className="rounded-2xl border border-rose-200 bg-rose-50 p-5 text-rose-700">{error}<button type="button" className="ml-3 font-bold underline" onClick={()=>setVersion(n=>n+1)}>Повторить проверку доступа</button></div>:!project?<p role="status" className="rounded-2xl border bg-white p-6">Вам не назначен доступ ни к одному проекту. Обратитесь к администратору компании.</p>:<>
     {currentResource==='overview'?<WorkspaceOverview key={project.id} project={project} user={user} {...overview} onNavigate={setResource} onDocument={openDocument} canDocuments={canDocuments} onRefresh={()=>setVersion(n=>n+1)}/>:<div><p className="mb-1 text-sm text-slate-400">{project.name}</p><h1 className="text-2xl font-extrabold">{resources[currentResource].label}</h1></div>}
     <WorkspaceOperations key={`${project.id}:${version}`} project={project.id} version={version} onOpen={setOperation} disabled={!!operation}/>
-    {currentResource!=='overview'&&<WorkspaceRecords key={`${version}:${project.id}:${currentResource}`} project={project.id} resource={currentResource} canDocuments={currentResource==='deals'&&canDocuments} onDocument={openDocument}/>}
+    {currentResource==='units'?<WorkspaceInventory key={project.id} project={project.id} version={version}/>:currentResource!=='overview'&&<WorkspaceRecords key={`${version}:${project.id}:${currentResource}`} project={project.id} resource={currentResource} canDocuments={currentResource==='deals'&&canDocuments} onDocument={openDocument}/>}
    </>}
   </ProjectShell>
   {operation&&project&&operation.kind==='DOCUMENTS'&&<WorkspaceDocuments key={`${user.id}:${project.id}:${operation.dealId}`} project={project.id} dealId={operation.dealId} onClose={()=>setOperation(null)}/>}
