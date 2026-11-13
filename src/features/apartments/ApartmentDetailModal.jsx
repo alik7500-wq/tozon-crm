@@ -7,6 +7,7 @@ import { useAuth } from '../auth/AuthContext';
 import { DealWizardModal } from '../deals/DealWizardModal';
 import { ContractPrintView } from '../deals/ContractPrintView';
 import { PaymentRecordModal } from '../deals/PaymentRecordModal';
+import { DealSalesSourceBlock } from '../deals/DealSalesSourceBlock';
 import { ReserveApartmentModal } from './ReserveApartmentModal';
 import { ExtendReservationModal } from './ExtendReservationModal';
 import { useModalDismiss } from '../../hooks/useModalDismiss';
@@ -320,6 +321,16 @@ export const ApartmentDetailModal = ({
 
   const handleSignReservation = async () => {
     if (!activeDeal) return;
+    if (!activeDeal.sales_source || activeDeal.sales_source === 'UNSPECIFIED') {
+      const canDefer = user?.role === 'ADMIN' || user?.role === 'DIRECTOR';
+      if (!canDefer) {
+        alert('Перед подписанием договора укажите источник продажи в блоке «ИСТОЧНИК ПРОДАЖИ» («Прямая продажа TOZON» или «Продажа через маркетологов»).');
+        return;
+      }
+      if (!window.confirm('Источник продажи ещё не указан («Источник не определён»). Продолжить подписание договора с отложенным уточнением источника?')) {
+        return;
+      }
+    }
     if (!window.confirm(`Подтвердить подписание договора купли-продажи по квартире №${unit.unit_number}? Статус квартиры изменится на «Продана».`)) return;
     setIsUpdatingStatus(true);
     try {
@@ -620,6 +631,17 @@ export const ApartmentDetailModal = ({
                   </div>
                 </div>
 
+                {/* V3: Sales Source & Commission Block for Reserved Apartment */}
+                <DealSalesSourceBlock
+                  mode="deal"
+                  deal={activeDeal}
+                  compact
+                  onDealUpdated={() => {
+                    fetchUnit();
+                    if (onUnitUpdated) onUnitUpdated();
+                  }}
+                />
+
                 {/* Actions for Reserved Unit */}
                 <div className="flex flex-wrap items-center justify-end gap-2.5 pt-3 border-t border-amber-200">
                   {isAdmin && (
@@ -754,6 +776,17 @@ export const ApartmentDetailModal = ({
                       </div>
                     )}
                   </div>
+
+                  {/* V3: Sales Source & Commission Block for Sold Apartment */}
+                  <DealSalesSourceBlock
+                    mode="deal"
+                    deal={activeDeal}
+                    compact
+                    onDealUpdated={() => {
+                      fetchUnit();
+                      if (onUnitUpdated) onUnitUpdated();
+                    }}
+                  />
                 </div>
 
                 {/* Installment Schedule & Payments Breakdown */}

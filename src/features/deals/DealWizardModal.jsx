@@ -33,6 +33,7 @@ import {
   Sparkles
 } from 'lucide-react';
 import { VehicleDetailsFields } from './VehicleDetailsFields';
+import { DealSalesSourceBlock } from './DealSalesSourceBlock';
 import { PassportScannerModal } from '../documents/PassportScannerModal';
 import { signedBuyerLeads } from '../../utils/buyerEligibility';
 
@@ -133,6 +134,13 @@ export const DealWizardModal = ({
   const [barterDescription, setBarterDescription] = useState('');
   const [barterAmount, setBarterAmount] = useState(0);
   const [vehicleDetails, setVehicleDetails] = useState({});
+
+  // V3: Sales Source Attribution state
+  const [salesSourceForm, setSalesSourceForm] = useState({
+    salesSource: 'DIRECT',
+    marketingPartnerId: '',
+    marketerName: '',
+  });
 
   // Installment Calculator
   const [downPaymentPercent, setDownPaymentPercent] = useState(30);
@@ -493,6 +501,12 @@ export const DealWizardModal = ({
 
     try {
       if (!selectedUnit || !selectedLead || !(Number(pricePerM2) > 0) || !(finalPrice > 0)) throw new Error('Выберите объект, покупателя и укажите положительную цену');
+      if (dealStatus === 'SIGNED' && (!salesSourceForm.salesSource || !['DIRECT', 'MARKETER'].includes(salesSourceForm.salesSource))) {
+        throw new Error('Укажите источник продажи: «Прямая продажа TOZON» или «Продажа через маркетологов»');
+      }
+      if (salesSourceForm.salesSource === 'MARKETER' && !salesSourceForm.marketingPartnerId) {
+        throw new Error('При выборе «Продажа через маркетологов» необходимо выбрать маркетингового партнёра');
+      }
       if (needsInitialPayment) {
         if (cashDesksLoading) throw new Error('Дождитесь загрузки касс');
         if (cashDesksError) throw new Error(cashDesksError);
@@ -545,6 +559,11 @@ export const DealWizardModal = ({
         first_payment_date: firstPaymentDate || null,
         installment_interval_months: Number(paymentInterval) || 1,
         schedules: (paymentType === 'INSTALLMENT' || paymentType === 'PARTIAL_BARTER') ? schedule : [],
+        sales_source: salesSourceForm.salesSource || undefined,
+        marketing_partner_id: salesSourceForm.salesSource === 'MARKETER' && salesSourceForm.marketingPartnerId
+          ? Number(salesSourceForm.marketingPartnerId)
+          : undefined,
+        marketer_name: salesSourceForm.salesSource === 'MARKETER' ? salesSourceForm.marketerName : undefined,
       });
 
       const dealData = res.data?.deal || res.deal || res;
@@ -1447,6 +1466,13 @@ export const DealWizardModal = ({
                   </div>
                 )}
               </div>
+
+              {/* V3: Sales Source Attribution Block */}
+              <DealSalesSourceBlock
+                mode="form"
+                value={salesSourceForm}
+                onChange={setSalesSourceForm}
+              />
 
               {/* Complete Review Sheet */}
               <div className="rounded-xl border border-slate-200 bg-white p-4 space-y-2 text-xs">

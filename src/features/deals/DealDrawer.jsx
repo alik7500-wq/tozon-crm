@@ -4,6 +4,7 @@ import React, { useState, useEffect } from 'react';
 import { api } from '../../api/client';
 import { formatContractNumber } from '../../utils/formatters';
 import { PaymentRecordModal } from './PaymentRecordModal';
+import { DealSalesSourceBlock } from './DealSalesSourceBlock';
 import { useModalDismiss } from '../../hooks/useModalDismiss';
 import { SendSmsModal } from '../../components/sms/SendSmsModal';
 import {
@@ -164,6 +165,16 @@ export const DealDrawer = ({
   if (!isOpen) return null;
 
   const handleSignDeal = async () => {
+    if (!deal?.sales_source || deal.sales_source === 'UNSPECIFIED') {
+      const canDefer = user?.role === 'ADMIN' || user?.role === 'DIRECTOR';
+      if (!canDefer) {
+        alert('Перед подписанием договора укажите источник продажи в блоке «ИСТОЧНИК ПРОДАЖИ» («Прямая продажа TOZON» или «Продажа через маркетологов»).');
+        return;
+      }
+      if (!window.confirm('Источник продажи ещё не указан («Источник не определён»). Продолжить подписание договора с отложенным уточнением источника?')) {
+        return;
+      }
+    }
     if (!window.confirm('Подписать договор по данной брони? Объект перейдет в статус «ПРОДАНО».')) return;
     setActionLoading(true);
     try {
@@ -498,6 +509,16 @@ export const DealDrawer = ({
                 )}
               </div>
             </div>
+
+            {/* V3: Sales Source & Marketer Commission Control Block */}
+            <DealSalesSourceBlock
+              mode="deal"
+              deal={deal}
+              onDealUpdated={(updatedDeal) => {
+                setDeal(updatedDeal);
+                if (onDealUpdated) onDealUpdated(updatedDeal);
+              }}
+            />
 
             {/* Terminate Contract Modal for ADMIN */}
             {isTerminatePromptOpen && (
