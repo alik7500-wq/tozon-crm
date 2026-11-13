@@ -5,6 +5,7 @@ import { getUnitTitle, isNonResidentialUnit, getUnitKind } from '../../utils/uni
 import {formatMeasure} from '../../utils/numberDisplay';
 import { defaultPrintLanguage } from '../settings/InterfaceSettingsTab';
 import { TemplateDocumentButton } from '../settings/TemplateDocumentButton';
+import {BuyerQrButton} from '../buyer/BuyerQrButton';
 import { dealDocumentContext } from '../settings/documentTemplates';
 import React, { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
@@ -314,6 +315,7 @@ export const ContractPrintView = ({ deal: initialDeal, onClose, initialLang = de
         
         {/* ================= HEADER CONTROLS (Hidden during print) ================= */}
         <div className="print:hidden flex items-center justify-between bg-slate-900 text-white px-4 sm:px-6 py-3.5 border-b border-slate-800 flex-wrap gap-3">
+          <BuyerQrButton deal={deal}/>
           <div className="flex items-center gap-3">
             <button
               onClick={onClose}
