@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import WorkspaceDocuments from './WorkspaceDocuments';
 import WorkspaceOperationForm from './WorkspaceOperationForm';
 import { operationLabels } from './workspaceOperations';
@@ -62,8 +62,15 @@ const menuGroups=[
 export default function ProjectWorkspacePage() {
  const {user,logout}=useAuth();
  const [projectId,setProjectId]=useState(''),[resource,setResource]=useState('overview'),[version,setVersion]=useState(0),[operation,setOperation]=useState(null);
+ const [inventoryDraft,setInventoryDraft]=useState(null);
+ const saveInventoryDraft=useCallback(update=>setInventoryDraft(previous=>{
+  const own=previous?.actor===user?.id?previous:null;
+  return {...(typeof update==='function'?update(own):update),actor:user?.id};
+ }),[user?.id]);
  const projectOnly=user?.permissions?.includes('company.project-only');
- const {data:context,loading,error}=useWorkspaceRead(projectOnly?'/project-workspace/projects':null,{},version,user?.id);
+ const {data:context,loading,error,errorStatus}=useWorkspaceRead(projectOnly?'/project-workspace/projects':null,{},version,user?.id);
+ // Discard local input as soon as the current server context denies its scope.
+ if(inventoryDraft&&([401,403].includes(errorStatus)||inventoryDraft.actor!==user?.id||(context&&!context.projects.some(p=>p.id===inventoryDraft.project&&p.sections.includes('inventory.view')))))setInventoryDraft(null);
  useEffect(()=>{
   if(operation)return;
   const refresh=()=>{if(document.visibilityState==='visible')setVersion(n=>n+1);};
@@ -80,12 +87,12 @@ export default function ProjectWorkspacePage() {
  const canDocuments=project?.sections.includes('documents.print')&&project?.sections.includes('deals.view');
  const openDocument=dealId=>setOperation({kind:'DOCUMENTS',dealId});
  return <>
-  <ProjectShell user={user} logout={logout} groups={groups} current={currentResource} onNavigate={setResource} project={project} projects={context?.projects||[]} onProjectChange={id=>{setProjectId(id);setResource('overview');}} disabled={!!operation}>
+  <ProjectShell user={user} logout={logout} groups={groups} current={currentResource} onNavigate={setResource} project={project} projects={context?.projects||[]} onProjectChange={id=>{setInventoryDraft(null);setProjectId(id);setResource('overview');}} disabled={!!operation}>
    <p className="text-xs text-slate-500">Тестовое пространство проекта. Разделы и операции доступны в соответствии с Вашими правами.</p>
    {loading&&!context?<p role="status" className="rounded-2xl border bg-white p-6">Проверка доступа к проектам…</p>:error?<div role="alert" className="rounded-2xl border border-rose-200 bg-rose-50 p-5 text-rose-700">{error}<button type="button" className="ml-3 font-bold underline" onClick={()=>setVersion(n=>n+1)}>Повторить проверку доступа</button></div>:!project?<p role="status" className="rounded-2xl border bg-white p-6">Вам не назначен доступ ни к одному проекту. Обратитесь к администратору компании.</p>:<>
     {currentResource==='overview'?<WorkspaceOverview key={project.id} project={project} user={user} {...overview} onNavigate={setResource} onDocument={openDocument} canDocuments={canDocuments} onRefresh={()=>setVersion(n=>n+1)}/>:<div><p className="mb-1 text-sm text-slate-400">{project.name}</p><h1 className="text-2xl font-extrabold">{resources[currentResource].label}</h1></div>}
     <WorkspaceOperations key={`${project.id}:${version}`} project={project.id} version={version} onOpen={setOperation} disabled={!!operation}/>
-    {currentResource==='units'?<WorkspaceInventory key={project.id} project={project.id} version={version}/>:currentResource!=='overview'&&<WorkspaceRecords key={`${version}:${project.id}:${currentResource}`} project={project.id} resource={currentResource} canDocuments={currentResource==='deals'&&canDocuments} onDocument={openDocument}/>}
+    {currentResource==='units'?<WorkspaceInventory key={project.id} project={project.id} version={version} draft={inventoryDraft?.actor===user?.id?inventoryDraft:null} onDraftChange={saveInventoryDraft}/>:currentResource!=='overview'&&<WorkspaceRecords key={`${version}:${project.id}:${currentResource}`} project={project.id} resource={currentResource} canDocuments={currentResource==='deals'&&canDocuments} onDocument={openDocument}/>}
    </>}
   </ProjectShell>
   {operation&&project&&operation.kind==='DOCUMENTS'&&<WorkspaceDocuments key={`${user.id}:${project.id}:${operation.dealId}`} project={project.id} dealId={operation.dealId} onClose={()=>setOperation(null)}/>}

@@ -2,6 +2,7 @@ import React,{useCallback,useEffect,useMemo,useRef,useState} from 'react';
 import {Building2,LayoutGrid,List,X,RefreshCw} from 'lucide-react';
 import useWorkspaceRead from './useWorkspaceRead';
 import WorkspacePricing from './WorkspacePricing';
+import useInventoryDraft from './useInventoryDraft';
 
 const statuses={
  AVAILABLE:{label:'Свободна',style:'border-emerald-300 bg-emerald-50 text-emerald-900'},
@@ -29,12 +30,16 @@ function groupFloors(rows){
  return Array.from(groups.values(),g=>({...g,floors:Array.from(g.floors.values()).sort((a,b)=>b.number-a.number||a.id-b.id)}));
 }
 
-export default function WorkspaceInventory({project,version}){
- const [complexId,setComplexId]=useState(''),[reload,setReload]=useState(0),[view,setView]=useState('board');
- const [filters,setFilters]=useState({status:'',kind:'',rooms:'',search:''}),[selectedId,setSelectedId]=useState(null);
- const [pricingQuote,setPricingQuote]=useState(null),[rateInput,setRateInput]=useState('');
- const rememberQuote=useCallback(quote=>{if(quote)setPricingQuote(quote);},[]);
- const {data,loading,error}=useWorkspaceRead(`/project-workspace/${project}/inventory`,complexId?{complex_id:complexId}:{},`${version}:${reload}`);
+export default function WorkspaceInventory({project,version,draft,onDraftChange}){
+ const [{complexId,view,filters,selectedId,pricingQuote,rateInput},updateDraft]=useInventoryDraft(project,draft,onDraftChange);
+ const [reload,setReload]=useState(0);
+ const setComplexId=value=>updateDraft({complexId:value}),setView=value=>updateDraft({view:value});
+ const setSelectedId=value=>updateDraft({selectedId:value}),setPricingQuote=value=>updateDraft({pricingQuote:value});
+ const setRateInput=value=>updateDraft({rateInput:value});
+ const setFilters=value=>updateDraft(current=>({filters:typeof value==='function'?value(current.filters):value}));
+ const rememberQuote=useCallback(quote=>{if(quote)updateDraft({pricingQuote:quote});},[updateDraft]);
+ const {data,loading,error,errorStatus}=useWorkspaceRead(`/project-workspace/${project}/inventory`,complexId?{complex_id:complexId}:{},`${version}:${reload}`);
+ useEffect(()=>{if([401,403].includes(errorStatus))updateDraft({selectedId:null,pricingQuote:null,rateInput:''});},[errorStatus,updateDraft]);
  const details=useRef(null),trigger=useRef(null);
  useEffect(()=>{if(selectedId!=null)details.current?.focus();},[selectedId]);
  const records=data?.records||emptyRecords;

@@ -14,6 +14,20 @@ beforeEach(()=>{
  api.get.mockImplementation(path=>Promise.resolve({data:path.endsWith('/projects')?{projects}:{records:[{id:1,name:'Plaza ЖК',code:'A'}],has_more:false}}));
 });
 afterEach(()=>{cleanup();vi.unstubAllEnvs();});
+it.each([503,403])('handles a %i context failure without exposing stale inventory, restoring input only after transient failure',async status=>{
+ let failure=null;
+ const inventory={complexes:[{id:1,name:'Plaza complex',currency:'USD'}],selected_complex_id:1,records:[{id:1,unit_number:'101',unit_kind:'APARTMENT',rooms:2,status:'AVAILABLE',building_id:1,section_id:1,floor_id:1,floor_number:1,area_m2_x100:6000,price_per_m2_minor:70000}]};
+ api.get.mockImplementation(path=>{
+  if(path.endsWith('/projects'))return failure?Promise.reject(Object.assign(new Error('Проверка доступа недоступна'),{status:failure})):Promise.resolve({data:{projects}});
+  return Promise.resolve({data:path.endsWith('/inventory')?inventory:path.endsWith('/options')?{commands:[]}:{records:[],has_more:false}});
+ });
+ render(<ProjectWorkspacePage/>);fireEvent.click(await screen.findByRole('button',{name:'Помещения',exact:true}));fireEvent.click(await screen.findByRole('button',{name:/Квартира №101,/}));
+ fireEvent.change(screen.getByLabelText('Справочный курс USD → сомони'),{target:{value:'10'}});fireEvent.change(screen.getByLabelText('Желаемый первоначальный взнос'),{target:{value:'100000'}});fireEvent.change(screen.getByLabelText('Срок калькулятора'),{target:{value:'36'}});
+ failure=status;fireEvent(window,new Event('focus'));expect(await screen.findByRole('alert')).toHaveTextContent('Проверка доступа недоступна');expect(screen.queryByRole('region',{name:'Карточка помещения'})).not.toBeInTheDocument();
+ inventory.records[0].price_per_m2_minor=65000;failure=null;fireEvent(window,new Event('focus'));await screen.findByRole('button',{name:/Квартира №101,/});
+ if(status===503){expect(await screen.findByLabelText('Справочный курс USD → сомони')).toHaveValue('10');expect(screen.getByLabelText('Желаемый первоначальный взнос')).toHaveValue(100000);expect(screen.getByLabelText('Срок калькулятора')).toHaveValue(36);expect(screen.getByRole('region',{name:'Калькулятор условий оплаты'})).toHaveTextContent('39 000 USD');}
+ else expect(screen.queryByRole('region',{name:'Карточка помещения'})).not.toBeInTheDocument();
+});
 describe('project workspace privacy in UI',()=>{
  it('shows only server-granted sections and has no mutation/export controls',async()=>{
   render(<ProjectWorkspacePage/>);fireEvent.click(await screen.findByRole('button',{name:'Жилые комплексы',exact:true}));expect(await screen.findByText('Plaza ЖК')).toBeVisible();

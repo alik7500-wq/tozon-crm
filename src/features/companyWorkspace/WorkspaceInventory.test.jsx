@@ -40,3 +40,9 @@ it('retains the entered reference rate, somoni deposit and term across an author
  fireEvent.click(screen.getByRole('button',{name:'Обновить шахматку'}));await screen.findByLabelText('Срок калькулятора');
  expect(screen.getByLabelText('Справочный курс USD → сомони')).toHaveValue('10');expect(screen.getByLabelText('Желаемый первоначальный взнос')).toHaveValue(100000);expect(screen.getByLabelText('Срок калькулятора')).toHaveValue(36);
 });
+it('discards the selected quote when the inventory read itself is denied',async()=>{
+ const r=render(<WorkspaceInventory project="plaza" version={0}/>);fireEvent.click(await screen.findByRole('button',{name:/Квартира №101,/}));fireEvent.change(screen.getByLabelText('Справочный курс USD → сомони'),{target:{value:'10'}});
+ api.get.mockRejectedValue(Object.assign(new Error('Доступ отозван'),{status:403}));r.rerender(<WorkspaceInventory project="plaza" version={1}/>);await screen.findByRole('alert');
+ api.get.mockResolvedValue({data});r.rerender(<WorkspaceInventory project="plaza" version={2}/>);await screen.findByRole('button',{name:/Квартира №101,/});expect(screen.queryByRole('region',{name:'Карточка помещения'})).not.toBeInTheDocument();
+ fireEvent.click(screen.getByRole('button',{name:/Квартира №101,/}));expect(screen.getByLabelText('Справочный курс USD → сомони')).toHaveValue('');
+});
