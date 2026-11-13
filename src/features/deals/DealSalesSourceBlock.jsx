@@ -1,10 +1,8 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { api } from '../../api/client';
 import { useAuth } from '../auth/AuthContext';
 import {
   ShieldCheck,
-  Users,
-  Building2,
   AlertCircle,
   CheckCircle2,
   Lock,
@@ -13,14 +11,9 @@ import {
   Percent,
   XCircle,
   Send,
-  Pencil,
+  Loader2,
+  X,
 } from 'lucide-react';
-
-const SOURCE_LABELS = {
-  DIRECT: 'Прямая продажа TOZON',
-  MARKETER: 'Продажа через маркетологов',
-  UNSPECIFIED: 'Источник не определён',
-};
 
 const COMMISSION_STATUS_STYLES = {
   NOT_CALCULATED: 'bg-slate-100 text-slate-700 border-slate-200',
@@ -58,17 +51,20 @@ export const DealSalesSourceBlock = ({
   const [partners, setPartners] = useState([]);
   const [loadingPartners, setLoadingPartners] = useState(false);
 
-  // State for 'deal' mode editing
-  const currentSource = deal?.sales_source || 'UNSPECIFIED';
-  const isSigned = String(deal?.status || '').toUpperCase() === 'SIGNED';
-  const isCancelled = String(deal?.status || '').toUpperCase() === 'CANCELLED';
+  // State for 'deal' mode
+  const [localDeal, setLocalDeal] = useState(deal);
+  const effectiveDeal = localDeal || deal;
+  const currentSource = effectiveDeal?.sales_source || 'UNSPECIFIED';
+  const isSigned = String(effectiveDeal?.status || '').toUpperCase() === 'SIGNED';
+  const isCancelled = String(effectiveDeal?.status || '').toUpperCase() === 'CANCELLED';
 
-  const [isEditingSource, setIsEditingSource] = useState(false);
-  const [draftSource, setDraftSource] = useState(currentSource === 'UNSPECIFIED' ? '' : currentSource);
-  const [draftPartnerId, setDraftPartnerId] = useState(deal?.marketing_partner_id ? String(deal.marketing_partner_id) : '');
-  const [draftMarketerName, setDraftMarketerName] = useState(deal?.marketer_name || '');
-  const [changeReason, setChangeReason] = useState('');
+  const [pendingSource, setPendingSource] = useState(null);
+  const [showPartnerPicker, setShowPartnerPicker] = useState(false);
+  const [selectedPartnerId, setSelectedPartnerId] = useState(
+    effectiveDeal?.marketing_partner_id ? String(effectiveDeal.marketing_partner_id) : ''
+  );
   const [savingSource, setSavingSource] = useState(false);
+  const savingRef = useRef(false);
   const [errorMessage, setErrorMessage] = useState('');
   const [successMessage, setSuccessMessage] = useState('');
 
@@ -103,12 +99,13 @@ export const DealSalesSourceBlock = ({
   }, []);
 
   useEffect(() => {
+    setLocalDeal(deal);
     if (deal) {
-      setDraftSource(deal.sales_source && deal.sales_source !== 'UNSPECIFIED' ? deal.sales_source : '');
-      setDraftPartnerId(deal.marketing_partner_id ? String(deal.marketing_partner_id) : '');
-      setDraftMarketerName(deal.marketer_name || '');
+      setSelectedPartnerId(deal.marketing_partner_id ? String(deal.marketing_partner_id) : '');
     }
-  }, [deal?.id, deal?.sales_source, deal?.marketing_partner_id, deal?.marketer_name]);
+    setPendingSource(null);
+    setShowPartnerPicker(false);
+  }, [deal]);
 
   // ============================================================================
   // MODE 1: Controlled Form Block (DealWizardModal / Pre-signing)
@@ -284,13 +281,12 @@ export const DealSalesSourceBlock = ({
   // ============================================================================
   // MODE 2: Deal View & Management Block (DealDrawer & ApartmentDetailModal)
   // ============================================================================
-  if (!deal) return null;
+  if (!effectiveDeal) return null;
 
-  const canModifySource = isSigned
-    ? isAdmin
-    : ['ADMIN', 'DIRECTOR', 'SALES_MANAGER'].includes(role);
+  const canModifySource =
+    !isCancelled && (isSigned ? isAdmin : ['ADMIN', 'DIRECTOR', 'SALES_MANAGER'].includes(role));
 
-  const commission = deal.commission || {
+  const commission = effectiveDeal.commission || {
     status: 'NOT_CALCULATED',
     statusLabel: 'Не рассчитана',
     commissionRatePercent: 0,
@@ -300,49 +296,99 @@ export const DealSalesSourceBlock = ({
     remainingCommissionUsd: 0,
   };
 
-  const sourceHistory = Array.isArray(deal.source_history) ? deal.source_history : [];
-  const commissionHistory = Array.isArray(deal.commission_history) ? deal.commission_history : [];
+  const sourceHistory = Array.isArray(effectiveDeal.source_history) ? effectiveDeal.source_history : [];
+  const commissionHistory = Array.isArray(effectiveDeal.commission_history)
+    ? effectiveDeal.commission_history
+    : [];
 
-  const handleSaveSource = async (e) => {
-    if (e) e.preventDefault();
+  const displayedSource = pendingSource || currentSource;
+
+  const saveSource = async (nextSource, partnerId = null) => {
+    if (savingRef.current || savingSource) return;
+    savingRef.current = true;
+    setSavingSource(true);
+    setPendingSource(nextSource);
     setErrorMessage('');
     setSuccessMessage('');
 
-    if (!draftSource || !['DIRECT', 'MARKETER'].includes(draftSource)) {
-      setErrorMessage('Выберите источник продажи: «Прямая продажа TOZON» или «Продажа через маркетологов».');
-      return;
-    }
-    if (draftSource === 'MARKETER' && !draftPartnerId) {
-      setErrorMessage('При выборе «Продажа через маркетологов» необходимо указать маркетингового партнёра.');
-      return;
-    }
-    if (isSigned && (!changeReason || changeReason.trim().length < 3)) {
-      setErrorMessage('Для подписанного договора обязательно укажите причину изменения источника продажи.');
-      return;
-    }
-
-    setSavingSource(true);
     try {
-      const res = await api.patch(`/deals/${deal.id}/sales-source`, {
-        salesSource: draftSource,
-        marketingPartnerId: draftSource === 'MARKETER' ? Number(draftPartnerId) : null,
-        marketerName: draftSource === 'MARKETER' ? draftMarketerName : '',
-        reason: changeReason.trim(),
+      const autoReason = isSigned
+        ? 'Источник продажи установлен администратором через карточку договора'
+        : 'Указание источника продажи через карточку договора';
+
+      const res = await api.patch(`/deals/${effectiveDeal.id}/sales-source`, {
+        salesSource: nextSource,
+        marketingPartnerId: nextSource === 'MARKETER' ? Number(partnerId) : null,
+        marketerName: nextSource === 'MARKETER' ? effectiveDeal.marketer_name || '' : '',
+        reason: autoReason,
       });
       const updated = res?.data?.data?.deal || res?.data?.deal;
-      setIsEditingSource(false);
-      setChangeReason('');
-      setSuccessMessage('Источник продажи успешно сохранён в журнале аудита.');
-      if (onDealUpdated && updated) {
-        onDealUpdated(updated);
+      setShowPartnerPicker(false);
+      setPendingSource(null);
+      if (updated) {
+        setLocalDeal(updated);
+        if (onDealUpdated) onDealUpdated(updated);
       }
+      setSuccessMessage(
+        nextSource === 'DIRECT'
+          ? 'Источник продажи сохранён: Прямая продажа TOZON (комиссия 0 USD).'
+          : 'Источник продажи сохранён: Продажа через маркетологов.'
+      );
     } catch (err) {
+      setPendingSource(null);
+      setShowPartnerPicker(false);
+      setSelectedPartnerId(
+        effectiveDeal?.marketing_partner_id ? String(effectiveDeal.marketing_partner_id) : ''
+      );
       setErrorMessage(
-        err?.response?.data?.message || err?.message || 'Не удалось сохранить источник продажи'
+        err?.response?.data?.message ||
+          err?.response?.data?.error?.message ||
+          err?.message ||
+          'Не удалось сохранить источник продажи'
       );
     } finally {
+      savingRef.current = false;
       setSavingSource(false);
     }
+  };
+
+  const handleSelectDirect = () => {
+    if (!canModifySource || savingSource || savingRef.current) return;
+    setShowPartnerPicker(false);
+    setErrorMessage('');
+    if (currentSource === 'DIRECT') {
+      setPendingSource(null);
+      return;
+    }
+    saveSource('DIRECT', null);
+  };
+
+  const handleSelectMarketer = () => {
+    if (!canModifySource || savingSource || savingRef.current) return;
+    setErrorMessage('');
+    setSuccessMessage('');
+    if (currentSource === 'MARKETER') {
+      setShowPartnerPicker((prev) => !prev);
+      setPendingSource(null);
+      return;
+    }
+    setPendingSource('MARKETER');
+    setShowPartnerPicker(true);
+  };
+
+  const handlePartnerChange = (e) => {
+    const partnerId = e.target.value;
+    setSelectedPartnerId(partnerId);
+    if (!partnerId) return;
+    saveSource('MARKETER', Number(partnerId));
+  };
+
+  const handleCancelPartnerPicker = () => {
+    setShowPartnerPicker(false);
+    setPendingSource(null);
+    setSelectedPartnerId(
+      effectiveDeal?.marketing_partner_id ? String(effectiveDeal.marketing_partner_id) : ''
+    );
   };
 
   const handleExecuteCommissionAction = async (actionType, extraPayload = {}) => {
@@ -350,7 +396,7 @@ export const DealSalesSourceBlock = ({
     setSuccessMessage('');
     setSavingCommission(true);
     try {
-      const res = await api.patch(`/deals/${deal.id}/commission`, {
+      const res = await api.patch(`/deals/${effectiveDeal.id}/commission`, {
         action: actionType,
         notes: commissionNotes.trim(),
         ...extraPayload,
@@ -361,12 +407,16 @@ export const DealSalesSourceBlock = ({
       setRatePercentInput('');
       setPayoutAmountInput('');
       setSuccessMessage('Статус комиссии маркетолога обновлён.');
-      if (onDealUpdated && updated) {
-        onDealUpdated(updated);
+      if (updated) {
+        setLocalDeal(updated);
+        if (onDealUpdated) onDealUpdated(updated);
       }
     } catch (err) {
       setErrorMessage(
-        err?.response?.data?.message || err?.message || 'Ошибка при обновлении комиссии'
+        err?.response?.data?.message ||
+          err?.response?.data?.error?.message ||
+          err?.message ||
+          'Ошибка при обновлении комиссии'
       );
     } finally {
       setSavingCommission(false);
@@ -388,6 +438,12 @@ export const DealSalesSourceBlock = ({
         </div>
 
         <div className="flex items-center gap-2">
+          {savingSource && (
+            <span className="inline-flex items-center gap-1 text-xs font-medium text-indigo-600">
+              <Loader2 className="w-3.5 h-3.5 animate-spin" />
+              <span>Сохранение...</span>
+            </span>
+          )}
           {(sourceHistory.length > 0 || commissionHistory.length > 0) && (
             <button
               type="button"
@@ -398,77 +454,124 @@ export const DealSalesSourceBlock = ({
               <span>Аудит ({sourceHistory.length + commissionHistory.length})</span>
             </button>
           )}
-
-          {canModifySource && !isEditingSource && !isCancelled && (
-            <button
-              type="button"
-              onClick={() => {
-                setIsEditingSource(true);
-                setErrorMessage('');
-                setSuccessMessage('');
-              }}
-              data-testid="btn-edit-sales-source"
-              className="inline-flex items-center gap-1 rounded-lg border border-slate-200 bg-slate-50 px-2.5 py-1 text-xs font-medium text-slate-700 hover:bg-slate-100"
-            >
-              <Pencil className="w-3 h-3" />
-              <span>{currentSource === 'UNSPECIFIED' ? 'Подтвердить источник' : 'Изменить источник'}</span>
-            </button>
-          )}
         </div>
       </div>
 
-      {/* Current Status Display */}
+      {/* Single-Click Source Selection */}
       <div className="space-y-2.5">
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-          <div
-            className={`flex items-center gap-2.5 rounded-lg border px-3 py-2.5 ${
-              currentSource === 'DIRECT'
+          <button
+            type="button"
+            disabled={!canModifySource || savingSource}
+            onClick={handleSelectDirect}
+            data-testid="deal-source-option-direct"
+            className={`flex items-center gap-2.5 rounded-lg border px-3 py-2.5 text-left transition-all ${
+              displayedSource === 'DIRECT'
                 ? 'border-emerald-500 bg-emerald-50/70 text-emerald-900 font-semibold'
-                : 'border-slate-200 bg-slate-50/50 text-slate-500'
+                : 'border-slate-200 bg-slate-50/50 text-slate-600'
+            } ${
+              canModifySource && !savingSource
+                ? 'cursor-pointer hover:border-emerald-400'
+                : 'cursor-default opacity-90'
             }`}
           >
             <input
               type="checkbox"
               readOnly
-              checked={currentSource === 'DIRECT'}
-              className="h-4 w-4 rounded border-slate-300 text-emerald-600"
+              checked={displayedSource === 'DIRECT'}
+              disabled={!canModifySource || savingSource}
+              aria-label="Прямая продажа TOZON"
+              className="h-4 w-4 rounded border-slate-300 text-emerald-600 pointer-events-none"
             />
             <div className="text-xs">
               <div>Прямая продажа TOZON</div>
-              {currentSource === 'DIRECT' && (
+              {displayedSource === 'DIRECT' && (
                 <div className="text-[11px] font-normal text-emerald-700">
                   Комиссия маркетологам: 0.00 USD
                 </div>
               )}
             </div>
-          </div>
+          </button>
 
-          <div
-            className={`flex items-center gap-2.5 rounded-lg border px-3 py-2.5 ${
-              currentSource === 'MARKETER'
+          <button
+            type="button"
+            disabled={!canModifySource || savingSource}
+            onClick={handleSelectMarketer}
+            data-testid="deal-source-option-marketer"
+            className={`flex items-center gap-2.5 rounded-lg border px-3 py-2.5 text-left transition-all ${
+              displayedSource === 'MARKETER'
                 ? 'border-indigo-500 bg-indigo-50/70 text-indigo-900 font-semibold'
-                : 'border-slate-200 bg-slate-50/50 text-slate-500'
+                : 'border-slate-200 bg-slate-50/50 text-slate-600'
+            } ${
+              canModifySource && !savingSource
+                ? 'cursor-pointer hover:border-indigo-400'
+                : 'cursor-default opacity-90'
             }`}
           >
             <input
               type="checkbox"
               readOnly
-              checked={currentSource === 'MARKETER'}
-              className="h-4 w-4 rounded border-slate-300 text-indigo-600"
+              checked={displayedSource === 'MARKETER'}
+              disabled={!canModifySource || savingSource}
+              aria-label="Продажа через маркетологов"
+              className="h-4 w-4 rounded border-slate-300 text-indigo-600 pointer-events-none"
             />
             <div className="text-xs">
               <div>Продажа через маркетологов</div>
               {currentSource === 'MARKETER' && (
                 <div className="text-[11px] font-normal text-indigo-700">
-                  Партнёр: {deal.marketing_partner_name || '—'}
-                  {deal.marketer_name ? ` (${deal.marketer_name})` : ''}
+                  Партнёр: {effectiveDeal.marketing_partner_name || '—'}
+                  {effectiveDeal.marketer_name ? ` (${effectiveDeal.marketer_name})` : ''}
                 </div>
               )}
             </div>
-          </div>
+          </button>
         </div>
 
-        {currentSource === 'UNSPECIFIED' && (
+        {/* Compact Partner Selector (shown only when MARKETER is clicked) */}
+        {showPartnerPicker && canModifySource && !isCancelled && (
+          <div
+            data-testid="compact-partner-picker"
+            className="flex flex-wrap items-center gap-2 rounded-lg border border-indigo-200 bg-indigo-50/50 px-3 py-2"
+          >
+            <label className="text-xs font-medium text-indigo-950 shrink-0">
+              Партнёр <span className="text-rose-500">*</span>
+            </label>
+            <select
+              value={selectedPartnerId}
+              onChange={handlePartnerChange}
+              disabled={savingSource || loadingPartners}
+              data-testid="compact-partner-select"
+              aria-label="Маркетинговый партнёр"
+              className="flex-1 min-w-[200px] rounded-md border border-indigo-200 bg-white px-2.5 py-1.5 text-xs text-slate-900 focus:border-indigo-500 focus:outline-none"
+            >
+              <option value="">— Выберите маркетингового партнёра —</option>
+              {partners.map((p) => (
+                <option key={p.id} value={String(p.id)}>
+                  {p.name}
+                  {p.commissionRatePercent > 0 ? ` (${p.commissionRatePercent}%)` : ''}
+                </option>
+              ))}
+            </select>
+            <button
+              type="button"
+              onClick={handleCancelPartnerPicker}
+              disabled={savingSource}
+              title="Закрыть выбор партнёра"
+              data-testid="compact-partner-cancel"
+              className="inline-flex items-center justify-center rounded-md border border-slate-200 bg-white p-1.5 text-slate-500 hover:bg-slate-100 hover:text-slate-700"
+            >
+              <X className="w-3.5 h-3.5" />
+            </button>
+            {!loadingPartners && partners.length === 0 && (
+              <p className="w-full text-[11px] text-amber-700">
+                В справочнике нет активных маркетинговых партнёров (добавляется администратором).
+              </p>
+            )}
+          </div>
+        )}
+
+        {displayedSource === 'UNSPECIFIED' && (
           <div className="flex items-start gap-2 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-900">
             <AlertCircle className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
             <div>
@@ -486,116 +589,6 @@ export const DealSalesSourceBlock = ({
           </div>
         )}
       </div>
-
-      {/* Edit Source Form */}
-      {isEditingSource && (
-        <form onSubmit={handleSaveSource} className="rounded-lg border border-indigo-200 bg-indigo-50/40 p-3.5 space-y-3">
-          <div className="text-xs font-bold text-slate-800">
-            {isSigned ? 'Изменение источника подписанного договора (с записью в аудит)' : 'Указание источника продажи'}
-          </div>
-
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-            <label
-              className={`flex items-center gap-2.5 p-2.5 rounded-lg border cursor-pointer text-xs font-medium ${
-                draftSource === 'DIRECT'
-                  ? 'border-emerald-600 bg-emerald-50 text-emerald-900'
-                  : 'border-slate-200 bg-white text-slate-700'
-              }`}
-            >
-              <input
-                type="checkbox"
-                checked={draftSource === 'DIRECT'}
-                onChange={() => setDraftSource('DIRECT')}
-                className="h-4 w-4 rounded text-emerald-600"
-              />
-              <span>Прямая продажа TOZON (Комиссия 0 USD)</span>
-            </label>
-
-            <label
-              className={`flex items-center gap-2.5 p-2.5 rounded-lg border cursor-pointer text-xs font-medium ${
-                draftSource === 'MARKETER'
-                  ? 'border-indigo-600 bg-indigo-50 text-indigo-900'
-                  : 'border-slate-200 bg-white text-slate-700'
-              }`}
-            >
-              <input
-                type="checkbox"
-                checked={draftSource === 'MARKETER'}
-                onChange={() => setDraftSource('MARKETER')}
-                className="h-4 w-4 rounded text-indigo-600"
-              />
-              <span>Продажа через маркетологов</span>
-            </label>
-          </div>
-
-          {draftSource === 'MARKETER' && (
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
-              <div>
-                <label className="block text-xs font-medium text-slate-700 mb-1">
-                  Маркетинговый партнёр <span className="text-rose-500">*</span>
-                </label>
-                <select
-                  value={draftPartnerId}
-                  onChange={(e) => setDraftPartnerId(e.target.value)}
-                  className="w-full rounded-lg border border-slate-300 bg-white px-2.5 py-1.5 text-xs text-slate-900"
-                >
-                  <option value="">— Выберите партнёра —</option>
-                  {partners.map((p) => (
-                    <option key={p.id} value={String(p.id)}>
-                      {p.name}
-                      {p.commissionRatePercent > 0 ? ` (${p.commissionRatePercent}%)` : ''}
-                    </option>
-                  ))}
-                </select>
-              </div>
-              <div>
-                <label className="block text-xs font-medium text-slate-700 mb-1">
-                  Ответственный маркетолог (ФИО)
-                </label>
-                <input
-                  type="text"
-                  value={draftMarketerName}
-                  onChange={(e) => setDraftMarketerName(e.target.value)}
-                  placeholder="ФИО представителя партнёра"
-                  className="w-full rounded-lg border border-slate-300 bg-white px-2.5 py-1.5 text-xs text-slate-900"
-                />
-              </div>
-            </div>
-          )}
-
-          {isSigned && (
-            <div>
-              <label className="block text-xs font-medium text-slate-700 mb-1">
-                Причина изменения источника <span className="text-rose-500">*</span>
-              </label>
-              <input
-                type="text"
-                value={changeReason}
-                onChange={(e) => setChangeReason(e.target.value)}
-                placeholder="Укажите основание (например: Подтверждён акт сверки с партнёром / Прямой клиент компании)"
-                className="w-full rounded-lg border border-slate-300 bg-white px-2.5 py-1.5 text-xs text-slate-900"
-              />
-            </div>
-          )}
-
-          <div className="flex items-center justify-end gap-2 pt-1">
-            <button
-              type="button"
-              onClick={() => setIsEditingSource(false)}
-              className="rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-xs font-medium text-slate-700 hover:bg-slate-50"
-            >
-              Отмена
-            </button>
-            <button
-              type="submit"
-              disabled={savingSource}
-              className="rounded-lg bg-indigo-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-indigo-700 disabled:opacity-50"
-            >
-              {savingSource ? 'Сохранение...' : 'Сохранить источник'}
-            </button>
-          </div>
-        </form>
-      )}
 
       {/* Commission Control Panel (shown when MARKETER is active or has commission history) */}
       {(currentSource === 'MARKETER' || commission.paidCommissionUsd > 0) && (
