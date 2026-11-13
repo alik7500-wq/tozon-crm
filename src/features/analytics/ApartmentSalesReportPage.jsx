@@ -119,6 +119,110 @@ export function formatDateRu(isoDate) {
   return `${d}.${m}.${y}`;
 }
 
+const SOURCE_SUBROW_STYLES = {
+  DIRECT: { dot: 'bg-emerald-500', text: 'text-emerald-800', badge: 'bg-emerald-50 border-emerald-200' },
+  MARKETER: { dot: 'bg-indigo-500', text: 'text-indigo-800', badge: 'bg-indigo-50 border-indigo-200' },
+  UNSPECIFIED: { dot: 'bg-amber-500', text: 'text-amber-800', badge: 'bg-amber-50 border-amber-200' },
+};
+
+function getVisibleSourceBreakdown(sourceBreakdown) {
+  if (!Array.isArray(sourceBreakdown)) return [];
+  return sourceBreakdown.filter(
+    (item) => item.salesSource !== 'UNSPECIFIED' || (item.soldCount ?? 0) > 0
+  );
+}
+
+function renderSourceSubRows({ sourceBreakdown, activeTableTab, keyPrefix, testIdPrefix, isTotal = false }) {
+  const items = getVisibleSourceBreakdown(sourceBreakdown);
+  if (items.length === 0) return null;
+
+  const rowBg = isTotal ? 'bg-slate-100/80 font-semibold' : 'bg-slate-50/70';
+  const stickyBg = isTotal ? 'bg-slate-100' : 'bg-slate-50';
+
+  return items.map((sub) => {
+    const style = SOURCE_SUBROW_STYLES[sub.salesSource] || SOURCE_SUBROW_STYLES.UNSPECIFIED;
+    return (
+      <tr
+        key={`${keyPrefix}-${sub.salesSource}`}
+        data-testid={`${testIdPrefix}-${sub.salesSource}`}
+        className={`${rowBg} text-[11px] sm:text-xs text-slate-600 border-t border-slate-200/70`}
+      >
+        <td className={`sticky left-0 z-10 ${stickyBg} py-2 pl-6 pr-3 border-r border-slate-200/60`}>
+          <div className="flex items-center gap-1.5">
+            <span className={`inline-block w-1.5 h-1.5 rounded-full shrink-0 ${style.dot}`} />
+            <span className={`truncate ${style.text}`}>
+              {isTotal ? `ИТОГО — ${sub.salesSourceLabel}` : sub.salesSourceLabel}
+            </span>
+          </div>
+        </td>
+        <td className={`sticky left-[170px] z-10 ${stickyBg} py-2 px-3 border-r border-slate-200/60 text-center text-slate-400`}>
+          —
+        </td>
+
+        {(activeTableTab === 'ALL' || activeTableTab === 'INVENTORY') && (
+          <td className="py-2 px-3.5 text-right text-slate-400">—</td>
+        )}
+
+        <td className="py-2 px-3.5 text-right font-semibold text-slate-800 whitespace-nowrap">
+          {(sub.soldCount ?? 0).toLocaleString('ru-RU')}
+        </td>
+
+        {(activeTableTab === 'INVENTORY' || activeTableTab === 'COMMISSIONS') && (
+          <>
+            <td className="py-2 px-3 text-right text-slate-400">—</td>
+            <td className="py-2 px-3 text-right text-slate-400">—</td>
+            <td className="py-2 px-3 text-right text-slate-400">—</td>
+          </>
+        )}
+
+        {(activeTableTab === 'ALL' || activeTableTab === 'INVENTORY') && (
+          <>
+            <td className="py-2 px-3.5 text-right text-slate-400">—</td>
+            <td className="py-2 px-3.5 text-right text-slate-400">—</td>
+          </>
+        )}
+
+        <td className="py-2 px-3.5 text-right font-semibold text-slate-800 whitespace-nowrap">
+          {formatMoneyUsd(sub.salesAmountUsd)}
+        </td>
+        <td className="py-2 px-3.5 text-right font-semibold text-sky-700 whitespace-nowrap">
+          {formatMoneyUsd(sub.paidDownPaymentUsd)}
+        </td>
+        <td className="py-2 px-3 text-right font-semibold text-sky-700 whitespace-nowrap">
+          {formatPercent(sub.paidDownPaymentPercent)}
+        </td>
+
+        {activeTableTab === 'COMMISSIONS' && (
+          <>
+            <td className="py-2 px-3.5 text-right text-slate-400">—</td>
+            <td className="py-2 px-3.5 text-right text-slate-400">—</td>
+            <td className="py-2 px-3.5 text-right text-slate-400">—</td>
+            <td className="py-2 px-3.5 text-right text-slate-400">—</td>
+            <td className="py-2 px-3.5 text-right text-slate-400">—</td>
+            <td className="py-2 px-3.5 text-right text-slate-400">—</td>
+          </>
+        )}
+
+        {activeTableTab === 'FINANCE' && (
+          <>
+            <td className="py-2 px-3.5 text-right text-slate-400">—</td>
+            <td className="py-2 px-3.5 text-right text-slate-400">—</td>
+          </>
+        )}
+
+        {(activeTableTab === 'ALL' || activeTableTab === 'FINANCE') && (
+          <>
+            <td className="py-2 px-3.5 text-right text-slate-400">—</td>
+            <td className="py-2 px-3 text-right text-slate-400">—</td>
+            <td className="py-2 px-3.5 text-right text-slate-400">—</td>
+            <td className="py-2 px-3.5 text-right text-slate-400">—</td>
+          </>
+        )}
+      </tr>
+    );
+  });
+}
+
 export const ApartmentSalesReportPage = () => {
   const { user } = useAuth();
   const isAdmin = String(user?.role || '').toUpperCase() === 'ADMIN';
@@ -994,6 +1098,68 @@ export const ApartmentSalesReportPage = () => {
             </div>
           </div>
 
+          {/* Mobile compact source breakdown cards */}
+          <div className="sm:hidden no-print divide-y divide-slate-200 border-b border-slate-200">
+            {[...blocks.map((b) => ({
+              key: b.key,
+              title: `${b.projectName} · Блок ${b.blockCode}`,
+              soldCount: b.soldCount,
+              salesAmountUsd: b.salesAmountUsd,
+              paidDownPaymentUsd: b.paidDownPaymentUsd,
+              paidDownPaymentPercent: b.paidDownPaymentPercent,
+              sourceBreakdown: b.sourceBreakdown,
+              isTotal: false,
+            })), {
+              key: 'mobile-total',
+              title: 'ИТОГО',
+              soldCount: totals.soldCount,
+              salesAmountUsd: totals.salesAmountUsd,
+              paidDownPaymentUsd: totals.paidDownPaymentUsd,
+              paidDownPaymentPercent: totals.paidDownPaymentPercent,
+              sourceBreakdown: totals.sourceBreakdown,
+              isTotal: true,
+            }].map((item) => {
+              const subs = getVisibleSourceBreakdown(item.sourceBreakdown);
+              return (
+                <div
+                  key={item.key}
+                  className={`p-3.5 space-y-2 ${item.isTotal ? 'bg-slate-100' : 'bg-white'}`}
+                >
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="font-bold text-xs text-slate-900">{item.title}</span>
+                    <span className="text-xs font-extrabold text-slate-900">
+                      {item.soldCount ?? 0} шт. · {formatMoneyUsd(item.salesAmountUsd)}
+                    </span>
+                  </div>
+                  <div className="text-[11px] text-sky-700 font-semibold">
+                    Оплаченный ПВ: {formatMoneyUsd(item.paidDownPaymentUsd)} ({formatPercent(item.paidDownPaymentPercent)})
+                  </div>
+                  {subs.length > 0 && (
+                    <div className="space-y-1 pt-1">
+                      {subs.map((sub) => {
+                        const style = SOURCE_SUBROW_STYLES[sub.salesSource] || SOURCE_SUBROW_STYLES.UNSPECIFIED;
+                        return (
+                          <div
+                            key={`${item.key}-${sub.salesSource}`}
+                            className={`rounded-lg border px-2.5 py-1.5 text-[11px] ${style.badge}`}
+                          >
+                            <div className="flex items-center justify-between font-semibold">
+                              <span className={style.text}>{sub.salesSourceLabel}</span>
+                              <span className="text-slate-900">{sub.soldCount ?? 0} шт. · {formatMoneyUsd(sub.salesAmountUsd)}</span>
+                            </div>
+                            <div className="text-[10px] text-slate-600 mt-0.5">
+                              ПВ оплачено: <span className="font-semibold text-sky-800">{formatMoneyUsd(sub.paidDownPaymentUsd)}</span> ({formatPercent(sub.paidDownPaymentPercent)})
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+
           <div className="overflow-x-auto">
             <table className="print-table w-full min-w-[1100px] text-left border-collapse">
               <thead>
@@ -1042,6 +1208,12 @@ export const ApartmentSalesReportPage = () => {
 
                   <th className="py-3.5 px-3.5 text-right">
                     Сумма продаж, USD
+                  </th>
+                  <th className="py-3.5 px-3.5 text-right text-sky-700">
+                    Оплаченный ПВ, USD
+                  </th>
+                  <th className="py-3.5 px-3 text-right text-sky-700">
+                    ПВ, %
                   </th>
 
                   {activeTableTab === 'COMMISSIONS' && (
@@ -1103,8 +1275,8 @@ export const ApartmentSalesReportPage = () => {
                     ? 'bg-blue-50 group-hover:bg-blue-50'
                     : 'bg-white group-hover:bg-slate-50';
                   return (
+                    <React.Fragment key={row.key}>
                     <tr
-                      key={row.key}
                       data-testid={`block-row-${row.blockCode}`}
                       onClick={() =>
                         setSelectedBlockKey((prev) => (prev === row.key ? null : row.key))
@@ -1185,6 +1357,12 @@ export const ApartmentSalesReportPage = () => {
                       <td className="py-3.5 px-3.5 text-right font-bold text-slate-900 whitespace-nowrap">
                         {formatMoneyUsd(row.salesAmountUsd)}
                       </td>
+                      <td className="py-3.5 px-3.5 text-right font-semibold text-sky-700 whitespace-nowrap">
+                        {formatMoneyUsd(row.paidDownPaymentUsd)}
+                      </td>
+                      <td className="py-3.5 px-3 text-right font-semibold text-sky-700 whitespace-nowrap">
+                        {formatPercent(row.paidDownPaymentPercent)}
+                      </td>
 
                       {activeTableTab === 'COMMISSIONS' && (
                         <>
@@ -1242,6 +1420,13 @@ export const ApartmentSalesReportPage = () => {
                         </>
                       )}
                     </tr>
+                    {renderSourceSubRows({
+                      sourceBreakdown: row.sourceBreakdown,
+                      activeTableTab,
+                      keyPrefix: row.key,
+                      testIdPrefix: `block-subrow-${row.blockCode}`,
+                    })}
+                    </React.Fragment>
                   );
                 })}
 
@@ -1326,6 +1511,18 @@ export const ApartmentSalesReportPage = () => {
                   >
                     {formatMoneyUsd(totals.salesAmountUsd)}
                   </td>
+                  <td
+                    data-testid="table-total-paid-down-payment-usd"
+                    className="py-3.5 px-3.5 text-right text-sky-800 whitespace-nowrap"
+                  >
+                    {formatMoneyUsd(totals.paidDownPaymentUsd)}
+                  </td>
+                  <td
+                    data-testid="table-total-paid-down-payment-percent"
+                    className="py-3.5 px-3 text-right text-sky-800 whitespace-nowrap"
+                  >
+                    {formatPercent(totals.paidDownPaymentPercent)}
+                  </td>
 
                   {activeTableTab === 'COMMISSIONS' && (
                     <>
@@ -1390,6 +1587,13 @@ export const ApartmentSalesReportPage = () => {
                     </>
                   )}
                 </tr>
+                {renderSourceSubRows({
+                  sourceBreakdown: totals.sourceBreakdown,
+                  activeTableTab,
+                  keyPrefix: 'total',
+                  testIdPrefix: 'total-subrow',
+                  isTotal: true,
+                })}
               </tfoot>
             </table>
           </div>
