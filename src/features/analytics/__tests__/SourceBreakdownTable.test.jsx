@@ -262,5 +262,7 @@ describe('ApartmentSalesReportPage - Source Breakdown Sub-rows & Paid Down Payme
     expect(screen.getByTestId('total-subrow-DIRECT').textContent).toContain('ИТОГО — Прямая продажа TOZON');
     expect(screen.getByTestId('total-subrow-MARKETER').textContent).toContain('ИТОГО — Продажа через маркетологов');
     expect(screen.getByTestId('total-subrow-UNSPECIFIED').textContent).toContain('ИТОГО — Источник не определён');
+    expect(screen.getByText('Покрытие ПВ (расчётно), USD')).toBeTruthy();
+    expect(screen.getByText('Покрытие ПВ, %')).toBeTruthy();
   });
 });

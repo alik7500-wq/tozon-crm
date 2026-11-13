@@ -1132,7 +1132,7 @@ export const ApartmentSalesReportPage = () => {
                     </span>
                   </div>
                   <div className="text-[11px] text-sky-700 font-semibold">
-                    Оплаченный ПВ: {formatMoneyUsd(item.paidDownPaymentUsd)} ({formatPercent(item.paidDownPaymentPercent)})
+                    Покрытие ПВ (расчётно): {formatMoneyUsd(item.paidDownPaymentUsd)} ({formatPercent(item.paidDownPaymentPercent)})
                   </div>
                   {subs.length > 0 && (
                     <div className="space-y-1 pt-1">
@@ -1148,7 +1148,7 @@ export const ApartmentSalesReportPage = () => {
                               <span className="text-slate-900">{sub.soldCount ?? 0} шт. · {formatMoneyUsd(sub.salesAmountUsd)}</span>
                             </div>
                             <div className="text-[10px] text-slate-600 mt-0.5">
-                              ПВ оплачено: <span className="font-semibold text-sky-800">{formatMoneyUsd(sub.paidDownPaymentUsd)}</span> ({formatPercent(sub.paidDownPaymentPercent)})
+                              Покрытие ПВ (расчётно): <span className="font-semibold text-sky-800">{formatMoneyUsd(sub.paidDownPaymentUsd)}</span> ({formatPercent(sub.paidDownPaymentPercent)})
                             </div>
                           </div>
                         );
@@ -1210,10 +1210,10 @@ export const ApartmentSalesReportPage = () => {
                     Сумма продаж, USD
                   </th>
                   <th className="py-3.5 px-3.5 text-right text-sky-700">
-                    Оплаченный ПВ, USD
+                    Покрытие ПВ (расчётно), USD
                   </th>
                   <th className="py-3.5 px-3 text-right text-sky-700">
-                    ПВ, %
+                    Покрытие ПВ, %
                   </th>
 
                   {activeTableTab === 'COMMISSIONS' && (
@@ -1603,7 +1603,7 @@ export const ApartmentSalesReportPage = () => {
             <Info className="h-4 w-4 text-slate-400 shrink-0 mt-0.5" />
             <div className="space-y-1">
               <div>
-                <strong>Методика расчёта и защита комиссий:</strong> Сумма продаж, оплаты (деньгами и бартером) и остаток долга рассчитываются по договорам квартир, проданных в выбранном периоде (<strong>{formatDateRu(startDate)} — {formatDateRu(endDate)}</strong>), по состоянию на конец периода (<strong>{formatDateRu(endDate)}</strong>). Прямые продажи компании TOZON и договоры со статусом «Источник не определён» всегда имеют комиссию маркетологам = <strong>0,00 USD</strong>.
+                <strong>Методика расчёта и защита комиссий:</strong> Сумма продаж, оплаты (деньгами и бартером) и остаток долга рассчитываются по договорам квартир, проданных в выбранном периоде (<strong>{formatDateRu(startDate)} — {formatDateRu(endDate)}</strong>), по состоянию на конец периода (<strong>{formatDateRu(endDate)}</strong>). Прямые продажи компании TOZON и договоры со статусом «Источник не определён» всегда имеют комиссию маркетологам = <strong>0,00 USD</strong>. Показатель «Покрытие ПВ (расчётно), USD» рассчитывается по каждой сделке как <code>min(подтверждённые денежные платежи и зачтённый бартер, договорной ПВ)</code>, а «Покрытие ПВ, %» — как отношение суммы расчётного покрытия ПВ к сумме продаж группы; показатель является расчётным и не подтверждает целевое назначение каждого отдельного платежа.
               </div>
               {report?.inventoryHistoryMeta?.note && (
                 <div className="text-slate-400">
