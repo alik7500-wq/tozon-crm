@@ -32,3 +32,11 @@ it('removes previously loaded inventory if a permission refresh is denied',async
  const r=render(<WorkspaceInventory project="plaza" version={0}/>);await screen.findByRole('button',{name:/Квартира №101,/});api.get.mockRejectedValue(new Error('Доступ отозван'));
  r.rerender(<WorkspaceInventory project="plaza" version={1}/>);expect(await screen.findByRole('alert')).toHaveTextContent('Доступ отозван');expect(screen.queryByRole('button',{name:/Квартира №101,/})).not.toBeInTheDocument();
 });
+it('retains the entered reference rate, somoni deposit and term across an authorized inventory reload',async()=>{
+ render(<WorkspaceInventory project="plaza" version={0}/>);fireEvent.click(await screen.findByRole('button',{name:/Квартира №101,/}));
+ fireEvent.change(screen.getByLabelText('Справочный курс USD → сомони'),{target:{value:'10'}});
+ fireEvent.change(screen.getByLabelText('Желаемый первоначальный взнос'),{target:{value:'100000'}});
+ fireEvent.change(screen.getByLabelText('Срок калькулятора'),{target:{value:'36'}});
+ fireEvent.click(screen.getByRole('button',{name:'Обновить шахматку'}));await screen.findByLabelText('Срок калькулятора');
+ expect(screen.getByLabelText('Справочный курс USD → сомони')).toHaveValue('10');expect(screen.getByLabelText('Желаемый первоначальный взнос')).toHaveValue(100000);expect(screen.getByLabelText('Срок калькулятора')).toHaveValue(36);
+});
