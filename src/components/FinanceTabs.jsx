@@ -17,6 +17,7 @@ export const FinanceTabs = ({ compact = false, className = '' }) => {
     { label: 'Книга регистрации РКО', path: '/finance/rko-book', permission: 'finance.expenses', icon: Table },
     { label: 'Строительный учёт', path: '/finance/construction', permissionsAny: ['construction.stock','construction.advance','construction.settlements','construction.settings'], icon: Table },
     { label: 'ДДС (Движение средств)', path: '/finance/cashflow', permission: 'finance.cashflow', icon: Wallet },
+    { label: 'Комиссии маркетологов', path: '/finance/marketing-commissions', permissionsAny: ['finance.view', 'deals.view'], icon: Table },
     { label: 'Себестоимость блоков', path: '/finance/costs', permission: 'finance.costs', icon: Table },
   ];
 

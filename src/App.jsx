@@ -30,6 +30,7 @@ import { CustomerPkoBookPage } from './features/finance/CustomerPkoBookPage';
 import { ExpensesPage } from './features/finance/ExpensesPage';
 import { CashflowPage } from './features/finance/CashflowPage';
 import { PlanFactPage } from './features/finance/PlanFactPage';
+import { MarketingCommissionsPage } from './features/finance/MarketingCommissionsPage';
 import { ReportsPage } from './features/reports/ReportsPage';
 import { NotificationsPage } from './features/notifications/NotificationsPage';
 import { UsersPage } from './features/users/UsersPage';
@@ -98,6 +99,7 @@ function App() {
                   <Route path="/finance/rko-book" element={<PermissionGuard requiredPermission="finance.expenses"><RkoBookPage /></PermissionGuard>} />
                   <Route path="/finance/expenses" element={<ExpensesPage />} />
                   <Route path="/finance/cashflow" element={<CashflowPage />} />
+                  <Route path="/finance/marketing-commissions" element={<MarketingCommissionsPage />} />
                   <Route path="/reports" element={<ReportsPage />} />
                   <Route path="/analytics/apartment-sales" element={<ApartmentSalesReportPage />} />
                   <Route path="/analytics/1" element={<AnalyticsOnePage />} />
