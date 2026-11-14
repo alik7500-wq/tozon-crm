@@ -5,7 +5,9 @@ import '@testing-library/jest-dom/vitest';
 import WorkspaceOffer from './WorkspaceOffer';
 import {workspaceOfferHtml} from './workspaceOfferHtml';
 import {api} from '../../api/client';
+import {loadOfferFonts,saveOfferPdf} from './workspaceOfferPdf';
 vi.mock('../../api/client',()=>({api:{post:vi.fn()}}));
+vi.mock('./workspaceOfferPdf',()=>({loadOfferFonts:vi.fn(),saveOfferPdf:vi.fn()}));
 afterEach(()=>{cleanup();vi.restoreAllMocks();vi.clearAllMocks();});
 const data={language:'RU',checked_at:'2026-11-14T06:00:00Z',project_name:'Plaza',prepared_by:'Manager',currency:'USD',unit:{number:'101',complex_name:'Own complex',building_name:'A',section_name:'1',floor:10,rooms:2,area_m2_x100:6000,status:'SOLD'},quote:{base_minor:3600000,total_minor:3600000,discount_minor:0,down_payment_minor:1000000,remaining_minor:2600000,months:36,monthly_minor:72223,reference_rate:10,scheme_name:null}};
 const request={unit_id:1,complex_id:3};
@@ -41,4 +43,22 @@ it('prints only the freshly validated frame and supports repeated prints with id
   fireEvent.load(fresh);expect(print).toHaveBeenCalledTimes(attempt+1);
  }
  expect(api.post).toHaveBeenCalledTimes(3);
+});
+it('loads PDF resources first and saves only a newly authorized calculation',async()=>{
+ const fresh={...data,checked_at:'2026-11-14T07:00:00Z'};
+ loadOfferFonts.mockResolvedValue(['regular','bold']);saveOfferPdf.mockReturnValue('offer.pdf');
+ api.post.mockResolvedValueOnce({data}).mockResolvedValueOnce({data:fresh});
+ render(<WorkspaceOffer project="plaza" request={request} onClose={()=>{}}/>);
+ await screen.findByTitle('Печатное предложение клиенту');
+ fireEvent.click(screen.getByRole('button',{name:'Скачать PDF'}));
+ await waitFor(()=>expect(saveOfferPdf).toHaveBeenCalledWith(fresh,['regular','bold']));
+ expect(loadOfferFonts.mock.invocationCallOrder[0]).toBeLessThan(api.post.mock.invocationCallOrder[1]);
+ expect(await screen.findByText(/PDF подготовлен: offer.pdf/)).toBeVisible();
+});
+it('never saves a PDF when fresh authorization fails',async()=>{
+ loadOfferFonts.mockResolvedValue(['regular','bold']);api.post.mockResolvedValueOnce({data}).mockRejectedValueOnce(new Error('Нет доступа'));
+ render(<WorkspaceOffer project="plaza" request={request} onClose={()=>{}}/>);await screen.findByTitle('Печатное предложение клиенту');
+ fireEvent.click(screen.getByRole('button',{name:'Скачать PDF'}));
+ expect(await screen.findByRole('alert')).toHaveTextContent('Нет доступа');
+ expect(saveOfferPdf).not.toHaveBeenCalled();expect(screen.queryByTitle('Печатное предложение клиенту')).not.toBeInTheDocument();
 });
