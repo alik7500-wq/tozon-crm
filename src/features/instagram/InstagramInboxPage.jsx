@@ -18,7 +18,7 @@ function InstagramTime({ value }) {
   </time>;
 }
 
-export function InstagramInboxPage() {
+function InstagramAccountInbox({ accountId, drafts }) {
   const { user } = useAuth();
   const [conversations, setConversations] = useState([]);
   const [selected, setSelected] = useState(null);
@@ -36,15 +36,13 @@ export function InstagramInboxPage() {
   const [showingCached, setShowingCached] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
-  const [connection, setConnection] = useState(null);
-  const [connecting, setConnecting] = useState(false);
   const allowed = ['ADMIN', 'DIRECTOR'].includes(user?.role);
 
   const refresh = useCallback(async (after, quiet = false) => {
     const cursor = typeof after === 'string' ? after : null;
     if (!quiet) { setLoading(true); setError(''); }
     try {
-      const response = await api.get(cursor ? '/integrations/instagram/inbox/conversations/page' : '/integrations/instagram/inbox/conversations', { params: cursor ? { after: cursor } : {} });
+      const response = await api.get(cursor ? '/integrations/instagram/inbox/conversations/page' : '/integrations/instagram/inbox/conversations', { params: { ...(cursor ? { after: cursor } : {}), ...(accountId ? { account: accountId } : {}) } });
       setConversations(previous => cursor ? [...new Map([...previous, ...(response?.data || [])].map(c => [c.contactId, c])).values()] : (response?.data || []));
       setNextCursor(response?.nextCursor || null);
       return true;
@@ -58,28 +56,13 @@ export function InstagramInboxPage() {
     } finally {
       if (!quiet) setLoading(false);
     }
-  }, []);
+  }, [accountId]);
 
   useEffect(() => {
     if (!allowed) return;
     void refresh();
-    api.get('/integrations/instagram/connection')
-      .then(result => setConnection(result?.data || null))
-      .catch(() => setConnection(null));
+    return () => { ++historyRequest.current; selectedRef.current = null; };
   }, [allowed, refresh]);
-  const connect = async () => {
-    setConnecting(true);
-    setError('');
-    try {
-      const result = await api.post('/integrations/instagram/connect');
-      const url = result?.data?.authorizationUrl;
-      if (!url || !/^https:\/\/www\.facebook\.com\//.test(url)) throw new Error('Invalid authorization URL');
-      window.location.assign(url);
-    } catch {
-      setError('Не удалось начать подключение Instagram. Проверьте настройки Meta.');
-      setConnecting(false);
-    }
-  };
   const openConversation = useCallback(async (conversation, after = null, force = false, quiet = false) => {
     const requestId = ++historyRequest.current;
     const key = conversation.instagramAccountId + ':' + conversation.contactId;
@@ -177,10 +160,6 @@ export function InstagramInboxPage() {
       <div><h1 className="text-2xl font-bold text-slate-900">Instagram Direct</h1><p className="text-sm text-slate-500">Автообновление включено · Новые сообщения проверяются каждые 3 секунды.</p></div>
       <button type="button" onClick={() => { void refresh(); if (selected) void openConversation(selected, null, true); }} disabled={loading || historyLoading} className="rounded-lg bg-blue-600 px-4 py-2 text-white disabled:opacity-50">{loading ? 'Загрузка…' : 'Обновить'}</button>
     </div>
-    <div className="rounded-xl border border-slate-200 bg-white p-4 flex flex-wrap gap-3 items-center justify-between">
-      <div><div className="font-medium">Аккаунт TOZON PLAZA</div><div className="text-sm text-slate-500">{connection?.connected ? 'Instagram подключён' : 'Подключение не подтверждено'}</div></div>
-      <button type="button" onClick={connect} disabled={connecting} className="rounded-lg border border-blue-600 px-4 py-2 text-blue-700 disabled:opacity-50">{connecting ? 'Подключение…' : connection?.connected ? 'Переподключить Instagram' : 'Подключить Instagram'}</button>
-    </div>
     {error && <p role="alert" className="text-red-700">{error}</p>}
     <div className="grid gap-4 md:grid-cols-[minmax(230px,1fr)_minmax(0,2fr)]">
       <div className="rounded-xl border border-slate-200 bg-white overflow-hidden">
@@ -207,8 +186,80 @@ export function InstagramInboxPage() {
             </div>
           </div>)}
         </div>
-        <InstagramReplyComposer key={selected ? selected.instagramAccountId + ':' + selected.contactId : 'none'} conversation={selected} onSent={sent} />
+        <InstagramReplyComposer key={selected ? selected.instagramAccountId + ':' + selected.contactId : 'none'} conversation={selected} onSent={sent} draftStore={drafts} />
       </div>
     </div>
   </section>;
+}
+
+export function InstagramInboxPage() {
+  const {user}=useAuth();
+  const allowed=['ADMIN','DIRECTOR'].includes(user?.role);
+  const [connection,setConnection]=useState(null);
+  const [accountId,setAccountId]=useState('');
+  const [loaded,setLoaded]=useState(false);
+  const [connecting,setConnecting]=useState(false);
+  const [error,setError]=useState('');
+  const [confirmDisconnect,setConfirmDisconnect]=useState(null);
+  const [disconnecting,setDisconnecting]=useState(false);
+  const drafts=useRef(new Map());
+  const load=useCallback(async()=>{
+    try {
+      const result=await api.get('/integrations/instagram/connection');
+      const data=result?.data || {};
+      setConnection(data);
+      if(Array.isArray(data.accounts))setAccountId(previous=>data.accounts.some(a=>a.accountId===previous)?previous:(data.accounts.find(a=>a.connected)||data.accounts[0])?.accountId || '');
+      setError('');
+    }catch(err){setError(err.message || 'Не удалось получить список аккаунтов Instagram.');}
+    finally{setLoaded(true);}
+  },[]);
+  useEffect(()=>{if(!allowed)return;void load();window.addEventListener('focus',load);return()=>window.removeEventListener('focus',load);},[allowed,load]);
+  const connect=async()=>{
+    setConnecting(true);setError('');
+    try{
+      const result=await api.post('/integrations/instagram/connect');
+      const url=result?.data?.authorizationUrl;
+      if(!url||!/^https:\/\/www\.facebook\.com\//.test(url))throw new Error();
+      window.location.assign(url);
+    }catch{setConnecting(false);setError('Не удалось начать подключение Instagram. Проверьте настройки Meta.');}
+  };
+  const disconnect=async()=>{
+    const target=confirmDisconnect;if(!target||disconnecting)return;
+    setDisconnecting(true);setError('');
+    try{
+      await api.post(`/integrations/instagram/accounts/${encodeURIComponent(target)}/disconnect`);
+      for(const key of drafts.current.keys())if(key.startsWith(target+':'))drafts.current.delete(key);
+      setConfirmDisconnect(null);await load();
+    }catch(err){setError(err.message || 'Не удалось отключить аккаунт.');}
+    finally{setDisconnecting(false);}
+  };
+  if(!allowed)return <div className="p-6 text-slate-700">Доступ к перепискам Instagram ограничен.</div>;
+  const accounts=Array.isArray(connection?.accounts)?connection.accounts:null;
+  const selected=accounts?.find(a=>a.accountId===accountId);
+  return <div className="space-y-3">
+    <div className="mx-6 mt-6 rounded-xl border border-slate-200 bg-white p-4 space-y-3">
+      <div className="flex flex-wrap items-end justify-between gap-3">
+        <div>
+          {accounts?.length ? <><label htmlFor="instagram-account" className="block text-sm font-medium mb-1">Аккаунт Instagram</label>
+            <select id="instagram-account" value={accountId} onChange={event=>{setAccountId(event.target.value);setConfirmDisconnect(null);}} className="rounded-lg border border-slate-300 p-2">
+              {accounts.map(a=><option key={a.accountId} value={a.accountId}>{a.username?'@'+a.username:a.accountId}{a.needsReconnect?' — требуется переподключение':''}</option>)}
+            </select></> : <div className="font-medium">Аккаунты Instagram</div>}
+          <p className="text-sm text-slate-500">{selected ? selected.connected?'Instagram подключён':'Необходимо переподключение' : connection?.connected?'Instagram подключён':'Подключите профессиональный аккаунт через Meta'}</p>
+        </div>
+        <div className="flex flex-wrap gap-2">
+          <button type="button" onClick={connect} disabled={connecting} className="rounded-lg border border-blue-600 px-4 py-2 text-blue-700 disabled:opacity-50">{connecting?'Подключение…':'Добавить аккаунт Instagram'}</button>
+          {selected && <><button type="button" onClick={connect} disabled={connecting} className="px-3 py-2 text-blue-700">Переподключить</button>
+            <button type="button" onClick={()=>setConfirmDisconnect(accountId)} disabled={disconnecting} className="px-3 py-2 text-red-700">Отключить аккаунт</button></>}
+        </div>
+      </div>
+      {confirmDisconnect && <div className="rounded-lg bg-slate-50 p-3 text-sm">
+        <p>Отключить выбранный аккаунт от CRM? Сохранённые переписки и лиды останутся в базе.</p>
+        <button type="button" onClick={disconnect} disabled={disconnecting} className="mr-4 py-2 text-red-700">Подтвердить отключение</button>
+        <button type="button" onClick={()=>setConfirmDisconnect(null)} disabled={disconnecting}>Отмена</button>
+      </div>}
+      {error && <p role="alert" className="text-red-700">{error}</p>}
+    </div>
+    {!loaded ? <p role="status" className="p-6">Загрузка аккаунтов…</p> : (accounts===null || selected) && !error &&
+      <InstagramAccountInbox key={accountId || 'legacy'} accountId={accountId || undefined} drafts={drafts.current}/>}
+  </div>;
 }

@@ -38,6 +38,8 @@ api.interceptors.response.use(
       const explanations = {
         INSTAGRAM_PERMISSION_REQUIRED: 'Meta не разрешила доступ к перепискам. Проверьте разрешения приложения.',
         INSTAGRAM_RECONNECT_REQUIRED: 'Необходимо переподключить Instagram.',
+        INSTAGRAM_ACCOUNT_NOT_CONNECTED: 'Этот аккаунт не подключён или требует повторной авторизации.',
+        INSTAGRAM_DISCONNECT_FAILED: 'Не удалось отключить аккаунт. Повторите попытку.',
         INSTAGRAM_ACCOUNT_MISMATCH: 'Токен Instagram не соответствует подключённому аккаунту. Переподключите Instagram.',
         INSTAGRAM_REPLY_WINDOW_CLOSED: 'Окно ответа закрыто. Дождитесь нового сообщения клиента.',
         INSTAGRAM_THREAD_OWNER_REQUIRED: 'Meta передала управление перепиской другому приложению. Проверьте маршрутизацию сообщений в Meta Business Suite.',
