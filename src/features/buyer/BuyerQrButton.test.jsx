@@ -17,6 +17,13 @@ beforeEach(()=>{
   api.get.mockImplementation(async path=>({data:/\/buyer-(documents|inquiries|participants|notices)$/.test(path)?[]:{connected:false,contractAccess:false}}));
 });
 afterEach(()=>{cleanup();vi.unstubAllEnvs();});
+it('waits for the contract to load before displaying QR',()=>{
+  const {rerender}=render(<BuyerQrButton deal={null}/>);
+  expect(screen.queryByRole('button')).not.toBeInTheDocument();
+  expect(api.post).not.toHaveBeenCalled();
+  rerender(<BuyerQrButton deal={deal}/>);
+  expect(screen.getByRole('button',{name:'QR-код покупателя'})).toBeInTheDocument();
+});
 it('opens buyer QR with the correct contract and locally rendered image',async()=>{
   render(<BuyerQrButton deal={deal}/>);fireEvent.click(screen.getByRole('button',{name:'QR-код покупателя'}));
   expect(await screen.findByTestId('qr')).toHaveAttribute('data-value','https://t.me/ActualBot?start=buyer_opaque');

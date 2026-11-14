@@ -15,6 +15,7 @@ const explanations={
   BUYER_OTP_NOT_CONFIGURED:'SMS-подключение ещё не настроено. Обратитесь к администратору.'
 };
 export function BuyerQrButton({deal}){
+  if(!deal?.id)return null;
   return import.meta.env.VITE_BUYER_PORTAL_ENABLED==='true'?<BuyerQrControl key={deal.id} deal={deal}/>:null;
 }
 function BuyerQrControl({deal}){
