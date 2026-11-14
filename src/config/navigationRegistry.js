@@ -92,6 +92,7 @@ export const navGroups = [
         { label: 'Книга регистрации РКО', path: '/finance/rko-book', permission: 'finance.expenses', icon: Table },
         { label: 'Строительный учёт', path: '/finance/construction', icon: Table, permission: 'construction.stock', permissionsAny: ['construction.stock','construction.advance','construction.settlements','construction.settings'] },
         { label: 'ДДС (Движение средств)', path: '/finance/cashflow', icon: Wallet, permission: 'finance.cashflow' },
+        { label: 'Комиссии маркетологов', path: '/finance/marketing-commissions', icon: Table, permission: 'finance.view', permissionsAny: ['finance.view', 'deals.view'] },
         { label: 'Себестоимость блоков', path: '/finance/costs', icon: Table, permission: 'finance.costs' },
       ],
     },

@@ -1,5 +1,6 @@
 import React,{useEffect,useState} from 'react';
 import {buyerRequest} from './buyer-api';
+const BuyerCommunications=React.lazy(()=>import('./BuyerCommunications'));
 const BuyerMaterials=React.lazy(()=>import('./BuyerMaterials'));
 const labels={
  ru:{contract:'Договор',choose:'Выберите договор',empty:'Подключённых договоров пока нет.',refresh:'Обновить',loading:'Загрузка…',error:'Не удалось получить данные. Повторите запрос или откройте кабинет заново в Telegram.',review:'Расчёт требует проверки бухгалтерией. Обратитесь к менеджеру.',unavailable:'Договор недоступен. Возможно, доступ был отозван.',overview:'Мой объект',history:'История оплат',schedule:'График оплаты',total:'Стоимость договора',paid:'Оплачено',remaining:'Остаток',overdue:'Просрочено',next:'Следующий платёж',down:'Первоначальный взнос по договору',downRemaining:'Осталось внести первоначальный взнос',barter:'Бартер учтён',refund:'Возврат',overpaid:'Переплата',project:'Жилой комплекс',building:'Блок',section:'Подъезд',floor:'Этаж',unit:'Объект',area:'Площадь',rooms:'Комнаты',manager:'Ваш менеджер',asOf:'Данные на',noPayments:'Оплат пока нет.',noSchedule:'График рассрочки не указан. Уточните условия у менеджера.',planned:'По плану',actual:'Оплачено',balance:'Остаток',credit:'В зачёт договора',snapshot:'По данным ПКО',snapshotReview:'Эквивалент этого платежа требует сверки. Учтённая сумма показана выше.',scheduleReview:'График требует проверки. Уточните условия у менеджера.',payment:'Платёж',status:{ACTIVE:'Учтён',POSTED:'Учтён',VOIDED:'Аннулирован',PENDING:'Проверяется',PAID:'Оплачено',PARTIAL:'Частично',UPCOMING:'Предстоящий',OVERDUE:'Просрочен'},method:{CASH:'Наличные',BANK:'Банк',BANK_TRANSFER:'Банковский перевод',CARD:'Карта',NON_CASH_BARTER:'Бартер',TRANSFER:'Перевод',OTHER:'Прочее',REFUND:'Возврат'}},
@@ -8,7 +9,7 @@ const labels={
 const money=(value,currency)=>value===null||value===undefined?'—':`${new Intl.NumberFormat('ru-RU',{maximumFractionDigits:2}).format(value/100)} ${currency}`;
 const date=value=>value?new Intl.DateTimeFormat('ru-RU').format(new Date(`${value}T12:00:00`)):'—';
 export default function BuyerDashboard({initData,language}){
- const t={...(labels[language]||labels.tj),materials:language==='ru'?'Планы и документы':'Нақшаҳо ва ҳуҷҷатҳо'};
+ const t={...(labels[language]||labels.tj),communication:language==='ru'?'Связь и уведомления':'Тамос ва огоҳиҳо',materials:language==='ru'?'Планы и документы':'Нақшаҳо ва ҳуҷҷатҳо'};
  const [contracts,setContracts]=useState([]),[selected,setSelected]=useState(''),[detail,setDetail]=useState(null),[tab,setTab]=useState('overview');
  const [error,setError]=useState(''),[busy,setBusy]=useState(true),[revision,setRevision]=useState(0);
  useEffect(()=>{
@@ -36,8 +37,9 @@ export default function BuyerDashboard({initData,language}){
   {error?<p role="alert" className="rounded-xl bg-red-50 p-3 text-sm text-red-800">{error==='BUYER_FINANCE_REVIEW_REQUIRED'?t.review:error==='BUYER_CONTRACT_UNAVAILABLE'?t.unavailable:t.error}</p>:null}
   {busy?<p role="status">{t.loading}</p>:null}
   {!busy&&!error&&!contracts.length?<p>{t.empty}</p>:null}
-  {!busy&&selected?<nav aria-label={t.contract} className="flex flex-wrap gap-2">{['overview','history','schedule','materials'].map(value=><button type="button" key={value} disabled={value!=='materials'&&!detail} aria-pressed={tab===value} onClick={()=>setTab(value)} className={`rounded-lg px-3 py-2 text-sm font-semibold disabled:opacity-50 ${tab===value?'bg-slate-900 text-white':'bg-slate-100 text-slate-700'}`}>{t[value]}</button>)}</nav>:null}
+  {!busy&&selected?<nav aria-label={t.contract} className="flex flex-wrap gap-2">{['overview','history','schedule','materials','communication'].map(value=><button type="button" key={value} disabled={!['materials','communication'].includes(value)&&!detail} aria-pressed={tab===value} onClick={()=>setTab(value)} className={`rounded-lg px-3 py-2 text-sm font-semibold disabled:opacity-50 ${tab===value?'bg-slate-900 text-white':'bg-slate-100 text-slate-700'}`}>{t[value]}</button>)}</nav>:null}
   {!busy&&selected&&tab==='materials'?<React.Suspense fallback={<p>{t.loading}</p>}><BuyerMaterials key={selected} dealId={selected} initData={initData} language={language}/></React.Suspense>:null}
+  {!busy&&selected&&tab==='communication'?<React.Suspense fallback={<p>{t.loading}</p>}><BuyerCommunications key={selected} dealId={selected} initData={initData} language={language}/></React.Suspense>:null}
   {detail&&s?<>
    <div className="grid grid-cols-2 gap-3">{[['total',s.totalMinor],['paid',s.paidMinor],['remaining',s.remainingMinor],['overdue',s.overdueMinor]].map(([key,value])=><div key={key} className={`min-w-0 rounded-xl p-3 ${key==='overdue'&&value>0?'bg-red-50':'bg-slate-50'}`}><p className="text-xs text-slate-500">{t[key]}</p><p className="mt-1 break-words text-base font-bold">{money(value,s.currency)}</p></div>)}</div>
    {s.nextPayment?<p className="rounded-xl bg-blue-50 p-3 text-sm"><strong>{t.next}:</strong> {date(s.nextPayment.date)} · {money(s.nextPayment.amountMinor,s.currency)}</p>:null}

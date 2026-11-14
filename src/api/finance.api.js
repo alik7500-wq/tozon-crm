@@ -114,5 +114,37 @@ export const financeApi = {
   reconcileIncomeTjsBulk: async ({ items }) => {
     const res = await api.post('/finance/income/reconcile-tjs/bulk', { items });
     return res?.data || res;
+  },
+
+  getMarketingCommissions: async (filters = {}) => {
+    const res = await api.get('/finance/marketing-commissions', { params: filters });
+    return res?.data || res;
+  },
+
+  getMarketingCommissionRkoCandidates: async (filters = {}) => {
+    const res = await api.get('/finance/marketing-commissions/rko-candidates', { params: filters });
+    return res?.data || res;
+  },
+
+  approveMarketingCommission: async (dealId, payload = {}) => {
+    const res = await api.post(`/finance/marketing-commissions/${dealId}/approve`, payload);
+    return res?.data || res;
+  },
+
+  payoutMarketingCommission: async (dealId, payload = {}) => {
+    const res = await api.post(`/finance/marketing-commissions/${dealId}/payout`, payload);
+    return res?.data || res;
+  },
+
+  cancelMarketingCommission: async (dealId, payload = {}) => {
+    const res = await api.post(`/finance/marketing-commissions/${dealId}/cancel`, payload);
+    return res?.data || res;
+  },
+
+  exportMarketingCommissionsExcel: async (filters = {}) => {
+    return api.get('/finance/marketing-commissions/export.xlsx', {
+      params: filters,
+      responseType: 'blob',
+    });
   }
 };

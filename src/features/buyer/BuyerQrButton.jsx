@@ -4,6 +4,7 @@ import {Modal,QRCode} from 'antd';
 import {api} from '../../api/client';
 import {useAuth} from '../auth/AuthContext';
 import {canIssueBuyerQr} from './buyer-permissions';
+import {BuyerInquiriesPanel} from './BuyerInquiriesPanel';
 import {BuyerDocumentsPanel} from './BuyerDocumentsPanel';
 const explanations={
   BUYER_PHONE_REQUIRES_STAFF_VERIFICATION:'Сначала проверьте и заполните телефон покупателя в CRM.',
@@ -62,6 +63,7 @@ function BuyerQrControl({deal}){
         {status?<div className="rounded-xl bg-blue-50 p-3 text-sm"><p className="font-semibold">{status.contractAccess?'Telegram подключён к договору':status.connected?'Telegram подтверждён, этот договор ещё не подключён':'Telegram пока не подключён'}</p>{status.verifiedAt?<p>Подтверждён: {new Date(status.verifiedAt).toLocaleString('ru-RU')}</p>:null}<button type="button" onClick={refresh} className="mt-2 text-blue-700 underline">Обновить статус</button></div>:null}
         {!busy?<button type="button" onClick={issue} className="text-sm text-blue-700 underline">Создать новый QR</button>:null}
         <BuyerDocumentsPanel dealId={deal.id} user={user}/>
+        <BuyerInquiriesPanel dealId={deal.id}/>
       </div>
     </Modal>,document.body):null}
   </>;
