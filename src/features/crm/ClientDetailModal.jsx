@@ -5,6 +5,7 @@ import { api } from '../../api/client';
 import { useModalDismiss } from '../../hooks/useModalDismiss';
 import { formatContractNumber } from '../../utils/formatters';
 import { SendSmsModal } from '../../components/sms/SendSmsModal';
+import {BuyerQrButton} from '../buyer/BuyerQrButton';
 import { SmsHistoryTable } from '../../components/sms/SmsHistoryTable';
 import {
   X,
@@ -550,6 +551,7 @@ export const ClientDetailModal = ({ isOpen, onClose, client, onClientUpdated, on
                           </div>
 
                           <div className="flex items-center gap-2">
+                            {client.lead_id&&String(d.lead_id)===String(client.lead_id)?<BuyerQrButton deal={d}/>:null}
                             <span className="font-mono text-xs font-bold text-blue-700 bg-blue-50 border border-blue-200 px-2 py-0.5 rounded-md">
                               Договор № {formatContractNumber(d.contract_number) || d.id}
                             </span>

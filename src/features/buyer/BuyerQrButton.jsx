@@ -5,6 +5,7 @@ import {api} from '../../api/client';
 import {useAuth} from '../auth/AuthContext';
 import {canIssueBuyerQr} from './buyer-permissions';
 import {BuyerParticipantsPanel} from './BuyerParticipantsPanel';
+import {BuyerNoticesPanel} from './BuyerNoticesPanel';
 import {BuyerInquiriesPanel} from './BuyerInquiriesPanel';
 import {BuyerDocumentsPanel} from './BuyerDocumentsPanel';
 const explanations={
@@ -62,11 +63,12 @@ function BuyerQrControl({deal}){
         {invite?<><div ref={qr} className="flex justify-center"><QRCode value={invite.url} size={240} type="canvas"/></div><p className="text-center text-xs text-slate-500">Одноразовый QR. Действует до {new Date(invite.expiresAt).toLocaleTimeString('ru-RU',{hour:'2-digit',minute:'2-digit'})}.</p>
           <div className="flex flex-wrap gap-2"><button type="button" className="rounded-lg border px-3 py-2" onClick={download}>Скачать QR</button><button type="button" className="rounded-lg border px-3 py-2" onClick={print}>Распечатать</button><button type="button" className="rounded-lg border px-3 py-2" onClick={async()=>{try{await navigator.clipboard.writeText(invite.url);setNotice('Ссылка скопирована.');}catch{setError('Не удалось скопировать ссылку.');}}}>Скопировать ссылку</button></div>
           <p role="status" className="text-sm">{notice}</p></>:null}
-        {status?<div className="rounded-xl bg-blue-50 p-3 text-sm"><p className="font-semibold">{status.archived?'Telegram подключён к архиву договора':status.contractAccess?'Telegram подключён к договору':status.connected?'Telegram подтверждён, этот договор ещё не подключён':'Telegram пока не подключён'}</p>{status.verifiedAt?<p>Подтверждён: {new Date(status.verifiedAt).toLocaleString('ru-RU')}</p>:null}{status.contractCount!==undefined?<p>Связанных договоров: {status.contractCount}</p>:null}<button type="button" onClick={refresh} className="mt-2 text-blue-700 underline">Обновить статус</button></div>:null}
+        {status?<div className="rounded-xl bg-blue-50 p-3 text-sm"><p className="font-semibold">{status.archived?'Telegram подключён к архиву договора':status.contractAccess?'Telegram подключён к договору':status.connected?'Telegram подтверждён, этот договор ещё не подключён':'Telegram пока не подключён'}</p>{status.lastActiveAt?<p>Последняя активность: {new Date(status.lastActiveAt).toLocaleString('ru-RU')}</p>:null}{status.verifiedAt?<p>Подтверждён: {new Date(status.verifiedAt).toLocaleString('ru-RU')}</p>:null}{status.contractCount!==undefined?<p>Связанных договоров: {status.contractCount}</p>:null}<button type="button" onClick={refresh} className="mt-2 text-blue-700 underline">Обновить статус</button></div>:null}
         {!busy&&deal.status==='SIGNED'?<button type="button" onClick={()=>issue(person.id,person.name)} className="text-sm text-blue-700 underline">Создать новый QR</button>:null}
         {person.id&&deal.status==='SIGNED'?<button type="button" disabled={busy} onClick={()=>issue()} className="text-sm text-blue-700 underline">QR основного покупателя</button>:null}
         <BuyerParticipantsPanel key={deal.id} deal={deal} user={user} onInvite={issue} onRevoked={id=>{if(person.id===id){setInvite(null);setStatus(null);}}}/>
         {['ADMIN','DIRECTOR'].includes(user.role)&&!person.id&&status?.connected?<button type="button" disabled={busy} className="text-sm text-red-700 underline" onClick={async()=>{setBusy(true);try{await api.post(`/deals/${deal.id}/buyer-unlink`);await refresh();setInvite(null);}catch{setError('Не удалось отключить Telegram.');}finally{setBusy(false);}}}>Отключить Telegram покупателя по всем его договорам</button>:null}
+        <BuyerNoticesPanel key={`notices-${deal.id}`} dealId={deal.id}/>
         <BuyerDocumentsPanel dealId={deal.id} user={user} archived={deal.status==='CANCELLED'}/>
         {deal.status==='SIGNED'?<BuyerInquiriesPanel dealId={deal.id}/>:null}
       </div>
