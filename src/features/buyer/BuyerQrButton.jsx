@@ -21,7 +21,13 @@ export function BuyerQrButton({deal}){
 function BuyerQrControl({deal}){
   const {user}=useAuth();
   const [open,setOpen]=useState(false),[invite,setInvite]=useState(null),[status,setStatus]=useState(null),[error,setError]=useState(''),[busy,setBusy]=useState(false),[notice,setNotice]=useState('');
+  const [requests,setRequests]=useState([]),[confirming,setConfirming]=useState(null);
   const [person,setPerson]=useState({id:null,name:deal.lead_name});
+  useEffect(()=>{
+    if(!open||deal.status!=='SIGNED')return;
+    let live=true;const load=async()=>{try{const result=await api.get(`/deals/${deal.id}/buyer-connections`);if(live)setRequests(result.data||[]);}catch{}};
+    load();const timer=setInterval(load,4000);return()=>{live=false;clearInterval(timer);};
+  },[open,deal.id,deal.status]);
   const qr=useRef(null),generation=useRef(0);
   useEffect(()=>()=>{generation.current++;},[]);
   if(!['SIGNED','CANCELLED'].includes(deal.status)||!canIssueBuyerQr(user,{...deal,status:'SIGNED'}))return null;
@@ -64,6 +70,7 @@ function BuyerQrControl({deal}){
         {invite?<><div ref={qr} className="flex justify-center"><QRCode value={invite.url} size={240} type="canvas"/></div><p className="text-center text-xs text-slate-500">Одноразовый QR. Действует до {new Date(invite.expiresAt).toLocaleTimeString('ru-RU',{hour:'2-digit',minute:'2-digit'})}.</p>
           <div className="flex flex-wrap gap-2"><button type="button" className="rounded-lg border px-3 py-2" onClick={download}>Скачать QR</button><button type="button" className="rounded-lg border px-3 py-2" onClick={print}>Распечатать</button><button type="button" className="rounded-lg border px-3 py-2" onClick={async()=>{try{await navigator.clipboard.writeText(invite.url);setNotice('Ссылка скопирована.');}catch{setError('Не удалось скопировать ссылку.');}}}>Скопировать ссылку</button></div>
           <p role="status" className="text-sm">{notice}</p></>:null}
+        {requests.length?<div className="space-y-3 rounded-xl border border-blue-200 p-3"><h3 className="font-bold">Подключение Telegram без SMS</h3><p className="text-sm">Сверьте код с экраном покупателя и подтвердите только его Telegram.</p>{requests.map(r=><div key={r.id} className="rounded-lg bg-slate-50 p-3 text-sm"><p>{r.participant_id?'Участник договора':'Основной покупатель'} · Telegram ID: {r.claimed_telegram_id}</p><p className="my-2 font-mono text-xl font-bold tracking-widest">{r.claim_code}</p><button disabled={confirming===r.id} className="rounded-lg bg-blue-600 px-3 py-2 font-semibold text-white disabled:opacity-50" onClick={async()=>{if(!window.confirm('Вы проверили покупателя и сверили код на его телефоне? Подтвердить доступ этого Telegram к договору?'))return;setConfirming(r.id);try{await api.post(`/deals/${deal.id}/buyer-connections/approve`,{id:r.id,telegramId:r.claimed_telegram_id,code:r.claim_code});setRequests(all=>all.filter(x=>x.id!==r.id));await refresh();}catch{setError('Подключение не подтверждено. Проверьте срок QR и существующую привязку Telegram.');}finally{setConfirming(null);}}}>Подтвердить Telegram покупателя</button></div>)}</div>:null}
         {status?<div className="rounded-xl bg-blue-50 p-3 text-sm"><p className="font-semibold">{status.archived?'Telegram подключён к архиву договора':status.contractAccess?'Telegram подключён к договору':status.connected?'Telegram подтверждён, этот договор ещё не подключён':'Telegram пока не подключён'}</p>{status.lastActiveAt?<p>Последняя активность: {new Date(status.lastActiveAt).toLocaleString('ru-RU')}</p>:null}{status.verifiedAt?<p>Подтверждён: {new Date(status.verifiedAt).toLocaleString('ru-RU')}</p>:null}{status.contractCount!==undefined?<p>Связанных договоров: {status.contractCount}</p>:null}<button type="button" onClick={refresh} className="mt-2 text-blue-700 underline">Обновить статус</button></div>:null}
         {!busy&&deal.status==='SIGNED'?<button type="button" onClick={()=>issue(person.id,person.name)} className="text-sm text-blue-700 underline">Создать новый QR</button>:null}
         {person.id&&deal.status==='SIGNED'?<button type="button" disabled={busy} onClick={()=>issue()} className="text-sm text-blue-700 underline">QR основного покупателя</button>:null}
