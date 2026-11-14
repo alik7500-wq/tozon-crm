@@ -45,6 +45,7 @@ import { AnalyticsThreePage } from './features/analytics/AnalyticsThreePage';
 import { SalesAnalyticsPage } from './features/analytics/SalesAnalyticsPage';
 import { ApartmentSalesReportPage } from './features/analytics/ApartmentSalesReportPage';
 import { ErrorBoundary } from './components/ErrorBoundary';
+const BuyerEntryPage=React.lazy(()=>import('./features/buyer/BuyerEntryPage'));
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -56,6 +57,8 @@ const queryClient = new QueryClient({
 });
 
 function App() {
+  // Buyer entry runs without employee auth refresh, CRM layout or employee cookies.
+  if(window.location.pathname.replace(/\/$/,'')==='/buyer')return <ErrorBoundary><React.Suspense fallback={<p role="status">TOZON…</p>}><BuyerEntryPage/></React.Suspense></ErrorBoundary>;
   return (
     <ErrorBoundary>
       <QueryClientProvider client={queryClient}>

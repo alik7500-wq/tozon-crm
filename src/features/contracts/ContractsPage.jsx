@@ -3,6 +3,7 @@ import React, { useState, useEffect } from 'react';
 import { api } from '../../api/client';
 import { ContractPrintView } from '../deals/ContractPrintView';
 import { DealDrawer } from '../deals/DealDrawer';
+import {BuyerQrButton} from '../buyer/BuyerQrButton';
 import { formatContractNumber } from '../../utils/formatters';
 import { matchSearchQuery } from '../../utils/searchUtils';
 import {
@@ -170,6 +171,7 @@ export const ContractsPage = () => {
                     </td>
                     <td className="p-3.5 text-right pr-5">
                       <div className="flex items-center justify-end gap-2" onClick={(e) => e.stopPropagation()}>
+                        <BuyerQrButton deal={d}/>
                         <button
                           onClick={() => setContractToPrint(d)}
                           className="inline-flex items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3 py-1.5 text-xs font-bold text-slate-700 hover:bg-slate-100 shadow-2xs transition cursor-pointer"

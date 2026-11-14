@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "vite build",
+    "build": "vite build && node scripts/buyer-static-entry.js",
     "lint": "oxlint",
     "preview": "vite preview",
     "test:commercial-offer": "vitest run src/features/apartments/__tests__/CommercialOfferModal.test.jsx --environment jsdom",

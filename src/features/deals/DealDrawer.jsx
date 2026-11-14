@@ -5,6 +5,7 @@ import { api } from '../../api/client';
 import { formatContractNumber } from '../../utils/formatters';
 import { PaymentRecordModal } from './PaymentRecordModal';
 import { DealSalesSourceBlock } from './DealSalesSourceBlock';
+import {BuyerQrButton} from '../buyer/BuyerQrButton';
 import { useModalDismiss } from '../../hooks/useModalDismiss';
 import { SendSmsModal } from '../../components/sms/SendSmsModal';
 import {
@@ -384,6 +385,7 @@ export const DealDrawer = ({
             </div>
             <div>
               <div className="flex items-center gap-2">
+                <BuyerQrButton deal={deal}/>
                 <h2 className="text-base font-bold text-slate-900">
                   {deal ? `Договор № ${formatContractNumber(deal.contract_number)}` : 'Карточка сделки'}
                 </h2>
