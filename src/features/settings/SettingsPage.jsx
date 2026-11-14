@@ -8,6 +8,7 @@ import { BatchGeneratorModal } from '../projects/tabs/BatchGeneratorModal';
 import { DictionariesTab } from './DictionariesTab';
 import { DocumentTemplatesTab } from './DocumentTemplatesTab';
 import { CompanySettingsTab } from './CompanySettingsTab';
+import { CompanyProjectsTab } from './CompanyProjectsTab';
 import { InterfaceSettingsTab } from './InterfaceSettingsTab';
 import { TelegramFinanceTab } from './TelegramFinanceTab';
 import { ALL_PERMISSIONS } from '../../utils/permissions';
@@ -194,6 +195,7 @@ export const SettingsPage = () => {
         ['Скидки и бронирование','Лимит скидки и срок брони по умолчанию',()=>setActiveTab('rules'),CheckCircle2],
         ['Строительные компании','Справочник застройщиков',()=>setActiveTab('builders'),Building2],
         ['Филиалы','Адреса и контакты подразделений',()=>setActiveTab('branches'),MapPin],
+        ...(import.meta.env.VITE_COMPANY_PROJECTS_ENABLED === 'true' && user?.role === 'ADMIN' ? [['Проекты компании','Партнёры, директора, ЖК и состав сотрудников',()=>setActiveTab('company-projects'),Briefcase]] : []),
         ['Персонал и права','Пользователи, роли и доступ к кассам',()=>navigate('/users'),Users],
         ['Настройки оплаты','Кассы, способы оплаты и статьи ПКО / РКО',()=>setActiveTab('dictionaries'),BookOpen],
         ['Интеграции','Настройки автоматизации и каналов',()=>navigate('/automation'),Sparkles],
@@ -260,6 +262,7 @@ export const SettingsPage = () => {
       {activeTab === 'discounts' && user?.role === 'ADMIN' && <DiscountSchemesTab projects={projects}/>}
       {activeTab === 'interface' && <InterfaceSettingsTab/>}
       {activeTab === 'telegram-finance' && ['ADMIN','DIRECTOR'].includes(user?.role) && <TelegramFinanceTab/>}
+      {activeTab === 'company-projects' && import.meta.env.VITE_COMPANY_PROJECTS_ENABLED === 'true' && user?.role === 'ADMIN' && <CompanyProjectsTab/>}
       {['company','numbering','rules','builders','branches'].includes(activeTab) && user?.role === 'ADMIN' && <CompanySettingsTab key={activeTab} section={activeTab}/>}
       {activeTab === 'dictionaries' && <DictionariesTab />}
 

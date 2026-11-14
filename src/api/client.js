@@ -52,7 +52,7 @@ api.interceptors.response.use(
       return Promise.reject(normalized);
     }
     const message = error.response?.data?.message || error.message || 'Произошла ошибка при выполнении запроса';
-    return Promise.reject(new Error(message));
+    return Promise.reject(Object.assign(new Error(message), { status: error.response?.status, code: error.code }));
   }
 );
 
