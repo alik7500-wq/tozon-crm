@@ -3,7 +3,7 @@ import {afterEach,it,expect,vi} from 'vitest';
 import {render,screen,fireEvent,waitFor,cleanup} from '@testing-library/react';
 import '@testing-library/jest-dom/vitest';
 import WorkspaceOffer from './WorkspaceOffer';
-import {workspaceOfferHtml} from './workspaceOfferHtml';
+import {workspaceOfferHtml,offerRate} from './workspaceOfferHtml';
 import {api} from '../../api/client';
 import {loadOfferFonts,saveOfferPdf} from './workspaceOfferPdf';
 vi.mock('../../api/client',()=>({api:{post:vi.fn()}}));
@@ -15,6 +15,8 @@ it('renders an escaped RU/TJ document without external assets or active content'
  const html=workspaceOfferHtml({...data,prepared_by:'<img src=x onerror=alert(1)>',project_name:'A & B'});
  expect(html).toContain('A &amp; B');expect(html).toContain('&lt;img');expect(html).not.toMatch(/<script|<img|<link|<iframe/);expect(html).toContain('Продана');expect(html).toContain('722,23 USD');expect(html).toContain('введённый вручную');
  const tj=workspaceOfferHtml({...data,language:'TJ'});expect(tj).toContain('lang="tg"');expect(tj).toContain('Пешниҳод оид ба хариди хона');expect(tj).toContain('Фурӯхта шудааст');
+ expect(offerRate(9.241234)).toBe('9,241234');
+ expect(workspaceOfferHtml({...data,quote:{...data.quote,reference_rate:0.000001}})).toContain('1 USD = 0,000001 сомони');
 });
 it('uses only the scoped endpoint and reauthorizes when language changes',async()=>{
  api.post.mockImplementation((url,body)=>Promise.resolve({data:{...data,language:body.language}}));render(<WorkspaceOffer project="plaza" request={request} onClose={()=>{}}/>);

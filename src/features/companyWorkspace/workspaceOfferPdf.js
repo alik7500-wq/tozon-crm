@@ -1,5 +1,5 @@
 import {jsPDF} from 'jspdf';
-import {offerLabels} from './workspaceOfferHtml.js';
+import {offerLabels,offerRate} from './workspaceOfferHtml.js';
 
 const fontUrls=[new URL('../../assets/fonts/OfferSans.ttf',import.meta.url).href,new URL('../../assets/fonts/OfferSans-Bold.ttf',import.meta.url).href];
 let fontsPromise;
@@ -60,7 +60,7 @@ export function buildOfferPdf(data,fonts){
   pair.forEach((item,index)=>{const x=margin+index*90;doc.setFillColor(i===0&&index===0?'#edf9f3':'#f5f7ff');doc.setDrawColor('#dbe3f0');doc.setLineWidth(0.25);doc.roundedRect(x,y,84,height,3,3,'FD');style(8,false,'#64748b');doc.text(item.label,x+5,y+7);style(16,true);doc.text(item.amount,x+5,y+labelHeight+13,{lineHeightFactor:1.27});if(equivalent(item.value)){style(8,false,'#64748b');doc.text(equivalent(item.value),x+5,y+labelHeight+amountHeight+15);}});
   y+=height+5;
  }
- if(data.currency==='USD'&&q.reference_rate)paragraph(`${l.rate}: 1 USD = ${number(q.reference_rate)} сомони`,{size:8,color:'#64748b'});
+ if(data.currency==='USD'&&q.reference_rate)paragraph(`${l.rate}: 1 USD = ${offerRate(q.reference_rate)} сомони`,{size:8,color:'#64748b'});
  y+=3;
  paragraph(`${l.date}: ${new Date(data.checked_at).toLocaleString('ru-RU',{timeZone:'Asia/Dushanbe'})}`,{size:8,color:'#64748b'});
  if(data.prepared_by)paragraph(`${l.manager}: ${clean(data.prepared_by)}`,{size:8,color:'#64748b'});
