@@ -294,6 +294,15 @@ export const MarketingCommissionsPage = () => {
         </div>
       </div>
 
+      {permissions.payoutBlockedReason && (
+        <div className="flex items-start gap-2.5 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-xs font-medium text-amber-900">
+          <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-amber-600" />
+          <div>
+            <strong>Режим безопасной подготовки:</strong> {permissions.payoutBlockedReason}
+          </div>
+        </div>
+      )}
+
       {toast && (
         <div className="flex items-center justify-between rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-2.5 text-sm font-medium text-emerald-800">
           <span>{toast}</span>
@@ -579,7 +588,7 @@ export const MarketingCommissionsPage = () => {
                 <th className="px-3 py-3 text-right font-bold whitespace-nowrap">14. Остаток к выплате</th>
                 <th className="px-3 py-3 text-right font-bold whitespace-nowrap">15. К доутверждению</th>
                 <th className="px-3 py-3 text-left font-bold whitespace-nowrap">16. Статус</th>
-                {(permissions.canApprove || permissions.canPayout || permissions.canCancel) && (
+                {(permissions.canApprove || permissions.canPayout || permissions.canPrepareRko || permissions.canCancel) && (
                   <th className="px-3 py-3 text-right font-bold whitespace-nowrap">Действия</th>
                 )}
               </tr>
@@ -606,6 +615,11 @@ export const MarketingCommissionsPage = () => {
                     && r.calculatedCommissionMinor > 0
                     && (['CALCULATED', 'PENDING_APPROVAL'].includes(r.commissionStatus) || r.additionalAccrualMinor > 0);
                   const canShowPayout = permissions.canPayout
+                    && ['APPROVED', 'PARTIALLY_PAID'].includes(r.commissionStatus)
+                    && r.remainingCommissionMinor > 0
+                    && r.overpaidCommissionMinor <= 0;
+                  const canShowPrepareRko = !permissions.canPayout
+                    && permissions.canPrepareRko
                     && ['APPROVED', 'PARTIALLY_PAID'].includes(r.commissionStatus)
                     && r.remainingCommissionMinor > 0
                     && r.overpaidCommissionMinor <= 0;
@@ -654,7 +668,7 @@ export const MarketingCommissionsPage = () => {
                           </div>
                         )}
                       </td>
-                      {(permissions.canApprove || permissions.canPayout || permissions.canCancel) && (
+                      {(permissions.canApprove || permissions.canPayout || permissions.canPrepareRko || permissions.canCancel) && (
                         <td className="px-3 py-2.5 text-right whitespace-nowrap">
                           <div className="inline-flex items-center gap-1">
                             {canShowApprove && (
@@ -674,6 +688,14 @@ export const MarketingCommissionsPage = () => {
                               >
                                 Выплатить
                               </button>
+                            )}
+                            {canShowPrepareRko && (
+                              <Link
+                                to={`/finance/expenses?category=${encodeURIComponent('Маркетинг и реклама')}&recipient=${encodeURIComponent(r.marketingPartnerName)}&amount=${encodeURIComponent(r.remainingCommissionUsd)}&description=${encodeURIComponent(`Комиссия маркетологу (${r.marketingPartnerName}) по договору ${r.contractNumber}`)}`}
+                                className="inline-flex items-center gap-1 rounded-lg border border-amber-300 bg-amber-50 px-2.5 py-1 text-[11px] font-bold text-amber-800 hover:bg-amber-100"
+                              >
+                                Подготовить РКО
+                              </Link>
                             )}
                             {canShowCancel && (
                               <button
@@ -706,7 +728,7 @@ export const MarketingCommissionsPage = () => {
                   <td className="px-3 py-3 text-right text-emerald-800 tabular-nums whitespace-nowrap">${formatUsd(totals.paidCommissionUsd)}</td>
                   <td className="px-3 py-3 text-right text-violet-800 tabular-nums whitespace-nowrap">${formatUsd(totals.remainingCommissionUsd)}</td>
                   <td className="px-3 py-3 text-right text-amber-800 tabular-nums whitespace-nowrap">${formatUsd(totals.additionalAccrualUsd)}</td>
-                  <td className="px-3 py-3" colSpan={(permissions.canApprove || permissions.canPayout || permissions.canCancel) ? 2 : 1}>
+                  <td className="px-3 py-3" colSpan={(permissions.canApprove || permissions.canPayout || permissions.canPrepareRko || permissions.canCancel) ? 2 : 1}>
                     {totals.overpaidCommissionUsd > 0 ? `Переплаты: $${formatUsd(totals.overpaidCommissionUsd)}` : ''}
                   </td>
                 </tr>
@@ -879,3 +901,4 @@ export const MarketingCommissionsPage = () => {
     </div>
   );
 };
+
