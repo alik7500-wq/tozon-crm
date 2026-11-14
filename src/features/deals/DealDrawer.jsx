@@ -378,26 +378,36 @@ export const DealDrawer = ({
     <div className="print:hidden fixed inset-0 z-50 overflow-hidden bg-slate-900/50 backdrop-blur-xs flex justify-end animate-in fade-in">
       <div className={`relative w-full ${isPkoHistoryOpen ? 'max-w-7xl' : 'max-w-3xl'} bg-white shadow-2xl flex flex-col h-full overflow-y-auto transition-all duration-300`}>
         {/* Top Sticky Header */}
-        <div className="sticky top-0 z-10 border-b border-slate-200 bg-white/95 backdrop-blur-md px-6 py-4 flex items-center justify-between shadow-xs">
-          <div className="flex items-center gap-3">
-            <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-gradient-to-tr from-blue-600 to-indigo-600 text-white shadow-sm">
+        <div className="sticky top-0 z-10 border-b border-slate-200 bg-white/95 backdrop-blur-md px-4 py-4 sm:px-6 shadow-xs">
+          <div className="flex items-start justify-between gap-3">
+          <div className="flex min-w-0 items-start gap-3">
+            <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-tr from-blue-600 to-indigo-600 text-white shadow-sm">
               <FileCheck className="h-6 w-6" />
             </div>
-            <div>
-              <div className="flex items-center gap-2">
-                <BuyerQrButton deal={deal}/>
-                <h2 className="text-base font-bold text-slate-900">
+            <div className="min-w-0">
+              <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
+                <h2 className="text-base font-bold text-slate-900 whitespace-nowrap">
                   {deal ? `Договор № ${formatContractNumber(deal.contract_number)}` : 'Карточка сделки'}
                 </h2>
                 {deal && getStatusBadge(deal.status)}
               </div>
-              <p className="text-xs text-slate-500 mt-0.5">
+              <p className="text-xs leading-5 text-slate-500 mt-1 break-words">
                 {deal ? `Дата: ${deal.deal_date || deal.created_at?.split('T')[0]} • Менеджер: ${deal.manager_name || 'Не назначен'}` : 'Загрузка данных...'}
               </p>
             </div>
           </div>
 
-          <div className="flex items-center gap-2">
+            <button
+              onClick={requestClose}
+              aria-label="Закрыть карточку сделки"
+              className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl text-slate-400 hover:bg-slate-100 hover:text-slate-600 transition cursor-pointer"
+            >
+              <X className="h-5 w-5" />
+            </button>
+          </div>
+
+          <div className="mt-4 flex flex-wrap items-center gap-2 border-t border-slate-100 pt-3 [&>button]:inline-flex [&>button]:h-10 [&>button]:items-center [&>button]:justify-center [&>button]:whitespace-nowrap [&>button]:px-4 [&>button]:py-0">
+            <BuyerQrButton deal={deal}/>
             {deal && isAdmin && onEditDeal && (
               <button
                 onClick={() => onEditDeal(deal)}
@@ -420,12 +430,6 @@ export const DealDrawer = ({
               </button>
             )}
 
-            <button
-              onClick={requestClose}
-              className="rounded-xl p-2 text-slate-400 hover:bg-slate-100 hover:text-slate-600 transition cursor-pointer"
-            >
-              <X className="h-5 w-5" />
-            </button>
           </div>
         </div>
 
