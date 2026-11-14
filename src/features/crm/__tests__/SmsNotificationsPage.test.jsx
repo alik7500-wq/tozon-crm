@@ -1,7 +1,8 @@
 // @vitest-environment jsdom
+import {MemoryRouter} from 'react-router-dom';
 import React from 'react';
 import '@testing-library/jest-dom/vitest';
-import { render, screen, fireEvent, waitFor, cleanup } from '@testing-library/react';
+import { render as baseRender, screen, fireEvent, waitFor, cleanup } from '@testing-library/react';
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { SmsNotificationsPage } from '../SmsNotificationsPage';
 import { api } from '../../../api/client';
@@ -12,6 +13,8 @@ vi.mock('../../../api/client', () => ({
     post: vi.fn()
   }
 }));
+
+const render=ui=>baseRender(<MemoryRouter>{ui}</MemoryRouter>);
 
 describe('SmsNotificationsPage Manager UX Hotfix Tests', () => {
   afterEach(() => {

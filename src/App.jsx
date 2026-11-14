@@ -37,6 +37,7 @@ import { UsersPage } from './features/users/UsersPage';
 import { AutomationPage } from './features/automation/AutomationPage';
 import { InstagramInboxPage } from './features/instagram/InstagramInboxPage';
 import { ClientsPage } from './features/crm/ClientsPage';
+import BuyerInvitationsPage from './features/buyer/BuyerInvitationsPage';
 import { SmsNotificationsPage } from './features/crm/SmsNotificationsPage';
 import { SmsTemplatesPage } from './features/crm/SmsTemplatesPage';
 import { AnalyticsOnePage } from './features/analytics/AnalyticsOnePage';
@@ -83,6 +84,7 @@ function App() {
                   <Route path="/pipeline" element={<Navigate to="/leads" replace />} />
                   <Route path="/clients" element={<ClientsPage />} />
                   <Route path="/settings/messages" element={<PermissionGuard requiredPermission="settings.manage"><MessageSettingsPage /></PermissionGuard>} />
+                  <Route path="/crm/buyer-invitations" element={<PermissionGuard requiredPermission="automation.manage"><BuyerInvitationsPage /></PermissionGuard>} />
                   <Route path="/crm/sms-notifications" element={<SmsNotificationsPage />} />
                   <Route path="/crm/sms-templates" element={<SmsTemplatesPage />} />
                   <Route path="/tasks" element={<TasksPage />} />

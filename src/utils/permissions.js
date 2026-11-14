@@ -102,6 +102,7 @@ export const FEATURE_ACCESS = Object.freeze({
   '/finance/calendar': 'finance.payment_calendar',
   '/payments/plan-fact': 'finance.plan_fact',
   '/payments/fact': 'finance.plan_fact',
+  '/crm/buyer-invitations': 'automation.sms_notifications',
   '/crm/sms-notifications': 'automation.sms_notifications',
   '/crm/sms-templates': 'automation.sms_notifications'
 });

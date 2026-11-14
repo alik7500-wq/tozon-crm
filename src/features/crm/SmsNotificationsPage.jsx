@@ -1,3 +1,4 @@
+import {Link} from 'react-router-dom';
 import React, { useState } from 'react';
 import { Smartphone, Send } from 'lucide-react';
 import { SmsHistoryTable } from '../../components/sms/SmsHistoryTable';
@@ -31,6 +32,7 @@ export const SmsNotificationsPage = () => {
         </button>
       </div>
 
+      <Link to="/crm/buyer-invitations" className="block rounded-2xl border border-blue-200 bg-blue-50 p-5 hover:bg-blue-100 transition"><span className="block font-bold text-blue-900">Пригласить покупателей в Telegram →</span><span className="mt-1 block text-sm text-blue-800">Клиенты без подключённого бота, персональные SMS и статусы подключения.</span></Link>
       {/* Production Outbox Queue & History Table with Tab Switcher */}
       <SmsHistoryTable
         onOpenSendModal={() => setIsSendModalOpen(true)}
