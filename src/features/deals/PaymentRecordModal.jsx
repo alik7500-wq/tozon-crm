@@ -63,6 +63,7 @@ export const PaymentRecordModal = ({
 
   // SMS Confirmation State (Post-Commit)
   const [smsPreviewText, setSmsPreviewText] = useState('');
+  const [smsLanguage, setSmsLanguage] = useState('tj');
   const [smsPreviewLoading, setSmsPreviewLoading] = useState(false);
   const [smsPreviewError, setSmsPreviewError] = useState('');
   const [smsSendLoading, setSmsSendLoading] = useState(false);
@@ -138,7 +139,9 @@ export const PaymentRecordModal = ({
   const isDirty = Boolean(amount && parseFloat(amount) > 0 || reference.trim() || comment.trim());
 
   useEffect(() => {
+    let cancelled = false;
     if (paymentReport && paymentReport.payment && deal) {
+      setSmsPreviewText('');
       setSmsPreviewLoading(true);
       setSmsPreviewError('');
       setSmsSentSuccess(false);
@@ -148,9 +151,11 @@ export const PaymentRecordModal = ({
         templateCode: 'PAYMENT_RECEIVED',
         clientId: deal.lead_id,
         dealId: deal.id,
-        paymentId: paymentReport.payment.id
+        paymentId: paymentReport.payment.id,
+        language: smsLanguage
       })
       .then(res => {
+        if (cancelled) return;
         const textRes = res.data?.data?.text || res.data?.text || res.text;
         if (textRes) {
           setSmsPreviewText(textRes);
@@ -159,13 +164,15 @@ export const PaymentRecordModal = ({
         }
       })
       .catch(err => {
+        if (cancelled) return;
         setSmsPreviewError(err.message || 'Не удалось загрузить предпросмотр SMS');
       })
       .finally(() => {
-        setSmsPreviewLoading(false);
+        if (!cancelled) setSmsPreviewLoading(false);
       });
     }
-  }, [paymentReport, deal]);
+    return () => { cancelled = true; };
+  }, [paymentReport, deal, smsLanguage]);
 
   const handleSendSmsConfirmation = async () => {
     if (!paymentReport || !paymentReport.payment || !deal) return;
@@ -178,6 +185,7 @@ export const PaymentRecordModal = ({
         dealId: deal.id,
         paymentId: paymentReport.payment.id,
         templateCode: 'PAYMENT_RECEIVED',
+        language: smsLanguage,
         text: smsPreviewText
       });
 
@@ -280,6 +288,18 @@ export const PaymentRecordModal = ({
               </span>
             </div>
 
+            {!smsSentSuccess && (
+              <div className="flex gap-2" role="group" aria-label="Язык SMS">
+                {[{ value: 'tj', label: 'Тоҷикӣ' }, { value: 'ru', label: 'Русский' }].map(option => (
+                  <button key={option.value} type="button" aria-pressed={smsLanguage === option.value}
+                    disabled={smsSendLoading}
+                    onClick={() => { setSmsLanguage(option.value); setSmsPreviewText(''); setSmsPreviewError(''); setSmsSendError(''); }}
+                    className={`flex-1 rounded-lg border px-3 py-1.5 text-xs font-bold ${smsLanguage === option.value ? 'border-blue-600 bg-blue-600 text-white' : 'border-blue-200 bg-white text-blue-800'}`}>
+                    {option.label}
+                  </button>
+                ))}
+              </div>
+            )}
             {smsPreviewLoading ? (
               <div className="py-3 text-center text-xs text-slate-500 animate-pulse">
                 Формирование текста SMS по состоянию договора после платежа...
@@ -311,7 +331,7 @@ export const PaymentRecordModal = ({
                   <button
                     type="button"
                     onClick={handleSendSmsConfirmation}
-                    disabled={smsSendLoading || smsPreviewLoading || !smsPreviewText}
+                    disabled={smsSendLoading || smsPreviewLoading || Boolean(smsPreviewError) || !smsPreviewText}
                     className="flex-1 flex items-center justify-center gap-1.5 py-2 rounded-xl bg-blue-600 text-white font-bold text-xs hover:bg-blue-700 transition cursor-pointer disabled:opacity-50 shadow-sm shadow-blue-600/20"
                   >
                     <Send className="h-3.5 w-3.5" />
