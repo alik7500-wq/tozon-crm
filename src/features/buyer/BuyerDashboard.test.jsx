@@ -50,3 +50,10 @@ it('shows an unknown overdue amount as a dash instead of zero',async()=>{
  expect(await screen.findByText('График требует проверки. Уточните условия у менеджера.')).toBeInTheDocument();
  const card=screen.getByText('Просрочено').closest('div');expect(card).toHaveTextContent('—');expect(card).not.toHaveTextContent('0 USD');
 });
+it('labels terminated history and never presents its frozen balance as current debt',async()=>{
+ buyerRequest.mockImplementation(async path=>path==='/contracts'?[{id:1,contractNumber:'001',archived:true,status:'CANCELLED'}]:{...detail,status:'CANCELLED',archived:true,summary:{...detail.summary,remainingMinor:null,overdueMinor:null,nextPayment:null},schedules:[]});
+ render(<BuyerDashboard initData="signed" language="ru"/>);
+ expect(await screen.findByText(/Договор расторгнут/)).toBeInTheDocument();expect(screen.queryByText('Просрочено')).not.toBeInTheDocument();expect(screen.queryByText('Остаток',{exact:true})).not.toBeInTheDocument();
+ expect(screen.getByRole('button',{name:'График оплаты'})).toBeDisabled();expect(screen.queryByRole('button',{name:'Связь и уведомления'})).not.toBeInTheDocument();
+ fireEvent.click(screen.getByRole('button',{name:'История оплат'}));expect(screen.getByText('ПКО-94')).toBeInTheDocument();expect(screen.getByRole('button',{name:'Планы и документы'})).toBeEnabled();
+});
