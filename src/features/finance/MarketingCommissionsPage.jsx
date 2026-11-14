@@ -28,8 +28,11 @@ function formatUsd(value) {
 
 function formatPct(value) {
   const num = Number(value || 0);
-  if (!Number.isFinite(num)) return '0%';
-  return `${num.toFixed(2).replace(/\.00$/, '')}%`;
+  if (!Number.isFinite(num)) return '0,00%';
+  return `${num.toLocaleString('ru-RU', {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  })}%`;
 }
 
 function makeIdempotencyKey(prefix, dealId) {
@@ -295,10 +298,10 @@ export const MarketingCommissionsPage = () => {
       </div>
 
       {permissions.payoutBlockedReason && (
-        <div className="flex items-start gap-2.5 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-xs font-medium text-amber-900">
-          <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-amber-600" />
+        <div className="flex items-start gap-2.5 rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-xs font-medium text-slate-700">
+          <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-slate-500" />
           <div>
-            <strong>Режим безопасной подготовки:</strong> {permissions.payoutBlockedReason}
+            Комиссии рассчитываются автоматически. Выплаты маркетологам осуществляются по решению руководства вне автоматического режима CRM.
           </div>
         </div>
       )}
