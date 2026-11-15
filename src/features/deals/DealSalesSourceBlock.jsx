@@ -628,7 +628,7 @@ export const DealSalesSourceBlock = ({
             <div className="rounded-md bg-white p-2 border border-slate-200/80">
               <div className="text-[11px] text-slate-500">Ставка комиссии</div>
               <div className="font-bold text-slate-900 mt-0.5">
-                {commission.commissionRatePercent > 0 ? `${commission.commissionRatePercent}%` : '0% (< 5% оплаты)'}
+                {commission.commissionRatePercent > 0 ? `${commission.commissionRatePercent}%` : '0% (нет оплаты)'}
               </div>
             </div>
             <div className="rounded-md bg-white p-2 border border-slate-200/80">

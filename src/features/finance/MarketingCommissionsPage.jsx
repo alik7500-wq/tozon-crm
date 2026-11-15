@@ -522,8 +522,8 @@ export const MarketingCommissionsPage = () => {
               className="w-full rounded-xl border border-slate-200 px-2.5 py-1.5 text-xs focus:border-blue-500 focus:outline-none"
             >
               <option value="ALL">Все ставки</option>
-              <option value="0">0% (&lt; 5%)</option>
-              <option value="2">2% (5–10%)</option>
+              <option value="0">0% (нет оплаты)</option>
+              <option value="2">2% (&lt; 10%)</option>
               <option value="3">3% (10–15%)</option>
               <option value="4">4% (&gt; 15%)</option>
             </select>
