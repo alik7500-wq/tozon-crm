@@ -20,7 +20,4 @@
     try { await prompt.prompt(); await prompt.userChoice; } catch {}
   });
   window.addEventListener('appinstalled', () => { pending = null; button.remove(); });
-  if ('serviceWorker' in navigator) {
-    window.addEventListener('load', () => navigator.serviceWorker.register('/sw.js').catch(() => {}));
-  }
 })();

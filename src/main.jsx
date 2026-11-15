@@ -3,7 +3,9 @@ import { createRoot } from 'react-dom/client'
 import './index.css'
 import App from './App.jsx'
 import { applyInterfacePreferences } from './features/settings/InterfaceSettingsTab'
-try { applyInterfacePreferences() } catch (error) { console.warn('Interface preferences unavailable; using defaults') }
+import { startAppUpdates } from './appUpdates'
+try { applyInterfacePreferences() } catch { console.warn('Interface preferences unavailable; using defaults') }
+startAppUpdates()
 
 createRoot(document.getElementById('root')).render(
   <StrictMode>
