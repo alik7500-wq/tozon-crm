@@ -16,6 +16,14 @@ export async function buyerBlob(initData,body,{signal}={}){
  if(!['image/png','image/jpeg','image/webp','application/pdf'].includes(blob.type)||blob.size>20*1024*1024)throw new Error('BUYER_MATERIAL_UNAVAILABLE');
  return blob;
 }
+export async function buyerPdf(initData,body,{signal}={}){
+ if(!initData)throw new Error('INVALID_TELEGRAM_AUTH');
+ const response=await fetch(`${base}/pdf`,{method:'POST',credentials:'omit',cache:'no-store',signal,headers:{'Content-Type':'application/json','X-Telegram-Init-Data':initData},body:JSON.stringify(body)});
+ if(!response.ok)throw new Error('BUYER_MATERIAL_UNAVAILABLE');
+ const blob=await response.blob();
+ if(blob.type!=='application/pdf'||blob.size>20*1024*1024)throw new Error('BUYER_MATERIAL_UNAVAILABLE');
+ return blob;
+}
 let sdk;
 export function loadTelegram() {
   if (window.Telegram?.WebApp) return Promise.resolve(window.Telegram.WebApp);

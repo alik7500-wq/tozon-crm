@@ -18,7 +18,7 @@ it('shows totals and read-only history/schedule in Russian',async()=>{
  expect(screen.getByText('600 USD')).toBeInTheDocument();expect(screen.getByText('Просрочено')).toBeInTheDocument();
  fireEvent.click(screen.getByRole('button',{name:'История оплат'}));expect(screen.getByText('ПКО-94')).toBeInTheDocument();
  expect(screen.getByText(/Эквивалент этого платежа требует сверки/)).toBeInTheDocument();
- fireEvent.click(screen.getByRole('button',{name:'График оплаты'}));expect(screen.getByText('Просрочен')).toBeInTheDocument();
+ fireEvent.click(screen.getByRole('button',{name:'График рассрочки'}));expect(screen.getByText('Просрочен')).toBeInTheDocument();
  expect(screen.queryByRole('textbox')).not.toBeInTheDocument();
  expect(buyerRequest).toHaveBeenCalledWith('/contract','signed',expect.objectContaining({method:'POST',body:{dealId:'1'}}));
 });
@@ -54,6 +54,6 @@ it('labels terminated history and never presents its frozen balance as current d
  buyerRequest.mockImplementation(async path=>path==='/contracts'?[{id:1,contractNumber:'001',archived:true,status:'CANCELLED'}]:{...detail,status:'CANCELLED',archived:true,summary:{...detail.summary,remainingMinor:null,overdueMinor:null,nextPayment:null},schedules:[]});
  render(<BuyerDashboard initData="signed" language="ru"/>);
  expect(await screen.findByText(/Договор расторгнут/)).toBeInTheDocument();expect(screen.queryByText('Просрочено')).not.toBeInTheDocument();expect(screen.queryByText('Остаток',{exact:true})).not.toBeInTheDocument();
- expect(screen.getByRole('button',{name:'График оплаты'})).toBeDisabled();expect(screen.queryByRole('button',{name:'Связь и уведомления'})).not.toBeInTheDocument();
- fireEvent.click(screen.getByRole('button',{name:'История оплат'}));expect(screen.getByText('ПКО-94')).toBeInTheDocument();expect(screen.getByRole('button',{name:'Планы и документы'})).toBeEnabled();
+ expect(screen.getByRole('button',{name:'График рассрочки'})).toBeDisabled();expect(screen.queryByRole('button',{name:'Связь с менеджером'})).not.toBeInTheDocument();
+ fireEvent.click(screen.getByRole('button',{name:'История оплат'}));expect(screen.getByText('ПКО-94')).toBeInTheDocument();expect(screen.getByRole('button',{name:'Планировка 2D/3D'})).toBeEnabled();
 });

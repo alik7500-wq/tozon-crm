@@ -2,12 +2,13 @@ import React,{useEffect,useState} from 'react';
 import {buyerRequest,loadTelegram} from './buyer-api';
 const BuyerDashboard=React.lazy(()=>import('./BuyerDashboard'));
 const words={
- tj:{title:'Кабинети харидор',wait:'Лутфан интизор шавед…',intro:'Менеҷер пайвастшавии Telegram-ро як маротиба тасдиқ мекунад. SMS лозим нест.',code:'Ин рамзро ба менеҷер нишон диҳед',pending:'Тасдиқи менеҷерро интизор шавед. Пас аз тасдиқ кабинет худкор кушода мешавад.',retry:'Санҷидани пайвастшавӣ',noInvite:'Барои пайвастшавии аввал аз менеҷер QR-код гиред.',error:'Пайвастшавӣ дастрас нест. Кабинетро аз бот аз нав кушоед ё аз менеҷер QR-и нав гиред.'},
- ru:{title:'Кабинет покупателя',wait:'Подождите…',intro:'Менеджер один раз подтвердит подключение Вашего Telegram. SMS не требуется.',code:'Покажите этот код менеджеру',pending:'Ожидаем подтверждения менеджера. После подтверждения кабинет откроется автоматически.',retry:'Проверить подключение',noInvite:'Для первого подключения получите QR-код у менеджера.',error:'Подключение недоступно. Откройте кабинет заново из бота или получите новый QR у менеджера.'}
+ tj:{title:'TOZON — Кабинети ман',subtitle:'Кабинети харидор',chooseLang:'Забонро интихоб кунед / Выберите язык',wait:'Лутфан интизор шавед…',intro:'Менеҷер пайвастшавии Telegram-ро як маротиба тасдиқ мекунад. SMS лозим нест.',code:'Ин рамзро ба менеҷер нишон диҳед',pending:'Тасдиқи менеҷерро интизор шавед. Пас аз тасдиқ кабинет худкор кушода мешавад.',retry:'Санҷидани пайвастшавӣ',noInvite:'Барои пайвастшавии аввал аз менеҷер QR-код гиред.',error:'Пайвастшавӣ дастрас нест. Кабинетро аз бот аз нав кушоед ё аз менеҷер QR-и нав гиред.'},
+ ru:{title:'TOZON — Кабинети ман',subtitle:'Кабинет покупателя',chooseLang:'Выберите язык / Забонро интихоб кунед',wait:'Подождите…',intro:'Менеджер один раз подтвердит подключение Вашего Telegram. SMS не требуется.',code:'Покажите этот код менеджеру',pending:'Ожидаем подтверждения менеджера. После подтверждения кабинет откроется автоматически.',retry:'Проверить подключение',noInvite:'Для первого подключения получите QR-код у менеджера.',error:'Подключение недоступно. Откройте кабинет заново из бота или получите новый QR у менеджера.'}
 };
+function hasSavedLanguage(){try{return Boolean(localStorage.getItem('tozon-buyer-language-v1'));}catch{return false;}}
 function initialLanguage(){try{return localStorage.getItem('tozon-buyer-language-v1')==='ru'?'ru':'tj';}catch{return 'tj';}}
 export default function BuyerEntryPage(){
- const [language,setLanguage]=useState(initialLanguage),[token,setToken]=useState(()=>new URLSearchParams(window.location.hash.slice(1)).get('invite')||'');
+ const [language,setLanguage]=useState(initialLanguage),[langPicked,setLangPicked]=useState(hasSavedLanguage),[token,setToken]=useState(()=>new URLSearchParams(window.location.hash.slice(1)).get('invite')||'');
  const [initData,setInitData]=useState(''),[access,setAccess]=useState([]),[ready,setReady]=useState(false),[pending,setPending]=useState(null),[error,setError]=useState(''),[revision,setRevision]=useState(0);
  const t=words[language];
  useEffect(()=>{
@@ -39,11 +40,12 @@ export default function BuyerEntryPage(){
    }catch(e){if(!controller.signal.aborted)setError(e.message);}
   };check();return()=>{controller.abort();clearTimeout(timer);};
  },[ready,token,initData,access.length,revision]);
- async function changeLanguage(value){setLanguage(value);if(access.length)try{await buyerRequest('/preferences',initData,{method:'PATCH',body:{language:value}});}catch{}}
- return <main lang={language==='tj'?'tg':'ru'} className="min-h-dvh bg-slate-100 px-4 py-8 text-slate-900">
+ async function changeLanguage(value){setLanguage(value);setLangPicked(true);if(access.length)try{await buyerRequest('/preferences',initData,{method:'PATCH',body:{language:value}});}catch{}}
+ return <main lang={language==='tj'?'tg':'ru'} className="min-h-dvh bg-slate-100 px-3 py-4 sm:px-4 sm:py-8 text-slate-900">
   <div className="mx-auto max-w-md overflow-hidden rounded-3xl bg-white shadow-lg">
-   <header className="bg-slate-900 px-6 py-6 text-white"><p className="text-xs font-bold tracking-widest text-blue-300">TOZON</p><h1 className="mt-2 text-2xl font-bold">{t.title}</h1>
-    <div aria-label="Язык / Забон" className="mt-5 flex gap-2">{[['tj','Тоҷикӣ'],['ru','Русский']].map(([value,label])=><button key={value} type="button" aria-pressed={language===value} onClick={()=>changeLanguage(value)} className={`rounded-xl px-4 py-2 text-sm font-semibold ${language===value?'bg-white text-slate-900':'bg-slate-700 text-white'}`}>{label}</button>)}</div>
+   <header className="bg-slate-900 px-5 py-5 text-white"><p className="text-xs font-bold tracking-widest text-blue-300">{t.subtitle}</p><h1 className="mt-1 text-xl font-bold sm:text-2xl">{t.title}</h1>
+    {!langPicked?<p className="mt-3 text-xs text-slate-300">{t.chooseLang}</p>:null}
+    <div aria-label="Язык / Забон" className="mt-3 flex gap-2">{[['tj','Тоҷикӣ'],['ru','Русский']].map(([value,label])=><button key={value} type="button" aria-pressed={language===value} onClick={()=>changeLanguage(value)} className={`rounded-xl px-4 py-2 text-sm font-semibold ${language===value?'bg-white text-slate-900':'bg-slate-700 text-white'}`}>{label}</button>)}</div>
    </header>
    <section className="space-y-5 p-6">
     {error?<p role="alert" className="rounded-xl bg-red-50 p-4 text-sm text-red-800">{t.error}</p>:null}
