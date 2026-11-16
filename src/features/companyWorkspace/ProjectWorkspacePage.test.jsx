@@ -95,3 +95,17 @@ it('opens the isolated chessboard only with inventory permission and removes it 
  fireEvent.change(screen.getByRole('combobox',{name:'Рабочий проект'}),{target:{value:b}});expect(screen.queryByRole('button',{name:'Квартира №101, 1 этаж, Свободна'})).not.toBeInTheDocument();
  expect(api.get.mock.calls.every(([path])=>path.startsWith('/project-workspace/'))).toBe(true);
 });
+
+it('clears search text and results on project switch and when granted sections change',async()=>{
+ let sections=projects[0].sections;
+ api.get.mockImplementation(path=>Promise.resolve({data:path.endsWith('/projects')?{projects:[{...projects[0],sections},projects[1]]}:path.endsWith('/search')?{groups:[{resource:'leads',records:[{id:80,title:'SEARCH SECRET',subtitle:'111',status:'NEW'}],has_more:false}]}:path.endsWith('/options')?{commands:[]}:{records:[],has_more:false}}));
+ render(<ProjectWorkspacePage/>);await screen.findByRole('search',{name:'Поиск в проекте'});const label='ФИО, телефон, номер договора или помещения';
+ fireEvent.change(screen.getByLabelText(label),{target:{value:'SEARCH'}});fireEvent.submit(screen.getByRole('search',{name:'Поиск в проекте'}));await screen.findByRole('button',{name:/SEARCH SECRET/});
+ sections=['inventory.view'];fireEvent(window,new Event('focus'));await waitFor(()=>expect(screen.getByLabelText(label)).toHaveValue(''));expect(screen.queryByRole('button',{name:/SEARCH SECRET/})).toBeNull();
+ fireEvent.change(screen.getByLabelText(label),{target:{value:'Other'}});fireEvent.change(screen.getByLabelText('Рабочий проект'),{target:{value:b}});await waitFor(()=>expect(screen.getByLabelText(label)).toHaveValue(''));
+});
+
+it('does not offer search to a project user who only has finance access',async()=>{
+ api.get.mockImplementation(path=>Promise.resolve({data:path.endsWith('/projects')?{projects:[{...projects[0],sections:['finance.payments']}]}:path.endsWith('/options')?{commands:[]}:{records:[],has_more:false}}));
+ render(<ProjectWorkspacePage/>);await screen.findByRole('button',{name:'Поступления',exact:true});expect(screen.queryByRole('search',{name:'Поиск в проекте'})).toBeNull();expect(api.get.mock.calls.some(([path])=>path.endsWith('/search'))).toBe(false);
+});
