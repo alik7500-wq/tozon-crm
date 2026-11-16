@@ -46,3 +46,17 @@ it('does not display partial period totals if an active historical date cannot b
  api.get.mockResolvedValue({data:{...data,records:[{...row,date:'not-a-date'}]}});render(<WorkspaceCashBook project="plaza" version={0}/>);await screen.findByText('ПКО №1');fireEvent.change(screen.getByLabelText('Кассовая книга с даты'),{target:{value:'2026-11-01'}});
  const period=screen.getByRole('region',{name:'Итоги кассы за период'});expect(within(period).getByRole('alert')).toHaveTextContent('Итоги периода требуют сверки');expect(within(period).queryByRole('table')).toBeNull();
 });
+it('shows daily balances separately from the journal direction and carries an earlier balance through an empty period',async()=>{
+ render(<WorkspaceCashBook project="plaza" version={0}/>);await screen.findByText('ПКО №1');fireEvent.change(screen.getByLabelText('Кассовая книга с даты'),{target:{value:'2026-11-01'}});
+ fireEvent.click(screen.getByRole('button',{name:'Показать ежедневные остатки'}));const days=screen.getByRole('region',{name:'Ежедневные остатки кассы'});
+ expect(within(days).getByRole('row',{name:'01.11.2026 TJS 0,00 1 000,50 0,00 1 000,50'})).toBeVisible();
+ fireEvent.change(screen.getByLabelText('Движение кассовой книги'),{target:{value:'EXPENSE'}});expect(within(days).getByRole('row',{name:'01.11.2026 TJS 0,00 1 000,50 0,00 1 000,50'})).toBeVisible();
+ fireEvent.change(screen.getByLabelText('Кассовая книга с даты'),{target:{value:'2026-11-03'}});expect(screen.getByText('В выбранном периоде движений нет. Остаток не менялся.')).toBeVisible();
+ fireEvent.click(screen.getByRole('button',{name:'Скрыть ежедневные остатки'}));expect(screen.queryByRole('region',{name:'Ежедневные остатки кассы'})).toBeNull();
+});
+it('paginates daily dates independently and resets their page when period changes',async()=>{
+ const records=Array.from({length:150},(_,i)=>({...row,id:i+1,date:new Date(Date.UTC(2026,0,i+1)).toISOString().slice(0,10),amount:'0.01'}));api.get.mockResolvedValue({data:{...data,records}});
+ render(<WorkspaceCashBook project="plaza" version={0}/>);await screen.findByText('ПКО №1');fireEvent.change(screen.getByLabelText('Кассовая книга с даты'),{target:{value:'2026-01-01'}});fireEvent.click(screen.getByRole('button',{name:'Показать ежедневные остатки'}));
+ fireEvent.click(screen.getByRole('button',{name:'Следующие даты'}));expect(within(screen.getByRole('region',{name:'Ежедневные остатки кассы'})).getByRole('row',{name:'11.04.2026 TJS 1,00 0,01 0,00 1,01'})).toBeVisible();expect(screen.getByText('ПКО №1')).toBeVisible();
+ fireEvent.change(screen.getByLabelText('Кассовая книга по дату'),{target:{value:'2026-01-10'}});expect(within(screen.getByRole('region',{name:'Ежедневные остатки кассы'})).getByRole('row',{name:'01.01.2026 TJS 0,00 0,01 0,00 0,01'})).toBeVisible();expect(screen.getByRole('button',{name:'Предыдущие даты'})).toBeDisabled();
+});

@@ -25,5 +25,24 @@ it('refuses impossible dates and incomplete or malformed active history rather t
 it('uses the complete book irrespective of visible pagination or a period with no rows',()=>{
  const records=Array.from({length:150},()=>row('2026-01-01','INCOME','0.01'));
  expect(cashPeriod(records,{from:'2026-02-01',to:'2026-02-28'}).totals[0]).toEqual({currency:'USD',opening:'1.50',income:'0.00',expense:'0.00',closing:'1.50'});
- expect(cashPeriod([])).toEqual({error:'',totals:[]});
+ expect(cashPeriod([])).toEqual({error:'',totals:[],days:[]});
+});
+it('orders daily balances chronologically, combines same-day movements and carries each currency independently',()=>{
+ const records=[row('2026-11-03','EXPENSE','100.21'),row('2026-11-03','EXPENSE','20.00','TJS'),row('2026-11-01','EXPENSE','0.05'),row('2026-11-01','INCOME','10.25'),row('2026-11-01','INCOME','1000.00','TJS'),row('2026-10-31','INCOME','100.00'),row('2026-10-31','EXPENSE','10.00'),row('2026-11-02','INCOME','999.00','USD',false),row('2026-11-04','INCOME','999.00')];
+ const report=cashPeriod(records,{from:'2026-11-01',to:'2026-11-03'});
+ expect(report.days).toEqual([
+  {date:'2026-11-01',currency:'TJS',opening:'0.00',income:'1000.00',expense:'0.00',closing:'1000.00'},
+  {date:'2026-11-01',currency:'USD',opening:'90.00',income:'10.25',expense:'0.05',closing:'100.20'},
+  {date:'2026-11-03',currency:'TJS',opening:'1000.00',income:'0.00',expense:'20.00',closing:'980.00'},
+  {date:'2026-11-03',currency:'USD',opening:'100.20',income:'0.00',expense:'100.21',closing:'-0.01'}
+ ]);
+ for(const total of report.totals){const days=report.days.filter(d=>d.currency===total.currency);expect(days[0].opening).toBe(total.opening);expect(days.at(-1).closing).toBe(total.closing);}
+ expect(cashPeriod(records,{from:'2026-11-01',to:'2026-11-03',currency:'USD'}).days.every(d=>d.currency==='USD')).toBe(true);
+});
+it('keeps daily carries exact beyond the first page and returns no partial days for malformed history',()=>{
+ const records=Array.from({length:150},(_,i)=>row(new Date(Date.UTC(2026,0,i+1)).toISOString().slice(0,10),'INCOME','0.01'));
+ const report=cashPeriod(records);expect(report.days).toHaveLength(150);expect(report.days[100]).toMatchObject({opening:'1.00',closing:'1.01'});expect(report.days.at(-1).closing).toBe('1.50');
+ expect(cashPeriod([...records,row(null,'INCOME','1.00')]).days).toEqual([]);
+ expect(cashPeriod(records,{from:'2027-01-01'})).toMatchObject({days:[],totals:[{opening:'1.50',closing:'1.50'}]});
+ const huge=cashPeriod([row('2026-01-01','INCOME','9999999999999999.99'),row('2026-01-02','EXPENSE','10000000000000000.00')]);expect(huge.days[1]).toMatchObject({opening:'9999999999999999.99',closing:'-0.01'});
 });
