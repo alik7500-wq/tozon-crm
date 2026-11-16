@@ -1,0 +1,32 @@
+import React,{useState} from 'react';
+import useWorkspaceRead from './useWorkspaceRead';
+import {stockNumber as amount} from './stockNumber';
+const settlements={CASH:'Наличные',BANK:'Банк',NON_CASH_BARTER:'Бартер'};
+const statuses={ACTIVE:'Действует',POSTED:'Проведён',VOIDED:'Аннулирован',CANCELLED:'Отменён',REVERSED:'Сторнирован'};
+const date=value=>value?String(value).replace(/^(\d{4})-(\d{2})-(\d{2})$/,'$3.$2.$1'):'—';
+export default function WorkspaceCashBook({project,version}){
+ const [desk,setDesk]=useState(''),[reload,setReload]=useState(0);
+ const [currency,setCurrency]=useState(''),[kind,setKind]=useState(''),[from,setFrom]=useState(''),[to,setTo]=useState(''),[page,setPage]=useState(0);
+ const {data,loading,error}=useWorkspaceRead(`/project-workspace/${project}/cash-book`,desk?{cash_desk_id:desk}:{},`${version}:${reload}`);
+ const records=data?.records||[],desks=data?.cash_desks||[],invalidRange=from&&to&&from>to;
+ const rows=invalidRange?[]:records.filter(r=>(!currency||r.currency===currency)&&(!kind||r.kind===kind)&&(!from||r.date>=from)&&(!to||r.date<=to));
+ const lastPage=Math.max(0,Math.ceil(rows.length/100)-1),currentPage=Math.min(page,lastPage),visible=rows.slice(currentPage*100,(currentPage+1)*100);
+ function filter(setter){return e=>{setter(e.target.value);setPage(0);};}
+ return <section aria-label="Кассовая книга проекта" className="space-y-5 rounded-2xl border border-slate-200 bg-white p-5">
+  <div className="flex flex-wrap items-center justify-between gap-3"><h2 className="text-lg font-bold">Кассовая книга</h2><button type="button" disabled={loading} onClick={()=>setReload(n=>n+1)} className="font-bold text-blue-600 disabled:opacity-40">Обновить кассовую книгу</button></div>
+  <p className="text-sm text-slate-500">Документы только выбранной кассы проекта. Суммы показаны в валюте записи; эквиваленты в другой валюте повторно не суммируются.</p>
+  {loading?<p role="status">Загрузка кассовой книги…</p>:error?<p role="alert" className="rounded-xl bg-rose-50 p-4 text-rose-700">{error}</p>:!desks.length?<p>Проекту не назначены кассы.</p>:<>
+   <label className="block max-w-lg text-sm font-semibold">Касса<select aria-label="Касса книги" value={data.selected_cash_desk_id||''} onChange={e=>{setDesk(e.target.value);setPage(0);}} className="mt-2 w-full rounded-xl border p-3">{desks.map(d=><option key={d.id} value={d.id}>{d.name}{d.active?'':' · Не действует'}</option>)}</select></label>
+   {data.requires_review?<p role="alert" className="rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900">Остаток требует сверки: в истории есть переводы, обмен валют, безналичные или неоднозначные записи. Журнал доступен; общий остаток до сверки не рассчитывается.</p>:<div aria-label="Итоги кассы за всё время" className="grid gap-3 md:grid-cols-2">{(data.totals||[]).map(t=><div key={t.currency} className="rounded-xl border border-blue-100 bg-blue-50 p-4"><p className="text-sm text-slate-500">Учётный остаток за всё время · {t.currency}</p><p className="mt-2 text-xl font-extrabold">{amount(t.balance,true)} {t.currency}</p><p className="mt-2 text-sm">Приход: {amount(t.income,true)} · Расход: {amount(t.expense,true)}</p></div>)}</div>}
+   <p className="text-xs text-slate-500">Итоги включают всю проведённую историю кассы и не меняются от фильтров журнала. Аннулированные документы исключены из итогов. Остаток верен при полном внесении начальных остатков и движений.</p>
+   <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+    <label className="text-sm font-semibold">Валюта<select aria-label="Валюта кассовой книги" value={currency} onChange={filter(setCurrency)} className="mt-2 w-full rounded-xl border p-3"><option value="">Все валюты</option>{[...new Set(records.map(r=>r.currency).filter(Boolean))].sort().map(c=><option key={c}>{c}</option>)}</select></label>
+    <label className="text-sm font-semibold">Движение<select aria-label="Движение кассовой книги" value={kind} onChange={filter(setKind)} className="mt-2 w-full rounded-xl border p-3"><option value="">Все движения</option><option value="INCOME">Приход</option><option value="EXPENSE">Расход</option></select></label>
+    <label className="text-sm font-semibold">С даты<input type="date" aria-label="Кассовая книга с даты" value={from} onChange={filter(setFrom)} className="mt-2 w-full rounded-xl border p-3"/></label>
+    <label className="text-sm font-semibold">По дату<input type="date" aria-label="Кассовая книга по дату" value={to} onChange={filter(setTo)} className="mt-2 w-full rounded-xl border p-3"/></label>
+   </div>
+   {invalidRange?<p role="alert" className="text-rose-700">Начальная дата должна быть не позже конечной.</p>:!rows.length?<p>{records.length?'По выбранным фильтрам документов нет.':'По выбранной кассе движений пока нет.'}</p>:<div className="overflow-x-auto"><table className="w-full text-left text-sm"><thead><tr>{['Дата','Документ','Движение','Сумма','Валюта','Расчёт','Операция','Статус'].map(h=><th key={h} className="border-b p-3 text-slate-500">{h}</th>)}</tr></thead><tbody>{visible.map(r=><tr key={`${r.kind}:${r.id}`} className={r.active?'':'text-slate-400'}><td className="border-b p-3 whitespace-nowrap">{date(r.date)}</td><td className="border-b p-3">{r.kind==='INCOME'?'ПКО':'РКО'} №{r.id}</td><td className="border-b p-3">{r.kind==='INCOME'?'Приход':'Расход'}</td><td className="border-b p-3 whitespace-nowrap font-semibold">{amount(r.amount,true)}</td><td className="border-b p-3">{r.currency||'Не указана'}</td><td className="border-b p-3">{settlements[r.settlement_method]||'Нужна сверка'}</td><td className="border-b p-3">{r.special?'Перевод / обмен':r.operation_type==='STANDARD'?'Обычная':r.operation_type==='CONVERSION'?'Обмен валют':'Нужна сверка'}</td><td className="border-b p-3">{r.active?(statuses[r.status]||r.status):`${statuses[r.status]||r.status||'Неизвестен'} · вне итогов`}</td></tr>)}</tbody></table></div>}
+   <div className="flex flex-wrap items-center gap-4 text-sm"><p>Документов: {rows.length} из {records.length}. Страница {currentPage+1} из {lastPage+1}.</p><button type="button" disabled={currentPage===0} onClick={()=>setPage(currentPage-1)} className="font-bold text-blue-600 disabled:text-slate-400">Назад</button><button type="button" disabled={currentPage===lastPage} onClick={()=>setPage(currentPage+1)} className="font-bold text-blue-600 disabled:text-slate-400">Далее</button></div>
+  </>}
+ </section>;
+}

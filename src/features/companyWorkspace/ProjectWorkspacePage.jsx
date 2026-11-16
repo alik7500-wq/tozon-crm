@@ -8,11 +8,13 @@ import WorkspaceOverview from './WorkspaceOverview';
 import WorkspaceInventory from './WorkspaceInventory';
 import WorkspaceOffer from './WorkspaceOffer';
 import WorkspaceStock from './WorkspaceStock';
+import WorkspaceCashBook from './WorkspaceCashBook';
 import useWorkspaceRead from './useWorkspaceRead';
 import { api } from '../../api/client';
 import { useAuth } from '../auth/AuthContext';
 
 const resources = {
+  'cash-book':{label:'Кассовая книга',permission:'finance.payments',also:'finance.expenses'},
   reminders:{label:'Напоминания',permission:'finance.payments',also:'deals.view',columns:[['contract_number','Договор'],['client_name','Клиент'],['unit_number','Помещение'],['due_date','Срок платежа'],['remaining_minor','Остаток'],['currency','Валюта'],['reminder_kind','Событие'],['is_read','Прочитано']]},
   complexes: { label: 'Жилые комплексы', permission: 'inventory.view', columns: [['name','ЖК'],['code','Код'],['address','Адрес']] },
   units: { label: 'Помещения', permission: 'inventory.view', columns: [['unit_number','Номер'],['complex_name','ЖК'],['area_m2_x100','Площадь, м²'],['status','Статус']] },
@@ -57,7 +59,7 @@ function WorkspaceOperations({ project, version, onOpen, disabled }) {
 const menuGroups=[
  {label:'CRM',items:[['leads',Users],['deals',FileText]]},
  {label:'Проекты',items:[['complexes',Building2],['units',House]]},
- {label:'Финансы',items:[['payments',Wallet],['schedules',CalendarDays],['expenses',ArrowDownLeft]]},
+ {label:'Финансы',items:[['cash-book',Wallet],['payments',Wallet],['schedules',CalendarDays],['expenses',ArrowDownLeft]]},
  {label:'Строительный учёт',items:[['warehouses',Package]]},
  {label:'Уведомления',items:[['reminders',Bell]]},
 ];
@@ -94,7 +96,7 @@ export default function ProjectWorkspacePage() {
    {loading&&!context?<p role="status" className="rounded-2xl border bg-white p-6">Проверка доступа к проектам…</p>:error?<div role="alert" className="rounded-2xl border border-rose-200 bg-rose-50 p-5 text-rose-700">{error}<button type="button" className="ml-3 font-bold underline" onClick={()=>setVersion(n=>n+1)}>Повторить проверку доступа</button></div>:!project?<p role="status" className="rounded-2xl border bg-white p-6">Вам не назначен доступ ни к одному проекту. Обратитесь к администратору компании.</p>:<>
     {currentResource==='overview'?<WorkspaceOverview key={project.id} project={project} user={user} {...overview} onNavigate={setResource} onDocument={openDocument} canDocuments={canDocuments} onRefresh={()=>setVersion(n=>n+1)}/>:<div><p className="mb-1 text-sm text-slate-400">{project.name}</p><h1 className="text-2xl font-extrabold">{resources[currentResource].label}</h1></div>}
     <WorkspaceOperations key={`${project.id}:${version}`} project={project.id} version={version} onOpen={setOperation} disabled={!!operation}/>
-    {currentResource==='units'?<WorkspaceInventory key={project.id} project={project.id} version={version} draft={inventoryDraft?.actor===user?.id?inventoryDraft:null} onDraftChange={saveInventoryDraft} canOffer={project.sections.includes('documents.print')} onOffer={request=>setOperation({kind:'OFFER',request})}/>:currentResource==='warehouses'?<WorkspaceStock key={project.id} project={project.id} version={version}/>:currentResource!=='overview'&&<WorkspaceRecords key={`${version}:${project.id}:${currentResource}`} project={project.id} resource={currentResource} canDocuments={currentResource==='deals'&&canDocuments} onDocument={openDocument}/>}
+    {currentResource==='units'?<WorkspaceInventory key={project.id} project={project.id} version={version} draft={inventoryDraft?.actor===user?.id?inventoryDraft:null} onDraftChange={saveInventoryDraft} canOffer={project.sections.includes('documents.print')} onOffer={request=>setOperation({kind:'OFFER',request})}/>:currentResource==='cash-book'?<WorkspaceCashBook key={project.id} project={project.id} version={version}/>:currentResource==='warehouses'?<WorkspaceStock key={project.id} project={project.id} version={version}/>:currentResource!=='overview'&&<WorkspaceRecords key={`${version}:${project.id}:${currentResource}`} project={project.id} resource={currentResource} canDocuments={currentResource==='deals'&&canDocuments} onDocument={openDocument}/>}
    </>}
   </ProjectShell>
   {operation&&project&&operation.kind==='DOCUMENTS'&&<WorkspaceDocuments key={`${user.id}:${project.id}:${operation.dealId}`} project={project.id} dealId={operation.dealId} onClose={()=>setOperation(null)}/>}
