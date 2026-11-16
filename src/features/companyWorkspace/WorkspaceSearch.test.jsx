@@ -1,6 +1,6 @@
 import React from 'react';
 import {afterEach,beforeEach,it,expect,vi} from 'vitest';
-import {render,screen,fireEvent,cleanup,act,within} from '@testing-library/react';
+import {render,screen,fireEvent,cleanup,act} from '@testing-library/react';
 import '@testing-library/jest-dom/vitest';
 import WorkspaceSearch from './WorkspaceSearch';
 import {api} from '../../api/client';
@@ -23,9 +23,9 @@ it('hides old results and record details if fresh authorization fails',async()=>
  const view=render(<WorkspaceSearch project="plaza" version={0}/>);find('Own');fireEvent.click(await screen.findByRole('button',{name:/^Контакт: Own Client/}));await screen.findByText('Телефон: +992 92 1234567');
  api.get.mockRejectedValue(new Error('Доступ отозван'));view.rerender(<WorkspaceSearch project="plaza" version={1}/>);expect(await screen.findByRole('alert')).toHaveTextContent('Доступ отозван');expect(screen.queryByRole('region',{name:'Найденная запись'})).toBeNull();expect(screen.queryByRole('button',{name:/^Контакт: Own Client/})).toBeNull();
 });
-it('shows a vanished selected record as unavailable without displaying cached details',async()=>{
- api.get.mockImplementation(path=>path.endsWith('/search')?Promise.resolve({data}):Promise.reject(new Error('Запись больше недоступна')));render(<WorkspaceSearch project="plaza" version={0}/>);find('Own');fireEvent.click(await screen.findByRole('button',{name:/^Контакт: Own Client/}));
- const preview=await screen.findByRole('region',{name:'Найденная запись'});expect(await within(preview).findByRole('alert')).toHaveTextContent('Запись больше недоступна');expect(within(preview).queryByText(/Телефон:/)).toBeNull();
+it.each([403,404])('clears all cached matches and details after a selected record returns %i',async status=>{
+ api.get.mockImplementation(path=>path.endsWith('/search')?Promise.resolve({data}):Promise.reject(Object.assign(new Error('Запись больше недоступна'),{status})));render(<WorkspaceSearch project="plaza" version={0}/>);find('Own');fireEvent.click(await screen.findByRole('button',{name:/^Контакт: Own Client/}));
+ expect(await screen.findByRole('alert')).toHaveTextContent('Запись больше недоступна');expect(screen.queryByRole('region',{name:'Найденная запись'})).toBeNull();expect(screen.queryByRole('button',{name:/Own Client/})).toBeNull();expect(screen.queryByText('+992 92 1234567')).toBeNull();
 });
 it('validates empty, short and control-character input without requests and reports honest empty matches',async()=>{
  render(<WorkspaceSearch project="plaza" version={0}/>);for(const q of ['','x','xy\tzz']){find(q);expect(screen.getByRole('alert')).toHaveTextContent('от 2 до 100');}expect(api.get).not.toHaveBeenCalled();
