@@ -9,9 +9,10 @@ export function ContractCongratulationsModal() {
   const [sending, setSending] = useState(false);
   const [error, setError] = useState('');
   const [sent, setSent] = useState(false);
+  const [language, setLanguage] = useState('tj');
   const generation = useRef(0);
   const sendLock = useRef(false);
-  const load = async (signedDeal) => {
+  const load = async (signedDeal, selectedLanguage = 'tj') => {
     const run = ++generation.current;
     setPreview(null); setError(''); setLoading(true); setSent(false);
     try {
@@ -19,22 +20,27 @@ export function ContractCongratulationsModal() {
       const data = res.data || res;
       const event = (data.events || []).find(e => String(e.deal_id) === String(signedDeal.id) && e.event_type === 'CONTRACT_CREATED');
       if (!event) throw new Error('Поздравительное SMS не найдено в очереди. Проверьте настройки сообщений.');
-      const result = await api.post(`/sms/events/${event.id}/preview`);
+      const result = await api.post(`/sms/events/${event.id}/preview`, { language: selectedLanguage });
       if (run === generation.current) setPreview(result.data || result);
     } catch (err) { if (run === generation.current) setError(err.message || 'Не удалось загрузить SMS'); }
     finally { if (run === generation.current) setLoading(false); }
   };
   useEffect(() => {
-    const open = event => { if (!event.detail?.id) return; setDeal(event.detail); load(event.detail); };
+    const open = event => { if (!event.detail?.id) return; setDeal(event.detail); setLanguage('tj'); load(event.detail, 'tj'); };
     window.addEventListener('tozon:contract-signed', open);
     return () => { generation.current++; window.removeEventListener('tozon:contract-signed', open); };
   }, []);
+  const changeLanguage = (nextLanguage) => {
+    if (!deal || sending || sendLock.current || nextLanguage === language) return;
+    setLanguage(nextLanguage);
+    load(deal, nextLanguage);
+  };
   const close = () => { if (sendLock.current) return; generation.current++; setDeal(null); setPreview(null); };
   const send = async () => {
     if (sendLock.current || !preview?.previewHash || preview?.event?.status !== 'AWAITING_CONFIRMATION' || preview.isApplicable === false) return;
     sendLock.current = true; setSending(true); setError('');
     try {
-      const result = await api.post(`/sms/events/${preview.event.id}/confirm`, { previewHash: preview.previewHash });
+      const result = await api.post(`/sms/events/${preview.event.id}/confirm`, { previewHash: preview.previewHash, language });
       if (!result.success || result.data?.status !== 'SENT') throw new Error('Отправка не подтверждена. Проверьте статус сообщения в очереди SMS.');
       setSent(true);
     } catch (err) { setError(err.message || 'Ошибка отправки. Проверьте статус в истории SMS перед повторной попыткой.'); }
@@ -49,13 +55,22 @@ export function ContractCongratulationsModal() {
       <p className="text-sm text-slate-500 text-center mt-2">Договор №{deal.contract_number || deal.id}. Прочитайте поздравление перед отправкой клиенту.</p>
       <div className="mt-5 rounded-2xl border border-blue-200 bg-blue-50/50 p-4 space-y-3">
         <h3 className="text-sm font-bold text-blue-800">Поздравительное SMS клиенту</h3>
+        {!sent && <div role="group" aria-label="Язык SMS" className="grid grid-cols-2 gap-2">
+          {[{ value: 'tj', label: 'Тоҷикӣ' }, { value: 'ru', label: 'Русский' }].map(option =>
+            <button key={option.value} type="button" aria-pressed={language === option.value} disabled={sending}
+              onClick={() => changeLanguage(option.value)}
+              className={`rounded-lg border px-3 py-2 text-sm font-semibold disabled:opacity-50 ${language === option.value ? 'bg-blue-600 text-white border-blue-600' : 'bg-white text-blue-800 border-blue-200'}`}>
+              {option.label}
+            </button>
+          )}
+        </div>}
         {loading ? <p className="text-sm text-slate-500">Загрузка текста…</p> : preview?.text ? <p className="whitespace-pre-wrap rounded-xl border border-blue-100 bg-white p-4 text-sm text-slate-800 leading-relaxed">{preview.text}</p> : null}
         {preview?.phone && <p className="text-xs text-slate-500">Номер: {preview.phone}</p>}
         {error && <p className="text-sm text-rose-700" role="alert">{error}</p>}
         {sent ? <p className="text-sm font-bold text-emerald-700">SMS отправлено</p> : <>
           {preview && !canSend && <p className="text-xs text-amber-700">Отправка недоступна. Статус: {preview.event?.status || 'не определён'}. Проверьте очередь SMS.</p>}
           <button onClick={send} disabled={!canSend || sending || loading} className="w-full flex items-center justify-center gap-2 rounded-xl bg-blue-600 py-3 text-white font-bold disabled:opacity-50 cursor-pointer"><Send className="h-4 w-4" />{sending ? 'Отправка…' : 'Отправить SMS'}</button>
-          {error && !preview && <button onClick={() => load(deal)} className="text-sm text-blue-700 cursor-pointer">Повторить загрузку</button>}
+          {error && !preview && <button onClick={() => load(deal, language)} className="text-sm text-blue-700 cursor-pointer">Повторить загрузку</button>}
         </>}
       </div>
       <button onClick={close} disabled={sending} className="mt-4 w-full rounded-xl border border-slate-200 py-3 text-sm font-bold text-slate-600 disabled:opacity-50 cursor-pointer">{sent ? 'Закрыть' : 'Закрыть без SMS'}</button>
