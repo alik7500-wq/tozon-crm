@@ -3,9 +3,16 @@ import {describe,it,expect,vi,afterEach} from 'vitest';
 import {render,screen,fireEvent,cleanup} from '@testing-library/react';
 import {ExpenseSettlementFields} from '../ExpenseSettlementFields';
 afterEach(cleanup);
-const parties=[{id:'supplier',name:'Сифат',kind:'SUPPLIER',active:true},{id:'debtor',name:'Дебитор',kind:'DEBTOR',active:true},{id:'old',name:'Архив',kind:'SUPPLIER',active:false}];
+const parties=[{id:'employee',name:'Усмонов Саидкодир',kind:'EMPLOYEE',active:true},{id:'supplier',name:'Сифат',kind:'SUPPLIER',active:true},{id:'debtor',name:'Дебитор',kind:'DEBTOR',active:true},{id:'old',name:'Архив',kind:'SUPPLIER',active:false}];
 function Harness(){const [value,setValue]=useState({amount:100,currency:'TJS'});return <ExpenseSettlementFields value={value} onChange={patch=>setValue(v=>({...v,...patch}))} parties={parties}/>;}
 describe('Expense automatic settlement fields',()=>{
+ it('selects an employee advance and resets its account when switching to a supplier',()=>{
+  render(<Harness/>);fireEvent.change(screen.getByLabelText('Контрагент в расчётах'),{target:{value:'employee'}});
+  expect(screen.getByLabelText('Назначение расчёта').value).toBe('EMPLOYEE');
+  expect(screen.getByText(/Выдача не включается в себестоимость/)).toBeTruthy();
+  fireEvent.change(screen.getByLabelText('Контрагент в расчётах'),{target:{value:'supplier'}});
+  expect(screen.getByLabelText('Назначение расчёта').value).toBe('PAYABLE');
+ });
  it('selects supplier and defaults to reducing payable debt in original currency',()=>{
   render(<Harness/>);fireEvent.change(screen.getByLabelText('Контрагент в расчётах'),{target:{value:'supplier'}});
   expect(screen.getByLabelText('Назначение расчёта').value).toBe('PAYABLE');expect(screen.getByText(/Долг перед контрагентом уменьшится/).textContent).toContain('100 TJS');
