@@ -16,16 +16,23 @@ async function open() {
 describe('Contract congratulations', () => {
   it('shows preview after signing and closes without sending', async () => {
     await open();
-    expect(api.post).toHaveBeenCalledWith('/sms/events/32/preview');
+    expect(api.post).toHaveBeenCalledWith('/sms/events/32/preview', { language: 'tj' });
     fireEvent.click(screen.getByText('Закрыть без SMS'));
     expect(screen.queryByRole('dialog')).toBeNull();
     expect(api.post).toHaveBeenCalledTimes(1);
+  });
+  it('switches to Russian and refreshes preview before sending', async () => {
+    await open();
+    fireEvent.click(screen.getByText('Русский'));
+    await act(async () => {});
+    expect(api.post).toHaveBeenCalledWith('/sms/events/32/preview', { language: 'ru' });
+    expect(screen.getByText('Русский').getAttribute('aria-pressed')).toBe('true');
   });
   it('confirms the existing queued event with the server preview hash', async () => {
     await open();
     api.post.mockResolvedValueOnce({ success: true, data: { status: 'SENT' } });
     fireEvent.click(screen.getByText('Отправить SMS'));
     await screen.findByText('SMS отправлено');
-    expect(api.post).toHaveBeenLastCalledWith('/sms/events/32/confirm', { previewHash: 'server-hash' });
+    expect(api.post).toHaveBeenLastCalledWith('/sms/events/32/confirm', { previewHash: 'server-hash', language: 'tj' });
   });
 });
