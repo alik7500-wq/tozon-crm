@@ -500,7 +500,7 @@ export const ExpensesPage = () => {
     const keyToUse = formData.idempotency_key;
 
     let allocation;
-    if (canAllocateCosts && costAllocation.mode !== 'UNASSIGNED') {
+    if (formData.settlement_account !== 'EMPLOYEE' && canAllocateCosts && costAllocation.mode !== 'UNASSIGNED') {
       try { allocation = allocationPayload(costAllocation); }
       catch (error) { alert(error.message); return; }
     }
@@ -1384,7 +1384,7 @@ export const ExpensesPage = () => {
               /* Modal Form */
               <form onSubmit={handleSubmit} noValidate className="min-h-0 flex-1 overflow-y-auto overscroll-contain p-4 sm:p-5 space-y-3 text-xs">
                 <ExpenseSettlementFields value={formData} onChange={patch=>setFormData(f=>({...f,...patch}))} parties={settlementOptions?.parties||[]} loading={settlementLoading} error={settlementError} disabled={addMutation.isPending}/>
-                {canAllocateCosts && <>
+                {canAllocateCosts && formData.settlement_account !== 'EMPLOYEE' && <>
                   {costOptionsError && <p role="alert" className="text-amber-800">Не удалось загрузить блоки. РКО можно сохранить нераспределённым и отнести на блок позднее.</p>}
                   <CostAllocationFields accountingScope={expenseAccountingScope} value={costAllocation} onChange={setCostAllocation} disabled={addMutation.isPending} blocks={(costOptions?.blocks || []).map(b => ({ ...b, project_name: costOptions.projects.find(p => p.id === b.project_id)?.name || '' }))} />
                 </>}
