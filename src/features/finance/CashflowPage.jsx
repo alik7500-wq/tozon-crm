@@ -289,6 +289,7 @@ export const CashflowPage = () => {
 
   const convertMutation = useMutation({
     mutationFn: financeApi.convertCurrency,
+    onError: (error) => alert(`Не удалось выполнить конвертацию: ${error.message}`),
     onSuccess: () => {
       queryClient.invalidateQueries(['finance-cashflow']);
       queryClient.invalidateQueries(['finance-income']);
