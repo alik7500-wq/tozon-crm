@@ -4,6 +4,17 @@ import { useAuth } from '../auth/AuthContext';
 
 const area = n => (Number(n || 0) / 100).toLocaleString('ru-RU', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 const money = n => (Number(n || 0) / 100).toLocaleString('ru-RU', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+const signingBlockers = {
+  CASE_NOT_APPROVED: 'Переселение ещё не утверждено',
+  ALLOCATION_NOT_APPROVED: 'Не утверждено распределение стоимости',
+  ALLOCATION_LINE_MISSING: 'Для договора не определена утверждённая сумма',
+  ALLOCATION_INTEGRITY_FAILED: 'Сумма распределения или состав договоров не совпадают с карточкой',
+  DEAL_NOT_FOUND: 'Связанный договор не найден',
+  CURRENCY_MISMATCH: 'Валюта договора не USD',
+  CONTRACT_AMOUNT_REQUIRES_LEGAL_RECONCILIATION: 'Договорная сумма отличается от утверждённой: необходимо оформить юридическое изменение',
+  DEAL_RECONCILIATION_REQUIRED: 'Есть договоры, требующие согласования стоимости'
+};
+const signingBlockerLabel = code => signingBlockers[code] ?? code;
 const statuses = { DRAFT: 'Черновик', APPROVED: 'Утверждено', CLOSED: 'Закрыто', CANCELLED: 'Отменено' };
 
 export function ResettlementsPage() {
@@ -247,7 +258,7 @@ export function ResettlementsPage() {
             <input value={allocationDocument} onChange={e => setAllocationDocument(e.target.value)} maxLength={500} className="mt-1 block w-full rounded border p-2" placeholder="Дополнительное соглашение №… от …" />
           </label>
           <button type="button" onClick={approveAllocation} disabled={busy || allocationDocument.trim().length < 3} className="rounded-lg border px-4 py-2 disabled:opacity-50">Утвердить и сохранить распределение</button>
-          <p className="text-amber-800">Утверждение сохраняет только распределение. Оформление продажи пока недоступно.</p>
+          <p className="text-amber-800">Утверждение сохраняет только распределение. Оформление продажи станет доступно только после юридического согласования стоимости всех договоров и проверки готовности.</p>
         </div>}
       </div>}
       {allocationHistory.length > 0 && <div className="space-y-2 rounded-xl border p-4">
@@ -263,11 +274,11 @@ export function ResettlementsPage() {
         <h3 className="font-semibold">Специальное оформление продажи при переселении</h3>
         <p className="text-sm text-slate-600">Продажа допускается только после юридического согласования сумм всех связанных договоров с утверждённым распределением. Подписанные документы должны существовать до нажатия кнопки.</p>
         {signingReadiness?.blockers?.length > 0 && <div role="alert" className="rounded-lg border border-amber-200 p-3 text-sm text-amber-800">
-          <strong>Подписание заблокировано:</strong> {signingReadiness.blockers.join(', ')}
+          <strong>Подписание заблокировано:</strong> {signingReadiness.blockers.map(signingBlockerLabel).join('; ')}
         </div>}
         {(signingReadiness?.deals ?? []).map(d => <div key={d.deal_id} className="space-y-2 rounded-lg border p-3 text-sm">
           <p><strong>Договор №{d.contract_number ?? d.deal_id}</strong> · {d.status} · текущая сумма {money(d.contract_amount_minor)} USD · утверждённая сумма {d.approved_amount_minor == null ? 'не определена' : money(d.approved_amount_minor) + ' USD'}</p>
-          {d.blockers.length > 0 && <p className="text-amber-800">Причины блокировки: {d.blockers.join(', ')}</p>}
+          {d.blockers.length > 0 && <p className="text-amber-800">Причины блокировки: {d.blockers.map(signingBlockerLabel).join('; ')}</p>}
           {canApprove && d.status === 'RESERVED' && <label className="block">Подписанный договор (номер, дата)
             <input className="mt-1 block w-full rounded border p-2" maxLength={500}
               value={signingDocuments[d.deal_id] ?? ''}
