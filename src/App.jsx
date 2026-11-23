@@ -1,3 +1,4 @@
+import { ResettlementsPage } from './features/resettlement/ResettlementsPage';
 import { ActivityPage } from './features/activity/ActivityPage';
 import { RkoBookPage } from './features/finance/RkoBookPage';
 import { ContractCongratulationsModal } from './components/sms/ContractCongratulationsModal';
@@ -105,6 +106,7 @@ function App() {
                   <Route path="/finance/expenses" element={<ExpensesPage />} />
                   <Route path="/finance/cashflow" element={<CashflowPage />} />
                   <Route path="/finance/marketing-commissions" element={<MarketingCommissionsPage />} />
+                  <Route path="/resettlements" element={<ResettlementsPage />} />
                   <Route path="/reports" element={<ReportsPage />} />
                   <Route path="/analytics/apartment-sales" element={<ApartmentSalesReportPage />} />
                   <Route path="/analytics/1" element={<AnalyticsOnePage />} />
