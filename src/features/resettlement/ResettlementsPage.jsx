@@ -14,6 +14,8 @@ export function ResettlementsPage() {
   const [error, setError] = useState('');
   const [note, setNote] = useState('');
   const [creating, setCreating] = useState(false);
+  const [allocation, setAllocation] = useState({});
+  const [allocationPreview, setAllocationPreview] = useState(null);
   const [draft, setDraft] = useState({
     project_id: '', original_home_area_x100: '', compensated_area_x100: '',
     paid_area_x100: '', price_per_m2_minor: '', links: [{ unit_id: '', deal_id: '' }, { unit_id: '', deal_id: '' }]
@@ -76,6 +78,8 @@ export function ResettlementsPage() {
     try {
       const response = await api.get('/resettlements/' + id);
       setSelected(response?.data ?? null);
+      setAllocation({});
+      setAllocationPreview(null);
     } catch {
       setError('Не удалось открыть карточку переселения.');
     } finally { setBusy(false); }
@@ -92,6 +96,24 @@ export function ResettlementsPage() {
       await openCase(selected.id);
     } catch {
       setError('Утверждение не выполнено. Проверьте договоры, площади и права доступа.');
+    } finally { setBusy(false); }
+  };
+
+  const previewAllocation = async () => {
+    if (!selected || !canApprove) return;
+    const rows = (selected.units ?? []).map(u => ({
+      deal_id: Number(u.deal_id), allocated_minor: toHundredths(allocation[u.deal_id] ?? '')
+    }));
+    if (!rows.length || rows.some(r => !Number.isSafeInteger(r.allocated_minor) || r.allocated_minor < 0)) {
+      setError('Укажите распределение стоимости для каждого договора в USD.');
+      return;
+    }
+    setBusy(true); setError(''); setAllocationPreview(null);
+    try {
+      const response = await api.post('/resettlements/' + selected.id + '/allocation-preview', { allocations: rows });
+      setAllocationPreview(response?.data ?? null);
+    } catch (e) {
+      setError('Проверка распределения не пройдена. Сумма по договорам должна совпадать со стоимостью платной площади.');
     } finally { setBusy(false); }
   };
 
@@ -156,6 +178,23 @@ export function ResettlementsPage() {
       </div>}
       <h3 className="font-semibold">Связанные квартиры</h3>
       <div className="overflow-x-auto"><table className="w-full text-sm"><thead><tr className="text-left"><th className="p-2">Квартира</th><th className="p-2">Площадь</th><th className="p-2">Договор</th><th className="p-2">Статус</th></tr></thead><tbody>{(selected.units ?? []).map(u => <tr key={u.id} className="border-t"><td className="p-2">{u.unit?.unit_number ?? u.unit_id}</td><td className="p-2">{area(u.area_x100)} м²</td><td className="p-2">{u.deal?.contract_number ?? u.deal_id}</td><td className="p-2">{u.unit?.status ?? '—'}</td></tr>)}</tbody></table></div>
+      {canApprove && selected.status === 'APPROVED' && <div className="space-y-3 rounded-xl border p-4">
+        <h3 className="font-semibold">Подготовка распределения стоимости по договорам</h3>
+        <p className="text-sm text-amber-800">Только предварительная проверка. Договоры, бронь, задолженность и платежи не изменяются. Для уже подписанного договора может потребоваться дополнительное соглашение.</p>
+        <p className="text-sm">Общая стоимость платной площади: <strong>{money(selected.payable_total_minor)} USD</strong></p>
+        <div className="grid gap-3 sm:grid-cols-2">
+          {(selected.units ?? []).map(u => <label key={u.deal_id} className="text-sm">
+            Договор №{u.deal?.contract_number ?? u.deal_id}, квартира №{u.unit?.unit_number ?? u.unit_id} — распределённая стоимость, USD
+            <input inputMode="decimal" value={allocation[u.deal_id] ?? ''} onChange={e => { setAllocation(p => ({ ...p, [u.deal_id]: e.target.value })); setAllocationPreview(null); }} className="mt-1 block w-full rounded-lg border p-2" placeholder="0,00" />
+          </label>)}
+        </div>
+        <button type="button" disabled={busy} onClick={previewAllocation} className="rounded-lg bg-blue-700 px-4 py-2 text-white disabled:opacity-50">Проверить распределение</button>
+        {allocationPreview?.validated && <div role="status" className="space-y-2 rounded-lg border p-3 text-sm">
+          <p className="font-semibold">Сумма распределения совпадает с утверждённой стоимостью.</p>
+          {(allocationPreview.allocations ?? []).map(a => <p key={a.deal_id}>Договор ID {a.deal_id}: {money(a.allocated_minor)} USD. {a.amendment_required ? 'Требуется согласование изменения подписанного договора.' : 'Изменение подписанного договора по сумме не выявлено.'}</p>)}
+          <p className="text-amber-800">Это только проверка, не сохранение. Оформление продажи пока недоступно.</p>
+        </div>}
+      </div>}
       {canApprove && selected.status === 'DRAFT' && <div className="space-y-2">
         <label className="block text-sm">Основание утверждения</label>
         <textarea value={note} onChange={e => setNote(e.target.value)} maxLength={2000} className="w-full rounded-lg border p-3" rows={2} />
