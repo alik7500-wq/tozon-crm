@@ -57,6 +57,7 @@ export function ResettlementsPage() {
     } finally { setBusy(false); }
   };
   const canApprove = ['ADMIN', 'DIRECTOR'].includes(user?.role);
+  const canView = ['ADMIN', 'DIRECTOR', 'FINANCE_MANAGER'].includes(user?.role);
 
   const refresh = async () => {
     setError('');
@@ -67,7 +68,7 @@ export function ResettlementsPage() {
       setError('Не удалось загрузить реестр переселений.');
     }
   };
-  useEffect(() => { refresh(); }, []);
+  useEffect(() => { if (canView) refresh(); }, [canView]);
 
   const openCase = async id => {
     setBusy(true);
@@ -93,6 +94,8 @@ export function ResettlementsPage() {
       setError('Утверждение не выполнено. Проверьте договоры, площади и права доступа.');
     } finally { setBusy(false); }
   };
+
+  if (!canView) return <div role="alert" className="p-6 text-red-700">Нет доступа к модулю переселения.</div>;
 
   return <div className="p-6 space-y-5">
     <div className="flex flex-wrap items-center justify-between gap-3">
