@@ -96,7 +96,7 @@ export const MainLayout = () => {
     if (path.startsWith('/finance') || path.startsWith('/payments')) {
       setExpandedMenus((prev) => ({ ...prev, finance: true }));
     }
-    if (path.startsWith('/projects') || path === '/apartments') {
+    if (path.startsWith('/projects') || path === '/apartments' || path.startsWith('/resettlements')) {
       setExpandedMenus((prev) => ({ ...prev, inventory: true }));
     }
     if (path.startsWith('/analytics') || path === '/reports') {
@@ -122,7 +122,7 @@ export const MainLayout = () => {
       }
       if (item.type === 'group') {
         const allowedChildren = item.children.filter(
-          (child) => (child.path !== '/instagram/inbox' || ['ADMIN', 'DIRECTOR'].includes(user?.role)) && hasFeatureAccess(user, child.path) && (child.permissionsAny ? child.permissionsAny.some(p=>hasReadPermission(user,p)) : !child.permission || hasReadPermission(user, child.permission))
+          (child) => (!child.allowedRoles || child.allowedRoles.includes(user?.role)) && (child.path !== '/instagram/inbox' || ['ADMIN', 'DIRECTOR'].includes(user?.role)) && hasFeatureAccess(user, child.path) && (child.permissionsAny ? child.permissionsAny.some(p=>hasReadPermission(user,p)) : !child.permission || hasReadPermission(user, child.permission))
         );
         if (allowedChildren.length === 0) {
           return null;

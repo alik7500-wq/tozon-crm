@@ -60,6 +60,7 @@ export const navGroups = [
         { label: 'Объекты ЖК', path: '/projects', icon: Building2, permission: 'inventory.view' },
         { label: 'Шоурум', path: '/projects/showroom', icon: Home, permission: 'inventory.view' },
         { label: 'Квартиры', path: '/apartments', icon: Home, permission: 'inventory.view' },
+        { label: 'Переселение и компенсация', path: '/resettlements', icon: FileText, allowedRoles: ['ADMIN', 'DIRECTOR', 'FINANCE_MANAGER'] },
       ],
     },
     {
