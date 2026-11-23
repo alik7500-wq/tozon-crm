@@ -16,6 +16,8 @@ export function ResettlementsPage() {
   const [creating, setCreating] = useState(false);
   const [allocation, setAllocation] = useState({});
   const [allocationPreview, setAllocationPreview] = useState(null);
+  const [allocationDocument, setAllocationDocument] = useState('');
+  const [allocationApproval, setAllocationApproval] = useState(null);
   const [draft, setDraft] = useState({
     project_id: '', original_home_area_x100: '', compensated_area_x100: '',
     paid_area_x100: '', price_per_m2_minor: '', links: [{ unit_id: '', deal_id: '' }, { unit_id: '', deal_id: '' }]
@@ -80,6 +82,8 @@ export function ResettlementsPage() {
       setSelected(response?.data ?? null);
       setAllocation({});
       setAllocationPreview(null);
+      setAllocationApproval(null);
+      setAllocationDocument('');
     } catch {
       setError('Не удалось открыть карточку переселения.');
     } finally { setBusy(false); }
@@ -114,6 +118,22 @@ export function ResettlementsPage() {
       setAllocationPreview(response?.data ?? null);
     } catch (e) {
       setError('Проверка распределения не пройдена. Сумма по договорам должна совпадать со стоимостью платной площади.');
+    } finally { setBusy(false); }
+  };
+
+  const approveAllocation = async () => {
+    if (!selected || !allocationPreview?.validated || !canApprove || allocationDocument.trim().length < 3) return;
+    if (!window.confirm('Сохранить распределение как утверждённое? Договоры и задолженность автоматически не изменятся.')) return;
+    setBusy(true); setError('');
+    try {
+      const response = await api.post('/resettlements/' + selected.id + '/approve-allocation', {
+        allocations: allocationPreview.allocations.map(a => ({ deal_id: a.deal_id, allocated_minor: a.allocated_minor })),
+        supporting_document_ref: allocationDocument.trim()
+      });
+      setAllocationApproval(response?.data ?? null);
+      setAllocationPreview(null);
+    } catch {
+      setError('Сохранение распределения не выполнено. Проверьте подтверждающий документ и состояние карточки.');
     } finally { setBusy(false); }
   };
 
@@ -189,10 +209,15 @@ export function ResettlementsPage() {
           </label>)}
         </div>
         <button type="button" disabled={busy} onClick={previewAllocation} className="rounded-lg bg-blue-700 px-4 py-2 text-white disabled:opacity-50">Проверить распределение</button>
+        {allocationApproval?.saved && <p role="status" className="text-green-800">Распределение сохранено, запись №{allocationApproval.approval_id}. Договоры не изменены.</p>}
         {allocationPreview?.validated && <div role="status" className="space-y-2 rounded-lg border p-3 text-sm">
           <p className="font-semibold">Сумма распределения совпадает с утверждённой стоимостью.</p>
           {(allocationPreview.allocations ?? []).map(a => <p key={a.deal_id}>Договор ID {a.deal_id}: {money(a.allocated_minor)} USD. {a.amendment_required ? 'Требуется согласование изменения подписанного договора.' : 'Изменение подписанного договора по сумме не выявлено.'}</p>)}
-          <p className="text-amber-800">Это только проверка, не сохранение. Оформление продажи пока недоступно.</p>
+          <label className="block">Основание распределения (номер и дата подписанного документа)
+            <input value={allocationDocument} onChange={e => setAllocationDocument(e.target.value)} maxLength={500} className="mt-1 block w-full rounded border p-2" placeholder="Дополнительное соглашение №… от …" />
+          </label>
+          <button type="button" onClick={approveAllocation} disabled={busy || allocationDocument.trim().length < 3} className="rounded-lg border px-4 py-2 disabled:opacity-50">Утвердить и сохранить распределение</button>
+          <p className="text-amber-800">Утверждение сохраняет только распределение. Оформление продажи пока недоступно.</p>
         </div>}
       </div>}
       {canApprove && selected.status === 'DRAFT' && <div className="space-y-2">
