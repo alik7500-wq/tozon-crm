@@ -1741,6 +1741,23 @@ export const CashflowPage = () => {
                       {desk.displayName}
                     </h4>
                     {desk.isAnalytical && <><p className="text-[10px] text-slate-500 mt-1">Финансовый результат · не денежные средства</p>{desk.resultDetails.map((r,i)=><p key={i} className="text-[10px] text-slate-600 mt-1">{r.asset}: принято {r.costTjs.toLocaleString('ru-RU')} TJS → продано {r.proceedsTjs.toLocaleString('ru-RU')} TJS</p>)}</>}
+                    {desk.isAnalytical && desk.resultDetails.filter(r=>r.receivable).map(r=>(
+                      <section key={r.asset + r.date} className="mt-3 rounded-xl border border-amber-200 bg-amber-50 p-3 text-xs text-slate-800">
+                        <h5 className="font-bold">Долг покупателя · {r.asset}</h5>
+                        <p className="mt-1 font-bold">{r.receivable.principal.toLocaleString('ru-RU')} сомони на дату реализации</p>
+                        <p className="mt-1">Получено к этой дате: {r.receivable.received.toLocaleString('ru-RU')} сомони</p>
+                        <ul className="mt-2 space-y-1">
+                          {r.receivable.schedule.map(p=>(
+                            <li key={p.date} className="flex justify-between gap-2">
+                              <span>{p.date.split('-').reverse().join('.')}</span>
+                              <span>{p.amount.toLocaleString('ru-RU')} сомони</span>
+                            </li>
+                          ))}
+                        </ul>
+                        <p className="mt-2 text-slate-600">График по договорённости. Последующие оплаты здесь автоматически не учитываются.</p>
+                      </section>
+                    ))}
+
                   </div>
 
                   <div className="space-y-1.5 pt-2 border-t border-slate-100">
