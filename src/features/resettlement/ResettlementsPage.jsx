@@ -18,6 +18,7 @@ export function ResettlementsPage() {
   const [allocationPreview, setAllocationPreview] = useState(null);
   const [allocationDocument, setAllocationDocument] = useState('');
   const [allocationApproval, setAllocationApproval] = useState(null);
+  const [allocationHistory, setAllocationHistory] = useState([]);
   const [draft, setDraft] = useState({
     project_id: '', original_home_area_x100: '', compensated_area_x100: '',
     paid_area_x100: '', price_per_m2_minor: '', links: [{ unit_id: '', deal_id: '' }, { unit_id: '', deal_id: '' }]
@@ -80,6 +81,8 @@ export function ResettlementsPage() {
     try {
       const response = await api.get('/resettlements/' + id);
       setSelected(response?.data ?? null);
+      const historyResponse = await api.get('/resettlements/' + id + '/allocations');
+      setAllocationHistory(historyResponse?.data ?? []);
       setAllocation({});
       setAllocationPreview(null);
       setAllocationApproval(null);
@@ -132,6 +135,8 @@ export function ResettlementsPage() {
       });
       setAllocationApproval(response?.data ?? null);
       setAllocationPreview(null);
+      const historyResponse = await api.get('/resettlements/' + selected.id + '/allocations');
+      setAllocationHistory(historyResponse?.data ?? []);
     } catch {
       setError('Сохранение распределения не выполнено. Проверьте подтверждающий документ и состояние карточки.');
     } finally { setBusy(false); }
@@ -219,6 +224,15 @@ export function ResettlementsPage() {
           <button type="button" onClick={approveAllocation} disabled={busy || allocationDocument.trim().length < 3} className="rounded-lg border px-4 py-2 disabled:opacity-50">Утвердить и сохранить распределение</button>
           <p className="text-amber-800">Утверждение сохраняет только распределение. Оформление продажи пока недоступно.</p>
         </div>}
+      </div>}
+      {allocationHistory.length > 0 && <div className="space-y-2 rounded-xl border p-4">
+        <h3 className="font-semibold">История утверждённого распределения</h3>
+        {allocationHistory.map(h => <div key={h.id} className="rounded-lg border p-3 text-sm">
+          <p><strong>Версия {h.approval_version}</strong> · {h.approved_at ? new Date(h.approved_at).toLocaleString('ru-RU') : '—'} · основание: {h.supporting_document_ref}</p>
+          <p>Общая сумма: {money(h.payable_total_minor)} USD</p>
+          {(h.allocations ?? []).map(a => <p key={a.deal_id}>Договор ID {a.deal_id}: {money(a.allocated_minor)} USD</p>)}
+        </div>)}
+        <p className="text-sm text-amber-800">История не изменяет подписанные договоры. Для юридического изменения суммы необходимо дополнительное соглашение.</p>
       </div>}
       {canApprove && selected.status === 'DRAFT' && <div className="space-y-2">
         <label className="block text-sm">Основание утверждения</label>
