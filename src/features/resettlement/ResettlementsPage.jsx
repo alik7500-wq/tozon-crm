@@ -140,6 +140,20 @@ export function ResettlementsPage() {
         <div>Сумма к оплате: <strong>{money(selected.payable_total_minor)} USD</strong></div>
       </div>
       {!selected.area_matches && <p role="alert" className="text-red-700">Несоответствие общей площади квартир расчёту компенсации.</p>}
+      {selected.financials && <div className="space-y-3 rounded-xl border p-4">
+        <h3 className="font-semibold">Финансовая детализация (из действующих платежей CRM)</h3>
+        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+          <div>Денежные поступления: <strong>{money(selected.financials.cash_received_minor)} USD</strong></div>
+          <div>Неденежные зачёты: <strong>{money(selected.financials.non_cash_credited_minor)} USD</strong></div>
+          <div>Всего учтено: <strong>{money(selected.financials.total_recorded_minor)} USD</strong></div>
+          <div>Предварительный остаток: <strong>{selected.financials.preliminary_balance_minor === null ? 'Требуется сверка валют' : money(selected.financials.preliminary_balance_minor) + ' USD'}</strong></div>
+        </div>
+        <p className="text-sm text-amber-800">Это справочная сверка с расчётной стоимостью платной площади, а не изменение договорной задолженности. Неденежные зачёты не являются поступлением в кассу. Классификация зачётов требует подтверждения бухгалтером.</p>
+        {selected.financials.excluded_payment_count > 0 && <p role="alert" className="text-red-700">Есть платежи в другой валюте или с некорректной суммой: {selected.financials.excluded_payment_count}. Остаток не рассчитывается.</p>}
+        <div className="overflow-x-auto"><table className="w-full text-sm"><thead><tr className="text-left"><th className="p-2">Дата</th><th className="p-2">Договор ID</th><th className="p-2">Платёж №</th><th className="p-2">Сумма</th><th className="p-2">Вид расчёта</th><th className="p-2">Статус</th></tr></thead>
+          <tbody>{selected.financials.payments.map(p => <tr key={p.id} className="border-t"><td className="p-2">{p.payment_date || '—'}</td><td className="p-2">{p.deal_id}</td><td className="p-2">{p.customer_pko_number ?? p.document_number ?? p.id}</td><td className="p-2">{money(p.amount_minor)} {p.currency}</td><td className="p-2">{p.settlement_method === 'CASH' ? 'Денежный' : 'Неденежный зачёт (' + (p.settlement_method || 'не указан') + ')'}</td><td className="p-2">{p.status}</td></tr>)}</tbody>
+        </table>{!selected.financials.payments.length && <p className="p-3 text-slate-500">Платежей по связанным договорам пока нет.</p>}</div>
+      </div>}
       <h3 className="font-semibold">Связанные квартиры</h3>
       <div className="overflow-x-auto"><table className="w-full text-sm"><thead><tr className="text-left"><th className="p-2">Квартира</th><th className="p-2">Площадь</th><th className="p-2">Договор</th><th className="p-2">Статус</th></tr></thead><tbody>{(selected.units ?? []).map(u => <tr key={u.id} className="border-t"><td className="p-2">{u.unit?.unit_number ?? u.unit_id}</td><td className="p-2">{area(u.area_x100)} м²</td><td className="p-2">{u.deal?.contract_number ?? u.deal_id}</td><td className="p-2">{u.unit?.status ?? '—'}</td></tr>)}</tbody></table></div>
       {canApprove && selected.status === 'DRAFT' && <div className="space-y-2">
