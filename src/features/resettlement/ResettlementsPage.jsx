@@ -20,7 +20,7 @@ export function ResettlementsPage() {
   });
   const toHundredths = value => {
     const normalized = String(value).trim().replace(',', '.');
-    if (!/^\\d+(?:\\.\\d{1,2})?$/.test(normalized)) return null;
+    if (!/^\d+(?:\.\d{1,2})?$/.test(normalized)) return null;
     const [whole, decimal = ''] = normalized.split('.');
     const result = Number(whole) * 100 + Number(decimal.padEnd(2, '0'));
     return Number.isSafeInteger(result) ? result : null;
