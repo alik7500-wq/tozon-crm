@@ -19,6 +19,8 @@ export function ResettlementsPage() {
   const [allocationDocument, setAllocationDocument] = useState('');
   const [allocationApproval, setAllocationApproval] = useState(null);
   const [allocationHistory, setAllocationHistory] = useState([]);
+  const [signingReadiness, setSigningReadiness] = useState(null);
+  const [signingDocuments, setSigningDocuments] = useState({});
   const [draft, setDraft] = useState({
     project_id: '', original_home_area_x100: '', compensated_area_x100: '',
     paid_area_x100: '', price_per_m2_minor: '', links: [{ unit_id: '', deal_id: '' }, { unit_id: '', deal_id: '' }]
@@ -83,6 +85,9 @@ export function ResettlementsPage() {
       setSelected(response?.data ?? null);
       const historyResponse = await api.get('/resettlements/' + id + '/allocations');
       setAllocationHistory(historyResponse?.data ?? []);
+      const readinessResponse = await api.get('/resettlements/' + id + '/signing-readiness');
+      setSigningReadiness(readinessResponse?.data ?? null);
+      setSigningDocuments({});
       setAllocation({});
       setAllocationPreview(null);
       setAllocationApproval(null);
@@ -137,8 +142,28 @@ export function ResettlementsPage() {
       setAllocationPreview(null);
       const historyResponse = await api.get('/resettlements/' + selected.id + '/allocations');
       setAllocationHistory(historyResponse?.data ?? []);
+      const readinessResponse = await api.get('/resettlements/' + selected.id + '/signing-readiness');
+      setSigningReadiness(readinessResponse?.data ?? null);
     } catch {
       setError('Сохранение распределения не выполнено. Проверьте подтверждающий документ и состояние карточки.');
+    } finally { setBusy(false); }
+  };
+
+  const signResettlementDeal = async dealId => {
+    if (!selected || !canApprove || !signingReadiness?.ready || !allocationHistory[0]?.id) return;
+    const documentRef = String(signingDocuments[dealId] ?? '').trim();
+    if (documentRef.length < 3) { setError('Укажите номер и дату подписанного договора.'); return; }
+    if (!window.confirm('Подтвердить подписание договора и перевод квартиры в статус «Продано»? Действие изменит учёт CRM.')) return;
+    setBusy(true); setError('');
+    try {
+      await api.post('/resettlements/' + selected.id + '/sign-deal', {
+        deal_id: Number(dealId), approval_id: Number(allocationHistory[0].id),
+        signed_document_ref: documentRef
+      });
+      await refresh();
+      await openCase(selected.id);
+    } catch (e) {
+      setError('Подписание отклонено: ' + (e?.response?.data?.message || e?.message || 'проверьте договоры и согласование стоимости'));
     } finally { setBusy(false); }
   };
 
@@ -233,6 +258,26 @@ export function ResettlementsPage() {
           {(h.allocations ?? []).map(a => <p key={a.deal_id}>Договор ID {a.deal_id}: {money(a.allocated_minor)} USD</p>)}
         </div>)}
         <p className="text-sm text-amber-800">История не изменяет подписанные договоры. Для юридического изменения суммы необходимо дополнительное соглашение.</p>
+      </div>}
+      {selected.status === 'APPROVED' && <div className="space-y-3 rounded-xl border p-4">
+        <h3 className="font-semibold">Специальное оформление продажи при переселении</h3>
+        <p className="text-sm text-slate-600">Продажа допускается только после юридического согласования сумм всех связанных договоров с утверждённым распределением. Подписанные документы должны существовать до нажатия кнопки.</p>
+        {signingReadiness?.blockers?.length > 0 && <div role="alert" className="rounded-lg border border-amber-200 p-3 text-sm text-amber-800">
+          <strong>Подписание заблокировано:</strong> {signingReadiness.blockers.join(', ')}
+        </div>}
+        {(signingReadiness?.deals ?? []).map(d => <div key={d.deal_id} className="space-y-2 rounded-lg border p-3 text-sm">
+          <p><strong>Договор №{d.contract_number ?? d.deal_id}</strong> · {d.status} · текущая сумма {money(d.contract_amount_minor)} USD · утверждённая сумма {d.approved_amount_minor == null ? 'не определена' : money(d.approved_amount_minor) + ' USD'}</p>
+          {d.blockers.length > 0 && <p className="text-amber-800">Причины блокировки: {d.blockers.join(', ')}</p>}
+          {canApprove && d.status === 'RESERVED' && <label className="block">Подписанный договор (номер, дата)
+            <input className="mt-1 block w-full rounded border p-2" maxLength={500}
+              value={signingDocuments[d.deal_id] ?? ''}
+              onChange={e => setSigningDocuments(p => ({ ...p, [d.deal_id]: e.target.value }))}
+              placeholder="Договор №… от …" />
+          </label>}
+          {canApprove && d.status === 'RESERVED' && <button type="button" className="rounded-lg bg-blue-700 px-4 py-2 text-white disabled:opacity-50"
+            disabled={busy || !signingReadiness?.ready || !allocationHistory[0]?.id || String(signingDocuments[d.deal_id] ?? '').trim().length < 3}
+            onClick={() => signResettlementDeal(d.deal_id)}>Подписать и перевести квартиру в продажу</button>}
+        </div>)}
       </div>}
       {canApprove && selected.status === 'DRAFT' && <div className="space-y-2">
         <label className="block text-sm">Основание утверждения</label>
