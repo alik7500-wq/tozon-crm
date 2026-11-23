@@ -38,7 +38,7 @@ export function ResettlementsPage() {
     const price = toHundredths(draft.price_per_m2_minor);
     const links = draft.links.map(x => ({ unit_id: Number(x.unit_id), deal_id: Number(x.deal_id) }));
     if (!Number.isSafeInteger(projectId) || projectId < 1 || [original, compensated, paid, price].some(x => x === null) ||
-        compensated < original || !links.every(x => Number.isSafeInteger(x.unit_id) && x.unit_id > 0 && Number.isSafeInteger(x.deal_id) && x.deal_id > 0)) {
+        compensated < original || draft.links.length < 1 || draft.links.length > 20 || !links.every(x => Number.isSafeInteger(x.unit_id) && x.unit_id > 0 && Number.isSafeInteger(x.deal_id) && x.deal_id > 0)) {
       setError('Проверьте значения площадей, цену, ЖК и номера записей квартир и договоров.');
       return;
     }
@@ -51,7 +51,7 @@ export function ResettlementsPage() {
       });
       setCreating(false);
       await refresh();
-      await openCase(response?.data?.id);
+      if (response?.data?.id) await openCase(response.data.id);
     } catch (e) {
       setError('Создание не выполнено: ' + (e?.message || 'ошибка сервера'));
     } finally { setBusy(false); }
