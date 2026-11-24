@@ -104,6 +104,8 @@ export const DealWizardModal = ({
   const [residentOriginalArea, setResidentOriginalArea] = useState('');
   const [residentDocumentRef, setResidentDocumentRef] = useState('');
   const [residentBuyerName, setResidentBuyerName] = useState('');
+  const [residentLeadId, setResidentLeadId] = useState('');
+  const [residentLeads, setResidentLeads] = useState([]);
   const [residentUnitId, setResidentUnitId] = useState('');
   const [residentMonths, setResidentMonths] = useState('12');
   const [residentFirstDue, setResidentFirstDue] = useState('');
@@ -176,6 +178,15 @@ export const DealWizardModal = ({
     const actualDay = Math.min(day, new Date(nextYear, nextMonth, 0).getDate());
     setFirstPaymentDate(`${nextYear}-${String(nextMonth).padStart(2, '0')}-${String(actualDay).padStart(2, '0')}`);
   }, [dealDate, downPaymentAmount]);
+
+  useEffect(() => {
+    if (!isOpen || dealCategory !== 'RESETTLEMENT') return;
+    let active = true;
+    api.get('/leads').then(response => {
+      if (active) setResidentLeads(response.data?.leads || response.leads || []);
+    }).catch(() => { if (active) setError('Не удалось загрузить жителей'); });
+    return () => { active = false; };
+  }, [isOpen, dealCategory]);
 
   const unitProjectId = selectedUnit?.project_id || selectedUnit?.floors?.sections?.buildings?.projects?.id;
 
@@ -650,8 +661,14 @@ export const DealWizardModal = ({
                 {availableUnits.map(u => <option key={u.id} value={u.id}>{getUnitTitle(u)} №{u.unit_number} — {Number(u.area_m2_x100 ? u.area_m2_x100 / 100 : u.area).toFixed(2)} м²</option>)}
               </select>
             </label>
-            <label className="block">ФИО жителя
-              <input value={residentBuyerName} onChange={e => setResidentBuyerName(e.target.value)} className="mt-1 w-full rounded-lg border px-3 py-2" placeholder="Фамилия, имя, отчество" />
+            <label className="block">Житель (из базы CRM)
+              <select value={residentLeadId} onChange={e => {
+                setResidentLeadId(e.target.value);
+                setResidentBuyerName(residentLeads.find(lead => String(lead.id) === e.target.value)?.full_name || '');
+              }} className="mt-1 w-full rounded-lg border bg-white px-3 py-2">
+                <option value="">Выберите жителя</option>
+                {residentLeads.map(lead => <option key={lead.id} value={lead.id}>{lead.full_name} — {lead.phone || lead.id}</option>)}
+              </select>
             </label>
             <div className="grid gap-3 sm:grid-cols-2">
               <label>Площадь старого жилья, м²<input type="number" min="0" step="0.01" value={residentOriginalArea} onChange={e => setResidentOriginalArea(e.target.value)} className="mt-1 w-full rounded-lg border px-3 py-2" /></label>
@@ -693,7 +710,31 @@ export const DealWizardModal = ({
                 <label className="block">Реквизиты нотариального договора (после подписания)
                   <input value={residentNotaryRef} onChange={e => setResidentNotaryRef(e.target.value)} className="mt-1 w-full rounded-lg border px-3 py-2" placeholder="Номер и дата нотариального договора" />
                 </label>
-                <p className="text-sm text-slate-600">Оформление жителя станет доступно после подключения защищённого сохранения сделки. Дополнительных проверок и подтверждений не потребуется.</p>
+                <button type="button" disabled={isSubmitting || !valid || !residentLeadId || !unitProjectId || !residentDocumentRef.trim() || !residentFirstDue || !Number.isInteger(Number(residentMonths)) || Number(residentMonths) < 1 || Number(residentMonths) > 120} onClick={async () => {
+                  setError('');
+                  setIsSubmitting(true);
+                  try {
+                    const response = await api.post('/resettlements/intake', {
+                      project_id: Number(unitProjectId),
+                      unit_id: Number(selectedUnit.id),
+                      lead_id: Number(residentLeadId),
+                      original_home_area_x100: Math.round(original * 100),
+                      compensated_area_x100: Math.round(comp * 100),
+                      paid_area_x100: Math.round((gross - comp) * 100),
+                      price_per_m2_minor: Math.round(price * 100),
+                      installment_months: Number(residentMonths),
+                      first_payment_date: residentFirstDue,
+                      idempotency_key: window.crypto.randomUUID()
+                    });
+                    onDealCreated?.(response.data?.data);
+                    onClose();
+                  } catch (err) {
+                    setError(err.response?.data?.message || err.message || 'Не удалось оформить жителя');
+                  } finally {
+                    setIsSubmitting(false);
+                  }
+                }} className="rounded-lg bg-blue-600 px-4 py-2 font-semibold text-white disabled:opacity-40">{isSubmitting ? 'Оформление…' : 'Оформить'}</button>
+                <p className="text-xs text-slate-600">Квартира резервируется. Продажа подтверждается после нотариального договора. Платежи не создаются автоматически.</p>
               </div>;
             })()}
           </div>}
