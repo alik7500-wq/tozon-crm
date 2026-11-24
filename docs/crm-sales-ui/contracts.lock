@@ -1,22 +1,24 @@
 {
   "status": "PENDING_C01",
-  "blocker": "C01 (OpenAPI/JSON Schema + fixtures) not yet published in alik7500-wq/tozon-backend",
+  "blocker": "C01 (OpenAPI/JSON Schema + fixtures) not yet published in alik7500-wq/tozon-backend (C00 is IN_PROGRESS)",
+  "sync_tool": "scripts/sync-crm-contract.mjs",
   "frontend": {
     "repo": "alik7500-wq/tozon-crm",
     "branch": "a00",
-    "base_sha": "d39a253861a3874e162adde57f638aae0eaaaca7",
+    "base_sha": "77901ae212622150e745152e77cc868bc48e8178",
     "historical_tz_sha": "f6c7bd4b4009d2f2c9f60f0d2525466984fafac3"
   },
   "backend": {
     "repo": "alik7500-wq/tozon-backend",
     "branch": "main",
-    "observed_origin_main_sha": "9f75559fa8ff6229833b92ecb7cdffccbf9be967",
+    "observed_origin_main_sha": "e3464dd85f2d39d243c895864c9da35b513e7c34",
     "historical_tz_sha": "dbf0ce7ca195500d5904fd77c9f97a4046225dec",
     "contract_sha": null,
     "contract_version": null,
-    "contract_path": null,
-    "checksum_sha256": null
+    "handoff_path": null,
+    "bundle_sha256": null
   },
+  "files": [],
   "fixtures": {
     "mode": "NONE_LOCKED",
     "note": "No synthetic fixture may be treated as real API until C01 is locked."

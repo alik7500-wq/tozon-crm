@@ -10,7 +10,8 @@
     "lint": "oxlint",
     "preview": "vite preview",
     "test:commercial-offer": "vitest run src/features/apartments/__tests__/CommercialOfferModal.test.jsx --environment jsdom",
-    "test:contract-amendment": "vitest run src/features/deals/__tests__/EditDealModal.test.jsx --environment jsdom"
+    "test:contract-amendment": "vitest run src/features/deals/__tests__/EditDealModal.test.jsx --environment jsdom",
+    "contract:sync": "node scripts/sync-crm-contract.mjs"
   },
   "dependencies": {
     "@cloudinary/react": "^1.14.4",

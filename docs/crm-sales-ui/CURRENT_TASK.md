@@ -1,30 +1,25 @@
 # CURRENT_TASK.md
 
 - **ID задачи:** `A00` — Аудит интерфейса и подключение контракта
-- **Статус:** `IN_PROGRESS` (аудит UI завершён; закрытие в `DONE` заблокировано отсутствием C01 в `tozon-backend`)
-- **Ветка:** `a00` (создана от `origin/main` = `d39a253861a3874e162adde57f638aae0eaaaca7`)
-- **Base SHA (`tozon-crm`):** `d39a253861a3874e162adde57f638aae0eaaaca7`
-- **Backend SHA (`tozon-backend`, `origin/main`):** `9f75559fa8ff6229833b92ecb7cdffccbf9be967`
-- **Последний сохранённый SHA:** локальные коммиты в ветке `a00` выполняются после записи контрольных файлов
+- **Статус:** `IN_PROGRESS` (аудит UI и механизм синхронизации контракта готовы; закрытие в `DONE` заблокировано отсутствием C01 в `tozon-backend`)
+- **Ветка:** `a00` (перебазирована на `origin/main` = `77901ae212622150e745152e77cc868bc48e8178`)
+- **Base SHA (`tozon-crm`):** `77901ae212622150e745152e77cc868bc48e8178`
+- **Backend SHA (`tozon-backend`, `origin/main`):** `e3464dd85f2d39d243c895864c9da35b513e7c34` (C00 — IN_PROGRESS, C01 — не опубликован)
 
 ## Что уже работает
-- Проведён полный аудит frontend (`client/src/`): маршруты (`App.jsx`), навигация (`navigationRegistry.js`), права (`permissions.js`), API-слой (`api/client.js`), аутентификация (`AuthContext.jsx`), модули лидов, клиентов, Instagram Direct, задач, сделок, аналитики и автоматизации.
-- Проверена production-сборка: `npm.cmd --prefix client run build` — PASS (`vite build` + `buyer-static-entry.js`, 4.70s).
-- Проверены CRM/Sales UI-тесты с `--environment jsdom`: `npx.cmd --prefix client vitest run src/features/leads src/features/crm src/features/instagram --environment jsdom` — 11/11 файлов, 56/56 тестов PASS.
-- Созданы контрольные документы `TASKS.md`, `CURRENT_TASK.md`, `AUDIT.md`, `contracts.lock` (со статусом `PENDING_C01`), `HANDOFF_A00.md`.
+- Проведён полный аудит frontend (`client/src/`) и зафиксирован в `AUDIT.md`.
+- Создана матрица UI-приёмки `ACCEPTANCE_UI.md` (все сценарии A01–A52 в статусе `PENDING`, без фиктивных `PASS`).
+- Реализован и протестирован механизм синхронизации контракта и синтетических fixtures из `alik7500-wq/tozon-backend`:
+  - `client/scripts/sync-crm-contract.mjs` (npm-скрипт `contract:sync`)
+  - `client/scripts/__tests__/sync-crm-contract.test.js`
+  - Проверка SHA-256 контрольных сумм, полного 40-символьного commit SHA, версии контракта и защита от подмены `contracts.lock` при отсутствии C01.
 
-## Что не работает / ограничения
-- `C01` от Codex ещё не опубликован в `alik7500-wq/tozon-backend` (каталог `docs/crm-sales/` отсутствует на `origin/main` `9f75559fa8ff6229833b92ecb7cdffccbf9be967`), поэтому реальный SHA контракта и OpenAPI/JSON Schema не могут быть закреплены в `contracts.lock`.
-- `npm.cmd --prefix client run test` без `--environment jsdom` падает на 49/88 файлах с `ReferenceError: document is not defined`, так как в `client/vite.config.js` не задан `test.environment: 'jsdom'`.
-- `npm.cmd --prefix client run lint` (`oxlint`) завершается с кодом 1: 16 errors и 806 warnings в существующем коде (до начала работ по A00).
-
-## Последние проверки
-- `npm.cmd --prefix client run build` → exit 0 (`dist/` собран за 4.70s)
-- `npx.cmd --prefix client vitest run src/features/leads src/features/crm src/features/instagram --environment jsdom` → exit 0 (11 files, 56 tests passed)
-- `npm.cmd --prefix client run test` → exit 1 (49 failed / 39 passed из 88 файлов — отсутствует `--environment jsdom` по умолчанию)
-- `npm.cmd --prefix client run lint` → exit 1 (16 errors, 806 warnings)
+## Что не работает / блокировка
+- `C01` от Codex ещё не опубликован в `alik7500-wq/tozon-backend` (`docs/crm-sales/` отсутствует на `origin/main` `e3464dd85f2d39d243c895864c9da35b513e7c34`).
+- Поэтому `contracts.lock` остаётся в статусе `PENDING_C01`, ветка `a00` не завершена и не публикуется как готовая, переход к `A01` запрещён.
 
 ## Необходимое следующее действие
-1. Дождаться публикации задачи `C01` (OpenAPI/JSON Schema, fixtures и commit SHA) в репозитории `alik7500-wq/tozon-backend`.
-2. Обновить `contracts.lock` реальными `contract_sha`, `contract_version`, `checksum` и сверить названия ролей/стадий.
-3. Перевести `A00` в `DONE` и перейти к задаче `A01`.
+После публикации `C01` в `alik7500-wq/tozon-backend`:
+1. Выполнить `git -C ../server fetch origin` и `npm.cmd --prefix client run contract:sync`.
+2. Проверить версию контракта, полный commit SHA, SHA-256 суммы в `contracts.lock` и соответствие ролей/стадий в `AUDIT.md`.
+3. Перевести `A00` в `DONE`, обновить `HANDOFF_A00.md` и опубликовать ветку `a00` в GitHub (без merge в `main`).
