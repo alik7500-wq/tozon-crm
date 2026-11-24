@@ -105,6 +105,9 @@ export const DealWizardModal = ({
   const [residentDocumentRef, setResidentDocumentRef] = useState('');
   const [residentBuyerName, setResidentBuyerName] = useState('');
   const [residentUnitId, setResidentUnitId] = useState('');
+  const [residentMonths, setResidentMonths] = useState('12');
+  const [residentFirstDue, setResidentFirstDue] = useState('');
+  const [residentNotaryRef, setResidentNotaryRef] = useState('');
   const [dealStatus, setDealStatus] = useState(initialStatus); // 'SIGNED' or 'RESERVED'
   const [reservationDays, setReservationDays] = useState(3);
   useEffect(() => {
@@ -665,29 +668,15 @@ export const DealWizardModal = ({
               const payable = valid ? Math.round((gross - comp) * price * 100) / 100 : 0;
               return <div className="space-y-2 rounded-lg border bg-white p-3">
                 {valid ? <p><strong>Общая площадь:</strong> {gross.toFixed(2)} м² · <strong>Компенсация:</strong> {comp.toFixed(2)} м² · <strong>Платная площадь:</strong> {(gross-comp).toFixed(2)} м² · <strong>Доплата:</strong> {payable.toFixed(2)} USD</p> : <p className="text-amber-800">Укажите квартиру и площади. Компенсация не должна превышать общую площадь.</p>}
-                <button type="button" disabled={!valid || !residentBuyerName.trim() || !residentDocumentRef.trim()} onClick={() => {
-                  const rows = [
-                    'ПРОЕКТ СОГЛАШЕНИЯ О ПЕРЕСЕЛЕНИИ (НЕ ПОДПИСАНО)',
-                    'Житель: ' + residentBuyerName.trim(),
-                    'Квартира: №' + selectedUnit.unit_number,
-                    'Основание: ' + residentDocumentRef.trim(),
-                    'Площадь старого жилья: ' + original.toFixed(2) + ' м²',
-                    'Площадь предоставляемой квартиры: ' + gross.toFixed(2) + ' м²',
-                    'Компенсационная площадь: ' + comp.toFixed(2) + ' м²',
-                    'Платная площадь: ' + (gross-comp).toFixed(2) + ' м²',
-                    'Цена: ' + price.toFixed(2) + ' USD/м²',
-                    'Доплата: ' + payable.toFixed(2) + ' USD',
-                    'Подпись застройщика: __________________',
-                    'Подпись жителя: __________________'
-                  ];
-                  const html = '<!doctype html><html lang="ru"><meta charset="utf-8"><title>Проект соглашения о переселении</title><body style="font:16px/1.7 Arial;padding:40px;max-width:850px;margin:auto">' + rows.map((line, index) => '<p style="' + (index === 0 ? 'font-size:20px;font-weight:bold;text-align:center' : '') + '">' + line.replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])) + '</p>').join('') + '</body></html>';
-                  const blob = new Blob([html], { type: 'text/html;charset=utf-8' });
-                  const url = URL.createObjectURL(blob);
-                  const link = document.createElement('a');
-                  link.href = url; link.download = 'proekt-pereseleniya.html'; link.click();
-                  setTimeout(() => URL.revokeObjectURL(url), 60000);
-                }} className="rounded-lg bg-blue-600 px-4 py-2 font-semibold text-white disabled:opacity-40">Оформить проект для печати</button>
-                <p className="text-xs text-slate-500">Скачивается проект соглашения. Для юридического оформления и сохранения в CRM используется действующая карточка переселения; договор и касса автоматически не изменяются.</p>
+                <div className="grid gap-3 sm:grid-cols-2">
+                  <label>Срок рассрочки, месяцев<input type="number" min="1" max="120" step="1" value={residentMonths} onChange={e => setResidentMonths(e.target.value)} className="mt-1 w-full rounded-lg border px-3 py-2" /></label>
+                  <label>Дата первого платежа<input type="date" value={residentFirstDue} onChange={e => setResidentFirstDue(e.target.value)} className="mt-1 w-full rounded-lg border px-3 py-2" /></label>
+                </div>
+                {valid && Number.isInteger(Number(residentMonths)) && Number(residentMonths) > 0 && Number(residentMonths) <= 120 && residentFirstDue && <p className="text-slate-700">Ежемесячно: примерно {(payable / Number(residentMonths)).toFixed(2)} USD. Последний платёж корректирует округление. Первая дата: {residentFirstDue}.</p>}
+                <label className="block">Реквизиты нотариального договора (после подписания)
+                  <input value={residentNotaryRef} onChange={e => setResidentNotaryRef(e.target.value)} className="mt-1 w-full rounded-lg border px-3 py-2" placeholder="Номер и дата нотариального договора" />
+                </label>
+                <p className="text-amber-800">Расчёт ещё не сохранён в базе. Статус квартиры не меняется до регистрации сделки и нотариального договора.</p>
               </div>;
             })()}
           </div>}
