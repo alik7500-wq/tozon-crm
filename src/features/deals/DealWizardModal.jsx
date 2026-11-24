@@ -108,8 +108,6 @@ export const DealWizardModal = ({
   const [residentMonths, setResidentMonths] = useState('12');
   const [residentFirstDue, setResidentFirstDue] = useState('');
   const [residentNotaryRef, setResidentNotaryRef] = useState('');
-  const [residentServerPreview, setResidentServerPreview] = useState(null);
-  const [residentPreviewLoading, setResidentPreviewLoading] = useState(false);
   const [dealStatus, setDealStatus] = useState(initialStatus); // 'SIGNED' or 'RESERVED'
   const [reservationDays, setReservationDays] = useState(3);
   useEffect(() => {
@@ -695,29 +693,7 @@ export const DealWizardModal = ({
                 <label className="block">Реквизиты нотариального договора (после подписания)
                   <input value={residentNotaryRef} onChange={e => setResidentNotaryRef(e.target.value)} className="mt-1 w-full rounded-lg border px-3 py-2" placeholder="Номер и дата нотариального договора" />
                 </label>
-                <p className="text-amber-800">Для регистрации сделки нужны существующая запись покупателя, договор и проверка сервером. До этого расчёт не меняет статус квартиры или задолженность.</p>
-                <button type="button" disabled={residentPreviewLoading || !valid || !residentBuyerName.trim() || !residentDocumentRef.trim() || !residentFirstDue || !Number.isInteger(Number(residentMonths)) || Number(residentMonths) < 1 || Number(residentMonths) > 120} onClick={async () => {
-                  setResidentServerPreview(null);
-                  setError('');
-                  setResidentPreviewLoading(true);
-                  try {
-                    const response = await api.post('/resettlements/installment-preview', {
-                      paid_area_x100: Math.round((gross - comp) * 100),
-                      price_per_m2_minor: Math.round(price * 100),
-                      installment_months: Number(residentMonths),
-                      first_payment_date: residentFirstDue
-                    });
-                    setResidentServerPreview(response.data?.data ?? response.data);
-                  } catch (err) {
-                    setError(err.response?.data?.message || err.message || 'Не удалось проверить график на сервере');
-                  } finally {
-                    setResidentPreviewLoading(false);
-                  }
-                }} className="rounded-lg bg-blue-600 px-4 py-2 font-semibold text-white disabled:opacity-40">{residentPreviewLoading ? 'Проверяем…' : 'Проверить график на сервере'}</button>
-                {residentServerPreview && <div className="rounded-lg border border-blue-200 p-3">
-                  <p className="font-semibold">Проверено сервером: {(residentServerPreview.payable_total_minor / 100).toFixed(2)} USD, {residentServerPreview.schedule?.length ?? 0} платежей</p>
-                  <p className="text-xs text-slate-600">Предварительный расчёт. Сделка, задолженность и статус квартиры ещё не сохранены.</p>
-                </div>
+                <p className="text-sm text-slate-600">Оформление жителя станет доступно после подключения защищённого сохранения сделки. Дополнительных проверок и подтверждений не потребуется.</p>
               </div>;
             })()}
           </div>}
