@@ -3,7 +3,7 @@ import { calculatePricing, verifyPricingQuote } from '../pricing/pricingCalculat
 import { cashDesksForScope } from '../../utils/accountingScope';
 import { getUnitTitle, getUnitKindLabel, getUnitDefaultPrice, isFixedParking, isNonResidentialUnit } from '../../utils/unitKind';
 import {formatMeasure} from '../../utils/numberDisplay';
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { api } from '../../api/client';
 import { dictionariesApi } from '../../api/dictionaries.api';
 import { useModalDismiss } from '../../hooks/useModalDismiss';
@@ -105,6 +105,7 @@ export const DealWizardModal = ({
   const [residentDocumentRef, setResidentDocumentRef] = useState('');
   const [residentBuyerName, setResidentBuyerName] = useState('');
   const [residentLeadId, setResidentLeadId] = useState('');
+  const residentIntakeKey = useRef(null);
   const [residentLeads, setResidentLeads] = useState([]);
   const [residentUnitId, setResidentUnitId] = useState('');
   const [residentMonths, setResidentMonths] = useState('12');
@@ -714,6 +715,7 @@ export const DealWizardModal = ({
                   setError('');
                   setIsSubmitting(true);
                   try {
+                    if (!residentIntakeKey.current) residentIntakeKey.current = window.crypto.randomUUID();
                     const response = await api.post('/resettlements/intake', {
                       project_id: Number(unitProjectId),
                       unit_id: Number(selectedUnit.id),
@@ -724,8 +726,9 @@ export const DealWizardModal = ({
                       price_per_m2_minor: Math.round(price * 100),
                       installment_months: Number(residentMonths),
                       first_payment_date: residentFirstDue,
-                      idempotency_key: window.crypto.randomUUID()
+                      idempotency_key: residentIntakeKey.current
                     });
+                    residentIntakeKey.current = null;
                     onDealCreated?.(response.data?.data);
                     onClose();
                   } catch (err) {
