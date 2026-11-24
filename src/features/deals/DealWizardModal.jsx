@@ -672,7 +672,24 @@ export const DealWizardModal = ({
                   <label>Срок рассрочки, месяцев<input type="number" min="1" max="120" step="1" value={residentMonths} onChange={e => setResidentMonths(e.target.value)} className="mt-1 w-full rounded-lg border px-3 py-2" /></label>
                   <label>Дата первого платежа<input type="date" value={residentFirstDue} onChange={e => setResidentFirstDue(e.target.value)} className="mt-1 w-full rounded-lg border px-3 py-2" /></label>
                 </div>
-                {valid && Number.isInteger(Number(residentMonths)) && Number(residentMonths) > 0 && Number(residentMonths) <= 120 && residentFirstDue && <p className="text-slate-700">Ежемесячно: примерно {(payable / Number(residentMonths)).toFixed(2)} USD. Последний платёж корректирует округление. Первая дата: {residentFirstDue}.</p>}
+                {valid && Number.isInteger(Number(residentMonths)) && Number(residentMonths) > 0 && Number(residentMonths) <= 120 && /^\\d{4}-\\d{2}-\\d{2}$/.test(residentFirstDue) && (() => {
+                  const months = Number(residentMonths);
+                  const totalMinor = Math.round(payable * 100);
+                  const monthlyMinor = Math.floor(totalMinor / months);
+                  const [year, month, day] = residentFirstDue.split('-').map(Number);
+                  const rows = Array.from({ length: months }, (_, index) => {
+                    const date = new Date(Date.UTC(year, month - 1 + index, 1));
+                    const lastDay = new Date(Date.UTC(date.getUTCFullYear(), date.getUTCMonth() + 1, 0)).getUTCDate();
+                    date.setUTCDate(Math.min(day, lastDay));
+                    return { date: date.toISOString().slice(0, 10), amount: index === months - 1 ? totalMinor - monthlyMinor * (months - 1) : monthlyMinor };
+                  });
+                  return <details className="rounded-lg border p-3">
+                    <summary className="cursor-pointer font-semibold">График рассрочки — {months} платежей на {payable.toFixed(2)} USD</summary>
+                    <div className="mt-2 max-h-52 overflow-auto">
+                      {rows.map((row, index) => <div key={index} className="flex justify-between border-b py-1"><span>{index + 1}. {row.date}</span><span>{(row.amount / 100).toFixed(2)} USD</span></div>)}
+                    </div>
+                  </details>;
+                })()}
                 <label className="block">Реквизиты нотариального договора (после подписания)
                   <input value={residentNotaryRef} onChange={e => setResidentNotaryRef(e.target.value)} className="mt-1 w-full rounded-lg border px-3 py-2" placeholder="Номер и дата нотариального договора" />
                 </label>
