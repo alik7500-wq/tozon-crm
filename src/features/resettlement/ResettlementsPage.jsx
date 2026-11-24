@@ -31,6 +31,7 @@ export function ResettlementsPage() {
   const [allocationApproval, setAllocationApproval] = useState(null);
   const [allocationHistory, setAllocationHistory] = useState([]);
   const [signingReadiness, setSigningReadiness] = useState(null);
+  const [signingHistory, setSigningHistory] = useState([]);
   const [signingDocuments, setSigningDocuments] = useState({});
   const [draft, setDraft] = useState({
     project_id: '', original_home_area_x100: '', compensated_area_x100: '',
@@ -98,6 +99,8 @@ export function ResettlementsPage() {
       setAllocationHistory(historyResponse?.data ?? []);
       const readinessResponse = await api.get('/resettlements/' + id + '/signing-readiness');
       setSigningReadiness(readinessResponse?.data ?? null);
+      const signingsResponse = await api.get('/resettlements/' + id + '/signings');
+      setSigningHistory(signingsResponse?.data ?? []);
       setSigningDocuments({});
       setAllocation({});
       setAllocationPreview(null);
@@ -289,6 +292,19 @@ export function ResettlementsPage() {
             disabled={busy || !signingReadiness?.ready || !allocationHistory[0]?.id || String(signingDocuments[d.deal_id] ?? '').trim().length < 3}
             onClick={() => signResettlementDeal(d.deal_id)}>Подписать и перевести квартиру в продажу</button>}
         </div>)}
+      </div>}
+      {signingHistory.length > 0 && <div className="space-y-2 rounded-xl border p-4">
+        <h3 className="font-semibold">Журнал подписанных договоров переселения</h3>
+        <div className="overflow-x-auto"><table className="w-full text-sm text-left">
+          <thead><tr><th className="p-2">Договор ID</th><th className="p-2">Основание</th><th className="p-2">Версия распределения</th><th className="p-2">Сотрудник ID</th><th className="p-2">Дата оформления</th></tr></thead>
+          <tbody>{signingHistory.map(h => <tr key={h.id} className="border-t">
+            <td className="p-2">{h.deal_id}</td><td className="p-2">{h.signed_document_ref}</td>
+            <td className="p-2">{allocationHistory.find(a => Number(a.id) === Number(h.approval_id))?.approval_version ?? h.approval_id}</td>
+            <td className="p-2">{h.signed_by}</td>
+            <td className="p-2">{h.signed_at ? new Date(h.signed_at).toLocaleString('ru-RU') : '—'}</td>
+          </tr>)}</tbody>
+        </table></div>
+        <p className="text-sm text-slate-600">Записи показывают действия специальной процедуры; они не заменяют подписанные бумажные договоры.</p>
       </div>}
       {canApprove && selected.status === 'DRAFT' && <div className="space-y-2">
         <label className="block text-sm">Основание утверждения</label>
