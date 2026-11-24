@@ -221,6 +221,7 @@ export function ResettlementsPage() {
     </div>
     {selected && <section className="rounded-xl border bg-white p-5 space-y-4">
       <div className="flex items-center justify-between"><h2 className="text-xl font-semibold">Карточка №{selected.id}</h2><button onClick={() => setSelected(null)} className="border rounded px-3 py-1">Закрыть</button></div>
+      <div className="rounded-lg border border-blue-200 bg-blue-50 px-3 py-2 text-sm"><strong>Тип сделки: Переселение жителя</strong><span className="ml-2 text-slate-600">Компенсационная и платная площадь учитываются отдельно. Статус квартиры «Продана» устанавливается только после оформления договора.</span></div>
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
         <div>Старое жильё: <strong>{area(selected.original_home_area_x100)} м²</strong></div>
         <div>Дополнительная компенсация: <strong>{area(selected.compensated_extra_area_x100)} м²</strong></div>
