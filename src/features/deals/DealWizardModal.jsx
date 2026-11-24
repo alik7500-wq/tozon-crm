@@ -711,8 +711,9 @@ export const DealWizardModal = ({
                 <label className="block">Реквизиты нотариального договора (после подписания)
                   <input value={residentNotaryRef} onChange={e => setResidentNotaryRef(e.target.value)} className="mt-1 w-full rounded-lg border px-3 py-2" placeholder="Номер и дата нотариального договора" />
                 </label>
-                {valid && payable === 0 && <p role="alert" className="rounded-lg border border-amber-300 bg-amber-50 p-3 text-sm text-amber-900">Полная компенсация: доплата 0 USD. Оформление без оплаты пока не поддерживается сервером. Сделка не создана. Не добавляйте фиктивную доплату для обхода ограничения.</p>}
-                <button type="button" disabled={isSubmitting || !valid || payable <= 0 || !residentLeadId || !unitProjectId || !residentDocumentRef.trim() || !residentFirstDue || !Number.isInteger(Number(residentMonths)) || Number(residentMonths) < 1 || Number(residentMonths) > 120} onClick={async () => {
+                {valid && payable === 0 && <p className="text-sm text-slate-600">Полная компенсация: доплата 0 USD. Сделка оформляется без задолженности и графика платежей.</p>}
+                {error && <p role="alert" className="rounded-lg border border-red-300 bg-red-50 p-3 text-sm text-red-800">{error}</p>}
+                <button type="button" disabled={isSubmitting || !valid || !residentLeadId || !unitProjectId || !residentDocumentRef.trim() || (payable > 0 && !residentFirstDue) || !Number.isInteger(Number(residentMonths)) || Number(residentMonths) < 1 || Number(residentMonths) > 120} onClick={async () => {
                   setError('');
                   setIsSubmitting(true);
                   try {
