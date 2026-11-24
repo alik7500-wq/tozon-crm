@@ -672,7 +672,7 @@ export const DealWizardModal = ({
                   <label>Срок рассрочки, месяцев<input type="number" min="1" max="120" step="1" value={residentMonths} onChange={e => setResidentMonths(e.target.value)} className="mt-1 w-full rounded-lg border px-3 py-2" /></label>
                   <label>Дата первого платежа<input type="date" value={residentFirstDue} onChange={e => setResidentFirstDue(e.target.value)} className="mt-1 w-full rounded-lg border px-3 py-2" /></label>
                 </div>
-                {valid && Number.isInteger(Number(residentMonths)) && Number(residentMonths) > 0 && Number(residentMonths) <= 120 && /^\\d{4}-\\d{2}-\\d{2}$/.test(residentFirstDue) && (() => {
+                {valid && Number.isInteger(Number(residentMonths)) && Number(residentMonths) > 0 && Number(residentMonths) <= 120 && /^\d{4}-\d{2}-\d{2}$/.test(residentFirstDue) && (() => {
                   const months = Number(residentMonths);
                   const totalMinor = Math.round(payable * 100);
                   const monthlyMinor = Math.floor(totalMinor / months);
