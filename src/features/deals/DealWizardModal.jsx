@@ -690,7 +690,7 @@ export const DealWizardModal = ({
                   <label>Срок рассрочки, месяцев<input type="number" min="1" max="120" step="1" value={residentMonths} onChange={e => setResidentMonths(e.target.value)} className="mt-1 w-full rounded-lg border px-3 py-2" /></label>
                   <label>Дата первого платежа<input type="date" value={residentFirstDue} onChange={e => setResidentFirstDue(e.target.value)} className="mt-1 w-full rounded-lg border px-3 py-2" /></label>
                 </div>
-                {valid && Number.isInteger(Number(residentMonths)) && Number(residentMonths) > 0 && Number(residentMonths) <= 120 && /^\d{4}-\d{2}-\d{2}$/.test(residentFirstDue) && (() => {
+                {valid && payable > 0 && Number.isInteger(Number(residentMonths)) && Number(residentMonths) > 0 && Number(residentMonths) <= 120 && /^\d{4}-\d{2}-\d{2}$/.test(residentFirstDue) && (() => {
                   const months = Number(residentMonths);
                   const totalMinor = Math.round(payable * 100);
                   const monthlyMinor = Math.floor(totalMinor / months);
@@ -711,7 +711,8 @@ export const DealWizardModal = ({
                 <label className="block">Реквизиты нотариального договора (после подписания)
                   <input value={residentNotaryRef} onChange={e => setResidentNotaryRef(e.target.value)} className="mt-1 w-full rounded-lg border px-3 py-2" placeholder="Номер и дата нотариального договора" />
                 </label>
-                <button type="button" disabled={isSubmitting || !valid || !residentLeadId || !unitProjectId || !residentDocumentRef.trim() || !residentFirstDue || !Number.isInteger(Number(residentMonths)) || Number(residentMonths) < 1 || Number(residentMonths) > 120} onClick={async () => {
+                {valid && payable === 0 && <p role="alert" className="rounded-lg border border-amber-300 bg-amber-50 p-3 text-sm text-amber-900">Полная компенсация: доплата 0 USD. Оформление без оплаты пока не поддерживается сервером. Сделка не создана. Не добавляйте фиктивную доплату для обхода ограничения.</p>}
+                <button type="button" disabled={isSubmitting || !valid || payable <= 0 || !residentLeadId || !unitProjectId || !residentDocumentRef.trim() || !residentFirstDue || !Number.isInteger(Number(residentMonths)) || Number(residentMonths) < 1 || Number(residentMonths) > 120} onClick={async () => {
                   setError('');
                   setIsSubmitting(true);
                   try {
