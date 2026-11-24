@@ -727,7 +727,7 @@ export const DealWizardModal = ({
                       paid_area_x100: Math.round((gross - comp) * 100),
                       price_per_m2_minor: Math.round(price * 100),
                       installment_months: Number(residentMonths),
-                      first_payment_date: residentFirstDue,
+                      first_payment_date: payable > 0 ? residentFirstDue : new Date().toISOString().slice(0, 10),
                       idempotency_key: residentIntakeKey.current
                     });
                     residentIntakeKey.current = null;
