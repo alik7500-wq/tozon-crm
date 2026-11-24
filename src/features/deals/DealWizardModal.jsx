@@ -101,6 +101,10 @@ export const DealWizardModal = ({
   const [dealCategory, setDealCategory] = useState('SALE');
   const [residentCompensationM2, setResidentCompensationM2] = useState('');
   const [residentPricePerM2, setResidentPricePerM2] = useState('400');
+  const [residentOriginalArea, setResidentOriginalArea] = useState('');
+  const [residentDocumentRef, setResidentDocumentRef] = useState('');
+  const [residentBuyerName, setResidentBuyerName] = useState('');
+  const [residentUnitId, setResidentUnitId] = useState('');
   const [dealStatus, setDealStatus] = useState(initialStatus); // 'SIGNED' or 'RESERVED'
   const [reservationDays, setReservationDays] = useState(3);
   useEffect(() => {
@@ -631,27 +635,61 @@ export const DealWizardModal = ({
             <option value="SALE">Обычная продажа</option>
             <option value="RESETTLEMENT">Житель — переселение и компенсация</option>
           </select>
-          {dealCategory === 'RESETTLEMENT' && <div className="mt-3 space-y-2 text-sm">
-            <p className="text-slate-700">Расчёт компенсации и доплаты для выбранной квартиры. Это предварительный расчёт — договоры и платежи не изменяются.</p>
+          {dealCategory === 'RESETTLEMENT' && <div className="mt-3 space-y-3 text-sm">
+            <p className="font-semibold text-slate-800">Условия переселения</p>
+            <label className="block">Квартира
+              <select value={selectedUnit?.id ?? residentUnitId} onChange={e => {
+                setResidentUnitId(e.target.value);
+                setSelectedUnit(availableUnits.find(u => String(u.id) === e.target.value) || null);
+              }} className="mt-1 w-full rounded-lg border bg-white px-3 py-2">
+                <option value="">Выберите квартиру</option>
+                {selectedUnit && !availableUnits.some(u => String(u.id) === String(selectedUnit.id)) && <option value={selectedUnit.id}>{getUnitTitle(selectedUnit)} №{selectedUnit.unit_number}</option>}
+                {availableUnits.map(u => <option key={u.id} value={u.id}>{getUnitTitle(u)} №{u.unit_number} — {Number(u.area_m2_x100 ? u.area_m2_x100 / 100 : u.area).toFixed(2)} м²</option>)}
+              </select>
+            </label>
+            <label className="block">ФИО жителя
+              <input value={residentBuyerName} onChange={e => setResidentBuyerName(e.target.value)} className="mt-1 w-full rounded-lg border px-3 py-2" placeholder="Фамилия, имя, отчество" />
+            </label>
             <div className="grid gap-3 sm:grid-cols-2">
-              <label className="block">Компенсационная площадь, м²
-                <input type="number" min="0" step="0.01" value={residentCompensationM2} onChange={e => setResidentCompensationM2(e.target.value)} className="mt-1 w-full rounded-lg border bg-white px-3 py-2" placeholder="0.00" />
-              </label>
-              <label className="block">Цена платной площади, USD/м²
-                <input type="number" min="0" step="0.01" value={residentPricePerM2} onChange={e => setResidentPricePerM2(e.target.value)} className="mt-1 w-full rounded-lg border bg-white px-3 py-2" />
-              </label>
+              <label>Площадь старого жилья, м²<input type="number" min="0" step="0.01" value={residentOriginalArea} onChange={e => setResidentOriginalArea(e.target.value)} className="mt-1 w-full rounded-lg border px-3 py-2" /></label>
+              <label>Компенсационная площадь, м²<input type="number" min="0" step="0.01" value={residentCompensationM2} onChange={e => setResidentCompensationM2(e.target.value)} className="mt-1 w-full rounded-lg border px-3 py-2" /></label>
+              <label>Цена доплаты, USD/м²<input type="number" min="0" step="0.01" value={residentPricePerM2} onChange={e => setResidentPricePerM2(e.target.value)} className="mt-1 w-full rounded-lg border px-3 py-2" /></label>
+              <label>Основание переселения<input value={residentDocumentRef} onChange={e => setResidentDocumentRef(e.target.value)} className="mt-1 w-full rounded-lg border px-3 py-2" placeholder="Номер и дата документа" /></label>
             </div>
-            {selectedUnit && (() => {
-              const gross = Number(selectedUnit.area_m2_x100 ?? 0) / 100 || Number(selectedUnit.area_m2 ?? selectedUnit.area ?? 0);
-              const compensated = residentCompensationM2 === '' ? NaN : Number(residentCompensationM2);
-              const rate = Number(residentPricePerM2);
-              const valid = Number.isFinite(gross) && gross > 0 && Number.isFinite(compensated) && compensated >= 0 && compensated <= gross && Number.isFinite(rate) && rate >= 0;
-              return valid
-                ? <p className="rounded-lg bg-white p-3 font-semibold">Всего: {gross.toFixed(2)} м² · Компенсация: {compensated.toFixed(2)} м² · Платная площадь: {(gross - compensated).toFixed(2)} м² · К оплате: {((gross - compensated) * rate).toFixed(2)} USD</p>
-                : <p className="text-amber-800">Выберите квартиру и укажите компенсационную площадь от 0 до её полной площади.</p>;
+            {(() => {
+              const gross = selectedUnit ? (Number(selectedUnit.area_m2_x100) > 0 ? Number(selectedUnit.area_m2_x100) / 100 : Number(selectedUnit.area)) : NaN;
+              const comp = residentCompensationM2.trim() ? Number(residentCompensationM2) : NaN;
+              const original = residentOriginalArea.trim() ? Number(residentOriginalArea) : NaN;
+              const price = Number(residentPricePerM2);
+              const valid = Number.isFinite(gross) && gross > 0 && Number.isFinite(comp) && comp >= 0 && comp <= gross && Number.isFinite(original) && original >= 0 && Number.isFinite(price) && price >= 0;
+              const payable = valid ? Math.round((gross - comp) * price * 100) / 100 : 0;
+              return <div className="space-y-2 rounded-lg border bg-white p-3">
+                {valid ? <p><strong>Общая площадь:</strong> {gross.toFixed(2)} м² · <strong>Компенсация:</strong> {comp.toFixed(2)} м² · <strong>Платная площадь:</strong> {(gross-comp).toFixed(2)} м² · <strong>Доплата:</strong> {payable.toFixed(2)} USD</p> : <p className="text-amber-800">Укажите квартиру и площади. Компенсация не должна превышать общую площадь.</p>}
+                <button type="button" disabled={!valid || !residentBuyerName.trim() || !residentDocumentRef.trim()} onClick={() => {
+                  const rows = [
+                    'ПРОЕКТ СОГЛАШЕНИЯ О ПЕРЕСЕЛЕНИИ (НЕ ПОДПИСАНО)',
+                    'Житель: ' + residentBuyerName.trim(),
+                    'Квартира: №' + selectedUnit.unit_number,
+                    'Основание: ' + residentDocumentRef.trim(),
+                    'Площадь старого жилья: ' + original.toFixed(2) + ' м²',
+                    'Площадь предоставляемой квартиры: ' + gross.toFixed(2) + ' м²',
+                    'Компенсационная площадь: ' + comp.toFixed(2) + ' м²',
+                    'Платная площадь: ' + (gross-comp).toFixed(2) + ' м²',
+                    'Цена: ' + price.toFixed(2) + ' USD/м²',
+                    'Доплата: ' + payable.toFixed(2) + ' USD',
+                    'Подпись застройщика: __________________',
+                    'Подпись жителя: __________________'
+                  ];
+                  const html = '<!doctype html><html lang="ru"><meta charset="utf-8"><title>Проект соглашения о переселении</title><body style="font:16px/1.7 Arial;padding:40px;max-width:850px;margin:auto">' + rows.map((line, index) => '<p style="' + (index === 0 ? 'font-size:20px;font-weight:bold;text-align:center' : '') + '">' + line.replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])) + '</p>').join('') + '</body></html>';
+                  const blob = new Blob([html], { type: 'text/html;charset=utf-8' });
+                  const url = URL.createObjectURL(blob);
+                  const link = document.createElement('a');
+                  link.href = url; link.download = 'proekt-pereseleniya.html'; link.click();
+                  setTimeout(() => URL.revokeObjectURL(url), 60000);
+                }} className="rounded-lg bg-blue-600 px-4 py-2 font-semibold text-white disabled:opacity-40">Оформить проект для печати</button>
+                <p className="text-xs text-slate-500">Скачивается проект соглашения. Для юридического оформления и сохранения в CRM используется действующая карточка переселения; договор и касса автоматически не изменяются.</p>
+              </div>;
             })()}
-            <a href="/resettlements" className="inline-flex rounded-lg bg-blue-600 px-4 py-2 font-semibold text-white">Перейти к сохранению в карточке переселения</a>
-            <p className="text-amber-800">Сохранение расчёта и подписание выполняются в карточке переселения после проверки документов. Новая обычная продажа не создаётся.</p>
           </div>}
         </div>
         {dealCategory === 'SALE' && (<>
