@@ -99,6 +99,8 @@ export const DealWizardModal = ({
 
   // Deal Financials
   const [dealCategory, setDealCategory] = useState('SALE');
+  const [residentCompensationM2, setResidentCompensationM2] = useState('');
+  const [residentPricePerM2, setResidentPricePerM2] = useState('400');
   const [dealStatus, setDealStatus] = useState(initialStatus); // 'SIGNED' or 'RESERVED'
   const [reservationDays, setReservationDays] = useState(3);
   useEffect(() => {
@@ -630,9 +632,26 @@ export const DealWizardModal = ({
             <option value="RESETTLEMENT">Житель — переселение и компенсация</option>
           </select>
           {dealCategory === 'RESETTLEMENT' && <div className="mt-3 space-y-2 text-sm">
-            <p>Для жителей компенсационная и платная площади учитываются отдельно. Укажите старое жильё, компенсацию и доплату в специальной карточке переселения.</p>
-            <a href="/resettlements" className="inline-flex rounded-lg bg-blue-600 px-4 py-2 font-semibold text-white">Открыть оформление переселения</a>
-            <p className="text-amber-800">Подписание допускается только после регистрации соответствующих документов.</p>
+            <p className="text-slate-700">Расчёт компенсации и доплаты для выбранной квартиры. Это предварительный расчёт — договоры и платежи не изменяются.</p>
+            <div className="grid gap-3 sm:grid-cols-2">
+              <label className="block">Компенсационная площадь, м²
+                <input type="number" min="0" step="0.01" value={residentCompensationM2} onChange={e => setResidentCompensationM2(e.target.value)} className="mt-1 w-full rounded-lg border bg-white px-3 py-2" placeholder="0.00" />
+              </label>
+              <label className="block">Цена платной площади, USD/м²
+                <input type="number" min="0" step="0.01" value={residentPricePerM2} onChange={e => setResidentPricePerM2(e.target.value)} className="mt-1 w-full rounded-lg border bg-white px-3 py-2" />
+              </label>
+            </div>
+            {selectedUnit && (() => {
+              const gross = Number(selectedUnit.area_m2_x100 ?? 0) / 100 || Number(selectedUnit.area_m2 ?? selectedUnit.area ?? 0);
+              const compensated = residentCompensationM2 === '' ? NaN : Number(residentCompensationM2);
+              const rate = Number(residentPricePerM2);
+              const valid = Number.isFinite(gross) && gross > 0 && Number.isFinite(compensated) && compensated >= 0 && compensated <= gross && Number.isFinite(rate) && rate >= 0;
+              return valid
+                ? <p className="rounded-lg bg-white p-3 font-semibold">Всего: {gross.toFixed(2)} м² · Компенсация: {compensated.toFixed(2)} м² · Платная площадь: {(gross - compensated).toFixed(2)} м² · К оплате: {((gross - compensated) * rate).toFixed(2)} USD</p>
+                : <p className="text-amber-800">Выберите квартиру и укажите компенсационную площадь от 0 до её полной площади.</p>;
+            })()}
+            <a href="/resettlements" className="inline-flex rounded-lg bg-blue-600 px-4 py-2 font-semibold text-white">Перейти к сохранению в карточке переселения</a>
+            <p className="text-amber-800">Сохранение расчёта и подписание выполняются в карточке переселения после проверки документов. Новая обычная продажа не создаётся.</p>
           </div>}
         </div>
         {dealCategory === 'SALE' && (<>
