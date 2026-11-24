@@ -102,7 +102,9 @@ export function ResettlementsPage() {
       const signingsResponse = await api.get('/resettlements/' + id + '/signings');
       setSigningHistory(signingsResponse?.data ?? []);
       setSigningDocuments({});
-      setAllocation({});
+      // Owner-confirmed allocation for case #1: apartment 16 (deal 27) paid;
+      // apartment 17 (deal 42) entirely compensated. This pre-fills a draft only.
+      setAllocation(Number(id) === 1 ? { 27: '14008.00', 42: '0.00' } : {});
       setAllocationPreview(null);
       setAllocationApproval(null);
       setAllocationDocument('');
