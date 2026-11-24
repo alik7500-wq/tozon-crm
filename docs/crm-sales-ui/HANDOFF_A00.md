@@ -21,7 +21,12 @@
 - Синтетические fixtures не используются и не считаются доказательством готовности API.
 - К задаче `A01` не переходим до закрытия `A00` после публикации `C01`.
 
-## Команда следующего запуска (после публикации `C01`)
+## Команда следующего запуска (после публикации `C01` в рабочей ветке backend)
 ```text
-Прочитай TOZON_CRM_TZ_ANTIGRAVITY_V1_1.md, AGENTS.md, TASKS.md, CURRENT_TASK.md и handoff C01. Выполни npm.cmd --prefix client run contract:sync, проверь версию контракта, полный SHA и SHA-256 в contracts.lock, сверь роли/стадии и закрой A00 в DONE.
+git -C server fetch origin
+npm.cmd --prefix client run contract:sync -- --branch origin/<backend-branch> --sha <40-char-commit-sha>
+```
+Затем:
+```text
+Прочитай TOZON_CRM_TZ_ANTIGRAVITY_V1_1.md, AGENTS.md, TASKS.md, CURRENT_TASK.md и handoff C01. Проверь версию контракта, полный SHA и SHA-256 в contracts.lock, сверь роли/стадии и закрой A00 в DONE.
 ```

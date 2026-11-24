@@ -10,6 +10,8 @@ const CLIENT_ROOT = path.resolve(__dirname, '..');
 const DEFAULT_BACKEND_DIR = path.resolve(CLIENT_ROOT, '..', 'server');
 const DEFAULT_DOCS_UI_DIR = path.join(CLIENT_ROOT, 'docs', 'crm-sales-ui');
 
+const FULL_SHA_RE = /^[0-9a-f]{40}$/i;
+
 export function sha256Buffer(buffer) {
   return crypto.createHash('sha256').update(buffer).digest('hex');
 }
@@ -31,6 +33,29 @@ export function extractContractVersion(handoffContent, schemaContent) {
     if (mdMatch) return mdMatch[1];
   }
   return null;
+}
+
+export function parseHandoffMetadata(handoffContent) {
+  const versionMatch = handoffContent.match(/(?:contract[_\s-]*version|version)\s*[:=]\s*`?([0-9]+\.[0-9]+(?:\.[0-9]+)?[^\s`*]*)`?/i);
+  const shaMatch = handoffContent.match(/(?:commit|contract[_\s-]*sha|sha)\s*[:=]\s*`?([0-9a-f]{40})`?/i);
+
+  // Match lines mentioning a file path under docs/crm-sales/ or contract/ or fixtures/ together with a 64-hex sha256.
+  const fileChecksums = new Map();
+  for (const line of handoffContent.split(/\r?\n/)) {
+    const hashMatch = line.match(/\b([0-9a-f]{64})\b/i);
+    if (!hashMatch) continue;
+    const pathMatch = line.match(/(?:docs\/crm-sales\/)?((?:contract|fixtures)\/[^\s|`'",;:]+|[A-Za-z0-9_.-]+\.(?:json|ya?ml))/i);
+    if (pathMatch) {
+      const normalized = pathMatch[1].replace(/^docs\/crm-sales\//, '');
+      fileChecksums.set(normalized, hashMatch[1].toLowerCase());
+    }
+  }
+
+  return {
+    version: versionMatch ? versionMatch[1] : null,
+    commitSha: shaMatch ? shaMatch[1].toLowerCase() : null,
+    fileChecksums
+  };
 }
 
 export function classifyC01Files(filePaths) {
@@ -60,13 +85,34 @@ function runGit(backendDir, args) {
   return execFileSync('git', ['-C', backendDir, ...args], { encoding: 'utf8' }).trim();
 }
 
-function readGitBlob(backendDir, ref, filePath) {
-  return execFileSync('git', ['-C', backendDir, 'show', `${ref}:${filePath}`]);
+function readGitBlob(backendDir, sha, filePath) {
+  return execFileSync('git', ['-C', backendDir, 'show', `${sha}:${filePath}`]);
+}
+
+function verifyCommitExists(backendDir, sha) {
+  try {
+    return runGit(backendDir, ['cat-file', '-t', sha]) === 'commit';
+  } catch {
+    return false;
+  }
+}
+
+function verifyCommitInBranch(backendDir, sha, branch) {
+  try {
+    execFileSync('git', ['-C', backendDir, 'merge-base', '--is-ancestor', sha, branch], { stdio: 'ignore' });
+    return true;
+  } catch {
+    return false;
+  }
 }
 
 export function syncContractFromGit({
   backendDir = DEFAULT_BACKEND_DIR,
-  ref = 'origin/main',
+  branch = null,
+  sha = null,
+  fetch = false,
+  expectedVersion = null,
+  expectedBundleSha256 = null,
   docsUiDir = DEFAULT_DOCS_UI_DIR,
   frontendBranch = 'a00',
   frontendBaseSha = null
@@ -79,16 +125,59 @@ export function syncContractFromGit({
     };
   }
 
-  const commitSha = runGit(backendDir, ['rev-parse', ref]);
-  if (!/^[0-9a-f]{40}$/i.test(commitSha)) {
+  if (fetch) {
+    try {
+      runGit(backendDir, ['fetch', 'origin', '--prune']);
+    } catch (err) {
+      return {
+        ok: false,
+        status: 'BLOCKED',
+        reason: `Failed to fetch origin in ${backendDir}: ${err.message}`
+      };
+    }
+  }
+
+  let targetSha = sha ? sha.trim().toLowerCase() : null;
+  if (targetSha && !FULL_SHA_RE.test(targetSha)) {
     return {
       ok: false,
-      status: 'BLOCKED',
-      reason: `Invalid backend commit SHA resolved for ${ref}: ${commitSha}`
+      status: 'FAILED',
+      reason: `Invalid --sha "${sha}": expected full 40-character commit SHA`
     };
   }
 
-  const listed = runGit(backendDir, ['ls-tree', '-r', '--name-only', commitSha, 'docs/crm-sales/']);
+  const targetBranch = branch ? branch.trim() : null;
+  if (!targetSha) {
+    const refToResolve = targetBranch || 'origin/main';
+    try {
+      targetSha = runGit(backendDir, ['rev-parse', `${refToResolve}^{commit}`]).toLowerCase();
+    } catch {
+      return {
+        ok: false,
+        status: 'BLOCKED',
+        reason: `Cannot resolve branch/ref "${refToResolve}" in ${backendDir}`
+      };
+    }
+  }
+
+  if (!FULL_SHA_RE.test(targetSha) || !verifyCommitExists(backendDir, targetSha)) {
+    return {
+      ok: false,
+      status: 'BLOCKED',
+      reason: `Commit SHA ${targetSha} not found in ${backendDir}`
+    };
+  }
+
+  if (targetBranch && !verifyCommitInBranch(backendDir, targetSha, targetBranch)) {
+    return {
+      ok: false,
+      status: 'FAILED',
+      backendSha: targetSha,
+      reason: `Commit ${targetSha} is not an ancestor of branch "${targetBranch}"`
+    };
+  }
+
+  const listed = runGit(backendDir, ['ls-tree', '-r', '--name-only', targetSha, 'docs/crm-sales/']);
   const files = listed ? listed.split(/\r?\n/).map((line) => line.trim()).filter(Boolean) : [];
   const { handoff, contractFiles, fixtureFiles } = classifyC01Files(files);
 
@@ -96,47 +185,118 @@ export function syncContractFromGit({
     return {
       ok: false,
       status: 'BLOCKED',
-      backendSha: commitSha,
-      reason: `C01 not published at ${ref} (${commitSha}): missing docs/crm-sales/HANDOFF_C01.md or contract schema files`
+      backendSha: targetSha,
+      branch: targetBranch,
+      reason: `C01 not published at commit ${targetSha}${targetBranch ? ` (branch ${targetBranch})` : ''}: missing docs/crm-sales/HANDOFF_C01.md or contract schema files`
     };
   }
 
-  const contractOutDir = path.join(docsUiDir, 'contract');
-  const fixturesOutDir = path.join(docsUiDir, 'fixtures');
-  fs.mkdirSync(contractOutDir, { recursive: true });
-  fs.mkdirSync(fixturesOutDir, { recursive: true });
+  const handoffText = readGitBlob(backendDir, targetSha, handoff).toString('utf8');
+  if (!handoffText.trim()) {
+    return {
+      ok: false,
+      status: 'FAILED',
+      backendSha: targetSha,
+      reason: 'HANDOFF_C01.md is empty'
+    };
+  }
 
-  const lockedFiles = [];
+  const handoffMeta = parseHandoffMetadata(handoffText);
+  if (handoffMeta.commitSha && handoffMeta.commitSha !== targetSha) {
+    return {
+      ok: false,
+      status: 'FAILED',
+      backendSha: targetSha,
+      reason: `HANDOFF_C01.md commit SHA mismatch: expected ${targetSha}, found ${handoffMeta.commitSha}`
+    };
+  }
+
+  const stagedFiles = [];
   let primarySchemaText = null;
-  const handoffText = readGitBlob(backendDir, commitSha, handoff).toString('utf8');
 
   for (const srcPath of [...contractFiles, ...fixtureFiles]) {
     const isFixture = fixtureFiles.includes(srcPath);
-    const buf = readGitBlob(backendDir, commitSha, srcPath);
+    const buf = readGitBlob(backendDir, targetSha, srcPath);
     const hash = sha256Buffer(buf);
-    const relName = srcPath
-      .replace(/^docs\/crm-sales\/(contract\/|fixtures\/)?/, '');
-    const destPath = path.join(isFixture ? fixturesOutDir : contractOutDir, relName);
-    fs.mkdirSync(path.dirname(destPath), { recursive: true });
-    fs.writeFileSync(destPath, buf);
+    const relFromCrmSales = srcPath.replace(/^docs\/crm-sales\//, '');
+    const relOut = srcPath.replace(/^docs\/crm-sales\/(contract\/|fixtures\/)?/, '');
+
+    const expectedFileHash =
+      handoffMeta.fileChecksums.get(relFromCrmSales) ||
+      handoffMeta.fileChecksums.get(relOut) ||
+      null;
+
+    if (expectedFileHash && expectedFileHash !== hash) {
+      return {
+        ok: false,
+        status: 'FAILED',
+        backendSha: targetSha,
+        reason: `SHA-256 mismatch for ${srcPath}: HANDOFF_C01.md expects ${expectedFileHash}, got ${hash}`
+      };
+    }
 
     if (!isFixture && primarySchemaText === null) {
       primarySchemaText = buf.toString('utf8');
     }
 
-    lockedFiles.push({
+    stagedFiles.push({
       kind: isFixture ? 'fixture' : 'contract',
       source_path: srcPath,
-      local_path: path.relative(docsUiDir, destPath).replace(/\\/g, '/'),
+      local_path: path.join(isFixture ? 'fixtures' : 'contract', relOut).replace(/\\/g, '/'),
       sha256: hash,
-      bytes: buf.length
+      bytes: buf.length,
+      buffer: buf
     });
   }
 
+  const schemaVersion = extractContractVersion(handoffText, primarySchemaText);
+  if (handoffMeta.version && schemaVersion && handoffMeta.version !== schemaVersion) {
+    return {
+      ok: false,
+      status: 'FAILED',
+      backendSha: targetSha,
+      reason: `Contract version mismatch: HANDOFF_C01.md says ${handoffMeta.version}, schema says ${schemaVersion}`
+    };
+  }
+
+  const contractVersion = schemaVersion || handoffMeta.version || null;
+  if (!contractVersion) {
+    return {
+      ok: false,
+      status: 'FAILED',
+      backendSha: targetSha,
+      reason: 'Unable to determine contract version from schema or HANDOFF_C01.md'
+    };
+  }
+
+  if (expectedVersion && contractVersion !== expectedVersion) {
+    return {
+      ok: false,
+      status: 'FAILED',
+      backendSha: targetSha,
+      reason: `Expected contract version ${expectedVersion}, got ${contractVersion}`
+    };
+  }
+
   const bundleHash = sha256Buffer(
-    Buffer.from(lockedFiles.map((f) => `${f.source_path}:${f.sha256}`).sort().join('\n'), 'utf8')
+    Buffer.from(stagedFiles.map((f) => `${f.source_path}:${f.sha256}`).sort().join('\n'), 'utf8')
   );
-  const contractVersion = extractContractVersion(handoffText, primarySchemaText);
+
+  if (expectedBundleSha256 && bundleHash !== expectedBundleSha256.toLowerCase()) {
+    return {
+      ok: false,
+      status: 'FAILED',
+      backendSha: targetSha,
+      reason: `Bundle SHA-256 mismatch: expected ${expectedBundleSha256}, got ${bundleHash}`
+    };
+  }
+
+  // All verifications passed; write files and update contracts.lock atomically after checks.
+  for (const file of stagedFiles) {
+    const destPath = path.join(docsUiDir, file.local_path);
+    fs.mkdirSync(path.dirname(destPath), { recursive: true });
+    fs.writeFileSync(destPath, file.buffer);
+  }
 
   const lockPayload = {
     status: 'LOCKED_C01',
@@ -148,13 +308,13 @@ export function syncContractFromGit({
     },
     backend: {
       repo: 'alik7500-wq/tozon-backend',
-      ref,
-      contract_sha: commitSha,
+      branch: targetBranch,
+      contract_sha: targetSha,
       contract_version: contractVersion,
       handoff_path: handoff,
       bundle_sha256: bundleHash
     },
-    files: lockedFiles,
+    files: stagedFiles.map(({ buffer: _buffer, ...meta }) => meta),
     fixtures: {
       mode: 'SYNTHETIC_C01_LOCKED',
       note: 'Synthetic fixtures are for UI development/tests only and never prove real API readiness.'
@@ -166,24 +326,32 @@ export function syncContractFromGit({
   return {
     ok: true,
     status: 'LOCKED_C01',
-    backendSha: commitSha,
+    branch: targetBranch,
+    backendSha: targetSha,
     contractVersion,
     bundleSha256: bundleHash,
-    filesCount: lockedFiles.length
+    filesCount: stagedFiles.length
   };
 }
 
 if (process.argv[1] && path.resolve(process.argv[1]) === __filename) {
   const args = process.argv.slice(2);
-  const getArg = (flag, fallback) => {
+  const getArg = (flag, fallback = null) => {
     const idx = args.indexOf(flag);
     return idx !== -1 && args[idx + 1] ? args[idx + 1] : fallback;
   };
-  const backendDir = getArg('--backend-dir', DEFAULT_BACKEND_DIR);
-  const ref = getArg('--ref', 'origin/main');
-  const docsUiDir = getArg('--docs-ui-dir', DEFAULT_DOCS_UI_DIR);
+  const hasFlag = (flag) => args.includes(flag);
 
-  const result = syncContractFromGit({ backendDir, ref, docsUiDir });
+  const result = syncContractFromGit({
+    backendDir: getArg('--backend-dir', DEFAULT_BACKEND_DIR),
+    branch: getArg('--branch', null),
+    sha: getArg('--sha', null),
+    fetch: hasFlag('--fetch'),
+    expectedVersion: getArg('--expected-version', null),
+    expectedBundleSha256: getArg('--expected-bundle-sha256', null),
+    docsUiDir: getArg('--docs-ui-dir', DEFAULT_DOCS_UI_DIR)
+  });
+
   console.log(JSON.stringify(result, null, 2));
   process.exit(result.ok ? 0 : 2);
 }

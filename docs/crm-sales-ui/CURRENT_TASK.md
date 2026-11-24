@@ -19,7 +19,8 @@
 - Поэтому `contracts.lock` остаётся в статусе `PENDING_C01`, ветка `a00` не завершена и не публикуется как готовая, переход к `A01` запрещён.
 
 ## Необходимое следующее действие
-После публикации `C01` в `alik7500-wq/tozon-backend`:
-1. Выполнить `git -C ../server fetch origin` и `npm.cmd --prefix client run contract:sync`.
+После публикации `C01` в рабочей ветке `alik7500-wq/tozon-backend`:
+1. Выполнить `git -C server fetch origin` и синхронизацию по конкретной ветке и полному 40-символьному commit SHA:
+   `npm.cmd --prefix client run contract:sync -- --branch origin/<backend-branch> --sha <40-char-commit-sha>`
 2. Проверить версию контракта, полный commit SHA, SHA-256 суммы в `contracts.lock` и соответствие ролей/стадий в `AUDIT.md`.
-3. Перевести `A00` в `DONE`, обновить `HANDOFF_A00.md` и опубликовать ветку `a00` в GitHub (без merge в `main`).
+3. Перевести `A00` в `DONE`, обновить `HANDOFF_A00.md` и синхронизировать ветку `a00` в GitHub (без merge в `main`).
