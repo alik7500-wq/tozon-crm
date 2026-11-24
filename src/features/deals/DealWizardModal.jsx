@@ -98,6 +98,7 @@ export const DealWizardModal = ({
   };
 
   // Deal Financials
+  const [dealCategory, setDealCategory] = useState('SALE');
   const [dealStatus, setDealStatus] = useState(initialStatus); // 'SIGNED' or 'RESERVED'
   const [reservationDays, setReservationDays] = useState(3);
   useEffect(() => {
@@ -622,6 +623,19 @@ export const DealWizardModal = ({
           </button>
         </div>
 
+        <div className="mt-4 rounded-xl border border-slate-200 bg-slate-50 p-3">
+          <label htmlFor="deal-category" className="mb-1 block text-sm font-semibold">Тип сделки</label>
+          <select id="deal-category" value={dealCategory} onChange={e => setDealCategory(e.target.value)} className="w-full rounded-lg border bg-white px-3 py-2 text-sm">
+            <option value="SALE">Обычная продажа</option>
+            <option value="RESETTLEMENT">Житель — переселение и компенсация</option>
+          </select>
+          {dealCategory === 'RESETTLEMENT' && <div className="mt-3 space-y-2 text-sm">
+            <p>Для жителей компенсационная и платная площади учитываются отдельно. Укажите старое жильё, компенсацию и доплату в специальной карточке переселения.</p>
+            <a href="/resettlements" className="inline-flex rounded-lg bg-blue-600 px-4 py-2 font-semibold text-white">Открыть оформление переселения</a>
+            <p className="text-amber-800">Подписание допускается только после регистрации соответствующих документов.</p>
+          </div>}
+        </div>
+        {dealCategory === 'SALE' && (<>
         {/* Step Progress Bar */}
         <div className={`mt-4 grid gap-2 ${initialUnit ? 'grid-cols-4' : 'grid-cols-5'}`}>
           {stepLabels.map((label, idx) => (
@@ -1539,6 +1553,7 @@ export const DealWizardModal = ({
             )}
           </div>
         </div>
+        </>)}
       </div>
 
       {isPricingEditorOpen && selectedUnit && <div className="fixed inset-0 z-[120] bg-slate-900/60 flex items-center justify-center p-3" role="dialog" aria-modal="true" aria-label="Изменение условий цены">
