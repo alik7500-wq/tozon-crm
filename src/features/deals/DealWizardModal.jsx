@@ -693,7 +693,10 @@ export const DealWizardModal = ({
                 <label className="block">Реквизиты нотариального договора (после подписания)
                   <input value={residentNotaryRef} onChange={e => setResidentNotaryRef(e.target.value)} className="mt-1 w-full rounded-lg border px-3 py-2" placeholder="Номер и дата нотариального договора" />
                 </label>
-                <p className="text-amber-800">Расчёт ещё не сохранён в базе. Статус квартиры не меняется до регистрации сделки и нотариального договора.</p>
+                <p className="text-amber-800">Для регистрации сделки нужны существующая запись покупателя, договор и проверка сервером. До этого расчёт не меняет статус квартиры или задолженность.</p>
+                <button type="button" disabled={!valid || !residentBuyerName.trim() || !residentDocumentRef.trim() || !residentFirstDue || !Number.isInteger(Number(residentMonths)) || Number(residentMonths) < 1 || Number(residentMonths) > 120} onClick={() => {
+                  setError('Оформление жителя пока не подключено к серверу. Расчёт не сохранён. Статус квартиры и долг не изменены.');
+                }} className="rounded-lg bg-slate-200 px-4 py-2 font-semibold text-slate-800 disabled:opacity-40">Проверить готовность к оформлению</button>
               </div>;
             })()}
           </div>}
