@@ -3,7 +3,7 @@ import { calculatePricing, verifyPricingQuote } from '../pricing/pricingCalculat
 import { cashDesksForScope } from '../../utils/accountingScope';
 import { getUnitTitle, getUnitKindLabel, getUnitDefaultPrice, isFixedParking, isNonResidentialUnit } from '../../utils/unitKind';
 import {formatMeasure} from '../../utils/numberDisplay';
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { api } from '../../api/client';
 import { dictionariesApi } from '../../api/dictionaries.api';
 import { useModalDismiss } from '../../hooks/useModalDismiss';
@@ -98,6 +98,19 @@ export const DealWizardModal = ({
   };
 
   // Deal Financials
+  const [dealCategory, setDealCategory] = useState('SALE');
+  const [residentCompensationM2, setResidentCompensationM2] = useState('');
+  const [residentPricePerM2, setResidentPricePerM2] = useState('400');
+  const [residentOriginalArea, setResidentOriginalArea] = useState('');
+  const [residentDocumentRef, setResidentDocumentRef] = useState('');
+  const [residentBuyerName, setResidentBuyerName] = useState('');
+  const [residentLeadId, setResidentLeadId] = useState('');
+  const residentIntakeKey = useRef(null);
+  const [residentLeads, setResidentLeads] = useState([]);
+  const [residentUnitId, setResidentUnitId] = useState('');
+  const [residentMonths, setResidentMonths] = useState('12');
+  const [residentFirstDue, setResidentFirstDue] = useState('');
+  const [residentNotaryRef, setResidentNotaryRef] = useState('');
   const [dealStatus, setDealStatus] = useState(initialStatus); // 'SIGNED' or 'RESERVED'
   const [reservationDays, setReservationDays] = useState(3);
   useEffect(() => {
@@ -166,6 +179,15 @@ export const DealWizardModal = ({
     const actualDay = Math.min(day, new Date(nextYear, nextMonth, 0).getDate());
     setFirstPaymentDate(`${nextYear}-${String(nextMonth).padStart(2, '0')}-${String(actualDay).padStart(2, '0')}`);
   }, [dealDate, downPaymentAmount]);
+
+  useEffect(() => {
+    if (!isOpen || dealCategory !== 'RESETTLEMENT') return;
+    let active = true;
+    api.get('/leads').then(response => {
+      if (active) setResidentLeads(response.data?.leads || response.leads || []);
+    }).catch(() => { if (active) setError('Не удалось загрузить жителей'); });
+    return () => { active = false; };
+  }, [isOpen, dealCategory]);
 
   const unitProjectId = selectedUnit?.project_id || selectedUnit?.floors?.sections?.buildings?.projects?.id;
 
@@ -622,6 +644,107 @@ export const DealWizardModal = ({
           </button>
         </div>
 
+        <div className="mt-4 rounded-xl border border-slate-200 bg-slate-50 p-3">
+          <label htmlFor="deal-category" className="mb-1 block text-sm font-semibold">Тип сделки</label>
+          <select id="deal-category" value={dealCategory} onChange={e => setDealCategory(e.target.value)} className="w-full rounded-lg border bg-white px-3 py-2 text-sm">
+            <option value="SALE">Обычная продажа</option>
+            <option value="RESETTLEMENT">Житель — переселение и компенсация</option>
+          </select>
+          {dealCategory === 'RESETTLEMENT' && <div className="mt-3 space-y-3 text-sm">
+            <p className="font-semibold text-slate-800">Условия переселения</p>
+            <label className="block">Квартира
+              <select value={selectedUnit?.id ?? residentUnitId} onChange={e => {
+                setResidentUnitId(e.target.value);
+                setSelectedUnit(availableUnits.find(u => String(u.id) === e.target.value) || null);
+              }} className="mt-1 w-full rounded-lg border bg-white px-3 py-2">
+                <option value="">Выберите квартиру</option>
+                {selectedUnit && !availableUnits.some(u => String(u.id) === String(selectedUnit.id)) && <option value={selectedUnit.id}>{getUnitTitle(selectedUnit)} №{selectedUnit.unit_number}</option>}
+                {availableUnits.map(u => <option key={u.id} value={u.id}>{getUnitTitle(u)} №{u.unit_number} — {Number(u.area_m2_x100 ? u.area_m2_x100 / 100 : u.area).toFixed(2)} м²</option>)}
+              </select>
+            </label>
+            <label className="block">Житель (из базы CRM)
+              <select value={residentLeadId} onChange={e => {
+                setResidentLeadId(e.target.value);
+                setResidentBuyerName(residentLeads.find(lead => String(lead.id) === e.target.value)?.full_name || '');
+              }} className="mt-1 w-full rounded-lg border bg-white px-3 py-2">
+                <option value="">Выберите жителя</option>
+                {residentLeads.map(lead => <option key={lead.id} value={lead.id}>{lead.full_name} — {lead.phone || lead.id}</option>)}
+              </select>
+            </label>
+            <div className="grid gap-3 sm:grid-cols-2">
+              <label>Площадь старого жилья, м²<input type="number" min="0" step="0.01" value={residentOriginalArea} onChange={e => setResidentOriginalArea(e.target.value)} className="mt-1 w-full rounded-lg border px-3 py-2" /></label>
+              <label>Компенсационная площадь, м²<input type="number" min="0" step="0.01" value={residentCompensationM2} onChange={e => setResidentCompensationM2(e.target.value)} className="mt-1 w-full rounded-lg border px-3 py-2" /></label>
+              <label>Цена доплаты, USD/м²<input type="number" min="0" step="0.01" value={residentPricePerM2} onChange={e => setResidentPricePerM2(e.target.value)} className="mt-1 w-full rounded-lg border px-3 py-2" /></label>
+              <label>Основание переселения<input value={residentDocumentRef} onChange={e => setResidentDocumentRef(e.target.value)} className="mt-1 w-full rounded-lg border px-3 py-2" placeholder="Номер и дата документа" /></label>
+            </div>
+            {(() => {
+              const gross = selectedUnit ? (Number(selectedUnit.area_m2_x100) > 0 ? Number(selectedUnit.area_m2_x100) / 100 : Number(selectedUnit.area)) : NaN;
+              const comp = residentCompensationM2.trim() ? Number(residentCompensationM2) : NaN;
+              const original = residentOriginalArea.trim() ? Number(residentOriginalArea) : NaN;
+              const price = Number(residentPricePerM2);
+              const valid = Number.isFinite(gross) && gross > 0 && Number.isFinite(comp) && comp >= 0 && comp <= gross && Number.isFinite(original) && original >= 0 && Number.isFinite(price) && price >= 0;
+              const payable = valid ? Math.round((gross - comp) * price * 100) / 100 : 0;
+              return <div className="space-y-2 rounded-lg border bg-white p-3">
+                {valid ? <p><strong>Общая площадь:</strong> {gross.toFixed(2)} м² · <strong>Компенсация:</strong> {comp.toFixed(2)} м² · <strong>Платная площадь:</strong> {(gross-comp).toFixed(2)} м² · <strong>Доплата:</strong> {payable.toFixed(2)} USD</p> : <p className="text-amber-800">Укажите квартиру и площади. Компенсация не должна превышать общую площадь.</p>}
+                <div className="grid gap-3 sm:grid-cols-2">
+                  <label>Срок рассрочки, месяцев<input type="number" min="1" max="120" step="1" value={residentMonths} onChange={e => setResidentMonths(e.target.value)} className="mt-1 w-full rounded-lg border px-3 py-2" /></label>
+                  <label>Дата первого платежа<input type="date" value={residentFirstDue} onChange={e => setResidentFirstDue(e.target.value)} className="mt-1 w-full rounded-lg border px-3 py-2" /></label>
+                </div>
+                {valid && payable > 0 && Number.isInteger(Number(residentMonths)) && Number(residentMonths) > 0 && Number(residentMonths) <= 120 && /^\d{4}-\d{2}-\d{2}$/.test(residentFirstDue) && (() => {
+                  const months = Number(residentMonths);
+                  const totalMinor = Math.round(payable * 100);
+                  const monthlyMinor = Math.floor(totalMinor / months);
+                  const [year, month, day] = residentFirstDue.split('-').map(Number);
+                  const rows = Array.from({ length: months }, (_, index) => {
+                    const date = new Date(Date.UTC(year, month - 1 + index, 1));
+                    const lastDay = new Date(Date.UTC(date.getUTCFullYear(), date.getUTCMonth() + 1, 0)).getUTCDate();
+                    date.setUTCDate(Math.min(day, lastDay));
+                    return { date: date.toISOString().slice(0, 10), amount: index === months - 1 ? totalMinor - monthlyMinor * (months - 1) : monthlyMinor };
+                  });
+                  return <details className="rounded-lg border p-3">
+                    <summary className="cursor-pointer font-semibold">График рассрочки — {months} платежей на {payable.toFixed(2)} USD</summary>
+                    <div className="mt-2 max-h-52 overflow-auto">
+                      {rows.map((row, index) => <div key={index} className="flex justify-between border-b py-1"><span>{index + 1}. {row.date}</span><span>{(row.amount / 100).toFixed(2)} USD</span></div>)}
+                    </div>
+                  </details>;
+                })()}
+                <label className="block">Реквизиты нотариального договора (после подписания)
+                  <input value={residentNotaryRef} onChange={e => setResidentNotaryRef(e.target.value)} className="mt-1 w-full rounded-lg border px-3 py-2" placeholder="Номер и дата нотариального договора" />
+                </label>
+                {valid && payable === 0 && <p className="text-sm text-slate-600">Полная компенсация: доплата 0 USD. Сделка оформляется без задолженности и графика платежей.</p>}
+                {error && <p role="alert" className="rounded-lg border border-red-300 bg-red-50 p-3 text-sm text-red-800">{error}</p>}
+                <button type="button" disabled={isSubmitting || !valid || !residentLeadId || !unitProjectId || !residentDocumentRef.trim() || (payable > 0 && !residentFirstDue) || !Number.isInteger(Number(residentMonths)) || Number(residentMonths) < 1 || Number(residentMonths) > 120} onClick={async () => {
+                  setError('');
+                  setIsSubmitting(true);
+                  try {
+                    if (!residentIntakeKey.current) residentIntakeKey.current = window.crypto.randomUUID();
+                    const response = await api.post('/resettlements/intake', {
+                      project_id: Number(unitProjectId),
+                      unit_id: Number(selectedUnit.id),
+                      lead_id: Number(residentLeadId),
+                      original_home_area_x100: Math.round(original * 100),
+                      compensated_area_x100: Math.round(comp * 100),
+                      paid_area_x100: Math.round((gross - comp) * 100),
+                      price_per_m2_minor: Math.round(price * 100),
+                      installment_months: Number(residentMonths),
+                      first_payment_date: payable > 0 ? residentFirstDue : new Date().toISOString().slice(0, 10),
+                      idempotency_key: residentIntakeKey.current
+                    });
+                    residentIntakeKey.current = null;
+                    onDealCreated?.(response.data?.data);
+                    onClose();
+                  } catch (err) {
+                    setError(err.response?.data?.message || err.message || 'Не удалось оформить жителя');
+                  } finally {
+                    setIsSubmitting(false);
+                  }
+                }} className="rounded-lg bg-blue-600 px-4 py-2 font-semibold text-white disabled:opacity-40">{isSubmitting ? 'Оформление…' : 'Оформить'}</button>
+                <p className="text-xs text-slate-600">Квартира резервируется. Продажа подтверждается после нотариального договора. Платежи не создаются автоматически.</p>
+              </div>;
+            })()}
+          </div>}
+        </div>
+        {dealCategory === 'SALE' && (<>
         {/* Step Progress Bar */}
         <div className={`mt-4 grid gap-2 ${initialUnit ? 'grid-cols-4' : 'grid-cols-5'}`}>
           {stepLabels.map((label, idx) => (
@@ -1539,6 +1662,7 @@ export const DealWizardModal = ({
             )}
           </div>
         </div>
+        </>)}
       </div>
 
       {isPricingEditorOpen && selectedUnit && <div className="fixed inset-0 z-[120] bg-slate-900/60 flex items-center justify-center p-3" role="dialog" aria-modal="true" aria-label="Изменение условий цены">
