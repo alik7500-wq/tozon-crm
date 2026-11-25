@@ -3,6 +3,18 @@ import { api } from '../../api/client';
 
 const AuthContext = createContext(null);
 
+const clearSessionDrafts = () => {
+  try {
+    if (typeof sessionStorage === 'undefined') return;
+    for (let i = sessionStorage.length - 1; i >= 0; i -= 1) {
+      const k = sessionStorage.key(i);
+      if (k && k.startsWith('tozon:draft:')) sessionStorage.removeItem(k);
+    }
+  } catch {
+    // Ignore storage access errors in restricted environments.
+  }
+};
+
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -11,12 +23,21 @@ export const AuthProvider = ({ children }) => {
     try {
       const res = await api.get('/auth/me');
       if (res?.data?.user) {
-        setUser(res.data.user);
+        setUser((prev) => {
+          if (prev && (prev.id !== res.data.user.id || prev.role !== res.data.user.role)) {
+            clearSessionDrafts();
+          }
+          return res.data.user;
+        });
       } else {
+        clearSessionDrafts();
         setUser(null);
       }
     } catch {
-      if (!background) setUser(null);
+      if (!background) {
+        clearSessionDrafts();
+        setUser(null);
+      }
     } finally {
       setIsLoading(false);
     }
@@ -55,6 +76,7 @@ export const AuthProvider = ({ children }) => {
     try {
       await api.post('/auth/logout');
     } finally {
+      clearSessionDrafts();
       setUser(null);
     }
   };
@@ -65,6 +87,8 @@ export const AuthProvider = ({ children }) => {
     </AuthContext.Provider>
   );
 };
+
+export const useOptionalAuth = () => useContext(AuthContext) || { user: null };
 
 export const useAuth = () => {
   const context = useContext(AuthContext);

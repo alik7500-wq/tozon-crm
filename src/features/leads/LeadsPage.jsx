@@ -58,7 +58,15 @@ export const LeadsPage = () => {
   const [search, setSearch] = useState(searchParams.get('search') || '');
   const [statusFilter, setStatusFilter] = useState('');
   const [projectFilter, setProjectFilter] = useState('');
+  const [sourceFilter, setSourceFilter] = useState('');
+  const [managerFilter, setManagerFilter] = useState('ALL');
+  const [createdFrom, setCreatedFrom] = useState('');
+  const [createdTo, setCreatedTo] = useState('');
   const [quickFilter, setQuickFilter] = useState(''); // 'ALL', 'NEW', 'UNASSIGNED', 'AWAITING_CONTACT', 'OVERDUE', 'IN_PROGRESS', 'CLOSED'
+  const [serverTotal, setServerTotal] = useState(null);
+  const [nextCursor, setNextCursor] = useState(null);
+  const [users, setUsers] = useState([]);
+  const [fetchError, setFetchError] = useState('');
 
   // Modals / Drawer
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
@@ -116,24 +124,37 @@ export const LeadsPage = () => {
     }
   }, []);
 
-  const fetchLeads = useCallback(async (quiet = false) => {
+  const fetchLeads = useCallback(async (quiet = false, appendCursor = null) => {
     const requestId = ++leadRequest.current;
-    if (!quiet) setIsLoading(true);
+    if (!quiet && !appendCursor) setIsLoading(true);
+    if (!quiet) setFetchError('');
     try {
       const params = {};
       if (search) params.search = search;
-      if (statusFilter) params.status = statusFilter;
+      if (statusFilter) params.stage = statusFilter;
       if (projectFilter) params.projectId = projectFilter;
+      if (sourceFilter) params.source = sourceFilter;
+      if (canAssign && managerFilter && managerFilter !== 'ALL') params.managerId = managerFilter;
+      if (createdFrom) params.createdFrom = createdFrom;
+      if (createdTo) params.createdTo = createdTo;
       if (quickFilter) params.quickFilter = quickFilter;
+      if (appendCursor) params.cursor = appendCursor;
 
       const res = await api.get('/leads', { params });
-      if (requestId === leadRequest.current) setLeads(res.data.leads || []);
+      if (requestId === leadRequest.current) {
+        const incoming = res.data?.leads || [];
+        setLeads((prev) => (appendCursor ? [...prev, ...incoming] : incoming));
+        setServerTotal(typeof res.data?.total === 'number' ? res.data.total : incoming.length);
+        setNextCursor(res.data?.nextCursor || null);
+      }
     } catch (err) {
-      console.error(err);
+      if (requestId === leadRequest.current && !quiet) {
+        setFetchError(err.message || 'Не удалось загрузить список лидов');
+      }
     } finally {
       if (requestId === leadRequest.current) setIsLoading(false);
     }
-  }, [search, statusFilter, projectFilter, quickFilter]);
+  }, [search, statusFilter, projectFilter, sourceFilter, managerFilter, createdFrom, createdTo, quickFilter, canAssign]);
 
   const fetchProjects = async () => {
     try {
@@ -144,8 +165,16 @@ export const LeadsPage = () => {
     }
   };
 
+  const fetchUsers = async () => {
+    try {
+      const res = await api.get('/users');
+      setUsers((res.data?.users || res.users || []).filter((u) => u.is_active));
+    } catch { /* ignore */ }
+  };
+
   useEffect(() => {
     fetchProjects();
+    fetchUsers();
     fetchStats();
   }, []);
 
@@ -187,11 +216,22 @@ export const LeadsPage = () => {
   };
 
   const handleQuickStatusChange = async (leadId, newStatus) => {
+    const current = leads.find((l) => l.id === leadId);
     try {
-      await api.patch(`/leads/${leadId}/status`, { status: newStatus });
+      await api.patch(`/leads/${leadId}/status`, {
+        status: newStatus,
+        stage: newStatus,
+        version: current?.version
+      });
       fetchLeads();
       fetchStats();
     } catch (err) {
+      if (err?.status === 409) {
+        showToast('Карточка была изменена другим пользователем — список обновлён');
+        fetchLeads();
+        fetchStats();
+        return;
+      }
       alert(err.message || 'Ошибка обновления статуса');
     }
   };
@@ -269,6 +309,18 @@ export const LeadsPage = () => {
             >
               <TableIcon className="h-3.5 w-3.5" />
               <span>Таблица</span>
+            </button>
+
+            <button
+              onClick={() => handleSetViewMode('list')}
+              className={`flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-bold transition cursor-pointer ${
+                viewMode === 'list'
+                  ? 'bg-tozon-blue text-white shadow-xs'
+                  : 'text-slate-500 hover:text-slate-800'
+              }`}
+            >
+              <Briefcase className="h-3.5 w-3.5" />
+              <span>Список</span>
             </button>
 
             <button
@@ -533,7 +585,7 @@ export const LeadsPage = () => {
                 ))}
               </select>
 
-              {/* Status Filter */}
+              {/* Status / Stage Filter */}
               <select
                 value={statusFilter}
                 onChange={(e) => {
@@ -543,14 +595,76 @@ export const LeadsPage = () => {
                 className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs text-slate-800 outline-none focus:border-tozon-blue cursor-pointer"
               >
                 <option value="">Все стадии воронки</option>
-                <option value="NEW">Новый</option>
+                <option value="NEW">Новый лид</option>
                 <option value="IN_PROGRESS">В работе</option>
                 <option value="NEGOTIATION">Переговоры</option>
-                <option value="WON">Сделка</option>
-                <option value="LOST">Отказ</option>
+                <option value="MEETING_SCHEDULED">Встреча назначена</option>
+                <option value="SHOWING_DONE">Показ проведён</option>
+                <option value="RESERVED">Бронь</option>
+                <option value="CONTRACT_PREP">Подготовка договора</option>
+                <option value="SIGNED">Договор подписан</option>
+                <option value="LOST">Отказ / закрыто</option>
               </select>
+
+              {/* Source Filter */}
+              <select
+                value={sourceFilter}
+                onChange={(e) => setSourceFilter(e.target.value)}
+                className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs text-slate-800 outline-none focus:border-tozon-blue cursor-pointer"
+              >
+                <option value="">Все источники</option>
+                <option value="INSTAGRAM">Instagram</option>
+                <option value="WHATSAPP">WhatsApp</option>
+                <option value="TELEGRAM">Telegram</option>
+                <option value="PHONE">Звонок</option>
+                <option value="WEBSITE">Сайт</option>
+                <option value="WALK_IN">Визит в офис</option>
+                <option value="REFERRAL">Рекомендация</option>
+              </select>
+
+              {/* Manager Filter (Supervisors only) */}
+              {canAssign && (
+                <select
+                  value={managerFilter}
+                  onChange={(e) => setManagerFilter(e.target.value)}
+                  className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs text-slate-800 outline-none focus:border-tozon-blue cursor-pointer"
+                >
+                  <option value="ALL">Все менеджеры</option>
+                  {users.map((u) => (
+                    <option key={u.id} value={u.id}>{u.name}</option>
+                  ))}
+                </select>
+              )}
+
+              <input
+                type="date"
+                aria-label="Создан с"
+                value={createdFrom}
+                onChange={(e) => setCreatedFrom(e.target.value)}
+                className="rounded-xl border border-slate-200 bg-slate-50 px-2.5 py-1.5 text-xs text-slate-800"
+              />
+              <input
+                type="date"
+                aria-label="Создан по"
+                value={createdTo}
+                onChange={(e) => setCreatedTo(e.target.value)}
+                className="rounded-xl border border-slate-200 bg-slate-50 px-2.5 py-1.5 text-xs text-slate-800"
+              />
+            </div>
+
+            <div className="text-xs font-semibold text-slate-500">
+              Всего по выборке: <strong className="text-slate-900">{serverTotal ?? leads.length}</strong>
             </div>
           </div>
+
+          {fetchError && (
+            <div role="alert" className="flex items-center justify-between rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-xs font-semibold text-rose-700">
+              <span>{fetchError}</span>
+              <button type="button" onClick={() => fetchLeads()} className="rounded-lg bg-white px-3 py-1 text-rose-700 border border-rose-200 hover:bg-rose-100">
+                Повторить
+              </button>
+            </div>
+          )}
 
           {/* Main Content */}
           {isLoading ? (
@@ -568,6 +682,29 @@ export const LeadsPage = () => {
               onStatusChange={handleQuickStatusChange}
               onAddNewLead={() => setIsCreateModalOpen(true)}
             />
+          ) : viewMode === 'list' ? (
+            <div className="divide-y divide-slate-200 rounded-2xl border border-slate-200 bg-white">
+              {leads.length === 0 ? (
+                <div className="p-8 text-center text-xs text-slate-400">По выбранным фильтрам лидов не найдено</div>
+              ) : leads.map((lead) => (
+                <div
+                  key={lead.id}
+                  onClick={() => handleSelectLead(lead)}
+                  className="flex flex-wrap items-center justify-between gap-3 px-4 py-3 hover:bg-slate-50 cursor-pointer"
+                >
+                  <div className="min-w-0">
+                    <div className="text-xs font-bold text-slate-900">#{lead.id} • {lead.full_name}</div>
+                    <div className="text-[11px] text-slate-500">
+                      {lead.phone || 'Телефон не указан'} • {lead.source_code || lead.source || '—'} • {lead.interested_project_name || 'Проект не указан'}
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2 text-xs">
+                    <span className="rounded-lg bg-slate-100 px-2 py-0.5 font-semibold text-slate-700">{lead.stage || lead.status}</span>
+                    <span className="text-[11px] text-slate-500">{lead.responsible_user_name || 'Пул'}</span>
+                  </div>
+                </div>
+              ))}
+            </div>
           ) : (
             <LeadTableView
               leads={leads}
@@ -578,6 +715,18 @@ export const LeadsPage = () => {
               onFirstContact={handleOpenContactModal}
               canAssign={canAssign}
             />
+          )}
+
+          {nextCursor && (
+            <div className="flex justify-center">
+              <button
+                type="button"
+                onClick={() => fetchLeads(false, nextCursor)}
+                className="rounded-xl border border-slate-200 bg-white px-4 py-2 text-xs font-bold text-slate-700 hover:bg-slate-50"
+              >
+                Загрузить ещё (показано {leads.length} из {serverTotal ?? '—'})
+              </button>
+            </div>
           )}
         </>
       )}

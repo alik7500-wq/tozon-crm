@@ -17,22 +17,32 @@ import {
 
 export const LeadKanbanView = ({ leads, onSelectLead, onEditLead, onStatusChange, onAddNewLead }) => {
   const columns = [
-    { key: 'NEW', title: 'Новый', color: 'border-blue-500 bg-blue-50/40 text-blue-700', next: 'IN_PROGRESS', nextLabel: 'В работу' },
-    { key: 'IN_PROGRESS', title: 'В работе', color: 'border-amber-500 bg-amber-50/40 text-amber-700', next: 'NEGOTIATION', nextLabel: 'Переговоры' },
-    { key: 'NEGOTIATION', title: 'Переговоры', color: 'border-purple-500 bg-purple-50/40 text-purple-700', next: 'WON', nextLabel: 'В сделку' },
-    { key: 'WON', title: 'Сделка (WON)', color: 'border-emerald-500 bg-emerald-50/40 text-emerald-700', next: null },
-    { key: 'LOST', title: 'Отказ (LOST)', color: 'border-rose-500 bg-rose-50/40 text-rose-700', next: null },
+    { key: 'NEW', title: 'Новый лид', next: 'IN_PROGRESS', nextLabel: 'В работу' },
+    { key: 'IN_PROGRESS', title: 'В работе', next: 'NEGOTIATION', nextLabel: 'Переговоры' },
+    { key: 'NEGOTIATION', title: 'Переговоры', next: 'MEETING_SCHEDULED', nextLabel: 'Встреча' },
+    { key: 'MEETING_SCHEDULED', title: 'Встреча назначена', next: 'SHOWING_DONE', nextLabel: 'Показ' },
+    { key: 'SHOWING_DONE', title: 'Показ проведён', next: 'RESERVED', nextLabel: 'Бронь' },
+    { key: 'RESERVED', title: 'Бронь', next: 'CONTRACT_PREP', nextLabel: 'Договор' },
+    { key: 'CONTRACT_PREP', title: 'Подготовка договора', next: null },
+    { key: 'SIGNED', title: 'Договор подписан', next: null, readOnly: true },
+    { key: 'LOST', title: 'Отказ / закрыто', next: null },
   ];
 
+  const getStageKey = (lead) => {
+    if (lead.stage) return lead.stage;
+    if (lead.status === 'WON') return 'CONTRACT_PREP';
+    return lead.status || 'NEW';
+  };
+
   return (
-    <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-4 overflow-x-auto pb-4">
+    <div className="flex gap-3.5 overflow-x-auto pb-4">
       {columns.map((col) => {
-        const colLeads = leads.filter((l) => l.status === col.key);
+        const colLeads = leads.filter((l) => getStageKey(l) === col.key);
 
         return (
           <div
             key={col.key}
-            className="flex flex-col rounded-2xl bg-slate-100/70 border border-slate-200 p-3 min-w-[240px] max-h-[calc(100vh-220px)] shadow-2xs"
+            className="flex flex-col rounded-2xl bg-slate-100/70 border border-slate-200 p-3 min-w-[250px] w-[250px] shrink-0 max-h-[calc(100vh-220px)] shadow-2xs"
           >
             {/* Column Header */}
             <div className="flex items-center justify-between px-2 py-1.5 mb-2">
@@ -88,11 +98,11 @@ export const LeadKanbanView = ({ leads, onSelectLead, onEditLead, onStatusChange
                     </div>
 
                     <div className="flex items-center justify-between text-[11px] text-slate-600">
-                      <div className="flex items-center gap-1.5">
+                      <div className="flex items-center gap-1.5 min-w-0">
                         <Phone className="h-3 w-3 text-slate-400 shrink-0" />
-                        <span>{lead.phone}</span>
+                        <span className="truncate">{lead.phone || 'Телефон не указан'}</span>
                       </div>
-                      <span className="text-[10px] font-medium text-slate-400">
+                      <span className="text-[10px] font-medium text-slate-400 shrink-0">
                         {lead.responsible_user_name || (isUnassigned ? 'Пул' : '—')}
                       </span>
                     </div>

@@ -36,7 +36,7 @@ function InstagramAccountInbox({ accountId, drafts }) {
   const [showingCached, setShowingCached] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
-  const allowed = ['ADMIN', 'DIRECTOR'].includes(user?.role);
+  const allowed = ['ADMIN', 'DIRECTOR', 'SALES_MANAGER'].includes(user?.role);
 
   const refresh = useCallback(async (after, quiet = false) => {
     const cursor = typeof after === 'string' ? after : null;

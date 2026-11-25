@@ -55,6 +55,9 @@ export const LeadDrawer = ({ isOpen, onClose, leadId, onLeadUpdated, onEditLead 
   const [isContactModalOpen, setIsContactModalOpen] = useState(false);
   const [smsRefreshTrigger, setSmsRefreshTrigger] = useState(0);
   const [smsCount, setSmsCount] = useState(0);
+  const [aiAnalyses, setAiAnalyses] = useState([]);
+  const [aiConfigured, setAiConfigured] = useState(false);
+  const [aiLoading, setAiLoading] = useState(false);
 
   // Unit interests states & modals
   const [selectedDetailUnitId, setSelectedDetailUnitId] = useState(null);
@@ -98,9 +101,25 @@ export const LeadDrawer = ({ isOpen, onClose, leadId, onLeadUpdated, onEditLead 
     }
   };
 
+  const fetchAiAnalyses = async () => {
+    if (!leadId) return;
+    setAiLoading(true);
+    try {
+      const res = await api.get(`/calls/leads/${leadId}/ai-analyses`);
+      setAiConfigured(Boolean(res.data?.aiConfigured));
+      setAiAnalyses(res.data?.analyses || []);
+    } catch {
+      setAiConfigured(false);
+      setAiAnalyses([]);
+    } finally {
+      setAiLoading(false);
+    }
+  };
+
   useEffect(() => {
     if (isOpen && leadId) {
       fetchLeadDetails();
+      fetchAiAnalyses();
       setToastMessage('');
     }
   }, [isOpen, leadId]);
@@ -124,15 +143,34 @@ export const LeadDrawer = ({ isOpen, onClose, leadId, onLeadUpdated, onEditLead 
   };
 
   const handleStatusChange = async (newStatus) => {
-    if (!lead || lead.status === newStatus) return;
+    if (!lead || (lead.stage || lead.status) === newStatus) return;
+
+    let lostReason = null;
+    let comment = null;
+    if (newStatus === 'LOST') {
+      const code = window.prompt('Укажите код причины отказа (PRICE, LOCATION, PAYMENT_TERMS, NO_RESPONSE, CHOSE_COMPETITOR, NOT_READY, OTHER):', 'PRICE');
+      if (!code) return;
+      lostReason = code.trim().toUpperCase();
+      if (lostReason === 'OTHER') {
+        comment = window.prompt('Обязательный комментарий для причины «Другое»:', '');
+        if (!comment || !comment.trim()) return;
+      }
+    }
 
     const prevStatus = lead.status;
+    const prevStage = lead.stage;
     // Optimistic UI update
-    setLead((prev) => ({ ...prev, status: newStatus }));
+    setLead((prev) => ({ ...prev, status: newStatus, stage: newStatus }));
     setIsUpdatingStatus(true);
 
     try {
-      const res = await api.patch(`/leads/${leadId}/status`, { status: newStatus });
+      const res = await api.patch(`/leads/${leadId}/status`, {
+        status: newStatus,
+        stage: newStatus,
+        lost_reason: lostReason,
+        comment,
+        version: lead.version
+      });
       const updatedLead = res.data?.lead || res.lead || res;
       if (updatedLead && updatedLead.id) {
         setLead((prev) => ({ ...prev, ...updatedLead }));
@@ -140,8 +178,13 @@ export const LeadDrawer = ({ isOpen, onClose, leadId, onLeadUpdated, onEditLead 
       showToast(`✓ Стадия воронки изменена на «${getStatusName(newStatus)}»`);
       if (onLeadUpdated) onLeadUpdated();
     } catch (err) {
-      setLead((prev) => ({ ...prev, status: prevStatus }));
-      alert(err.message || 'Ошибка обновления стадии воронки');
+      if (err?.status === 409 && err?.response?.data?.data?.current) {
+        setLead(err.response.data.data.current);
+        showToast('Карточка была изменена другим пользователем — данные обновлены');
+      } else {
+        setLead((prev) => ({ ...prev, status: prevStatus, stage: prevStage }));
+        alert(err.message || 'Ошибка обновления стадии воронки');
+      }
     } finally {
       setIsUpdatingStatus(false);
     }
@@ -351,6 +394,14 @@ export const LeadDrawer = ({ isOpen, onClose, leadId, onLeadUpdated, onEditLead 
                       <PhoneCall className="h-3.5 w-3.5" />
                       <span>Зафиксировать контакт</span>
                     </button>
+
+                    <a
+                      href={`/deals?action=create&leadId=${lead.id}`}
+                      className="flex items-center gap-1 px-2.5 py-1 rounded-lg bg-purple-600 hover:bg-purple-700 font-bold text-white shadow-xs transition cursor-pointer"
+                    >
+                      <FileCheck className="h-3.5 w-3.5" />
+                      <span>Оформить сделку</span>
+                    </a>
                   </>
                 )}
               </div>
@@ -481,10 +532,75 @@ export const LeadDrawer = ({ isOpen, onClose, leadId, onLeadUpdated, onEditLead 
                   {smsCount}
                 </span>
               </button>
+
+              <button
+                type="button"
+                onClick={() => setActiveTab('ai')}
+                className={`py-3 px-3 text-xs font-bold transition border-b-2 flex items-center gap-1.5 cursor-pointer ${
+                  activeTab === 'ai'
+                    ? 'border-purple-600 text-purple-700 bg-white shadow-2xs'
+                    : 'border-transparent text-slate-500 hover:text-slate-900'
+                }`}
+              >
+                <Sparkles className="h-3.5 w-3.5 text-purple-600" />
+                <span>ИИ-звонки</span>
+              </button>
             </div>
 
             {/* Tab Body */}
             <div className="p-6 space-y-6 flex-1">
+              {activeTab === 'ai' && (
+                <div className="space-y-4">
+                  <div className="rounded-xl border border-slate-200 bg-slate-50 p-4 text-xs text-slate-700">
+                    <div className="font-bold text-slate-900 mb-1">Анализ звонков ИИ (F-20)</div>
+                    <div>
+                      Статус провайдера: <strong>{aiConfigured ? 'Настроен' : 'Не настроено'}</strong>
+                    </div>
+                  </div>
+                  {aiLoading ? (
+                    <div className="text-xs text-slate-500">Загрузка анализов...</div>
+                  ) : aiAnalyses.length === 0 ? (
+                    <div className="rounded-xl border border-dashed border-slate-200 p-6 text-center text-xs text-slate-500">
+                      Нет записей анализа звонков. Провайдер или аудиозапись не доступны — выдуманный анализ не формируется.
+                    </div>
+                  ) : (
+                    aiAnalyses.map((item) => (
+                      <div key={item.id} className="rounded-xl border border-slate-200 bg-white p-4 space-y-2 text-xs">
+                        <div className="flex items-center justify-between">
+                          <span className="font-bold">Статус: {item.status}</span>
+                          <span className="text-slate-400">Чек-лист: {item.checklist_version}</span>
+                        </div>
+                        {item.summary && <p className="text-slate-700">{item.summary}</p>}
+                        {item.status === 'READY' && !item.confirmed_task_id && (
+                          <button
+                            type="button"
+                            onClick={async () => {
+                              await api.post(`/calls/ai-analyses/${item.id}/confirm-task`, {});
+                              fetchAiAnalyses();
+                              showToast('Задача из ИИ-анализа подтверждена и создана');
+                            }}
+                            className="rounded-lg bg-purple-600 px-3 py-1.5 text-white font-bold"
+                          >
+                            Подтвердить следующий шаг
+                          </button>
+                        )}
+                        {canAssign && !item.flagged_incorrect && (
+                          <button
+                            type="button"
+                            onClick={async () => {
+                              await api.post(`/calls/ai-analyses/${item.id}/flag`, { reason: 'Отмечено руководителем' });
+                              fetchAiAnalyses();
+                            }}
+                            className="ml-2 rounded-lg border border-rose-200 px-3 py-1.5 text-rose-700 font-bold"
+                          >
+                            Отметить ошибку ИИ
+                          </button>
+                        )}
+                      </div>
+                    ))
+                  )}
+                </div>
+              )}
               {/* TAB 1: NOTES & TIMELINE */}
               {activeTab === 'notes' && (
                 <div className="space-y-4">
