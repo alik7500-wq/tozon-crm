@@ -1,26 +1,19 @@
 # CURRENT_TASK.md
 
-- **ID задачи:** `A00` — Аудит интерфейса и подключение контракта
-- **Статус:** `IN_PROGRESS` (аудит UI и механизм синхронизации контракта готовы; закрытие в `DONE` заблокировано отсутствием C01 в `tozon-backend`)
-- **Ветка:** `a00` (перебазирована на `origin/main` = `77901ae212622150e745152e77cc868bc48e8178`)
-- **Base SHA (`tozon-crm`):** `77901ae212622150e745152e77cc868bc48e8178`
-- **Backend SHA (`tozon-backend`, `origin/main`):** `e3464dd85f2d39d243c895864c9da35b513e7c34` (C00 — IN_PROGRESS, C01 — не опубликован)
+- **ID задачи:** `R01` — Актуальность веток (review-fix)
+- **Статус:** `DONE`
+- **Ветка (`tozon-crm`):** `a00`
+- **Актуальный `origin/main` (`tozon-crm`):** `2737182` (слит в `a00` без конфликтов через `git merge --no-edit origin/main`, включая 15 коммитов `resettlement`)
+- **Актуальный `origin/main` (`tozon-backend`):** `261018e` (слит в `feat/crm-sales-completion` без конфликтов через `git merge --no-edit origin/main`, включая 8 коммитов `resettlement`)
 
-## Что уже работает
-- Проведён полный аудит frontend (`client/src/`) и зафиксирован в `AUDIT.md`.
-- Создана матрица UI-приёмки `ACCEPTANCE_UI.md` (все сценарии A01–A52 в статусе `PENDING`, без фиктивных `PASS`).
-- Реализован и протестирован механизм синхронизации контракта и синтетических fixtures из `alik7500-wq/tozon-backend`:
-  - `client/scripts/sync-crm-contract.mjs` (npm-скрипт `contract:sync`)
-  - `client/scripts/__tests__/sync-crm-contract.test.js`
-  - Проверка SHA-256 контрольных сумм, полного 40-символьного commit SHA, версии контракта и защита от подмены `contracts.lock` при отсутствии C01.
+## Что сделано в R01
+- Получен актуальный `origin/main` обоих репозиториев (`git fetch origin`).
+- Обе рабочие ветки (`feat/crm-sales-completion` и `a00`) согласованы с `origin/main` без force push и без reset, с сохранением всех изменений `resettlement` и нашей доработки CRM.
+- Конфликтов слияния: 0.
+- Проверены сборка и тесты после слияния:
+  - `npm.cmd --prefix client run build` → PASS (`2.62s`)
+  - `npx.cmd --prefix client vitest run src/features/leads src/features/crm src/features/instagram scripts/__tests__/sync-crm-contract.test.js --environment jsdom` → PASS (13/13 файлов, 64/64 тестов)
+  - `npm.cmd --prefix server test -- src/db/migrations/__tests__/060_crm_sales_completion_foundation.test.js src/db/migrations/__tests__/060_pre_release_isolation.test.js src/modules/leads/__tests__/leadDomain.test.js` → PASS (3/3 файлов, 8/8 тестов)
 
-## Что не работает / блокировка
-- `C01` от Codex ещё не опубликован в `alik7500-wq/tozon-backend` (`docs/crm-sales/` отсутствует на `origin/main` `e3464dd85f2d39d243c895864c9da35b513e7c34`).
-- Поэтому `contracts.lock` остаётся в статусе `PENDING_C01`, ветка `a00` не завершена и не публикуется как готовая, переход к `A01` запрещён.
-
-## Необходимое следующее действие
-После публикации `C01` в рабочей ветке `alik7500-wq/tozon-backend`:
-1. Выполнить `git -C server fetch origin` и синхронизацию по конкретной ветке и полному 40-символьному commit SHA:
-   `npm.cmd --prefix client run contract:sync -- --branch origin/<backend-branch> --sha <40-char-commit-sha>`
-2. Проверить версию контракта, полный commit SHA, SHA-256 суммы в `contracts.lock` и соответствие ролей/стадий в `AUDIT.md`.
-3. Перевести `A00` в `DONE`, обновить `HANDOFF_A00.md` и синхронизировать ветку `a00` в GitHub (без merge в `main`).
+## Следующая задача
+- `R02` — Безопасная миграция и откат (проверка реестра миграций, откат версии приложения без удаления накопленных данных, `EXECUTE` для всех перегрузок `fn_assign_lead_atomic`).
