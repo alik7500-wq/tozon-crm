@@ -937,7 +937,7 @@ export const ExpensesPage = () => {
                           {isAdmin && item.canVoid && (<button
                             disabled={voidMutation.isPending}
                             onClick={() => {
-                              if (window.confirm(`Аннулировать РКО "${item.reference || item.id}" на сумму ${item.amount} ${item.currency}? Ордер останется в журнале, а сумма будет исключена из учёта.`)) {
+                              if (window.confirm(`Аннулировать РКО "${item.reference || item.id}" на сумму ${item.amount} ${item.currency}? Ордер останется в журнале, а сумма будет исключена из учёта.${item.voidIncludesAutoConversion ? ' Связанные ПКО и РКО автоконвертации тоже будут аннулированы.' : ''}`)) {
                                 voidMutation.mutate(item.id);
                               }
                             }}

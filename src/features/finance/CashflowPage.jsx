@@ -500,7 +500,7 @@ export const CashflowPage = () => {
   const handleVoidClick = (t) => {
     const isIncome = t.type === 'INCOME';
     const typeLabel = isIncome ? 'приходный ордер (ПКО)' : 'расходный ордер (РКО)';
-    if (window.confirm(`Аннулировать ${typeLabel} "${t.reference}" на сумму ${t.amount} ${t.currency}? Ордер останется в журнале ПКО или РКО.`)) {
+    if (window.confirm(`Аннулировать ${typeLabel} "${t.reference}" на сумму ${t.amount} ${t.currency}? Ордер останется в журнале ПКО или РКО.${t.voidIncludesAutoConversion ? ' Связанные ПКО и РКО автоконвертации тоже будут аннулированы.' : ''}`)) {
       if (isIncome) {
         deleteIncomeMutation.mutate(t.rawId);
       } else {
