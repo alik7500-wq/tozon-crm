@@ -25,7 +25,7 @@ import {
 } from '../../utils/cashDesks';
 import { 
   TrendingDown, Plus, Search, Calendar, Tag, FileText, Wallet, RefreshCw,
-  DollarSign, CheckCircle2, User, CreditCard, X, Edit, Trash2, Save, Printer,
+  DollarSign, CheckCircle2, User, CreditCard, X, Edit, Ban, Save, Printer,
   ArrowRightLeft, ArrowRight
 } from 'lucide-react';
 import {
@@ -237,7 +237,8 @@ export const ExpensesPage = () => {
       currency,
       category: categoryFilter,
       cash_desk_id: selectedDeskId !== 'ALL' ? selectedDeskId : undefined,
-      search
+      search,
+      include_voided: 1
     })
   });
 
@@ -346,15 +347,16 @@ export const ExpensesPage = () => {
     }
   });
 
-  const deleteMutation = useMutation({
+  const voidMutation = useMutation({
     mutationFn: financeApi.deleteExpense,
     onSuccess: () => {
       queryClient.invalidateQueries({queryKey:['construction']});
-      queryClient.invalidateQueries(['finance-expenses']);
-      queryClient.invalidateQueries(['finance-cashflow']);
+      queryClient.invalidateQueries({queryKey:['block-costs']});
+      queryClient.invalidateQueries({ queryKey: ['finance-expenses'] });
+      queryClient.invalidateQueries({ queryKey: ['finance-cashflow'] });
     },
     onError: (err) => {
-      alert(`Ошибка при удалении: ${err.message}`);
+      alert(`Ошибка при аннулировании: ${err.message}`);
     }
   });
 
@@ -849,6 +851,9 @@ export const ExpensesPage = () => {
                   </td>
                   <td className="py-2.5 px-2 font-bold text-slate-900 font-mono text-[11px] truncate" title={item.document_number || item.reference}>
                     {item.document_number || item.reference || `РКО-${item.id}`}
+                    {(item.voidedAt || ['VOIDED', 'CANCELLED', 'REVERSED'].includes(item.status)) && (
+                      <span className="block text-rose-700" title={item.voidReason || undefined}>Аннулирован</span>
+                    )}
                   </td>
                   <td className="py-2.5 px-2.5 font-bold text-slate-900 text-xs leading-tight truncate" title={item.recipient}>
                     {item.recipient}
@@ -876,6 +881,8 @@ export const ExpensesPage = () => {
                     <div className="flex items-center justify-end gap-1 [&>button]:shrink-0">
                       <button
                         onClick={() => setPrintableExpense({
+                          status: item.voidedAt ? 'VOIDED' : item.status,
+                          voidReason: item.voidReason,
                           document_number: item.document_number,
                           id: item.id,
                           amount: item.amount,
@@ -897,7 +904,7 @@ export const ExpensesPage = () => {
                       >
                         <Printer className="h-4 w-4" />
                       </button>
-                      {canWrite && cashAccess?.canEditExpense && (cashAccess.allWritableDesks || (cashAccess.editableExpenseDeskIds || []).includes(item.cashDeskId || item.cash_desk_id)) && (
+                      {!item.voidedAt && !['VOIDED', 'CANCELLED', 'REVERSED'].includes(item.status) && canWrite && cashAccess?.canEditExpense && (cashAccess.allWritableDesks || (cashAccess.editableExpenseDeskIds || []).includes(item.cashDeskId || item.cash_desk_id)) && (
                         <>
                           <button
                             onClick={() => {
@@ -927,16 +934,18 @@ export const ExpensesPage = () => {
                           >
                             <Edit className="h-4 w-4" />
                           </button>
-                          {isAdmin && (<button
+                          {isAdmin && item.canVoid && (<button
+                            disabled={voidMutation.isPending}
                             onClick={() => {
-                              if (window.confirm(`Вы уверены, что хотите удалить РКО "${item.reference || item.id}" на сумму ${item.amount} ${item.currency}?`)) {
-                                deleteMutation.mutate(item.id);
+                              if (window.confirm(`Аннулировать РКО "${item.reference || item.id}" на сумму ${item.amount} ${item.currency}? Ордер останется в журнале, а сумма будет исключена из учёта.`)) {
+                                voidMutation.mutate(item.id);
                               }
                             }}
-                            title="Удалить РКО (Админ)"
+                            title="Аннулировать РКО"
+                            aria-label="Аннулировать РКО"
                             className="p-1.5 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-50 transition cursor-pointer"
                           >
-                            <Trash2 className="h-4 w-4" />
+                            <Ban className="h-4 w-4" />
                           </button>)}
                         </>
                       )}

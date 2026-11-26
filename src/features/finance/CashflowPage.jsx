@@ -20,7 +20,7 @@ import {
 import { 
   Wallet, TrendingUp, TrendingDown, RefreshCw, Calendar, ArrowUpRight, 
   ArrowDownRight, FileText, Search, CreditCard, Filter, ArrowRightLeft,
-  DollarSign, CheckCircle2, Coins, X, Edit, Trash2, AlertCircle, Save, Printer,
+  DollarSign, CheckCircle2, Coins, X, Edit, Ban, AlertCircle, Save, Printer,
   Maximize2, Minimize2, FileSpreadsheet
 } from 'lucide-react';
 import { PaymentReceiptPrintModal } from './PaymentReceiptPrintModal';
@@ -291,9 +291,9 @@ export const CashflowPage = () => {
     mutationFn: financeApi.convertCurrency,
     onError: (error) => alert(`Не удалось выполнить конвертацию: ${error.message}`),
     onSuccess: () => {
-      queryClient.invalidateQueries(['finance-cashflow']);
-      queryClient.invalidateQueries(['finance-income']);
-      queryClient.invalidateQueries(['finance-expenses']);
+      queryClient.invalidateQueries({ queryKey: ['finance-cashflow'] });
+      queryClient.invalidateQueries({ queryKey: ['finance-income'] });
+      queryClient.invalidateQueries({ queryKey: ['finance-expenses'] });
       setShowConvertModal(false);
       const akmal = cashDesksDict.find(d => d.code === 'SALES_MANAGER' || (d.name && d.name.includes('Акмалхон')));
       const ilhom = cashDesksDict.find(d => d.code === 'MAIN_CASHIER' || (d.name && d.name.includes('Илхомчон')));
@@ -315,8 +315,8 @@ export const CashflowPage = () => {
   const updateIncomeMutation = useMutation({
     mutationFn: financeApi.updateIncome,
     onSuccess: () => {
-      queryClient.invalidateQueries(['finance-cashflow']);
-      queryClient.invalidateQueries(['finance-income']);
+      queryClient.invalidateQueries({ queryKey: ['finance-cashflow'] });
+      queryClient.invalidateQueries({ queryKey: ['finance-income'] });
       setEditingItem(null);
     },
     onError: (err) => {
@@ -327,8 +327,8 @@ export const CashflowPage = () => {
   const updateExpenseMutation = useMutation({
     mutationFn: financeApi.updateExpense,
     onSuccess: () => {
-      queryClient.invalidateQueries(['finance-cashflow']);
-      queryClient.invalidateQueries(['finance-expenses']);
+      queryClient.invalidateQueries({ queryKey: ['finance-cashflow'] });
+      queryClient.invalidateQueries({ queryKey: ['finance-expenses'] });
       setEditingItem(null);
     },
     onError: (err) => {
@@ -339,22 +339,22 @@ export const CashflowPage = () => {
   const deleteIncomeMutation = useMutation({
     mutationFn: financeApi.deleteIncome,
     onSuccess: () => {
-      queryClient.invalidateQueries(['finance-cashflow']);
-      queryClient.invalidateQueries(['finance-income']);
+      queryClient.invalidateQueries({ queryKey: ['finance-cashflow'] });
+      queryClient.invalidateQueries({ queryKey: ['finance-income'] });
     },
     onError: (err) => {
-      alert(`Ошибка при удалении ПКО: ${err.message}`);
+      alert(`Ошибка при аннулировании ПКО: ${err.message}`);
     }
   });
 
   const deleteExpenseMutation = useMutation({
     mutationFn: financeApi.deleteExpense,
     onSuccess: () => {
-      queryClient.invalidateQueries(['finance-cashflow']);
-      queryClient.invalidateQueries(['finance-expenses']);
+      queryClient.invalidateQueries({ queryKey: ['finance-cashflow'] });
+      queryClient.invalidateQueries({ queryKey: ['finance-expenses'] });
     },
     onError: (err) => {
-      alert(`Ошибка при удалении РКО: ${err.message}`);
+      alert(`Ошибка при аннулировании РКО: ${err.message}`);
     }
   });
 
@@ -497,10 +497,10 @@ export const CashflowPage = () => {
     }
   };
 
-  const handleDeleteClick = (t) => {
+  const handleVoidClick = (t) => {
     const isIncome = t.type === 'INCOME';
     const typeLabel = isIncome ? 'приходный ордер (ПКО)' : 'расходный ордер (РКО)';
-    if (window.confirm(`Вы уверены, что хотите удалить ${typeLabel} "${t.reference}" на сумму ${t.amount} ${t.currency}?`)) {
+    if (window.confirm(`Аннулировать ${typeLabel} "${t.reference}" на сумму ${t.amount} ${t.currency}? Ордер останется в журнале ПКО или РКО.`)) {
       if (isIncome) {
         deleteIncomeMutation.mutate(t.rawId);
       } else {
@@ -760,13 +760,17 @@ export const CashflowPage = () => {
                   >
                     <Edit className="h-3.5 w-3.5" />
                   </button>
-                  <button
-                    onClick={() => handleDeleteClick(t)}
-                    title="Удалить запись (Админ)"
-                    className="p-1 rounded-md text-slate-400 hover:text-rose-600 hover:bg-rose-50 transition cursor-pointer"
-                  >
-                    <Trash2 className="h-3.5 w-3.5" />
-                  </button>
+                  {t.canVoid && (
+                    <button
+                      onClick={() => handleVoidClick(t)}
+                      title="Аннулировать ордер"
+                      aria-label="Аннулировать ордер"
+                      disabled={deleteIncomeMutation.isPending || deleteExpenseMutation.isPending}
+                      className="p-1 rounded-md text-slate-400 hover:text-rose-600 hover:bg-rose-50 transition cursor-pointer"
+                    >
+                      <Ban className="h-3.5 w-3.5" />
+                    </button>
+                  )}
                 </>
               )}
             </div>

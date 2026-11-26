@@ -23,7 +23,7 @@ import { getPkoJournalDisplay, requiresTjsReconciliation } from '../../utils/pko
 import { 
   TrendingUp, Plus, Search, Calendar, DollarSign, Coins, CreditCard, 
   User, FileText, CheckCircle2, RefreshCw, Filter, ArrowUpRight, Building2, X,
-  Edit, Trash2, Save, Printer, Wallet, Tag, Layers
+  Edit, Ban, Save, Printer, Wallet, Tag, Layers
 } from 'lucide-react';
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
@@ -141,7 +141,8 @@ export const IncomePage = () => {
       currency,
       category: categoryFilter !== 'ALL' ? categoryFilter : undefined,
       cash_desk_id: selectedDeskId !== 'ALL' ? selectedDeskId : undefined,
-      search
+      search,
+      include_voided: 1
     })
   });
 
@@ -217,14 +218,14 @@ export const IncomePage = () => {
     }
   });
 
-  const deleteMutation = useMutation({
+  const voidMutation = useMutation({
     mutationFn: financeApi.deleteIncome,
     onSuccess: () => {
-      queryClient.invalidateQueries(['finance-income']);
-      queryClient.invalidateQueries(['finance-cashflow']);
+      queryClient.invalidateQueries({ queryKey: ['finance-income'] });
+      queryClient.invalidateQueries({ queryKey: ['finance-cashflow'] });
     },
     onError: (err) => {
-      alert(`Ошибка при удалении ПКО: ${err.message}`);
+      alert(`Ошибка при аннулировании ПКО: ${err.message}`);
     }
   });
 
@@ -730,6 +731,9 @@ export const IncomePage = () => {
                       if (clean.startsWith('Касса:')) return `ПКО-${item.id}`;
                       return clean.startsWith('ПКО') ? clean : `ПКО-${clean}`;
                     })()}
+                    {(item.voidedAt || ['VOIDED', 'CANCELLED', 'REVERSED'].includes(item.status)) && (
+                      <span className="block text-rose-700" title={item.voidReason || undefined}>Аннулирован</span>
+                    )}
                   </td>
                   <td className="py-2.5 px-2.5">
                     <div className="font-bold text-slate-900 text-xs leading-tight line-clamp-1" title={item.clientName}>
@@ -819,6 +823,8 @@ export const IncomePage = () => {
                             else if (!clean.startsWith('Касса:')) cleanDoc = `ПКО-${clean}`;
                           }
                           setPrintableIncome({
+                            status: item.voidedAt ? 'VOIDED' : item.status,
+                            voidReason: item.voidReason,
                             document_number: item.document_number,
                             id: item.id,
                             deal_id: item.dealId,
@@ -846,7 +852,7 @@ export const IncomePage = () => {
                       >
                         <Printer className="h-4 w-4" />
                       </button>
-                      {canWrite && cashAccess?.canEditIncome && (cashAccess.allWritableDesks || (cashAccess.editableIncomeDeskIds || []).includes(item.cashDeskId || item.cash_desk_id)) && (
+                      {!item.voidedAt && !['VOIDED', 'CANCELLED', 'REVERSED'].includes(item.status) && canWrite && cashAccess?.canEditIncome && (cashAccess.allWritableDesks || (cashAccess.editableIncomeDeskIds || []).includes(item.cashDeskId || item.cash_desk_id)) && (
                         <>
                           <button
                             onClick={() => {
@@ -880,16 +886,18 @@ export const IncomePage = () => {
                           >
                             <Edit className="h-4 w-4" />
                           </button>
-                          {isAdmin && (<button
+                          {isAdmin && item.canVoid && (<button
+                            disabled={voidMutation.isPending}
                             onClick={() => {
-                              if (window.confirm(`Вы уверены, что хотите удалить ПКО "${item.reference || item.id}" на сумму ${item.amount} ${item.currency}?`)) {
-                                deleteMutation.mutate(item.id);
+                              if (window.confirm(`Аннулировать ПКО "${item.reference || item.id}" на сумму ${item.amount} ${item.currency}? Ордер останется в журнале, а сумма будет исключена из учёта.`)) {
+                                voidMutation.mutate(item.id);
                               }
                             }}
-                            title="Удалить ПКО (Админ)"
+                            title="Аннулировать ПКО"
+                            aria-label="Аннулировать ПКО"
                             className="p-1.5 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-50 transition cursor-pointer"
                           >
-                            <Trash2 className="h-4 w-4" />
+                            <Ban className="h-4 w-4" />
                           </button>)}
                         </>
                       )}
