@@ -4,7 +4,7 @@ import {render,screen,fireEvent,waitFor,cleanup} from '@testing-library/react';
 const api=vi.hoisted(()=>({post:vi.fn()}));
 vi.mock('../../../api/client',()=>({api}));
 import {InstagramReplyComposer} from '../InstagramReplyComposer';
-afterEach(()=>{cleanup();vi.resetAllMocks();});
+afterEach(()=>{cleanup();sessionStorage.clear();vi.resetAllMocks();});
 const conversation={instagramAccountId:'1',contactId:'123'};
 it('shows a confirmed send immediately and does not wait for slow history refresh',async()=>{
  const message={message_id:'sent',text_content:'answer',is_echo:true};api.post.mockResolvedValue({data:{message,saved:true}});
