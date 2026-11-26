@@ -43,9 +43,15 @@ function InstagramAccountInbox({ accountId, drafts }) {
   const allowed = ['ADMIN', 'DIRECTOR', 'SALES_MANAGER'].includes(user?.role);
 
   const clearAuthScopedState = useCallback((onlyKey = null) => {
+    const userPrefix = `tozon:draft:ig:${user?.id || 'anon'}:`;
     if (onlyKey) {
       historyCache.current.delete(onlyKey);
       drafts?.delete?.(onlyKey);
+      try {
+        if (typeof sessionStorage !== 'undefined') {
+          sessionStorage.removeItem(userPrefix + onlyKey);
+        }
+      } catch { /* ignore */ }
       if (selectedRef.current && (selectedRef.current.instagramAccountId + ':' + selectedRef.current.contactId) === onlyKey) {
         selectedRef.current = null;
         ++historyRequest.current;
@@ -60,6 +66,16 @@ function InstagramAccountInbox({ accountId, drafts }) {
     pendingHistory.current.clear();
     historyVersions.current.clear();
     drafts?.clear?.();
+    try {
+      if (typeof sessionStorage !== 'undefined') {
+        for (let i = sessionStorage.length - 1; i >= 0; i -= 1) {
+          const k = sessionStorage.key(i);
+          if (k && k.startsWith('tozon:draft:ig:')) {
+            sessionStorage.removeItem(k);
+          }
+        }
+      }
+    } catch { /* ignore */ }
     selectedRef.current = null;
     ++historyRequest.current;
     setConversations([]);
@@ -67,7 +83,7 @@ function InstagramAccountInbox({ accountId, drafts }) {
     setMessages([]);
     setMessagesCursor(null);
     setShowingCached(false);
-  }, [drafts]);
+  }, [drafts, user?.id]);
 
   const refresh = useCallback(async (after, quiet = false) => {
     const cursor = typeof after === 'string' ? after : null;

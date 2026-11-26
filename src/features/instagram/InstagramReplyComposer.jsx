@@ -105,6 +105,13 @@ export function InstagramReplyComposer({ conversation, onSent, draftStore }) {
 
   const activeBaseKeyRef = useRef(baseKey);
   activeBaseKeyRef.current = baseKey;
+  const activeUserIdRef = useRef(user?.id);
+  activeUserIdRef.current = user?.id;
+  const mountedRef = useRef(true);
+  useEffect(() => {
+    mountedRef.current = true;
+    return () => { mountedRef.current = false; };
+  }, []);
 
   const [initial] = useState(() => readStoredComposerState(draftStore, baseKey, storageKey));
   const [draftText, setDraftText] = useState(initial.draftText ?? initial.text ?? '');
@@ -154,7 +161,15 @@ export function InstagramReplyComposer({ conversation, onSent, draftStore }) {
     persist(draftText, freshOp);
   };
 
-  const applyOperationOutcome = (opBaseKey, opStorageKey, opText, opKey, outcome) => {
+  const applyOperationOutcome = (opBaseKey, opStorageKey, opText, opKey, opUserId, outcome) => {
+    // Discard late response if user logged out / changed or component unmounted on revocation
+    if (!mountedRef.current || activeUserIdRef.current !== opUserId) {
+      return;
+    }
+    if (outcome.revoked) {
+      writeStoredComposerState(draftStore, opBaseKey, opStorageKey, { draftText: '', operation: { idempotencyKey: makeKey(), sentText: '', state: 'idle', error: '' } });
+      return;
+    }
     const isSameDialog = activeBaseKeyRef.current === opBaseKey;
     const currentStored = readStoredComposerState(draftStore, opBaseKey, opStorageKey);
     const currentDraft = isSameDialog ? draftTextRef.current : (currentStored.draftText ?? currentStored.text ?? '');
@@ -189,6 +204,7 @@ export function InstagramReplyComposer({ conversation, onSent, draftStore }) {
     const opStorageKey = storageKey;
     const opKey = operation.idempotencyKey;
     const opText = operation.sentText;
+    const opUserId = user?.id;
 
     setReconciling(true);
     try {
@@ -200,22 +216,27 @@ export function InstagramReplyComposer({ conversation, onSent, draftStore }) {
         { timeout: 25000 }
       );
       if (result?.deliveryStatus === 'confirmed' && result?.data?.saved !== false) {
-        applyOperationOutcome(opBaseKey, opStorageKey, opText, opKey, { confirmed: true, data: result?.data });
+        applyOperationOutcome(opBaseKey, opStorageKey, opText, opKey, opUserId, { confirmed: true, data: result?.data });
       } else {
         const msg = result?.data?.nextAction || 'Результат доставки всё ещё неизвестен. Проверьте переписку в Instagram.';
-        applyOperationOutcome(opBaseKey, opStorageKey, opText, opKey, {
+        applyOperationOutcome(opBaseKey, opStorageKey, opText, opKey, opUserId, {
           confirmed: false,
           nextOp: { idempotencyKey: opKey, sentText: opText, state: 'unknown', error: msg }
         });
       }
     } catch (err) {
-      const msg = mapSendErrorMessage(err);
-      applyOperationOutcome(opBaseKey, opStorageKey, opText, opKey, {
-        confirmed: false,
-        nextOp: { idempotencyKey: opKey, sentText: opText, state: 'unknown', error: msg }
-      });
+      const status = err?.response?.status ?? err?.status;
+      if (status === 401 || status === 403) {
+        applyOperationOutcome(opBaseKey, opStorageKey, opText, opKey, opUserId, { revoked: true });
+      } else {
+        const msg = mapSendErrorMessage(err);
+        applyOperationOutcome(opBaseKey, opStorageKey, opText, opKey, opUserId, {
+          confirmed: false,
+          nextOp: { idempotencyKey: opKey, sentText: opText, state: 'unknown', error: msg }
+        });
+      }
     } finally {
-      if (activeBaseKeyRef.current === opBaseKey) {
+      if (mountedRef.current && activeBaseKeyRef.current === opBaseKey) {
         setReconciling(false);
       }
     }
@@ -230,6 +251,7 @@ export function InstagramReplyComposer({ conversation, onSent, draftStore }) {
     const opStorageKey = storageKey;
     const opKey = operation.idempotencyKey;
     const opText = draftText.trim();
+    const opUserId = user?.id;
 
     const sendingOp = { idempotencyKey: opKey, sentText: opText, state: 'sending', error: '' };
     setOperation(sendingOp);
@@ -247,17 +269,22 @@ export function InstagramReplyComposer({ conversation, onSent, draftStore }) {
         const msg = result?.data?.acceptedButUnsaved
           ? 'Instagram принял сообщение, но CRM не сохранила его. Выполните сверку перед повтором.'
           : (result?.data?.nextAction || 'Результат доставки неизвестен. Выполните сверку перед повтором.');
-        applyOperationOutcome(opBaseKey, opStorageKey, opText, opKey, {
+        applyOperationOutcome(opBaseKey, opStorageKey, opText, opKey, opUserId, {
           confirmed: false,
           nextOp: { idempotencyKey: opKey, sentText: opText, state: 'unknown', error: msg }
         });
         return;
       }
-      applyOperationOutcome(opBaseKey, opStorageKey, opText, opKey, { confirmed: true, data: result?.data });
+      applyOperationOutcome(opBaseKey, opStorageKey, opText, opKey, opUserId, { confirmed: true, data: result?.data });
     } catch (err) {
+      const status = err?.response?.status ?? err?.status;
+      if (status === 401 || status === 403) {
+        applyOperationOutcome(opBaseKey, opStorageKey, opText, opKey, opUserId, { revoked: true });
+        return;
+      }
       const nextState = isAmbiguousDeliveryError(err) ? 'unknown' : 'failed';
       const msg = mapSendErrorMessage(err);
-      applyOperationOutcome(opBaseKey, opStorageKey, opText, opKey, {
+      applyOperationOutcome(opBaseKey, opStorageKey, opText, opKey, opUserId, {
         confirmed: false,
         nextOp: { idempotencyKey: opKey, sentText: opText, state: nextState, error: msg }
       });

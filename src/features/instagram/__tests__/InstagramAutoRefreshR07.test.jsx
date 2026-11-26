@@ -144,13 +144,15 @@ describe('R07: InstagramInboxPage background refresh, off-page-1 selection, olde
     await act(async () => { resolveInFlight?.(); });
     expect(screen.queryByText('Secret after logout')).toBeNull();
 
-    // Restore user and trigger real 403 revocation -> clears state
+    // Restore user and trigger real 403 revocation -> clears state AND sessionStorage
     mockUser = { id: 2, name: 'Manager A', role: 'SALES_MANAGER', permissions: ['leads.view', 'leads.manage'] };
+    sessionStorage.setItem('tozon:draft:ig:2:11111:42', JSON.stringify({ draftText: 'Persisted draft', operation: { state: 'unknown', idempotencyKey: 'ig_old_1' } }));
     rerender(<InstagramInboxPage />);
     await screen.findByText('Client 42');
     failWith403 = true;
     await act(async () => { await vi.advanceTimersByTimeAsync(3200); });
     expect(screen.queryByText('Client 42')).toBeNull();
+    expect(sessionStorage.getItem('tozon:draft:ig:2:11111:42')).toBeNull();
 
     unmount();
     expect(vi.getTimerCount()).toBe(0);

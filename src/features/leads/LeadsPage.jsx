@@ -118,6 +118,8 @@ export const LeadsPage = () => {
   const leadRefreshBusy = useRef(false);
   const leadRequest = useRef(0);
   const statsRequest = useRef(0);
+  const boardGenerationRef = useRef(0);
+  const columnRequestRef = useRef({});
   const leadsRef = useRef([]);
   const boardColumnsRef = useRef(null);
   const leadsContextRef = useRef('');
@@ -129,6 +131,22 @@ export const LeadsPage = () => {
 
   leadsRef.current = leads;
   boardColumnsRef.current = boardColumns;
+
+  const flattenBoardColumns = useCallback((cols) => {
+    if (!cols) return [];
+    const seen = new Set();
+    const out = [];
+    for (const col of Object.values(cols)) {
+      for (const l of (col?.leads || [])) {
+        const k = String(l.id_str || l.id);
+        if (!seen.has(k)) {
+          seen.add(k);
+          out.push(l);
+        }
+      }
+    }
+    return out;
+  }, []);
 
   const buildUnifiedFilterParams = useCallback(() => {
     const params = {};
@@ -171,38 +189,60 @@ export const LeadsPage = () => {
     if (!quiet) setFetchError('');
     try {
       if (viewMode === 'kanban' && !appendCursor) {
+        const boardGenAtStart = boardGenerationRef.current;
         const currentCols = boardColumnsRef.current;
-        const maxLoadedPerCol = quiet && currentCols
+        const perStageLimit = quiet && currentCols
           ? Math.min(100, Math.max(20, ...Object.values(currentCols).map((c) => (c?.leads || []).length)))
           : 20;
-        const params = {
-          ...buildUnifiedFilterParams(),
-          perStageLimit: maxLoadedPerCol
-        };
-        const res = await api.get('/leads/board', { params });
-        if (requestId === leadRequest.current && ctx === leadsContextRef.current) {
-          const incomingCols = res.data?.boardColumns || null;
-          setBoardColumns((prevCols) => {
-            if (!quiet || !prevCols || !incomingCols) return incomingCols;
-            const mergedCols = {};
-            for (const [stageKey, colData] of Object.entries(incomingCols)) {
-              const freshLeads = colData?.leads || [];
-              const prevCol = prevCols[stageKey];
-              if (prevCol && (prevCol.leads || []).length > maxLoadedPerCol) {
-                const freshMap = new Map(freshLeads.map((l) => [String(l.id_str || l.id), l]));
-                const tail = (prevCol.leads || []).slice(maxLoadedPerCol).filter((l) => !freshMap.has(String(l.id_str || l.id)));
-                mergedCols[stageKey] = {
-                  leads: [...freshLeads, ...tail],
-                  total: colData?.total ?? prevCol.total,
-                  nextCursor: prevCol.nextCursor ?? colData?.nextCursor ?? null
-                };
-              } else {
-                mergedCols[stageKey] = colData;
+        const baseParams = buildUnifiedFilterParams();
+        const res = await api.get('/leads/board', { params: { ...baseParams, perStageLimit } });
+        if (requestId !== leadRequest.current || ctx !== leadsContextRef.current) return false;
+        if (quiet && boardGenAtStart !== boardGenerationRef.current) return false;
+
+        const incomingCols = res.data?.boardColumns || null;
+        let finalCols = incomingCols;
+
+        // If any column had >100 cards loaded, refresh its full loaded range in bounded pages (<=100/page)
+        if (quiet && currentCols && incomingCols) {
+          finalCols = { ...incomingCols };
+          for (const [stageKey, colData] of Object.entries(incomingCols)) {
+            const prevLen = (currentCols[stageKey]?.leads || []).length;
+            let colLeads = [...(colData?.leads || [])];
+            let colCursor = colData?.nextCursor || null;
+            while (prevLen > colLeads.length && colCursor) {
+              const pageRes = await api.get('/leads', {
+                params: { ...baseParams, stage: stageKey, cursor: colCursor, limit: 100 }
+              });
+              if (requestId !== leadRequest.current || ctx !== leadsContextRef.current || boardGenAtStart !== boardGenerationRef.current) {
+                return false;
               }
+              const more = pageRes.data?.leads || [];
+              const seenIds = new Set(colLeads.map((l) => String(l.id_str || l.id)));
+              for (const item of more) {
+                const k = String(item.id_str || item.id);
+                if (!seenIds.has(k)) {
+                  seenIds.add(k);
+                  colLeads.push(item);
+                }
+              }
+              const nextColCursor = pageRes.data?.nextCursor || null;
+              if (!nextColCursor || nextColCursor === colCursor || more.length === 0) {
+                colCursor = nextColCursor === colCursor ? null : nextColCursor;
+                break;
+              }
+              colCursor = nextColCursor;
             }
-            return mergedCols;
-          });
-          const flattened = incomingCols ? Object.values(incomingCols).flatMap((c) => c?.leads || []) : [];
+            finalCols[stageKey] = {
+              leads: colLeads,
+              total: colData?.total ?? colLeads.length,
+              nextCursor: colCursor
+            };
+          }
+        }
+
+        if (requestId === leadRequest.current && ctx === leadsContextRef.current && (!quiet || boardGenAtStart === boardGenerationRef.current)) {
+          setBoardColumns(finalCols);
+          const flattened = flattenBoardColumns(finalCols);
           setLeads(flattened);
           setServerTotal(typeof res.data?.total === 'number' ? res.data.total : flattened.length);
           if (res.data?.stageCounts) setStageCounts(res.data.stageCounts);
@@ -215,9 +255,53 @@ export const LeadsPage = () => {
         return true;
       }
 
+      const baseParams = buildUnifiedFilterParams();
+      if (quiet && !appendCursor && leadsRef.current.length > 500) {
+        // Refresh entire loaded range (>500) using bounded keyset pages (<=500/page) so no unverified tail remains
+        const targetCount = leadsRef.current.length;
+        const collected = [];
+        const seenIds = new Set();
+        let cursor = null;
+        let lastPageRes = null;
+
+        do {
+          const pageRes = await api.get('/leads', {
+            params: { ...baseParams, limit: 500, ...(cursor ? { cursor } : {}) }
+          });
+          if (requestId !== leadRequest.current || ctx !== leadsContextRef.current) return false;
+          lastPageRes = pageRes;
+          const pageLeads = pageRes.data?.leads || [];
+          for (const item of pageLeads) {
+            const k = String(item.id_str || item.id);
+            if (!seenIds.has(k)) {
+              seenIds.add(k);
+              collected.push(item);
+            }
+          }
+          const next = pageRes.data?.nextCursor || null;
+          if (!next || next === cursor || pageLeads.length === 0) {
+            cursor = next === cursor ? null : next;
+            break;
+          }
+          cursor = next;
+        } while (collected.length < targetCount);
+
+        if (requestId === leadRequest.current && ctx === leadsContextRef.current && lastPageRes) {
+          setBoardColumns(null);
+          setLeads(collected);
+          setServerTotal(typeof lastPageRes.data?.total === 'number' ? lastPageRes.data.total : collected.length);
+          if (lastPageRes.data?.stageCounts) setStageCounts(lastPageRes.data.stageCounts);
+          setNextCursor(cursor);
+          setSyncStatus('online');
+          setLastSyncAt(new Date().toISOString());
+          backoffMsRef.current = 5000;
+        }
+        return true;
+      }
+
       const loadedCount = quiet && !appendCursor ? Math.min(500, Math.max(50, leadsRef.current.length)) : undefined;
       const params = {
-        ...buildUnifiedFilterParams(),
+        ...baseParams,
         ...(loadedCount ? { limit: loadedCount } : {}),
         ...(appendCursor ? { cursor: appendCursor } : {})
       };
@@ -231,18 +315,11 @@ export const LeadsPage = () => {
             const seen = new Set(prev.map((l) => String(l.id_str || l.id)));
             return [...prev, ...incoming.filter((l) => !seen.has(String(l.id_str || l.id)))];
           }
-          if (quiet && prev.length > (loadedCount || 50)) {
-            const freshIds = new Set(incoming.map((l) => String(l.id_str || l.id)));
-            const tail = prev.slice(loadedCount || 50).filter((l) => !freshIds.has(String(l.id_str || l.id)));
-            return [...incoming, ...tail];
-          }
           return incoming;
         });
         setServerTotal(typeof res.data?.total === 'number' ? res.data.total : incoming.length);
         if (res.data?.stageCounts) setStageCounts(res.data.stageCounts);
-        if (!quiet || !appendCursor) {
-          setNextCursor((prevCur) => (quiet && leadsRef.current.length > (loadedCount || 50) ? prevCur : (res.data?.nextCursor || null)));
-        }
+        setNextCursor(res.data?.nextCursor || null);
         setSyncStatus('online');
         setLastSyncAt(new Date().toISOString());
         backoffMsRef.current = 5000;
@@ -259,11 +336,15 @@ export const LeadsPage = () => {
     } finally {
       if (requestId === leadRequest.current) setIsLoading(false);
     }
-  }, [buildUnifiedFilterParams, viewMode]);
+  }, [buildUnifiedFilterParams, flattenBoardColumns, viewMode]);
 
   const handleLoadMoreColumn = useCallback(async (stageKey) => {
     const colCursor = boardColumns?.[stageKey]?.nextCursor;
     if (!colCursor || loadingBoardStage) return;
+    const ctx = `${JSON.stringify(buildUnifiedFilterParams())}:${viewMode}`;
+    const colReqId = (columnRequestRef.current[stageKey] || 0) + 1;
+    columnRequestRef.current[stageKey] = colReqId;
+    boardGenerationRef.current += 1;
     setLoadingBoardStage(stageKey);
     try {
       const params = {
@@ -273,12 +354,16 @@ export const LeadsPage = () => {
         limit: 20
       };
       const res = await api.get('/leads', { params });
+      if (ctx !== leadsContextRef.current || columnRequestRef.current[stageKey] !== colReqId) {
+        return;
+      }
       const incoming = res.data?.leads || [];
+      boardGenerationRef.current += 1;
       setBoardColumns((prev) => {
         if (!prev || !prev[stageKey]) return prev;
         const existingIds = new Set((prev[stageKey].leads || []).map((l) => String(l.id_str || l.id)));
         const merged = [...(prev[stageKey].leads || []), ...incoming.filter((l) => !existingIds.has(String(l.id_str || l.id)))];
-        return {
+        const nextCols = {
           ...prev,
           [stageKey]: {
             ...prev[stageKey],
@@ -286,13 +371,19 @@ export const LeadsPage = () => {
             nextCursor: res.data?.nextCursor || null
           }
         };
+        setLeads(flattenBoardColumns(nextCols));
+        return nextCols;
       });
     } catch (err) {
-      setFetchError(err.message || 'Не удалось догрузить колонку');
+      if (ctx === leadsContextRef.current) {
+        setFetchError(err.message || 'Не удалось догрузить колонку');
+      }
     } finally {
-      setLoadingBoardStage(null);
+      if (columnRequestRef.current[stageKey] === colReqId) {
+        setLoadingBoardStage(null);
+      }
     }
-  }, [boardColumns, buildUnifiedFilterParams, loadingBoardStage]);
+  }, [boardColumns, buildUnifiedFilterParams, flattenBoardColumns, loadingBoardStage, viewMode]);
 
   const handleExportLeads = () => {
     const qs = new URLSearchParams(buildUnifiedFilterParams()).toString();
