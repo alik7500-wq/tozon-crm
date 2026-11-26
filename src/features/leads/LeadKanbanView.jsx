@@ -15,7 +15,17 @@ import {
   Pencil
 } from 'lucide-react';
 
-export const LeadKanbanView = ({ leads, stageCounts = null, onSelectLead, onEditLead, onStatusChange, onAddNewLead }) => {
+export const LeadKanbanView = ({
+  leads,
+  boardColumns = null,
+  stageCounts = null,
+  onLoadMoreColumn = null,
+  loadingColumn = null,
+  onSelectLead,
+  onEditLead,
+  onStatusChange,
+  onAddNewLead
+}) => {
   const columns = [
     { key: 'NEW', title: 'Новый лид', next: 'IN_PROGRESS', nextLabel: 'В работу' },
     { key: 'IN_PROGRESS', title: 'В работе', next: 'NEGOTIATION', nextLabel: 'Переговоры' },
@@ -37,11 +47,17 @@ export const LeadKanbanView = ({ leads, stageCounts = null, onSelectLead, onEdit
   return (
     <div className="flex gap-3.5 overflow-x-auto pb-4">
       {columns.map((col) => {
-        const colLeads = leads.filter((l) => getStageKey(l) === col.key);
+        const colState = boardColumns?.[col.key];
+        const colLeads = colState ? (colState.leads || []) : leads.filter((l) => getStageKey(l) === col.key);
+        const colTotal = typeof colState?.total === 'number'
+          ? colState.total
+          : (typeof stageCounts?.[col.key] === 'number' ? stageCounts[col.key] : colLeads.length);
+        const hasMoreCol = Boolean(colState?.nextCursor);
 
         return (
           <div
             key={col.key}
+            data-testid={`kanban-col-${col.key}`}
             className="flex flex-col rounded-2xl bg-slate-100/70 border border-slate-200 p-3 min-w-[250px] w-[250px] shrink-0 max-h-[calc(100vh-220px)] shadow-2xs"
           >
             {/* Column Header */}
@@ -51,7 +67,7 @@ export const LeadKanbanView = ({ leads, stageCounts = null, onSelectLead, onEdit
                 <h4 className="text-xs font-bold text-slate-800 uppercase tracking-wider">{col.title}</h4>
               </div>
               <span className="rounded-md bg-white border border-slate-200 px-2 py-0.5 text-xs font-bold text-slate-600 shadow-2xs" title="Всего в колонке по серверу">
-                {typeof stageCounts?.[col.key] === 'number' ? stageCounts[col.key] : colLeads.length}
+                {colTotal}
               </span>
             </div>
 
@@ -169,6 +185,17 @@ export const LeadKanbanView = ({ leads, stageCounts = null, onSelectLead, onEdit
                 <div className="h-24 flex items-center justify-center rounded-xl border border-dashed border-slate-200 text-[11px] text-slate-400">
                   Нет лидов
                 </div>
+              )}
+
+              {hasMoreCol && onLoadMoreColumn && (
+                <button
+                  type="button"
+                  disabled={loadingColumn === col.key}
+                  onClick={() => onLoadMoreColumn(col.key)}
+                  className="w-full rounded-xl border border-slate-200 bg-white py-1.5 text-[11px] font-bold text-slate-700 hover:bg-slate-50 disabled:opacity-50 cursor-pointer"
+                >
+                  {loadingColumn === col.key ? 'Загрузка...' : 'Показать ещё'}
+                </button>
               )}
             </div>
           </div>

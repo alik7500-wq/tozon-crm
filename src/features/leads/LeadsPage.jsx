@@ -117,6 +117,8 @@ export const LeadsPage = () => {
 
   const leadRefreshBusy = useRef(false);
   const leadRequest = useRef(0);
+  const [boardColumns, setBoardColumns] = useState(null);
+  const [loadingBoardStage, setLoadingBoardStage] = useState(null);
 
   const buildUnifiedFilterParams = useCallback(() => {
     const params = {};
@@ -153,6 +155,25 @@ export const LeadsPage = () => {
     if (!quiet && !appendCursor) setIsLoading(true);
     if (!quiet) setFetchError('');
     try {
+      if (viewMode === 'kanban' && !appendCursor) {
+        const params = {
+          ...buildUnifiedFilterParams(),
+          perStageLimit: 20
+        };
+        const res = await api.get('/leads/board', { params });
+        if (requestId === leadRequest.current) {
+          const cols = res.data?.boardColumns || null;
+          setBoardColumns(cols);
+          const flattened = cols ? Object.values(cols).flatMap((c) => c?.leads || []) : [];
+          setLeads(flattened);
+          setServerTotal(typeof res.data?.total === 'number' ? res.data.total : flattened.length);
+          if (res.data?.stageCounts) setStageCounts(res.data.stageCounts);
+          if (res.data?.stats) setStats(res.data.stats);
+          setNextCursor(null);
+        }
+        return;
+      }
+
       const params = {
         ...buildUnifiedFilterParams(),
         ...(appendCursor ? { cursor: appendCursor } : {})
@@ -161,6 +182,7 @@ export const LeadsPage = () => {
       const res = await api.get('/leads', { params });
       if (requestId === leadRequest.current) {
         const incoming = res.data?.leads || [];
+        setBoardColumns(null);
         setLeads((prev) => (appendCursor ? [...prev, ...incoming] : incoming));
         setServerTotal(typeof res.data?.total === 'number' ? res.data.total : incoming.length);
         if (res.data?.stageCounts) setStageCounts(res.data.stageCounts);
@@ -173,7 +195,40 @@ export const LeadsPage = () => {
     } finally {
       if (requestId === leadRequest.current) setIsLoading(false);
     }
-  }, [buildUnifiedFilterParams]);
+  }, [buildUnifiedFilterParams, viewMode]);
+
+  const handleLoadMoreColumn = useCallback(async (stageKey) => {
+    const colCursor = boardColumns?.[stageKey]?.nextCursor;
+    if (!colCursor || loadingBoardStage) return;
+    setLoadingBoardStage(stageKey);
+    try {
+      const params = {
+        ...buildUnifiedFilterParams(),
+        stage: stageKey,
+        cursor: colCursor,
+        limit: 20
+      };
+      const res = await api.get('/leads', { params });
+      const incoming = res.data?.leads || [];
+      setBoardColumns((prev) => {
+        if (!prev || !prev[stageKey]) return prev;
+        const existingIds = new Set((prev[stageKey].leads || []).map((l) => String(l.id_str || l.id)));
+        const merged = [...(prev[stageKey].leads || []), ...incoming.filter((l) => !existingIds.has(String(l.id_str || l.id)))];
+        return {
+          ...prev,
+          [stageKey]: {
+            ...prev[stageKey],
+            leads: merged,
+            nextCursor: res.data?.nextCursor || null
+          }
+        };
+      });
+    } catch (err) {
+      setFetchError(err.message || 'Не удалось догрузить колонку');
+    } finally {
+      setLoadingBoardStage(null);
+    }
+  }, [boardColumns, buildUnifiedFilterParams, loadingBoardStage]);
 
   const handleExportLeads = () => {
     const qs = new URLSearchParams(buildUnifiedFilterParams()).toString();
@@ -710,7 +765,7 @@ export const LeadsPage = () => {
                 onClick={handleExportLeads}
                 className="rounded-xl border border-slate-200 bg-white px-3 py-1.5 text-xs font-bold text-slate-700 hover:bg-slate-50 cursor-pointer"
               >
-                Экспорт CSV
+                Экспорт Excel
               </button>
             </div>
 
@@ -739,7 +794,10 @@ export const LeadsPage = () => {
           ) : viewMode === 'kanban' ? (
             <LeadKanbanView
               leads={leads}
+              boardColumns={boardColumns}
               stageCounts={stageCounts}
+              onLoadMoreColumn={handleLoadMoreColumn}
+              loadingColumn={loadingBoardStage}
               onSelectLead={handleSelectLead}
               onEditLead={handleEditLead}
               onStatusChange={handleQuickStatusChange}
