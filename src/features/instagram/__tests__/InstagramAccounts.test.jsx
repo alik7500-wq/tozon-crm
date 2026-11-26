@@ -18,7 +18,7 @@ it('isolates histories and drafts for the same contact across accounts, and send
  fireEvent.change(screen.getByLabelText('Аккаунт Instagram'),{target:{value:'11111'}});fireEvent.click(await screen.findByText('Same contact'));await screen.findByText('First private message');
  expect(screen.getByLabelText('Ответ клиенту').value).toBe('Draft first');
  api.post.mockResolvedValue({data:{message:{message_id:'sent',text_content:'Draft first',is_echo:true},saved:true}});fireEvent.click(screen.getByText('Отправить'));
- await waitFor(()=>expect(api.post).toHaveBeenCalledWith('/integrations/instagram/send/11111/42',{text:'Draft first'},{timeout:25000}));
+ await waitFor(()=>expect(api.post).toHaveBeenCalledWith('/integrations/instagram/send/11111/42',expect.objectContaining({text:'Draft first',idempotency_key:expect.stringMatching(/^ig_/)}),{timeout:25000}));
 });
 it('ignores late history from a previous account after switching',async()=>{
  let finish;setup(url=>url.includes('/11111/')?new Promise(resolve=>{finish=resolve;}):{data:[{message_id:'b',text_content:'Second private message'}]});
