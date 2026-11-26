@@ -117,8 +117,18 @@ export const LeadsPage = () => {
 
   const leadRefreshBusy = useRef(false);
   const leadRequest = useRef(0);
+  const statsRequest = useRef(0);
+  const leadsRef = useRef([]);
+  const boardColumnsRef = useRef(null);
+  const leadsContextRef = useRef('');
+  const backoffMsRef = useRef(5000);
   const [boardColumns, setBoardColumns] = useState(null);
   const [loadingBoardStage, setLoadingBoardStage] = useState(null);
+  const [syncStatus, setSyncStatus] = useState(() => (typeof navigator !== 'undefined' && navigator.onLine === false ? 'offline' : 'online'));
+  const [lastSyncAt, setLastSyncAt] = useState(null);
+
+  leadsRef.current = leads;
+  boardColumnsRef.current = boardColumns;
 
   const buildUnifiedFilterParams = useCallback(() => {
     const params = {};
@@ -137,8 +147,11 @@ export const LeadsPage = () => {
   }, [search, statusFilter, projectFilter, sourceFilter, managerFilter, createdFrom, createdTo, taskStateFilter, unreadOnly, archiveFilter, quickFilter, canAssign]);
 
   const fetchStats = useCallback(async () => {
+    const reqId = ++statsRequest.current;
+    const ctx = leadsContextRef.current;
     try {
       const res = await api.get('/leads/stats', { params: buildUnifiedFilterParams() });
+      if (reqId !== statsRequest.current || ctx !== leadsContextRef.current) return;
       if (res.data?.stats) {
         setStats(res.data.stats);
       }
@@ -152,46 +165,97 @@ export const LeadsPage = () => {
 
   const fetchLeads = useCallback(async (quiet = false, appendCursor = null) => {
     const requestId = ++leadRequest.current;
+    const ctx = `${JSON.stringify(buildUnifiedFilterParams())}:${viewMode}`;
+    leadsContextRef.current = ctx;
     if (!quiet && !appendCursor) setIsLoading(true);
     if (!quiet) setFetchError('');
     try {
       if (viewMode === 'kanban' && !appendCursor) {
+        const currentCols = boardColumnsRef.current;
+        const maxLoadedPerCol = quiet && currentCols
+          ? Math.min(100, Math.max(20, ...Object.values(currentCols).map((c) => (c?.leads || []).length)))
+          : 20;
         const params = {
           ...buildUnifiedFilterParams(),
-          perStageLimit: 20
+          perStageLimit: maxLoadedPerCol
         };
         const res = await api.get('/leads/board', { params });
-        if (requestId === leadRequest.current) {
-          const cols = res.data?.boardColumns || null;
-          setBoardColumns(cols);
-          const flattened = cols ? Object.values(cols).flatMap((c) => c?.leads || []) : [];
+        if (requestId === leadRequest.current && ctx === leadsContextRef.current) {
+          const incomingCols = res.data?.boardColumns || null;
+          setBoardColumns((prevCols) => {
+            if (!quiet || !prevCols || !incomingCols) return incomingCols;
+            const mergedCols = {};
+            for (const [stageKey, colData] of Object.entries(incomingCols)) {
+              const freshLeads = colData?.leads || [];
+              const prevCol = prevCols[stageKey];
+              if (prevCol && (prevCol.leads || []).length > maxLoadedPerCol) {
+                const freshMap = new Map(freshLeads.map((l) => [String(l.id_str || l.id), l]));
+                const tail = (prevCol.leads || []).slice(maxLoadedPerCol).filter((l) => !freshMap.has(String(l.id_str || l.id)));
+                mergedCols[stageKey] = {
+                  leads: [...freshLeads, ...tail],
+                  total: colData?.total ?? prevCol.total,
+                  nextCursor: prevCol.nextCursor ?? colData?.nextCursor ?? null
+                };
+              } else {
+                mergedCols[stageKey] = colData;
+              }
+            }
+            return mergedCols;
+          });
+          const flattened = incomingCols ? Object.values(incomingCols).flatMap((c) => c?.leads || []) : [];
           setLeads(flattened);
           setServerTotal(typeof res.data?.total === 'number' ? res.data.total : flattened.length);
           if (res.data?.stageCounts) setStageCounts(res.data.stageCounts);
           if (res.data?.stats) setStats(res.data.stats);
           setNextCursor(null);
+          setSyncStatus('online');
+          setLastSyncAt(new Date().toISOString());
+          backoffMsRef.current = 5000;
         }
-        return;
+        return true;
       }
 
+      const loadedCount = quiet && !appendCursor ? Math.min(500, Math.max(50, leadsRef.current.length)) : undefined;
       const params = {
         ...buildUnifiedFilterParams(),
+        ...(loadedCount ? { limit: loadedCount } : {}),
         ...(appendCursor ? { cursor: appendCursor } : {})
       };
 
       const res = await api.get('/leads', { params });
-      if (requestId === leadRequest.current) {
+      if (requestId === leadRequest.current && ctx === leadsContextRef.current) {
         const incoming = res.data?.leads || [];
         setBoardColumns(null);
-        setLeads((prev) => (appendCursor ? [...prev, ...incoming] : incoming));
+        setLeads((prev) => {
+          if (appendCursor) {
+            const seen = new Set(prev.map((l) => String(l.id_str || l.id)));
+            return [...prev, ...incoming.filter((l) => !seen.has(String(l.id_str || l.id)))];
+          }
+          if (quiet && prev.length > (loadedCount || 50)) {
+            const freshIds = new Set(incoming.map((l) => String(l.id_str || l.id)));
+            const tail = prev.slice(loadedCount || 50).filter((l) => !freshIds.has(String(l.id_str || l.id)));
+            return [...incoming, ...tail];
+          }
+          return incoming;
+        });
         setServerTotal(typeof res.data?.total === 'number' ? res.data.total : incoming.length);
         if (res.data?.stageCounts) setStageCounts(res.data.stageCounts);
-        setNextCursor(res.data?.nextCursor || null);
+        if (!quiet || !appendCursor) {
+          setNextCursor((prevCur) => (quiet && leadsRef.current.length > (loadedCount || 50) ? prevCur : (res.data?.nextCursor || null)));
+        }
+        setSyncStatus('online');
+        setLastSyncAt(new Date().toISOString());
+        backoffMsRef.current = 5000;
       }
+      return true;
     } catch (err) {
-      if (requestId === leadRequest.current && !quiet) {
-        setFetchError(err.message || 'Не удалось загрузить список лидов');
+      if (requestId === leadRequest.current && ctx === leadsContextRef.current) {
+        if (!quiet) setFetchError(err.message || 'Не удалось загрузить список лидов');
+        const offlineNow = typeof navigator !== 'undefined' && navigator.onLine === false;
+        setSyncStatus(offlineNow ? 'offline' : 'reconnecting');
+        backoffMsRef.current = Math.min(30000, backoffMsRef.current * 2);
       }
+      return false;
     } finally {
       if (requestId === leadRequest.current) setIsLoading(false);
     }
@@ -267,15 +331,54 @@ export const LeadsPage = () => {
   }, [fetchLeads]);
 
   useEffect(() => {
-    const tick = async () => {
-      if (document.hidden || leadRefreshBusy.current) return;
-      leadRefreshBusy.current = true;
-      try { await Promise.all([fetchLeads(true), fetchStats()]); }
-      finally { leadRefreshBusy.current = false; }
+    let alive = true;
+    let timerId = null;
+
+    const scheduleNext = () => {
+      if (!alive) return;
+      if (timerId) clearTimeout(timerId);
+      timerId = setTimeout(tick, backoffMsRef.current);
     };
-    const timer = setInterval(tick, 5000);
+
+    const tick = async () => {
+      if (!alive || document.hidden || leadRefreshBusy.current) {
+        scheduleNext();
+        return;
+      }
+      if (typeof navigator !== 'undefined' && navigator.onLine === false) {
+        setSyncStatus('offline');
+        scheduleNext();
+        return;
+      }
+      leadRefreshBusy.current = true;
+      try {
+        await Promise.all([fetchLeads(true), fetchStats()]);
+      } finally {
+        leadRefreshBusy.current = false;
+        scheduleNext();
+      }
+    };
+
+    const handleOnline = () => {
+      backoffMsRef.current = 5000;
+      setSyncStatus('reconnecting');
+      void tick();
+    };
+    const handleOffline = () => {
+      setSyncStatus('offline');
+    };
+
+    scheduleNext();
     window.addEventListener('focus', tick);
-    return () => { clearInterval(timer); window.removeEventListener('focus', tick); };
+    window.addEventListener('online', handleOnline);
+    window.addEventListener('offline', handleOffline);
+    return () => {
+      alive = false;
+      if (timerId) clearTimeout(timerId);
+      window.removeEventListener('focus', tick);
+      window.removeEventListener('online', handleOnline);
+      window.removeEventListener('offline', handleOffline);
+    };
   }, [fetchLeads, fetchStats]);
 
   const handleSelectLead = (lead) => {
@@ -769,8 +872,11 @@ export const LeadsPage = () => {
               </button>
             </div>
 
-            <div className="text-xs font-semibold text-slate-500">
-              Всего по выборке: <strong className="text-slate-900">{serverTotal ?? leads.length}</strong>
+            <div className="flex items-center gap-3 text-xs font-semibold text-slate-500">
+              <span data-testid="leads-sync-status" className="text-[11px] font-normal text-slate-400">
+                {syncStatus === 'offline' ? 'Нет сети' : syncStatus === 'reconnecting' ? 'Повторное подключение…' : lastSyncAt ? `Онлайн · Обновлено ${new Date(lastSyncAt).toLocaleTimeString('ru-RU')}` : 'Онлайн'}
+              </span>
+              <span>Всего по выборке: <strong className="text-slate-900">{serverTotal ?? leads.length}</strong></span>
             </div>
           </div>
 

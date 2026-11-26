@@ -33,68 +33,114 @@ function InstagramAccountInbox({ accountId, drafts }) {
   const historyVersions = useRef(new Map());
   const selectedRef = useRef(null);
   const refreshBusy = useRef(false);
+  const contextVersionRef = useRef(0);
+  const backoffMsRef = useRef(3000);
   const [showingCached, setShowingCached] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [syncStatus, setSyncStatus] = useState(() => (typeof navigator !== 'undefined' && navigator.onLine === false ? 'offline' : 'online'));
+  const [lastSyncAt, setLastSyncAt] = useState(null);
   const allowed = ['ADMIN', 'DIRECTOR', 'SALES_MANAGER'].includes(user?.role);
+
+  const clearAuthScopedState = useCallback((onlyKey = null) => {
+    if (onlyKey) {
+      historyCache.current.delete(onlyKey);
+      drafts?.delete?.(onlyKey);
+      if (selectedRef.current && (selectedRef.current.instagramAccountId + ':' + selectedRef.current.contactId) === onlyKey) {
+        selectedRef.current = null;
+        ++historyRequest.current;
+        setSelected(null);
+        setMessages([]);
+        setMessagesCursor(null);
+        setShowingCached(false);
+      }
+      return;
+    }
+    historyCache.current.clear();
+    pendingHistory.current.clear();
+    historyVersions.current.clear();
+    drafts?.clear?.();
+    selectedRef.current = null;
+    ++historyRequest.current;
+    setConversations([]);
+    setSelected(null);
+    setMessages([]);
+    setMessagesCursor(null);
+    setShowingCached(false);
+  }, [drafts]);
 
   const refresh = useCallback(async (after, quiet = false) => {
     const cursor = typeof after === 'string' ? after : null;
+    const ctxVersion = contextVersionRef.current;
     if (!quiet) { setLoading(true); setError(''); }
     try {
       const response = await api.get(cursor ? '/integrations/instagram/inbox/conversations/page' : '/integrations/instagram/inbox/conversations', { params: { ...(cursor ? { after: cursor } : {}), ...(accountId ? { account: accountId } : {}) } });
+      if (ctxVersion !== contextVersionRef.current) return false;
       const incoming = response?.data || [];
       setConversations(previous => {
-        const nextList = cursor
-          ? [...new Map([...previous, ...incoming].map(c => [c.contactId, c])).values()]
-          : incoming;
-        if (!cursor && selectedRef.current) {
-          const stillAllowed = nextList.some(
-            c => String(c.contactId) === String(selectedRef.current.contactId) &&
-              String(c.instagramAccountId) === String(selectedRef.current.instagramAccountId)
-          );
-          if (!stillAllowed) {
-            const revokedKey = selectedRef.current.instagramAccountId + ':' + selectedRef.current.contactId;
-            historyCache.current.delete(revokedKey);
-            drafts?.current?.delete(revokedKey);
-            selectedRef.current = null;
-            ++historyRequest.current;
-            setSelected(null);
-            setMessages([]);
-            setMessagesCursor(null);
-            setShowingCached(false);
-          }
+        if (cursor) {
+          return [...new Map([...previous, ...incoming].map(c => [`${c.instagramAccountId}:${c.contactId}`, c])).values()];
         }
-        return nextList;
+        if (quiet && previous.length > 0) {
+          // Merge page 1 updates while preserving already-loaded pages 2..N (and never close selected off-page-1)
+          const incomingKeys = new Set(incoming.map(c => `${c.instagramAccountId}:${c.contactId}`));
+          const tail = previous.filter(c => !incomingKeys.has(`${c.instagramAccountId}:${c.contactId}`));
+          return [...incoming, ...tail];
+        }
+        return incoming;
       });
-      setNextCursor(response?.nextCursor || null);
+      setNextCursor(prevCur => {
+        if (cursor) return response?.nextCursor || null;
+        if (quiet && prevCur) return prevCur;
+        return response?.nextCursor || null;
+      });
+      backoffMsRef.current = 3000;
+      setSyncStatus('online');
+      setLastSyncAt(new Date().toISOString());
       return true;
     } catch (err) {
-      if ([401, 403, 409].includes(err.response?.status)) {
-        historyCache.current.clear(); selectedRef.current = null; ++historyRequest.current;
-        setConversations([]); setSelected(null); setMessages([]); setMessagesCursor(null);
+      if (ctxVersion !== contextVersionRef.current) return false;
+      const status = err?.response?.status ?? err?.status;
+      // Only clear caches/drafts on real auth/access denial (401/403), NEVER on 409 conflict or 503 transient failure
+      if (status === 401 || status === 403) {
+        clearAuthScopedState();
       }
+      const offlineNow = typeof navigator !== 'undefined' && navigator.onLine === false;
+      setSyncStatus(offlineNow ? 'offline' : 'reconnecting');
+      backoffMsRef.current = Math.min(30000, backoffMsRef.current * 2);
       setError(err.message || 'Не удалось загрузить переписки Instagram.');
       return false;
     } finally {
-      if (!quiet) setLoading(false);
+      if (!quiet && ctxVersion === contextVersionRef.current) setLoading(false);
     }
-  }, [accountId]);
+  }, [accountId, clearAuthScopedState]);
 
   useEffect(() => {
+    contextVersionRef.current += 1;
     historyCache.current.clear();
+    pendingHistory.current.clear();
+    historyVersions.current.clear();
     selectedRef.current = null;
     ++historyRequest.current;
     setSelected(null);
     setMessages([]);
     setMessagesCursor(null);
     setShowingCached(false);
-    if (!allowed) return;
+    if (!allowed) {
+      drafts?.clear?.();
+      setConversations([]);
+      return;
+    }
     void refresh();
-    return () => { ++historyRequest.current; selectedRef.current = null; };
-  }, [allowed, refresh, user?.id, user?.role]);
+    return () => {
+      contextVersionRef.current += 1;
+      ++historyRequest.current;
+      selectedRef.current = null;
+    };
+  }, [allowed, refresh, user?.id, user?.role, drafts]);
   const openConversation = useCallback(async (conversation, after = null, force = false, quiet = false) => {
     const requestId = ++historyRequest.current;
+    const ctxVersion = contextVersionRef.current;
     const key = conversation.instagramAccountId + ':' + conversation.contactId;
     const cached = historyCache.current.get(key);
     if (!quiet) {
@@ -127,34 +173,64 @@ function InstagramAccountInbox({ accountId, drafts }) {
         pending.then(clearPending, clearPending);
       }
       const response = await pending;
+      if (ctxVersion !== contextVersionRef.current) return;
       if (historyVersions.current.get(pendingKey) !== pending) return;
-      const loaded = after ? [...new Map([...(response?.data || []), ...(cached?.messages || [])].map(m => [m.message_id, m])).values()] : (response?.data || []);
+      // Preserve older loaded messages on both explicit `after` paging and background latest refresh!
+      const mergedMap = new Map();
+      for (const m of (cached?.messages || [])) mergedMap.set(m.message_id, m);
+      for (const m of (response?.data || [])) mergedMap.set(m.message_id, m);
+      const loaded = [...mergedMap.values()].sort((a, b) => Date.parse(a.created_at) - Date.parse(b.created_at));
+      const resolvedNextCursor = after ? (response?.nextCursor || null) : (cached?.nextCursor ?? response?.nextCursor ?? null);
       historyCache.current.delete(key);
-      historyCache.current.set(key, { messages: loaded, nextCursor: response?.nextCursor || null,
+      historyCache.current.set(key, { messages: loaded, nextCursor: resolvedNextCursor,
         loadedAt: after ? (cached?.loadedAt || 0) : Date.now() });
       while (historyCache.current.size > 20) historyCache.current.delete(historyCache.current.keys().next().value);
-      if (requestId !== historyRequest.current) return;
-      setMessages(loaded);
-      setMessagesCursor(response?.nextCursor || null);
-      setShowingCached(false);
+      if (!quiet && requestId !== historyRequest.current) return;
+      if (selectedRef.current && (selectedRef.current.instagramAccountId + ':' + selectedRef.current.contactId) === key) {
+        setMessages(loaded);
+        setMessagesCursor(resolvedNextCursor);
+        setShowingCached(false);
+      }
+      backoffMsRef.current = 3000;
+      setSyncStatus('online');
+      setLastSyncAt(new Date().toISOString());
       if (!quiet) setError('');
     } catch (err) {
-      if (requestId === historyRequest.current) {
-        if ([401, 403, 404, 409].includes(err.response?.status)) {
-          historyCache.current.delete(key); setMessages([]); setMessagesCursor(null); setShowingCached(false);
-        }
-        setError((cached ? 'Не удалось обновить историю. ' : '') + (err.message || 'Не удалось загрузить историю переписки.'));
+      if (ctxVersion !== contextVersionRef.current) return;
+      const status = err?.response?.status ?? err?.status;
+      const shouldClear = status === 401 || status === 403 || status === 404;
+      if (requestId === historyRequest.current || quiet) {
+        setError((cached && !shouldClear ? 'Не удалось обновить историю. ' : '') + (err.message || 'Не удалось загрузить историю переписки.'));
+      }
+      if (shouldClear) {
+        clearAuthScopedState(key);
       }
     } finally {
-      if (requestId === historyRequest.current) setHistoryLoading(false);
+      if (requestId === historyRequest.current && ctxVersion === contextVersionRef.current) setHistoryLoading(false);
     }
-  }, []);
+  }, [clearAuthScopedState]);
 
   useEffect(() => {
     if (!allowed) return;
     let alive = true;
+    let timerId = null;
+
+    const scheduleNext = () => {
+      if (!alive) return;
+      if (timerId) clearTimeout(timerId);
+      timerId = setTimeout(tick, backoffMsRef.current);
+    };
+
     const tick = async () => {
-      if (!alive || document.hidden || refreshBusy.current || pendingHistory.current.size) return;
+      if (!alive || document.hidden || refreshBusy.current || pendingHistory.current.size) {
+        scheduleNext();
+        return;
+      }
+      if (typeof navigator !== 'undefined' && navigator.onLine === false) {
+        setSyncStatus('offline');
+        scheduleNext();
+        return;
+      }
       refreshBusy.current = true;
       const current = selectedRef.current;
       try {
@@ -162,32 +238,69 @@ function InstagramAccountInbox({ accountId, drafts }) {
         if (alive && ok && current && selectedRef.current === current && !pendingHistory.current.size) {
           await openConversation(current, null, true, true);
         }
-      } finally { refreshBusy.current = false; }
+      } finally {
+        refreshBusy.current = false;
+        scheduleNext();
+      }
     };
-    const timer = setInterval(tick, 3000);
+
+    const handleOnline = () => {
+      backoffMsRef.current = 3000;
+      setSyncStatus('reconnecting');
+      void tick();
+    };
+    const handleOffline = () => {
+      setSyncStatus('offline');
+    };
+
+    scheduleNext();
     document.addEventListener('visibilitychange', tick);
     window.addEventListener('focus', tick);
-    return () => { alive = false; clearInterval(timer); document.removeEventListener('visibilitychange', tick); window.removeEventListener('focus', tick); };
+    window.addEventListener('online', handleOnline);
+    window.addEventListener('offline', handleOffline);
+    return () => {
+      alive = false;
+      if (timerId) clearTimeout(timerId);
+      document.removeEventListener('visibilitychange', tick);
+      window.removeEventListener('focus', tick);
+      window.removeEventListener('online', handleOnline);
+      window.removeEventListener('offline', handleOffline);
+    };
   }, [allowed, refresh, openConversation]);
 
-  const sent = (result) => {
-    if (!selected) return;
+  const sent = (result, opContext = null) => {
+    const targetAccount = opContext?.accountId || selectedRef.current?.instagramAccountId;
+    const targetContact = opContext?.contactId || selectedRef.current?.contactId;
+    if (!targetAccount || !targetContact) return;
+    const key = targetAccount + ':' + targetContact;
+    const isCurrentlySelected =
+      selectedRef.current &&
+      String(selectedRef.current.instagramAccountId) === String(targetAccount) &&
+      String(selectedRef.current.contactId) === String(targetContact);
     const message = result?.message;
-    const key = selected.instagramAccountId + ':' + selected.contactId;
     if (message) {
       const cached = historyCache.current.get(key);
       const updated = [...new Map([...(cached?.messages || []), message].map(m => [m.message_id, m])).values()];
       historyCache.current.set(key, { ...cached, messages: updated, loadedAt: Date.now() });
-      setMessages(updated);
-      setConversations(items => items.map(c => c.contactId === selected.contactId ? { ...c, lastMessage: message.text_content, updatedAt: message.created_at } : c));
-      if (result.saved === false) setError('Сообщение отправлено. Обновление сохранённой истории будет повторено автоматически.');
-    } else void openConversation(selected, null, true, true);
+      if (isCurrentlySelected) {
+        setMessages(updated);
+        if (result.saved === false) setError('Сообщение отправлено. Обновление сохранённой истории будет повторено автоматически.');
+      }
+      setConversations(items => items.map(c => (String(c.contactId) === String(targetContact) && String(c.instagramAccountId) === String(targetAccount)) ? { ...c, lastMessage: message.text_content, updatedAt: message.created_at } : c));
+    } else if (isCurrentlySelected) {
+      void openConversation(selectedRef.current, null, true, true);
+    }
   };
 
   if (!allowed) return <div className="p-6 text-slate-700">Доступ к перепискам Instagram ограничен.</div>;
   return <section className="p-6 space-y-5">
     <div className="flex flex-wrap justify-between gap-3 items-center">
-      <div><h1 className="text-2xl font-bold text-slate-900">Instagram Direct</h1><p className="text-sm text-slate-500">Автообновление включено · Новые сообщения проверяются каждые 3 секунды.</p></div>
+      <div>
+        <h1 className="text-2xl font-bold text-slate-900">Instagram Direct</h1>
+        <p className="text-sm text-slate-500" data-testid="ig-sync-status">
+          {syncStatus === 'offline' ? 'Нет сети · Ожидание подключения' : syncStatus === 'reconnecting' ? 'Повторное подключение…' : lastSyncAt ? `Онлайн · Обновлено ${new Date(lastSyncAt).toLocaleTimeString('ru-RU')}` : 'Автообновление включено · Проверка каждые 3 секунды.'}
+        </p>
+      </div>
       <button type="button" onClick={() => { void refresh(); if (selected) void openConversation(selected, null, true); }} disabled={loading || historyLoading} className="rounded-lg bg-blue-600 px-4 py-2 text-white disabled:opacity-50">{loading ? 'Загрузка…' : 'Обновить'}</button>
     </div>
     {error && <p role="alert" className="text-red-700">{error}</p>}

@@ -72,7 +72,7 @@ describe('Instagram history loading performance',()=>{
 
 describe('automatic Instagram updates',()=>{
  it('receives new dialogs and selected messages without clearing the draft',async()=>{
-  vi.useFakeTimers({toFake:['setInterval','clearInterval']});
+  vi.useFakeTimers({shouldAdvanceTime:true});
   let updated=false;
   api.get.mockImplementation(url=>Promise.resolve(url.endsWith('/connection')?{data:{connected:true}}:url.endsWith('/conversations')?{data:updated?[...list,{instagramAccountId:'1',contactId:'30',name:'New customer'}]:list}:{data:[{message_id:updated?'new':'old',text_content:updated?'New message':'Old message'}]}));
   render(<InstagramInboxPage/>);fireEvent.click(await screen.findByText('Alice'));await screen.findByText('Old message');
@@ -82,7 +82,7 @@ describe('automatic Instagram updates',()=>{
   expect(screen.getByLabelText('Ответ клиенту').value).toBe('Draft 😊');
  });
  it('does not overlap automatic history requests or update an unmounted inbox',async()=>{
-  vi.useFakeTimers({toFake:['setInterval','clearInterval']});let finish;
+  vi.useFakeTimers({shouldAdvanceTime:true});let finish;
   setup(()=>new Promise(resolve=>{finish=resolve;}));fireEvent.click(await screen.findByText('Alice'));
   const before=api.get.mock.calls.length;await act(async()=>{await vi.advanceTimersByTimeAsync(9000);});expect(api.get).toHaveBeenCalledTimes(before);
   finish({data:[]});await act(async()=>{});cleanup();const calls=api.get.mock.calls.length;

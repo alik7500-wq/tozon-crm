@@ -10,7 +10,7 @@ it('shows a confirmed send immediately and does not wait for slow history refres
  const message={message_id:'sent',text_content:'answer',is_echo:true};api.post.mockResolvedValue({data:{message,saved:true}});
  const onSent=vi.fn(()=>new Promise(()=>{}));render(<InstagramReplyComposer conversation={conversation} onSent={onSent}/>);
  fireEvent.change(screen.getByLabelText('Ответ клиенту'),{target:{value:'answer'}});fireEvent.click(screen.getByText('Отправить'));
- await waitFor(()=>expect(onSent).toHaveBeenCalledWith({message,saved:true}));
+ await waitFor(()=>expect(onSent).toHaveBeenCalledWith({message,saved:true},expect.objectContaining({accountId:'1',contactId:'123'})));
  expect(screen.getByText('Отправить')).toBeTruthy();expect(screen.getByLabelText('Ответ клиенту').value).toBe('');
  expect(api.post).toHaveBeenCalledTimes(1);
 });
