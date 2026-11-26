@@ -43,7 +43,30 @@ function InstagramAccountInbox({ accountId, drafts }) {
     if (!quiet) { setLoading(true); setError(''); }
     try {
       const response = await api.get(cursor ? '/integrations/instagram/inbox/conversations/page' : '/integrations/instagram/inbox/conversations', { params: { ...(cursor ? { after: cursor } : {}), ...(accountId ? { account: accountId } : {}) } });
-      setConversations(previous => cursor ? [...new Map([...previous, ...(response?.data || [])].map(c => [c.contactId, c])).values()] : (response?.data || []));
+      const incoming = response?.data || [];
+      setConversations(previous => {
+        const nextList = cursor
+          ? [...new Map([...previous, ...incoming].map(c => [c.contactId, c])).values()]
+          : incoming;
+        if (!cursor && selectedRef.current) {
+          const stillAllowed = nextList.some(
+            c => String(c.contactId) === String(selectedRef.current.contactId) &&
+              String(c.instagramAccountId) === String(selectedRef.current.instagramAccountId)
+          );
+          if (!stillAllowed) {
+            const revokedKey = selectedRef.current.instagramAccountId + ':' + selectedRef.current.contactId;
+            historyCache.current.delete(revokedKey);
+            drafts?.current?.delete(revokedKey);
+            selectedRef.current = null;
+            ++historyRequest.current;
+            setSelected(null);
+            setMessages([]);
+            setMessagesCursor(null);
+            setShowingCached(false);
+          }
+        }
+        return nextList;
+      });
       setNextCursor(response?.nextCursor || null);
       return true;
     } catch (err) {
@@ -59,10 +82,17 @@ function InstagramAccountInbox({ accountId, drafts }) {
   }, [accountId]);
 
   useEffect(() => {
+    historyCache.current.clear();
+    selectedRef.current = null;
+    ++historyRequest.current;
+    setSelected(null);
+    setMessages([]);
+    setMessagesCursor(null);
+    setShowingCached(false);
     if (!allowed) return;
     void refresh();
     return () => { ++historyRequest.current; selectedRef.current = null; };
-  }, [allowed, refresh]);
+  }, [allowed, refresh, user?.id, user?.role]);
   const openConversation = useCallback(async (conversation, after = null, force = false, quiet = false) => {
     const requestId = ++historyRequest.current;
     const key = conversation.instagramAccountId + ':' + conversation.contactId;
@@ -194,7 +224,8 @@ function InstagramAccountInbox({ accountId, drafts }) {
 
 export function InstagramInboxPage() {
   const {user}=useAuth();
-  const allowed=['ADMIN','DIRECTOR'].includes(user?.role);
+  const allowed=['ADMIN','DIRECTOR','SALES_MANAGER'].includes(user?.role);
+  const canManageAccounts=['ADMIN','DIRECTOR'].includes(user?.role);
   const [connection,setConnection]=useState(null);
   const [accountId,setAccountId]=useState('');
   const [loaded,setLoaded]=useState(false);
@@ -205,16 +236,27 @@ export function InstagramInboxPage() {
   const drafts=useRef(new Map());
   const load=useCallback(async()=>{
     try {
-      const result=await api.get('/integrations/instagram/connection');
+      const endpoint=canManageAccounts?'/integrations/instagram/connection':'/integrations/instagram/inbox/accounts';
+      const result=await api.get(endpoint);
       const data=result?.data || {};
       setConnection(data);
       if(Array.isArray(data.accounts))setAccountId(previous=>data.accounts.some(a=>a.accountId===previous)?previous:(data.accounts.find(a=>a.connected)||data.accounts[0])?.accountId || '');
       setError('');
     }catch(err){setError(err.message || 'Не удалось получить список аккаунтов Instagram.');}
     finally{setLoaded(true);}
-  },[]);
-  useEffect(()=>{if(!allowed)return;void load();window.addEventListener('focus',load);return()=>window.removeEventListener('focus',load);},[allowed,load]);
+  },[canManageAccounts]);
+  useEffect(()=>{
+    drafts.current.clear();
+    setConnection(null);
+    setAccountId('');
+    setLoaded(false);
+    if(!allowed)return;
+    void load();
+    window.addEventListener('focus',load);
+    return()=>window.removeEventListener('focus',load);
+  },[allowed,load,user?.id,user?.role]);
   const connect=async()=>{
+    if(!canManageAccounts)return;
     setConnecting(true);setError('');
     try{
       const result=await api.post('/integrations/instagram/connect');
@@ -224,6 +266,7 @@ export function InstagramInboxPage() {
     }catch{setConnecting(false);setError('Не удалось начать подключение Instagram. Проверьте настройки Meta.');}
   };
   const disconnect=async()=>{
+    if(!canManageAccounts)return;
     const target=confirmDisconnect;if(!target||disconnecting)return;
     setDisconnecting(true);setError('');
     try{
@@ -236,6 +279,7 @@ export function InstagramInboxPage() {
   if(!allowed)return <div className="p-6 text-slate-700">Доступ к перепискам Instagram ограничен.</div>;
   const accounts=Array.isArray(connection?.accounts)?connection.accounts:null;
   const selected=accounts?.find(a=>a.accountId===accountId);
+  const managerHasNoAccounts=!canManageAccounts && loaded && Array.isArray(accounts) && accounts.length===0;
   return <div className="space-y-3">
     <div className="mx-6 mt-6 rounded-xl border border-slate-200 bg-white p-4 space-y-3">
       <div className="flex flex-wrap items-end justify-between gap-3">
@@ -244,22 +288,28 @@ export function InstagramInboxPage() {
             <select id="instagram-account" value={accountId} onChange={event=>{setAccountId(event.target.value);setConfirmDisconnect(null);}} className="rounded-lg border border-slate-300 p-2">
               {accounts.map(a=><option key={a.accountId} value={a.accountId}>{a.username?'@'+a.username:a.accountId}{a.needsReconnect?' — требуется переподключение':''}</option>)}
             </select></> : <div className="font-medium">Аккаунты Instagram</div>}
-          <p className="text-sm text-slate-500">{selected ? selected.connected?'Instagram подключён':'Необходимо переподключение' : connection?.connected?'Instagram подключён':'Подключите профессиональный аккаунт через Meta'}</p>
+          {canManageAccounts ? (
+            <p className="text-sm text-slate-500">{selected ? selected.connected?'Instagram подключён':'Необходимо переподключение' : connection?.connected?'Instagram подключён':'Подключите профессиональный аккаунт через Meta'}</p>
+          ) : (
+            <p className="text-sm text-slate-500">{managerHasNoAccounts ? 'Нет доступных диалогов Instagram для вашего профиля.' : 'Доступны только закреплённые за вами диалоги.'}</p>
+          )}
         </div>
-        <div className="flex flex-wrap gap-2">
+        {canManageAccounts && <div className="flex flex-wrap gap-2">
           <button type="button" onClick={connect} disabled={connecting} className="rounded-lg border border-blue-600 px-4 py-2 text-blue-700 disabled:opacity-50">{connecting?'Подключение…':'Добавить аккаунт Instagram'}</button>
           {selected && <><button type="button" onClick={connect} disabled={connecting} className="px-3 py-2 text-blue-700">Переподключить</button>
             <button type="button" onClick={()=>setConfirmDisconnect(accountId)} disabled={disconnecting} className="px-3 py-2 text-red-700">Отключить аккаунт</button></>}
-        </div>
+        </div>}
       </div>
-      {confirmDisconnect && <div className="rounded-lg bg-slate-50 p-3 text-sm">
+      {canManageAccounts && confirmDisconnect && <div className="rounded-lg bg-slate-50 p-3 text-sm">
         <p>Отключить выбранный аккаунт от CRM? Сохранённые переписки и лиды останутся в базе.</p>
         <button type="button" onClick={disconnect} disabled={disconnecting} className="mr-4 py-2 text-red-700">Подтвердить отключение</button>
         <button type="button" onClick={()=>setConfirmDisconnect(null)} disabled={disconnecting}>Отмена</button>
       </div>}
       {error && <p role="alert" className="text-red-700">{error}</p>}
     </div>
-    {!loaded ? <p role="status" className="p-6">Загрузка аккаунтов…</p> : (accounts===null || selected) && !error &&
+    {!loaded ? <p role="status" className="p-6">Загрузка аккаунтов…</p> : managerHasNoAccounts ? (
+      <section className="p-6"><div className="rounded-xl border border-slate-200 bg-white p-6 text-sm text-slate-600">Нет доступных диалогов Instagram.</div></section>
+    ) : (accounts===null || selected) && !error &&
       <InstagramAccountInbox key={accountId || 'legacy'} accountId={accountId || undefined} drafts={drafts.current}/>}
   </div>;
 }

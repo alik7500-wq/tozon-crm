@@ -1,19 +1,21 @@
 # CURRENT_TASK.md
 
-- **ID задачи:** `R04.1` — Исправление замечаний к фильтрам, пагинации, доске, экспорту и scope проектов
-- **Статус:** `DONE` (PGlite DB-side query/cursor + Supertest streaming export/board + UI mock тесты пройдены; сохранение догруженных страниц при фоновом автообновлении передано в `R07`; live staging — `NOT_RUN`)
+- **ID задачи:** `R05` — Доступ `SALES_MANAGER` к основной странице Instagram и серверным маршрутам
+- **Статус:** `DONE` (UI mocks + PGlite HTTP `protect/sectionAccess/R04.2` тесты пройдены; живая проверка Meta — `BLOCKED_MISSING_TOKEN` / `NOT_RUN` из-за отсутствия тестового токена Meta в среде)
 - **Ветки:**
   - `tozon-backend`: `feat/crm-sales-completion`
   - `tozon-crm`: `a00`
 - **Что сделано:**
-  - Миграция `065_harden_unified_query_cursor_and_scope.sql`: точный микросекундный курсор `created_at_iso_us` (`YYYY-MM-DD"T"HH24:MI:SS.US"Z"`), fail-closed `has_all_projects` / `allowed_project_ids` (пустой/неизвестный scope ограниченной роли возвращает `0` строк), независимая порционная выборка `board_columns` через `board_per_stage_limit`.
-  - В `leadFilterValidator.js` и `leads.repository.js`: сохранение микросекунд в курсоре без `Date.toISOString()`, валидация формата и диапазона курсора, per-column `nextCursor` с корректным `stageFilterHash`.
-  - В `leads.router.js`: добавлен `GET /api/leads/board`; `GET /api/leads/export` переведён на потоковый экспорт Excel (`.xlsx` по умолчанию через `ExcelJS.stream.xlsx.WorkbookWriter`, опционально `?format=csv`) без тихой обрезки на 10 000 строках и с явным `413 EXPORT_LIMIT_EXCEEDED` при превышении `MAX_EXPORT_ROWS`.
-  - На frontend (`LeadsPage.jsx`, `LeadKanbanView.jsx`): Kanban использует `GET /leads/board` и порционную догрузку каждой колонки (`Показать ещё` -> `/leads?stage=...&cursor=...`); кнопка экспорта переведена на `Экспорт Excel`.
-  - Тесты: `064_unified_query_cursor.test.js` (6/6), `065_export_and_board_api.test.js` (4/4, включая 10 050 строк `.xlsx` и `csv` и `413`), `LeadsWorkspaceCompletion.test.jsx` (3/3).
+  - Frontend (`navigationRegistry.js`, `MainLayout.jsx`, `InstagramInboxPage.jsx`):
+    - Открыт пункт меню `Instagram Direct` (`/instagram/inbox`) для `SALES_MANAGER` с правом `leads.view`.
+    - `InstagramInboxPage` разделён на режим управления (`ADMIN`/`DIRECTOR` -> `/integrations/instagram/connection`, кнопки подключения/отключения) и режим менеджера (`SALES_MANAGER` -> безопасный `GET /integrations/instagram/inbox/accounts`, без кнопок управления и OAuth-настроек, с пустым состоянием при отсутствии допусков).
+    - При отзыве доступа, смене аккаунта/пользователя или исчезновении диалога из списка `historyCache` и `drafts` очищаются.
+  - Backend (`sectionAccess.js`, `instagram-inbox.router.js`):
+    - `sectionAccess.js` допускает `SALES_MANAGER` к `GET /inbox/accounts`, `GET /inbox/conversations`, `GET /inbox/conversations/page`, `GET /inbox/conversations/:account/:contact/messages` и `POST /send/:account/:contact` по правам `leads.view` / `leads.manage`; административные маршруты `/connection`, `/connect`, `/disconnect` остаются строго за `ADMIN`/`DIRECTOR`.
+    - `instagram-inbox.router.js` проверяет реальные проектные права R04.2 (`all_projects_access`, `allowed_project_ids`) + `responsible_user_id` + права раздела (`leads.view`/`leads.manage`) на всех операциях (список, пагинация, сообщения, отправка) и отклоняет подмену `account`/`contact`/`cursor` и запросы после отзыва доступа.
 
-## Передано в R07
-- Сохранение догруженных по `nextCursor` страниц при фоновом периодическом автообновлении (сейчас фоновый `tick` запрашивает первую страницу) — решается в `R07`.
+## Обязательный список R09 (зарегистрировано в R05)
+- **Транзакционная замена проектных прав (`UsersRepository.setProjectAccess`):** перенести обновление `users.all_projects_access`, удаление старых и вставку новых строк `user_project_access` в единую атомарную SQL-транзакцию (RPC), чтобы сбой в середине не оставлял пользователя без проектных прав.
 
 ## Следующая задача
-- `R05` — Доступ `SALES_MANAGER` к основной `InstagramInboxPage` и маршруту (в ветках `feat/crm-sales-completion` и `a00`).
+- `R06` — Оставшиеся задачи этапа R06 (в ветках `feat/crm-sales-completion` и `a00`).
