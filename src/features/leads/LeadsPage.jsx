@@ -62,8 +62,12 @@ export const LeadsPage = () => {
   const [managerFilter, setManagerFilter] = useState('ALL');
   const [createdFrom, setCreatedFrom] = useState('');
   const [createdTo, setCreatedTo] = useState('');
+  const [taskStateFilter, setTaskStateFilter] = useState('');
+  const [unreadOnly, setUnreadOnly] = useState(false);
+  const [archiveFilter, setArchiveFilter] = useState('active');
   const [quickFilter, setQuickFilter] = useState(''); // 'ALL', 'NEW', 'UNASSIGNED', 'AWAITING_CONTACT', 'OVERDUE', 'IN_PROGRESS', 'CLOSED'
   const [serverTotal, setServerTotal] = useState(null);
+  const [stageCounts, setStageCounts] = useState(null);
   const [nextCursor, setNextCursor] = useState(null);
   const [users, setUsers] = useState([]);
   const [fetchError, setFetchError] = useState('');
@@ -113,38 +117,53 @@ export const LeadsPage = () => {
 
   const leadRefreshBusy = useRef(false);
   const leadRequest = useRef(0);
+
+  const buildUnifiedFilterParams = useCallback(() => {
+    const params = {};
+    if (search) params.search = search;
+    if (statusFilter) params.stage = statusFilter;
+    if (projectFilter) params.projectId = projectFilter;
+    if (sourceFilter) params.source = sourceFilter;
+    if (canAssign && managerFilter && managerFilter !== 'ALL') params.managerId = managerFilter;
+    if (createdFrom) params.createdFrom = createdFrom;
+    if (createdTo) params.createdTo = createdTo;
+    if (taskStateFilter) params.taskState = taskStateFilter;
+    if (unreadOnly) params.unread = 'true';
+    if (archiveFilter && archiveFilter !== 'active') params.archive = archiveFilter;
+    if (quickFilter) params.quickFilter = quickFilter;
+    return params;
+  }, [search, statusFilter, projectFilter, sourceFilter, managerFilter, createdFrom, createdTo, taskStateFilter, unreadOnly, archiveFilter, quickFilter, canAssign]);
+
   const fetchStats = useCallback(async () => {
     try {
-      const res = await api.get('/leads/stats');
+      const res = await api.get('/leads/stats', { params: buildUnifiedFilterParams() });
       if (res.data?.stats) {
         setStats(res.data.stats);
+      }
+      if (res.data?.stageCounts) {
+        setStageCounts(res.data.stageCounts);
       }
     } catch (err) {
       console.warn('Failed to fetch lead stats:', err);
     }
-  }, []);
+  }, [buildUnifiedFilterParams]);
 
   const fetchLeads = useCallback(async (quiet = false, appendCursor = null) => {
     const requestId = ++leadRequest.current;
     if (!quiet && !appendCursor) setIsLoading(true);
     if (!quiet) setFetchError('');
     try {
-      const params = {};
-      if (search) params.search = search;
-      if (statusFilter) params.stage = statusFilter;
-      if (projectFilter) params.projectId = projectFilter;
-      if (sourceFilter) params.source = sourceFilter;
-      if (canAssign && managerFilter && managerFilter !== 'ALL') params.managerId = managerFilter;
-      if (createdFrom) params.createdFrom = createdFrom;
-      if (createdTo) params.createdTo = createdTo;
-      if (quickFilter) params.quickFilter = quickFilter;
-      if (appendCursor) params.cursor = appendCursor;
+      const params = {
+        ...buildUnifiedFilterParams(),
+        ...(appendCursor ? { cursor: appendCursor } : {})
+      };
 
       const res = await api.get('/leads', { params });
       if (requestId === leadRequest.current) {
         const incoming = res.data?.leads || [];
         setLeads((prev) => (appendCursor ? [...prev, ...incoming] : incoming));
         setServerTotal(typeof res.data?.total === 'number' ? res.data.total : incoming.length);
+        if (res.data?.stageCounts) setStageCounts(res.data.stageCounts);
         setNextCursor(res.data?.nextCursor || null);
       }
     } catch (err) {
@@ -154,7 +173,13 @@ export const LeadsPage = () => {
     } finally {
       if (requestId === leadRequest.current) setIsLoading(false);
     }
-  }, [search, statusFilter, projectFilter, sourceFilter, managerFilter, createdFrom, createdTo, quickFilter, canAssign]);
+  }, [buildUnifiedFilterParams]);
+
+  const handleExportLeads = () => {
+    const qs = new URLSearchParams(buildUnifiedFilterParams()).toString();
+    const base = api.defaults?.baseURL || '/api';
+    window.open(`${base}/leads/export${qs ? `?${qs}` : ''}`, '_blank', 'noopener,noreferrer');
+  };
 
   const fetchProjects = async () => {
     try {
@@ -650,6 +675,43 @@ export const LeadsPage = () => {
                 onChange={(e) => setCreatedTo(e.target.value)}
                 className="rounded-xl border border-slate-200 bg-slate-50 px-2.5 py-1.5 text-xs text-slate-800"
               />
+
+              <select
+                aria-label="Состояние задачи"
+                value={taskStateFilter}
+                onChange={(e) => setTaskStateFilter(e.target.value)}
+                className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs text-slate-800"
+              >
+                <option value="">Любые задачи</option>
+                <option value="NO_TASK">Без задачи</option>
+                <option value="PAUSED">На паузе</option>
+                <option value="OVERDUE">Просрочена задача</option>
+                <option value="HAS_OPEN">Есть открытая</option>
+              </select>
+
+              <select
+                aria-label="Архив"
+                value={archiveFilter}
+                onChange={(e) => setArchiveFilter(e.target.value)}
+                className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs text-slate-800"
+              >
+                <option value="active">Активные</option>
+                <option value="archived">Архивные</option>
+                <option value="all">Все (с архивом)</option>
+              </select>
+
+              <label className="inline-flex items-center gap-1.5 text-xs text-slate-700 cursor-pointer">
+                <input type="checkbox" checked={unreadOnly} onChange={(e) => setUnreadOnly(e.target.checked)} />
+                <span>Непрочитанные</span>
+              </label>
+
+              <button
+                type="button"
+                onClick={handleExportLeads}
+                className="rounded-xl border border-slate-200 bg-white px-3 py-1.5 text-xs font-bold text-slate-700 hover:bg-slate-50 cursor-pointer"
+              >
+                Экспорт CSV
+              </button>
             </div>
 
             <div className="text-xs font-semibold text-slate-500">
@@ -677,6 +739,7 @@ export const LeadsPage = () => {
           ) : viewMode === 'kanban' ? (
             <LeadKanbanView
               leads={leads}
+              stageCounts={stageCounts}
               onSelectLead={handleSelectLead}
               onEditLead={handleEditLead}
               onStatusChange={handleQuickStatusChange}

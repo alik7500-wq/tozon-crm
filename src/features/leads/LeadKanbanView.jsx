@@ -15,7 +15,7 @@ import {
   Pencil
 } from 'lucide-react';
 
-export const LeadKanbanView = ({ leads, onSelectLead, onEditLead, onStatusChange, onAddNewLead }) => {
+export const LeadKanbanView = ({ leads, stageCounts = null, onSelectLead, onEditLead, onStatusChange, onAddNewLead }) => {
   const columns = [
     { key: 'NEW', title: 'Новый лид', next: 'IN_PROGRESS', nextLabel: 'В работу' },
     { key: 'IN_PROGRESS', title: 'В работе', next: 'NEGOTIATION', nextLabel: 'Переговоры' },
@@ -50,8 +50,8 @@ export const LeadKanbanView = ({ leads, onSelectLead, onEditLead, onStatusChange
                 <span className={`h-2.5 w-2.5 rounded-full ${col.key === 'NEW' ? 'bg-blue-500' : col.key === 'IN_PROGRESS' ? 'bg-amber-500' : col.key === 'NEGOTIATION' ? 'bg-purple-500' : col.key === 'WON' ? 'bg-emerald-500' : 'bg-rose-500'}`}></span>
                 <h4 className="text-xs font-bold text-slate-800 uppercase tracking-wider">{col.title}</h4>
               </div>
-              <span className="rounded-md bg-white border border-slate-200 px-2 py-0.5 text-xs font-bold text-slate-600 shadow-2xs">
-                {colLeads.length}
+              <span className="rounded-md bg-white border border-slate-200 px-2 py-0.5 text-xs font-bold text-slate-600 shadow-2xs" title="Всего в колонке по серверу">
+                {typeof stageCounts?.[col.key] === 'number' ? stageCounts[col.key] : colLeads.length}
               </span>
             </div>
 
