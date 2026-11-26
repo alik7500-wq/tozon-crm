@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { api } from '../../api/client';
 import { Select } from 'antd';
+import { ResettlementAgreements } from './ResettlementAgreements';
 import { useAuth } from '../auth/AuthContext';
 
 const area = n => (Number(n || 0) / 100).toLocaleString('ru-RU', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
@@ -329,6 +330,7 @@ export function ResettlementsPage() {
     </div>
     {selected && <section className="rounded-xl border bg-white p-5 space-y-4">
       <div className="flex items-center justify-between"><h2 className="text-xl font-semibold">Карточка №{selected.id}</h2><button onClick={() => setSelected(null)} className="border rounded px-3 py-1">Закрыть</button></div>
+      {user?.role === 'ADMIN' && <ResettlementAgreements key={selected.id} caseId={selected.id} canEdit={selected.status === 'DRAFT'} />}
       <div className="rounded-lg border border-blue-200 bg-blue-50 px-3 py-2 text-sm"><strong>Тип сделки: Переселение жителя</strong><span className="ml-2 text-slate-600">Компенсационная и платная площадь учитываются отдельно. Статус квартиры «Продана» устанавливается только после оформления договора.</span></div>
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
         <div>Старое жильё: <strong>{area(selected.original_home_area_x100)} м²</strong></div>
