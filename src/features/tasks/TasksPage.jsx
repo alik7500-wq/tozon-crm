@@ -4,6 +4,14 @@ import { api } from '../../api/client';
 import { useModalDismiss } from '../../hooks/useModalDismiss';
 import { matchSearchQuery } from '../../utils/searchUtils';
 import {
+  buildTaskDuePayload,
+  formatDushanbeDateTimeParts,
+  formatTaskDueDisplay,
+  getDushanbeToday,
+  isTaskDateOnly,
+  isTaskOverdue
+} from '../../utils/taskDueTime';
+import {
   CheckSquare,
   Plus,
   Search,
@@ -20,7 +28,8 @@ import {
   Trash2,
   Sparkles,
   Building2,
-  Check
+  Check,
+  Edit2
 } from 'lucide-react';
 
 export const TasksPage = () => {
@@ -47,18 +56,50 @@ export const TasksPage = () => {
     if (sQuery) setSearch(sQuery);
   }, [searchParams]);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [editingTaskId, setEditingTaskId] = useState(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const [newTask, setNewTask] = useState({
+  const createEmptyTaskForm = () => ({
     title: '',
     type: 'CALL',
     client_name: '',
     phone: '',
     project_name: '',
-    due_date: new Date().toISOString().split('T')[0],
+    dueMode: 'DATETIME',
+    due_date: getDushanbeToday(),
+    due_time: '12:00',
     priority: 'NORMAL',
     description: '',
   });
+
+  const [newTask, setNewTask] = useState(createEmptyTaskForm);
+
+  const openCreateModal = () => {
+    setEditingTaskId(null);
+    setNewTask(createEmptyTaskForm());
+    setIsModalOpen(true);
+  };
+
+  const openEditModal = (task) => {
+    const dateOnly = isTaskDateOnly(task);
+    const parts = !dateOnly && task.due_at ? formatDushanbeDateTimeParts(task.due_at) : { date: '', time: '' };
+    const fallbackDate = task.due_date ? String(task.due_date).slice(0, 10) : getDushanbeToday();
+
+    setEditingTaskId(task.id);
+    setNewTask({
+      title: task.title || '',
+      type: task.type || 'CALL',
+      client_name: task.client_name || '',
+      phone: task.phone || '',
+      project_name: task.project_name || '',
+      dueMode: dateOnly ? 'DATE_ONLY' : 'DATETIME',
+      due_date: (!dateOnly && parts.date) ? parts.date : fallbackDate,
+      due_time: (!dateOnly && parts.time) ? parts.time : '12:00',
+      priority: task.priority || 'NORMAL',
+      description: task.description || '',
+    });
+    setIsModalOpen(true);
+  };
 
   const isDirty = Boolean(newTask.title.trim() || newTask.client_name.trim() || newTask.description.trim());
   const { requestClose } = useModalDismiss({
@@ -118,32 +159,50 @@ export const TasksPage = () => {
     }
   };
 
-  const handleCreateTask = async (e) => {
+  const handleSaveTask = async (e) => {
     e.preventDefault();
     if (!newTask.title.trim()) return;
 
     try {
       setIsSubmitting(true);
-      const res = await api.post('/tasks', newTask);
-      const created = res.data?.task || res.task;
-      if (created) {
-        setTasks((prev) => [created, ...prev]);
+      const duePayload = buildTaskDuePayload({
+        mode: newTask.dueMode,
+        date: newTask.due_date,
+        time: newTask.due_time
+      });
+      const payload = {
+        title: newTask.title.trim(),
+        type: newTask.type,
+        client_name: newTask.client_name,
+        phone: newTask.phone,
+        project_name: newTask.project_name,
+        priority: newTask.priority,
+        description: newTask.description,
+        ...duePayload
+      };
+
+      if (editingTaskId) {
+        const res = await api.put(`/tasks/${editingTaskId}`, payload);
+        const updated = res.data?.task || res.task;
+        if (updated) {
+          setTasks((prev) => prev.map((t) => (t.id === editingTaskId ? updated : t)));
+        } else {
+          fetchTasks();
+        }
       } else {
-        fetchTasks();
+        const res = await api.post('/tasks', payload);
+        const created = res.data?.task || res.task;
+        if (created) {
+          setTasks((prev) => [created, ...prev]);
+        } else {
+          fetchTasks();
+        }
       }
       setIsModalOpen(false);
-      setNewTask({
-        title: '',
-        type: 'CALL',
-        client_name: '',
-        phone: '',
-        project_name: '',
-        due_date: new Date().toISOString().split('T')[0],
-        priority: 'NORMAL',
-        description: '',
-      });
+      setEditingTaskId(null);
+      setNewTask(createEmptyTaskForm());
     } catch (err) {
-      alert(err.message || 'Ошибка создания задачи');
+      alert(err.message || (editingTaskId ? 'Ошибка обновления задачи' : 'Ошибка создания задачи'));
     } finally {
       setIsSubmitting(false);
     }
@@ -161,7 +220,7 @@ export const TasksPage = () => {
   const openTasksCount = tasks.filter((t) => t.status === 'OPEN').length;
   const completedTasksCount = tasks.filter((t) => t.status === 'COMPLETED').length;
   const todayTasksCount = tasks.filter((t) => t.isToday).length;
-  const overdueTasksCount = tasks.filter((t) => t.isOverdue).length;
+  const overdueTasksCount = tasks.filter((t) => t.status === 'OPEN' && isTaskOverdue(t)).length;
 
   return (
     <div className="space-y-6 max-w-7xl mx-auto pb-16">
@@ -178,7 +237,7 @@ export const TasksPage = () => {
         </div>
 
         <button
-          onClick={() => setIsModalOpen(true)}
+          onClick={openCreateModal}
           className="flex items-center gap-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white px-4 py-2.5 text-xs font-bold transition shadow-md cursor-pointer"
         >
           <Plus className="h-4 w-4" />
@@ -264,13 +323,15 @@ export const TasksPage = () => {
         </div>
       ) : (
         <div className="space-y-3">
-          {filteredTasks.map((task) => (
+          {filteredTasks.map((task) => {
+            const overdue = task.status === 'OPEN' && isTaskOverdue(task);
+            return (
             <div
               key={task.id}
               className={`rounded-2xl border p-4 transition flex flex-col sm:flex-row sm:items-center justify-between gap-4 ${
                 task.status === 'COMPLETED'
                   ? 'bg-slate-50/70 border-slate-200 opacity-60'
-                  : task.isOverdue
+                  : overdue
                   ? 'bg-rose-50/30 border-rose-200 shadow-2xs'
                   : 'bg-white border-slate-200 hover:border-blue-300 shadow-2xs'
               }`}
@@ -351,17 +412,27 @@ export const TasksPage = () => {
 
                     <span
                       className={`flex items-center gap-1 font-semibold ${
-                        task.isOverdue ? 'text-rose-600' : 'text-slate-500'
+                        overdue ? 'text-rose-600' : 'text-slate-500'
                       }`}
                     >
                       <Calendar className="h-3.5 w-3.5 text-slate-400" />
-                      Срок: {new Date(task.due_date).toLocaleDateString('ru-RU')}
+                      Срок: {formatTaskDueDisplay(task)}
                     </span>
                   </div>
                 </div>
               </div>
 
               <div className="flex items-center gap-2 shrink-0">
+                <button
+                  type="button"
+                  onClick={() => openEditModal(task)}
+                  aria-label={`Редактировать задачу ${task.title}`}
+                  title="Редактировать задачу"
+                  className="p-1.5 rounded-xl text-slate-400 hover:bg-blue-50 hover:text-blue-600 transition cursor-pointer"
+                >
+                  <Edit2 className="h-4 w-4" />
+                </button>
+
                 <button
                   onClick={() => toggleTaskStatus(task)}
                   className={`px-3 py-1.5 rounded-xl text-xs font-bold border transition cursor-pointer ${
@@ -382,7 +453,8 @@ export const TasksPage = () => {
                 </button>
               </div>
             </div>
-          ))}
+            );
+          })}
         </div>
       )}
 
@@ -391,7 +463,9 @@ export const TasksPage = () => {
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-xs animate-in fade-in">
           <div className="relative w-full max-w-lg rounded-3xl border border-slate-200 bg-white p-6 shadow-2xl space-y-4">
             <div className="flex items-center justify-between border-b border-slate-100 pb-3">
-              <h3 className="text-base font-extrabold text-slate-900">Новая задача</h3>
+              <h3 className="text-base font-extrabold text-slate-900">
+                {editingTaskId ? 'Редактирование задачи' : 'Новая задача'}
+              </h3>
               <button
                 onClick={requestClose}
                 className="rounded-lg p-1.5 text-slate-400 hover:bg-slate-100"
@@ -400,7 +474,7 @@ export const TasksPage = () => {
               </button>
             </div>
 
-            <form onSubmit={handleCreateTask} className="space-y-3">
+            <form onSubmit={handleSaveTask} className="space-y-3">
               <div>
                 <label className="block text-xs font-semibold text-slate-700 mb-1">
                   Название задачи *
@@ -439,30 +513,81 @@ export const TasksPage = () => {
                 </div>
               </div>
 
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-xs font-semibold text-slate-700 mb-1">Срок исполнения *</label>
-                  <input
-                    type="date"
-                    required
-                    value={newTask.due_date}
-                    onChange={(e) => setNewTask({ ...newTask, due_date: e.target.value })}
-                    className="w-full rounded-xl border border-slate-300 bg-slate-50 px-3.5 py-2 text-xs outline-none focus:border-blue-500 focus:bg-white"
-                  />
+              <div className="space-y-2 rounded-xl border border-slate-200 bg-slate-50/60 p-3">
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <span className="text-xs font-semibold text-slate-700">Режим срока (Asia/Dushanbe) *</span>
+                  <div className="flex items-center gap-3 text-xs">
+                    <label className="flex items-center gap-1.5 cursor-pointer font-semibold text-slate-700">
+                      <input
+                        type="radio"
+                        name="dueMode"
+                        value="DATETIME"
+                        checked={newTask.dueMode === 'DATETIME'}
+                        onChange={() => setNewTask((prev) => ({ ...prev, dueMode: 'DATETIME' }))}
+                      />
+                      <span>Дата и время</span>
+                    </label>
+                    <label className="flex items-center gap-1.5 cursor-pointer font-semibold text-slate-700">
+                      <input
+                        type="radio"
+                        name="dueMode"
+                        value="DATE_ONLY"
+                        checked={newTask.dueMode === 'DATE_ONLY'}
+                        onChange={() => setNewTask((prev) => ({ ...prev, dueMode: 'DATE_ONLY' }))}
+                      />
+                      <span>Только дата</span>
+                    </label>
+                  </div>
                 </div>
 
-                <div>
-                  <label className="block text-xs font-semibold text-slate-700 mb-1">Приоритет</label>
-                  <select
-                    value={newTask.priority}
-                    onChange={(e) => setNewTask({ ...newTask, priority: e.target.value })}
-                    className="w-full rounded-xl border border-slate-300 bg-slate-50 px-3 py-2 text-xs outline-none focus:border-blue-500 focus:bg-white"
-                  >
-                    <option value="LOW">Низкий</option>
-                    <option value="NORMAL">Обычный</option>
-                    <option value="HIGH">Срочно (Высокий)</option>
-                  </select>
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label htmlFor="task-due-date" className="block text-[11px] font-semibold text-slate-600 mb-1">
+                      Дата *
+                    </label>
+                    <input
+                      id="task-due-date"
+                      type="date"
+                      required
+                      value={newTask.due_date}
+                      onChange={(e) => setNewTask({ ...newTask, due_date: e.target.value })}
+                      className="w-full rounded-xl border border-slate-300 bg-white px-3.5 py-2 text-xs outline-none focus:border-blue-500"
+                    />
+                  </div>
+
+                  {newTask.dueMode === 'DATETIME' ? (
+                    <div>
+                      <label htmlFor="task-due-time" className="block text-[11px] font-semibold text-slate-600 mb-1">
+                        Время (Asia/Dushanbe) *
+                      </label>
+                      <input
+                        id="task-due-time"
+                        type="time"
+                        required
+                        value={newTask.due_time}
+                        onChange={(e) => setNewTask({ ...newTask, due_time: e.target.value })}
+                        className="w-full rounded-xl border border-slate-300 bg-white px-3.5 py-2 text-xs outline-none focus:border-blue-500"
+                      />
+                    </div>
+                  ) : (
+                    <div className="flex items-end pb-2 text-[11px] text-slate-500">
+                      Просрочка после 18:00 Asia/Dushanbe
+                    </div>
+                  )}
                 </div>
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-slate-700 mb-1">Приоритет</label>
+                <select
+                  value={newTask.priority}
+                  onChange={(e) => setNewTask({ ...newTask, priority: e.target.value })}
+                  className="w-full rounded-xl border border-slate-300 bg-slate-50 px-3 py-2 text-xs outline-none focus:border-blue-500 focus:bg-white"
+                >
+                  <option value="LOW">Низкий</option>
+                  <option value="NORMAL">Обычный</option>
+                  <option value="HIGH">Срочно (Высокий)</option>
+                </select>
               </div>
 
               <div>

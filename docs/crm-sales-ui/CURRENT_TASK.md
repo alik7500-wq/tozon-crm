@@ -1,17 +1,12 @@
 # CURRENT_TASK.md
 
-- **ID задачи:** `GAP-05.1` — Завершение жизненного цикла формы проектных прав (`ProjectAccessModal`)
-- **Статус:** `DONE` (UI-тесты `UsersProjectAccess.test.jsx` 6/6 + `InstagramInboxPage.test.jsx` 11/11 + `vite build` `PASS`; полный HTTP/Instagram сценарий с действующей сессией на staging — `NOT_RUN`)
+- **ID задачи:** `GAP-08` — Точные дата и время задач (`due_at`, `due_date_only`, `Asia/Dushanbe`)
+- **Статус:** `DONE` (`TasksPageDueTime.test.jsx` 3/3 вкл. `TZ=America/New_York` + `vite build` `PASS`; браузерный E2E — `NOT_RUN`)
 - **Ветки:**
   - `alik7500-wq/tozon-crm`: `a00`
-  - `alik7500-wq/tozon-backend`: `feat/crm-sales-completion` (без изменений в `GAP-05.1`)
+  - `alik7500-wq/tozon-backend`: `feat/crm-sales-completion`
 - **Что сделано:**
-  - `ProjectAccessModal.jsx`:
-    - При закрытии, повторном открытии и смене пользователя сбрасываются `isLoading`, `isSaving`, ошибки/успех и значения формы; инкрементируется `openSessionRef` и `requestSeqRef` для инвалидации любых незавершённых запросов предыдущего открытия.
-    - При повторном открытии форма перечитывает актуальные серверные права (`GET /api/users/:id`).
-    - Во время сохранения (`isSaving === true`) блокируются переключатель «Все проекты» и чекбоксы проектов.
-  - `UsersProjectAccess.test.jsx`: добавлены тесты на закрытие/повторное открытие во время сохранения (поздний ответ не ломает новую форму, актуальные права загружаются, новое сохранение проходит) и на смену пользователя во время сохранения.
-  - В `HANDOFF_GAP05.md` уточнено: проверка репозитория после отзыва доступа (`075_gap05_project_access_api.test.js`) — `PASS`, полный HTTP/Instagram сценарий с действующей сессией — `NOT_RUN`.
+  - `taskDueTime.js` + `TasksPage.jsx`: режимы «Дата и время» (`due_at` в UTC, ввод/показ `Asia/Dushanbe`) и «Только дата» (`due_date_only=true`, просрочка после `18:00 Asia/Dushanbe`), форма редактирования с сохранением режима и очисткой противоречивых полей.
 
 ## Следующая задача
-- Переход к оставшимся серверным `P0`-блокерам (`GAP-07`, `GAP-08`) и общему прогону `R09.3`.
+- Переход к `GAP-07` (серверные rollback-скрипты) и `R09.3`.
