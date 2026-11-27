@@ -228,4 +228,135 @@ describe('GAP-05: Users Project Access UI', () => {
       expect(screen.getByLabelText('Proj 1').checked).toBe(false);
     });
   });
+
+  it('resets isSaving on close/reopen during in-flight save, ignores old save response, re-reads fresh rights, and saves new change', async () => {
+    const onSaved = vi.fn();
+    let getCount = 0;
+    apiMock.get.mockImplementation((url) => {
+      if (url === '/users/2') {
+        getCount += 1;
+        return Promise.resolve({
+          data: {
+            user: {
+              id: 2,
+              name: 'Manager A',
+              email: 'm@t.tj',
+              all_projects_access: false,
+              allowed_project_ids: getCount === 1 ? ['1'] : ['1', '2']
+            }
+          }
+        });
+      }
+      return Promise.resolve({
+        data: { projects: [{ id: 1, name: 'Proj 1' }, { id: 2, name: 'Proj 2' }] }
+      });
+    });
+
+    let resolveOldPut;
+    apiMock.put
+      .mockImplementationOnce(() => new Promise((res) => { resolveOldPut = res; }))
+      .mockImplementationOnce((_url, body) =>
+        Promise.resolve({
+          data: {
+            user: {
+              id: 2,
+              name: 'Manager A',
+              all_projects_access: body.all_projects_access,
+              allowed_project_ids: body.allowed_project_ids.map(String)
+            }
+          }
+        })
+      );
+
+    const { rerender } = render(
+      <ProjectAccessModal
+        user={{ id: 2, name: 'Manager A', email: 'm@t.tj' }}
+        isOpen={true}
+        onClose={vi.fn()}
+        onSaved={onSaved}
+      />
+    );
+
+    await waitFor(() => expect(screen.getByLabelText('Proj 1').checked).toBe(true));
+
+    // Start save -> fields and button locked
+    fireEvent.click(screen.getByLabelText('Proj 2'));
+    fireEvent.click(screen.getByRole('button', { name: /Сохранить доступ/i }));
+    expect(screen.getByLabelText('Proj 1').disabled).toBe(true);
+    expect(screen.getByLabelText(/Все проекты/i).disabled).toBe(true);
+    expect(screen.getByRole('button', { name: /Сохранить доступ/i }).disabled).toBe(true);
+
+    // Close modal while old PUT is still in flight, then reopen
+    rerender(
+      <ProjectAccessModal
+        user={{ id: 2, name: 'Manager A', email: 'm@t.tj' }}
+        isOpen={false}
+        onClose={vi.fn()}
+        onSaved={onSaved}
+      />
+    );
+    rerender(
+      <ProjectAccessModal
+        user={{ id: 2, name: 'Manager A', email: 'm@t.tj' }}
+        isOpen={true}
+        onClose={vi.fn()}
+        onSaved={onSaved}
+      />
+    );
+
+    await waitFor(() => expect(screen.getByLabelText('Proj 2').checked).toBe(true));
+    expect(screen.getByRole('button', { name: /Сохранить доступ/i }).disabled).toBe(false);
+
+    // Resolve stale old PUT -> must NOT overwrite or trigger onSaved/success
+    resolveOldPut({
+      data: { user: { id: 2, all_projects_access: true, allowed_project_ids: [] } }
+    });
+    await waitFor(() => expect(screen.getByLabelText('Proj 2').checked).toBe(true));
+    expect(screen.getByLabelText(/Все проекты/i).checked).toBe(false);
+    expect(onSaved).not.toHaveBeenCalled();
+
+    // Save a new change successfully
+    fireEvent.click(screen.getByLabelText(/Все проекты/i));
+    fireEvent.click(screen.getByRole('button', { name: /Сохранить доступ/i }));
+    await waitFor(() => expect(screen.getByText('Проектные права успешно сохранены')).toBeTruthy());
+    expect(onSaved).toHaveBeenCalledTimes(1);
+  });
+
+  it('resets isSaving when switching user during an in-flight save', async () => {
+    apiMock.get.mockImplementation((url) => {
+      if (url === '/users/2') {
+        return Promise.resolve({ data: { user: { id: 2, name: 'Mgr A', all_projects_access: false, allowed_project_ids: ['1'] } } });
+      }
+      if (url === '/users/3') {
+        return Promise.resolve({ data: { user: { id: 3, name: 'Mgr B', all_projects_access: true, allowed_project_ids: [] } } });
+      }
+      return Promise.resolve({ data: { projects: [{ id: 1, name: 'Proj 1' }] } });
+    });
+    apiMock.put.mockImplementationOnce(() => new Promise(() => {})); // never resolves for User 2
+
+    const { rerender } = render(
+      <ProjectAccessModal
+        user={{ id: 2, name: 'Mgr A', email: 'a@t.tj' }}
+        isOpen={true}
+        onClose={vi.fn()}
+      />
+    );
+
+    await waitFor(() => expect(screen.getByLabelText('Proj 1').checked).toBe(true));
+    fireEvent.click(screen.getByRole('button', { name: /Сохранить доступ/i }));
+    expect(screen.getByRole('button', { name: /Сохранить доступ/i }).disabled).toBe(true);
+
+    // Switch to User 3 while User 2 save is in flight
+    rerender(
+      <ProjectAccessModal
+        user={{ id: 3, name: 'Mgr B', email: 'b@t.tj' }}
+        isOpen={true}
+        onClose={vi.fn()}
+      />
+    );
+
+    await waitFor(() => expect(screen.getByLabelText(/Все проекты/i).checked).toBe(true));
+    expect(screen.getByRole('button', { name: /Сохранить доступ/i }).disabled).toBe(false);
+    expect(screen.getByLabelText('Proj 1').disabled).toBe(false);
+  });
 });

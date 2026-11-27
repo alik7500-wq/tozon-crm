@@ -14,8 +14,19 @@ export const ProjectAccessModal = ({ user, isOpen, onClose, onSaved }) => {
 
   const requestSeqRef = useRef(0);
   const activeUserIdRef = useRef(null);
+  const openSessionRef = useRef(0);
 
-  const loadAccessData = async (targetUserId) => {
+  const resetModalState = () => {
+    setIsLoading(false);
+    setIsSaving(false);
+    setLoadError('');
+    setSaveError('');
+    setSaveSuccess('');
+    setAllProjectsAccess(false);
+    setSelectedProjectIds([]);
+  };
+
+  const loadAccessData = async (targetUserId, sessionToken = openSessionRef.current) => {
     if (!targetUserId) return;
     const seq = ++requestSeqRef.current;
     activeUserIdRef.current = String(targetUserId);
@@ -31,8 +42,12 @@ export const ProjectAccessModal = ({ user, isOpen, onClose, onSaved }) => {
         api.get('/projects')
       ]);
 
-      // Ignore late response if modal closed or user switched
-      if (requestSeqRef.current !== seq || activeUserIdRef.current !== String(targetUserId)) {
+      // Ignore late response if modal closed, reopened, or user switched
+      if (
+        openSessionRef.current !== sessionToken ||
+        requestSeqRef.current !== seq ||
+        activeUserIdRef.current !== String(targetUserId)
+      ) {
         return;
       }
 
@@ -50,28 +65,43 @@ export const ProjectAccessModal = ({ user, isOpen, onClose, onSaved }) => {
         : [];
       setSelectedProjectIds(ids);
     } catch (err) {
-      if (requestSeqRef.current !== seq || activeUserIdRef.current !== String(targetUserId)) {
+      if (
+        openSessionRef.current !== sessionToken ||
+        requestSeqRef.current !== seq ||
+        activeUserIdRef.current !== String(targetUserId)
+      ) {
         return;
       }
       setLoadError(err?.response?.data?.message || err?.message || 'Ошибка загрузки проектных прав');
     } finally {
-      if (requestSeqRef.current === seq && activeUserIdRef.current === String(targetUserId)) {
+      if (
+        openSessionRef.current === sessionToken &&
+        requestSeqRef.current === seq &&
+        activeUserIdRef.current === String(targetUserId)
+      ) {
         setIsLoading(false);
       }
     }
   };
 
   useEffect(() => {
+    const sessionToken = ++openSessionRef.current;
+    requestSeqRef.current += 1;
+
     if (!isOpen || !user?.id) {
       activeUserIdRef.current = null;
+      resetModalState();
       return;
     }
-    loadAccessData(user.id);
+
+    resetModalState();
+    loadAccessData(user.id, sessionToken);
   }, [isOpen, user?.id]);
 
   if (!isOpen || !user) return null;
 
   const toggleProjectId = (projectId) => {
+    if (isSaving) return;
     const key = String(projectId);
     setSaveError('');
     setSaveSuccess('');
@@ -85,6 +115,7 @@ export const ProjectAccessModal = ({ user, isOpen, onClose, onSaved }) => {
     if (isSaving || isLoading || loadError) return;
 
     const targetUserId = user.id;
+    const sessionToken = openSessionRef.current;
     const seq = ++requestSeqRef.current;
     setIsSaving(true);
     setSaveError('');
@@ -98,8 +129,12 @@ export const ProjectAccessModal = ({ user, isOpen, onClose, onSaved }) => {
 
       const res = await api.put(`/users/${targetUserId}/project-access`, payload);
 
-      // Ignore late save response if user changed
-      if (requestSeqRef.current !== seq || activeUserIdRef.current !== String(targetUserId)) {
+      // Ignore late save response if modal closed, reopened, or user changed
+      if (
+        openSessionRef.current !== sessionToken ||
+        requestSeqRef.current !== seq ||
+        activeUserIdRef.current !== String(targetUserId)
+      ) {
         return;
       }
 
@@ -117,12 +152,20 @@ export const ProjectAccessModal = ({ user, isOpen, onClose, onSaved }) => {
       }
       setSaveSuccess('Проектные права успешно сохранены');
     } catch (err) {
-      if (requestSeqRef.current !== seq || activeUserIdRef.current !== String(targetUserId)) {
+      if (
+        openSessionRef.current !== sessionToken ||
+        requestSeqRef.current !== seq ||
+        activeUserIdRef.current !== String(targetUserId)
+      ) {
         return;
       }
       setSaveError(err?.response?.data?.message || err?.message || 'Ошибка сохранения проектных прав');
     } finally {
-      if (requestSeqRef.current === seq && activeUserIdRef.current === String(targetUserId)) {
+      if (
+        openSessionRef.current === sessionToken &&
+        requestSeqRef.current === seq &&
+        activeUserIdRef.current === String(targetUserId)
+      ) {
         setIsSaving(false);
       }
     }
@@ -187,12 +230,14 @@ export const ProjectAccessModal = ({ user, isOpen, onClose, onSaved }) => {
                 <input
                   type="checkbox"
                   checked={allProjectsAccess}
+                  disabled={isSaving}
                   onChange={(e) => {
+                    if (isSaving) return;
                     setSaveError('');
                     setSaveSuccess('');
                     setAllProjectsAccess(e.target.checked);
                   }}
-                  className="mt-0.5 h-4 w-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500"
+                  className="mt-0.5 h-4 w-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500 disabled:opacity-50"
                 />
                 <div className="text-xs">
                   <div className="font-bold text-slate-900">Все проекты</div>
@@ -229,8 +274,9 @@ export const ProjectAccessModal = ({ user, isOpen, onClose, onSaved }) => {
                           <input
                             type="checkbox"
                             checked={checked}
+                            disabled={isSaving}
                             onChange={() => toggleProjectId(p.id)}
-                            className="h-4 w-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500"
+                            className="h-4 w-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500 disabled:opacity-50"
                           />
                           <span className="font-medium text-slate-800">{p.name}</span>
                         </label>
