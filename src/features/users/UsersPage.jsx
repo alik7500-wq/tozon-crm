@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { api } from '../../api/client';
 import { useAuth } from '../auth/AuthContext';
 import { useModalDismiss } from '../../hooks/useModalDismiss';
+import { ProjectAccessModal } from './ProjectAccessModal';
 import {
   PERMISSION_GROUPS,
   ALL_PERMISSIONS,
@@ -31,7 +32,8 @@ import {
   SlidersHorizontal,
   Info,
   Package,
-  Power
+  Power,
+  Building2
 } from 'lucide-react';
 
 export const UsersPage = () => {
@@ -45,6 +47,7 @@ export const UsersPage = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingUserId, setEditingUserId] = useState(null); // null = create new, number = editing existing
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [projectAccessUser, setProjectAccessUser] = useState(null);
 
   const [formData, setFormData] = useState({
     name: '',
@@ -462,6 +465,19 @@ export const UsersPage = () => {
                               <span>Доступы</span>
                             </button>
 
+                            {currentUser?.role === 'ADMIN' && (
+                              <button
+                                type="button"
+                                onClick={() => setProjectAccessUser(u)}
+                                className="flex items-center gap-1 px-2.5 py-1 rounded-lg bg-indigo-50 text-indigo-700 hover:bg-indigo-100 border border-indigo-200 text-[11px] font-bold transition cursor-pointer"
+                                title="Настроить доступ к проектам"
+                                aria-label={`Доступ к проектам ${u.name}`}
+                              >
+                                <Building2 className="h-3 w-3" />
+                                <span>Проекты</span>
+                              </button>
+                            )}
+
                             <button type="button" onClick={() => openEditModal(u)} title="Редактировать сотрудника" aria-label={'Редактировать ' + u.name} className="p-1.5 rounded-lg text-slate-500 hover:text-blue-700 hover:bg-blue-50 transition">
                               <Edit2 className="h-4 w-4" />
                             </button>
@@ -724,6 +740,17 @@ export const UsersPage = () => {
           </div>
         </div>
       )}
+
+      <ProjectAccessModal
+        user={projectAccessUser}
+        isOpen={Boolean(projectAccessUser)}
+        onClose={() => setProjectAccessUser(null)}
+        onSaved={(updatedUser) => {
+          setUsers((prev) =>
+            prev.map((item) => (String(item.id) === String(updatedUser.id) ? { ...item, ...updatedUser } : item))
+          );
+        }}
+      />
     </div>
   );
 };
