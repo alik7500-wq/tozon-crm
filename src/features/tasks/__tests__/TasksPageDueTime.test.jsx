@@ -42,6 +42,11 @@ describe('GAP-08: Exact Task Date/Time (Asia/Dushanbe), Modes & Overdue', () => 
 
     const parts = formatDushanbeDateTimeParts('2026-11-26T20:00:00.000Z');
     expect(parts).toEqual({ date: '2026-11-27', time: '01:00' });
+
+    // Empty or invalid time must NEVER silently default to 09:00
+    expect(dushanbeDateTimeToUtcIso('2026-11-27', '')).toBeNull();
+    expect(dushanbeDateTimeToUtcIso('2026-11-27', 'bad')).toBeNull();
+    expect(dushanbeDateTimeToUtcIso('2026-02-30', '12:00')).toBeNull();
   });
 
   it('evaluates overdue accurately right before/after due_at, at 18:00 Asia/Dushanbe for date-only, and excludes COMPLETED/CANCELLED', () => {
@@ -156,5 +161,13 @@ describe('GAP-08: Exact Task Date/Time (Asia/Dushanbe), Modes & Overdue', () => 
     fireEvent.click(screen.getByRole('button', { name: 'Редактировать задачу Старая задача' }));
     expect(screen.getByLabelText('Только дата').checked).toBe(true);
     expect(screen.queryByLabelText(/Время \(Asia\/Dushanbe\)/i)).toBeNull();
+
+    // 5. Switching to DATETIME with empty time shows inline error BEFORE sending API request
+    fireEvent.click(screen.getByLabelText('Дата и время'));
+    fireEvent.change(screen.getByLabelText(/Время \(Asia\/Dushanbe\) \*/i), { target: { value: '' } });
+    const putCallsBefore = apiMock.put.mock.calls.length;
+    fireEvent.submit(screen.getByRole('button', { name: /^Сохранить$/i }).closest('form'));
+    await waitFor(() => expect(screen.getByRole('alert').textContent).toContain('Asia/Dushanbe'));
+    expect(apiMock.put.mock.calls.length).toBe(putCallsBefore);
   });
 });

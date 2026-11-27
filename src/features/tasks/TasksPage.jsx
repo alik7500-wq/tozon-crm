@@ -58,6 +58,7 @@ export const TasksPage = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingTaskId, setEditingTaskId] = useState(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [formError, setFormError] = useState('');
 
   const createEmptyTaskForm = () => ({
     title: '',
@@ -76,6 +77,7 @@ export const TasksPage = () => {
 
   const openCreateModal = () => {
     setEditingTaskId(null);
+    setFormError('');
     setNewTask(createEmptyTaskForm());
     setIsModalOpen(true);
   };
@@ -86,6 +88,7 @@ export const TasksPage = () => {
     const fallbackDate = task.due_date ? String(task.due_date).slice(0, 10) : getDushanbeToday();
 
     setEditingTaskId(task.id);
+    setFormError('');
     setNewTask({
       title: task.title || '',
       type: task.type || 'CALL',
@@ -162,14 +165,25 @@ export const TasksPage = () => {
   const handleSaveTask = async (e) => {
     e.preventDefault();
     if (!newTask.title.trim()) return;
+    setFormError('');
+
+    const duePayload = buildTaskDuePayload({
+      mode: newTask.dueMode,
+      date: newTask.due_date,
+      time: newTask.due_time
+    });
+
+    if (newTask.dueMode === 'DATETIME' && !duePayload.due_at) {
+      setFormError('Укажите корректные дату и время (ЧЧ:ММ) в часовом поясе Asia/Dushanbe');
+      return;
+    }
+    if (newTask.dueMode === 'DATE_ONLY' && !/^\d{4}-\d{2}-\d{2}$/.test(String(newTask.due_date || ''))) {
+      setFormError('Укажите корректную календарную дату');
+      return;
+    }
 
     try {
       setIsSubmitting(true);
-      const duePayload = buildTaskDuePayload({
-        mode: newTask.dueMode,
-        date: newTask.due_date,
-        time: newTask.due_time
-      });
       const payload = {
         title: newTask.title.trim(),
         type: newTask.type,
@@ -600,6 +614,12 @@ export const TasksPage = () => {
                   className="w-full rounded-xl border border-slate-300 bg-slate-50 p-2.5 text-xs outline-none focus:border-blue-500 focus:bg-white"
                 />
               </div>
+
+              {formError && (
+                <div role="alert" className="rounded-xl border border-rose-200 bg-rose-50 px-3 py-2 text-xs font-semibold text-rose-700">
+                  {formError}
+                </div>
+              )}
 
               <div className="flex justify-end gap-3 pt-3 border-t border-slate-100">
                 <button

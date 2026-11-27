@@ -45,11 +45,15 @@ export function formatDushanbeDateTimeParts(isoInput) {
 
 /**
  * Converts Asia/Dushanbe date ('YYYY-MM-DD') + time ('HH:MM') into a UTC ISO string.
+ * Returns null if date or time is empty/invalid (never substitutes a default time).
  */
-export function dushanbeDateTimeToUtcIso(dateStr, timeStr = '09:00') {
+export function dushanbeDateTimeToUtcIso(dateStr, timeStr) {
   if (!/^\d{4}-\d{2}-\d{2}$/.test(String(dateStr || ''))) return null;
-  const cleanTime = /^\d{2}:\d{2}$/.test(String(timeStr || '')) ? timeStr : '09:00';
-  const parsed = new Date(`${dateStr}T${cleanTime}:00+05:00`);
+  if (!/^(?:[01]\d|2[0-3]):[0-5]\d$/.test(String(timeStr || ''))) return null;
+  const [y, m, d] = String(dateStr).split('-').map(Number);
+  const check = new Date(Date.UTC(y, m - 1, d));
+  if (check.getUTCFullYear() !== y || check.getUTCMonth() + 1 !== m || check.getUTCDate() !== d) return null;
+  const parsed = new Date(`${dateStr}T${timeStr}:00+05:00`);
   return Number.isNaN(parsed.getTime()) ? null : parsed.toISOString();
 }
 

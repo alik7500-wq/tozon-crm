@@ -1,7 +1,7 @@
 # CURRENT_TASK.md
 
-- **ID задачи:** `GAP-08` — Точные дата и время задач (`due_at`, `due_date_only`, `Asia/Dushanbe`)
-- **Статус:** `DONE` (`TasksPageDueTime.test.jsx` 3/3 вкл. `TZ=America/New_York` + `vite build` `PASS`; браузерный E2E — `NOT_RUN`)
+- **ID задачи:** `GAP-08.1` — Серверная согласованность сроков задач и строгая валидация времени на клиенте
+- **Статус:** `DONE` (`TasksPageDueTime.test.jsx` 3/3 + `vite build` + `076_gap08_task_due_time.test.js` 4/4 `PASS`; браузерный E2E — `NOT_RUN`)
 - **Ветки:**
   - `alik7500-wq/tozon-crm`: `a00`
   - `alik7500-wq/tozon-backend`: `feat/crm-sales-completion`
